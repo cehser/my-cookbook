@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+    <head>
+        <link rel="stylesheet" href="index.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" charset="UTF-8">
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.13.1/js-yaml.js"></script>
+        <!-- Add this to <head> -->
+
+        <!-- Load required Bootstrap and BootstrapVue CSS -->
+        <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
+        <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css" />
+
+        <!-- Load polyfills to support older browsers -->
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es2015%2CIntersectionObserver" crossorigin="anonymous"></script>
+
+        <!-- Load Vue followed by BootstrapVue -->
+        <script src="https://unpkg.com/vue@latest/dist/vue.min.js"></script>
+        <script src="https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
+
+        <!-- Load the following for BootstrapVueIcons support -->
+        <script src="https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue-icons.min.js"></script>
+
+        <!-- CDNJS :: Sortable (https://cdnjs.com/) -->
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.8.4/Sortable.min.js"></script>
+        <!-- CDNJS :: Vue.Draggable (https://cdnjs.com/) -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.20.0/vuedraggable.umd.min.js"></script>
+
+        <script src="jsonpath-0.8.0.js"></script>
+    </head>
+    <body>
+        
+        <b-container id="app">
+          <b-form-datalist id="ingredient-units-list" :options="ingredient_units"></b-form-datalist>
+          <h1>Rezepte</h1>
+
+          <h2>Ingredients</h2>
+          <draggable v-model="recipes[0].ingredients" draggable=".drag-ingredient-item">
+              <div v-for="(ingredient, index) in recipes[0].ingredients" class="drag-ingredient-item" v-bind:key="index">
+                
+                <div v-for="(value, name) in ingredient" v-bind:key="name">
+                  <b-form-row> 
+                  <b-col sm="3">{{name}}</b-col>
+                  <b-col sm="1"><b-form-input number v-model="value.amounts[0].amount"></b-form-input></b-col>
+                  <b-col sm="3"><b-form-input list="ingredient-units-list" v-model="value.amounts[0].unit"></b-form-input></b-col>
+                  <b-col sm="3"><b-button @click="recipes[0].ingredients.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button> 
+                                <b-button v-b-toggle="'notes-ingredient-' + index"><b-icon icon="document-text"></b-icon></b-button>
+                  </b-col> 
+                  </b-form-row> 
+                  <b-collapse v-bind:id="'notes-ingredient-' + index"> 
+                    <b-form-row> 
+                      <b-col offset="1" sm="1">Notizen</b-col>
+                      <b-col sm="10">
+                        <b-form-row v-for="(note, index) in value.notes" v-bind:key="index">
+                          <b-col sm="8"><b-form-input v-model="value.notes[index]"></b-form-input></b-col>
+                          <b-col sm ="1"><b-button @click="value.notes.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button></b-col> 
+                        </b-form-row>
+                        <b-form-row>
+                          <b-button @click="value.notes.push('Neue Notiz')"><b-icon icon="plus"></b-icon></b-button>
+                        </b-form-row>
+                      </b-col>
+                    </b-form-row>
+                  </b-collapse>
+              </div>
+              </div>
+            </draggable>
+          <h2>Steps</h2>
+          <draggable v-model="recipes[0].steps" draggable=".drag-step-item">
+              <b-form-row v-for="(step, index) in recipes[0].steps" class="drag-step-item">
+                <b-col col="11"><b-form-input v-model="step.step"></b-form-input></b-col>
+                <b-col col="1"><b-button @click="recipes[0].steps.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button></b-col>
+              </b-form-row>
+          </draggable>
+            <b-form-row>
+              <b-button @click="recipes[0].steps.push({step:'Neuer Schritt'})"><b-icon icon="plus"></b-icon></b-button>
+            </b-form-row>
+          <h2>Code</h2>
+          <b-form-row>
+            <b-form-textarea readonly rows="10" :value="yaml"></b-form-textarea>
+          </b-form-row>
+          <b-button-group>
+            <b-button @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill> Speichern</b-button>
+            <b-button @click="saveRecipeAsFile"><b-icon-download></b-icon-download> Export</b-button>
+            <b-button @click="realFileBtn.click()"><b-icon-upload></b-icon-upload> Import</b-button>
+            <b-button @click="loadSample"><b-icon-document-text></b-icon-document-text> Load sample</b-button>
+          </b-button-group>
+          <b-collapse id="collapse-file-upload">
+            <b-form-file hidden="hidden" id="realFileBtn" @change="loadFromFile" v-model="file" placeholder="Choose a file or drop it here..." drop-placeholder="Drop file here..." accept=".yaml"></b-form-file>
+          </b-collapse>
+          
+        </b-container>
+
+        
+        <script src="index.js"></script>
+    </body>
+</html>
