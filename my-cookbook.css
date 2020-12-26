@@ -1,0 +1,32 @@
+.list-group-numbered { list-style: decimal inside; }
+.list-group-alpha { list-style: lower-alpha inside; }
+.list-group-roman { list-style: lower-roman inside; }
+.list-group-alpha >li, .list-group-numbered >li { display: list-item }
+
+
+.collapsing.width {
+  -webkit-transition-property: width, visibility;
+  transition-property: width, visibility;
+  width: 0;
+  height: auto;
+    transition-property: height, visibility;
+  -webkit-transition-duration: 0.35s;
+  transition-duration: 0.35s;
+  -webkit-transition-timing-function: ease;
+  transition-timing-function: ease;
+}
+
+
+.card img {
+  object-fit: cover; /* Do not scale the image */
+  object-position: center; /* Center the image within the element */
+  width: 100%;
+  max-width:75vh;
+  margin:auto;
+  /*max-height: 250px;
+  margin-bottom: 1rem;*/
+}
+
+svg.rotate180 {
+	transform: rotate(180deg);
+}
