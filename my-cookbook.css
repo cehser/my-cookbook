@@ -53,6 +53,7 @@ svg.rotate180 {
     right: 0;
     top: 56px;
     width: 3em;
+    height: 0;
 }
 
 #steps {
