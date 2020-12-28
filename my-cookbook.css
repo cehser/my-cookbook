@@ -30,3 +30,35 @@
 svg.rotate180 {
 	transform: rotate(180deg);
 }
+
+.wrapper {
+    display: flex;
+    width: 100%;
+}
+
+#ingredients {
+	min-width: 20em;
+	max-width: 20em;
+    position: fixed;
+    top: 56px;
+    right: 0;
+    /*height: calc(100vh - 56px);*/
+    z-index: 999;
+    /*transition: all 0.3s;*/
+    transition: all 0s;
+}
+
+#collapesebutton {
+	position: sticky;
+    right: 0;
+    top: 56px;
+    width: 3em;
+}
+
+#steps {
+	width: calc(100% - 20em);
+}
+
+#steps.full {
+	width: 100%;
+}
