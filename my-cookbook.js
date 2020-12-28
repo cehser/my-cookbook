@@ -85,6 +85,17 @@ var app = new Vue({
 	  		return [...units].sort(); //convert to array
 	  	}
 	},
+	filters : {
+		formatNumbers: function(value) {
+			if (typeof value !== "number") {
+		        return value;
+		    }
+			return Number(value).toLocaleString('de-DE', {
+			    minimumFractionDigits: 0,
+			    maximumFractionDigits: 2
+			});
+		}
+	},
 	methods: {
 		saveRecipeAsFile: function () {
 	    	var fileNameToSaveAs = "recipe.yaml"
@@ -141,6 +152,22 @@ var app = new Vue({
 	        });
 	        
 	        return newGuid;
+	    },
+	    calcNewYield: function(ev) {
+	    	var oldYield = this.recipes[0].yields[0][Object.keys(this.recipes[0].yields[0])[0]] ;
+	    	var newYield = ev.target.value;
+	    	this.recipes[0].yields[0][Object.keys(this.recipes[0].yields[0])[0]] = newYield;
+	    	console.log(this.recipes[0].ingredients);
+			
+			this.recipes[0].ingredients.forEach( function(ingredient) {
+				Object.entries(ingredient).forEach(entry => {
+					const [key, value] = entry;
+					if (typeof value.amounts[0].amount == "number") {						
+						value.amounts[0].amount = value.amounts[0].amount * newYield/oldYield;
+					}
+				});
+			});
 	    }
+
 	}
 });
