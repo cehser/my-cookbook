@@ -77,8 +77,8 @@ var app = new Vue({
 	  	},
 		ingredient_units:  function () {
 			var units = new Set(['g', 'ml', 'each']);
-			var dyn_units = jsonPath(this, 'ingredients[*].*.amounts[*].unit');
-			console.log(dyn_units);
+			var dyn_units = jsonPath(this.recipes[this.selected], 'ingredients[*].*.amounts[*].unit');
+			//console.log(dyn_units);
 			
 			if(dyn_units) {
 				dyn_units.forEach(item => units.add(item))
@@ -96,9 +96,12 @@ var app = new Vue({
 		  		} else {
 		  			return 'Units'
 		  		}
-		  	}, set(val) {
+		  	}, set(newUnit) {
 		  		if(!!this.recipes && !!(this.recipes[this.selected].yields)) {
-					Object.keys(this.recipes[this.selected].yields[0])[0] = val;
+		  			var oldUnit = Object.keys(this.recipes[this.selected].yields[0])[0];
+		  			var value = this.yields_value;
+		  			delete this.recipes[this.selected].yields[0][oldUnit];
+		  			this.recipes[this.selected].yields[0][newUnit] = value;
 		  		} 
 		  	} 
 	  	}  	, 
