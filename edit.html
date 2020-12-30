@@ -37,6 +37,44 @@
               <b-form-select class="form-control mr-sm-2" v-model.number="selected" :options="recipes_list"></b-form-select>
               <b-button @click="recipes.splice(selected, 1)"><b-icon icon="trash"></b-icon></b-button>
           </form>   
+          <h2>General</h2>
+
+          <b-container fluid>
+            <b-row class="my-1">
+              <b-col sm="2">
+                <label for="input-name">Title:</label>
+              </b-col>
+              <b-col sm="10">
+                <b-form-input id="input-name" size="sm" placeholder="Enter a name" v-model="recipes[selected].recipe_name"></b-form-input>
+              </b-col>
+            </b-row>
+            <b-row class="my-1">
+              <b-col sm="2">
+                <label for="input-yields">Yields:</label>
+              </b-col>
+              <b-col sm="10">
+                <b-form-input id="input-yields" size="sm" placeholder="Enter a name" v-model="yields_unit"></b-form-input>
+                <b-form-input id="input-yields-value" size="sm" placeholder="Enter a name" v-model="yields_value"></b-form-input>
+              </b-col>
+            </b-row>
+            <b-row class="my-1">
+              <b-col sm="2">
+                <label for="input-name">Subtitle:</label>
+              </b-col>
+              <b-col sm="10">
+                <b-form-input id="input-name" size="sm" placeholder="Enter a name" v-model="recipes[selected].subtitle"></b-form-input>
+              </b-col>
+            </b-row>
+            <b-row class="my-1">
+              <b-col sm="2">
+                <label for="input-name">Image:</label>
+              </b-col>
+              <b-col sm="10">
+                <b-form-input id="input-name" type="url" size="sm" placeholder="Enter a name" v-model="recipes[selected].imageurl"></b-form-input>
+              </b-col>
+            </b-row>
+    
+          </b-container>
           <h2>Ingredients</h2>
           <draggable v-model="recipes[selected].ingredients" draggable=".drag-ingredient-item">
               <div v-for="(ingredient, index) in recipes[selected].ingredients" class="drag-ingredient-item" :key="index">
