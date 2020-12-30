@@ -67,11 +67,11 @@
                             </button>
                         </div>
                     </div>
-                    <img class="card-img-top rounded-0" src="https://www.kuechengoetter.de/uploads/media/630x630/06/6436-pfannkuchen.jpg?v=1-0" alt="Card image cap" style="max-height: 50vh">
+                    <img class="card-img-top rounded-0" :src="recipes[selected].imageurl" alt="Card image cap" style="max-height: 50vh">
                     <div class="card-body">
                         <h2 class="card-title d-flex flex-row flex-wrap justify-content-between">
                             <div>
-                                Pfannkuchen
+                                {{recipes[selected].recipe_name}}
                             </div>
                             <div class="ml-auto">
                                 <div class="input-group flex-nowrap">
@@ -85,7 +85,7 @@
                                 </div>
                             </div>
                         </h2>
-                        <p class="card-text">Christophs Lieblingspfannkuchen-Rezept. Nach Belieben mit Früchten verfeinern.</p>
+                        <p class="card-text">{{recipes[selected].subtitle}}</p>
                         <h3>Zubereitung</h3>
                         <ol class="list-group list-group-numbered list-group-flush">
                             <li class="list-group-item" v-for="(step, index) in recipes[selected].steps" :key="index">
