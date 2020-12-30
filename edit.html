@@ -33,7 +33,10 @@
         <b-container id="app">
           <b-form-datalist id="ingredient-units-list" :options="ingredient_units"></b-form-datalist>
           <h1>Rezepte</h1>
-
+          <form class="form-inline">
+              <b-form-select class="form-control mr-sm-2" v-model.number="selected" :options="recipes_list"></b-form-select>
+              <b-button @click="recipes.splice(selected, 1)"><b-icon icon="trash"></b-icon></b-button>
+          </form>   
           <h2>Ingredients</h2>
           <draggable v-model="recipes[selected].ingredients" draggable=".drag-ingredient-item">
               <div v-for="(ingredient, index) in recipes[selected].ingredients" class="drag-ingredient-item" :key="index">
