@@ -55,14 +55,15 @@ var app = new Vue({
     el: '#app',
     data: {
         recipes: [{}],
-        file: null
+        file: null,
+        selected: 0
     },
     mounted() {
-	    if (localStorage.getItem('recipe')) {
+	    if (localStorage.getItem('recipes')) {
 	      try {
-	        this.loadYaml(localStorage.getItem('recipe'));
+	        this.loadYamlFull(localStorage.getItem('recipes'));
 	      } catch(e) {
-	        localStorage.removeItem('recipe');
+	        localStorage.removeItem('recipes');
 	        this.loadSample();
 	      }
 	    } 
@@ -83,6 +84,10 @@ var app = new Vue({
 				dyn_units.forEach(item => units.add(item))
 			}
 	  		return [...units].sort(); //convert to array
+	  	},
+	  	recipes_list: function() {
+	  		//return this.recipes.map((val,idx) => {value: idx, text: val.recipe_name});
+	  		return this.recipes.map((val,idx) => ({value: idx, text: val.recipe_name}));
 	  	}
 	},
 	filters : {
@@ -125,20 +130,25 @@ var app = new Vue({
 			const file = ev.target.files[0];
 			const reader = new FileReader();
 
-			reader.onload = e => this.loadYaml(e.target.result);
+			reader.onload = e => this.loadYamlRecipe(e.target.result);
 			//reader.onload = e => console.log(e.target.result);
 
 			reader.readAsText(file);		
 	    },
-	    loadYaml: function (content) {
+	    loadYamlRecipe: function (content) {
 	    	var recipe = jsyaml.load(content)
-	    	this.recipes = [recipe];
+	    	this.selected = this.recipes.push(recipe) - 1;
+	    },
+	    loadYamlFull: function (content) {
+	    	var recipes = jsyaml.load(content)
+	    	this.recipes = recipes;
 	    },
 	    saveToLocalStorage: function () {
 	    	localStorage.setItem('recipe', jsyaml.dump(this.recipes[0]));
+	    	localStorage.setItem('recipes', jsyaml.dump(this.recipes));
 	    },
 	    loadSample: function (){
-	    	this.loadYaml(yaml_data);
+	    	this.loadYamlRecipe(yaml_data);
 	    },
 	    generateUUID: function() { // Public Domain/MIT
 	        var d = new Date().getTime();

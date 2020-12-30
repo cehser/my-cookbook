@@ -35,15 +35,15 @@
           <h1>Rezepte</h1>
 
           <h2>Ingredients</h2>
-          <draggable v-model="recipes[0].ingredients" draggable=".drag-ingredient-item">
-              <div v-for="(ingredient, index) in recipes[0].ingredients" class="drag-ingredient-item" :key="index">
+          <draggable v-model="recipes[selected].ingredients" draggable=".drag-ingredient-item">
+              <div v-for="(ingredient, index) in recipes[selected].ingredients" class="drag-ingredient-item" :key="index">
                 
                 <div v-for="(value, name) in ingredient" :key="name">
                   <b-form-row> 
                   <b-col sm="3">{{name}}</b-col>
                   <b-col sm="1"><b-form-input number v-model="value.amounts[0].amount"></b-form-input></b-col>
                   <b-col sm="3"><b-form-input list="ingredient-units-list" v-model="value.amounts[0].unit"></b-form-input></b-col>
-                  <b-col sm="3"><b-button @click="recipes[0].ingredients.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button> 
+                  <b-col sm="3"><b-button @click="recipes[selected].ingredients.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button> 
                                 <b-button v-b-toggle="'notes-ingredient-' + index"><b-icon icon="document-text"></b-icon></b-button>
                   </b-col> 
                   </b-form-row> 
@@ -65,14 +65,14 @@
               </div>
             </draggable>
           <h2>Steps</h2>
-          <draggable v-model="recipes[0].steps" draggable=".drag-step-item">
-              <b-form-row v-for="(step, index) in recipes[0].steps" class="drag-step-item">
+          <draggable v-model="recipes[selected].steps" draggable=".drag-step-item">
+              <b-form-row v-for="(step, index) in recipes[selected].steps" class="drag-step-item">
                 <b-col col="11"><b-form-input v-model="step.step"></b-form-input></b-col>
-                <b-col col="1"><b-button @click="recipes[0].steps.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button></b-col>
+                <b-col col="1"><b-button @click="recipes[selected].steps.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button></b-col>
               </b-form-row>
           </draggable>
             <b-form-row>
-              <b-button @click="recipes[0].steps.push({step:'Neuer Schritt'})"><b-icon icon="plus"></b-icon></b-button>
+              <b-button @click="recipes[selected].steps.push({step:'Neuer Schritt'})"><b-icon icon="plus"></b-icon></b-button>
             </b-form-row>
           <h2>Code</h2>
           <b-form-row>
