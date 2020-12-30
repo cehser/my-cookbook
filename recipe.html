@@ -52,14 +52,6 @@
                     </ul>
                     <form class="form-inline">
                         <b-form-select class="form-control mr-sm-2" v-model.number="selected" :options="recipes_list"></b-form-select>
-                        <!--<input class="form-control mr-sm-2" list="recipes-list" type="search" placeholder="Search" aria-label="Search" v-model.number="selected">
-                        <datalist id="recipes-list">
-                          <option>Manual Option</option>
-                          <option>Manual Option 2</option>
-                          <option v-for="el in recipes_list">{{ el }}</option>
-                        </datalist>
-                        <b-form-datalist id="recipes-list" :options="recipes_list"></b-form-datalist>
-                        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>-->
                     </form>      
                 </div>
             </nav>
@@ -84,9 +76,9 @@
                             <div class="ml-auto">
                                 <div class="input-group flex-nowrap">
                                 
-                                    <input style="max-width: 10rem" type="number" min="0" value="6" step=".1" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing" @change="calcNewYield">
+                                    <input style="max-width: 10rem" type="number" min="0" v-model.number="yields_value" step=".1" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing">
                                     <div class="input-group-append">
-                                        <span class="input-group-text" id="inputGroup-sizing">Pfannkuchen</span>
+                                        <span class="input-group-text" id="inputGroup-sizing">{{yields_unit}}</span>
                                         <button class="btn btn-secondary" type="reset">Reset</button>
                                     </div>
                                 
@@ -119,10 +111,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="card-footer" v-for="(yield, index) in recipes[selected].yields" :key="index">
-                        <div v-for="(value, name) in yield" :key="name">
-                            Ergibt {{value | formatNumbers}} {{name}}
-                        </div>
+                    <div class="card-footer">
+                            Ergibt {{yields_value | formatNumbers}} {{yields_unit}}
                     </div>
                 </div>
             </div>

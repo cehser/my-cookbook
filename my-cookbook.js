@@ -58,7 +58,7 @@ var app = new Vue({
         file: null,
         selected: 0
     },
-    mounted() {
+    created() {
 	    if (localStorage.getItem('recipes')) {
 	      try {
 	        this.loadYamlFull(localStorage.getItem('recipes'));
@@ -73,7 +73,7 @@ var app = new Vue({
 	},
     computed: {
 	 	yaml: function () {
-	    	return jsyaml.dump(this.recipes[0])
+	    	return jsyaml.dump(this.recipes[this.selected])
 	  	},
 		ingredient_units:  function () {
 			var units = new Set(['g', 'ml', 'each']);
@@ -88,6 +88,35 @@ var app = new Vue({
 	  	recipes_list: function() {
 	  		//return this.recipes.map((val,idx) => {value: idx, text: val.recipe_name});
 	  		return this.recipes.map((val,idx) => ({value: idx, text: val.recipe_name}));
+	  	},
+	  	yields_unit: { 
+	  		get() {
+				if(!!this.recipes && !!(this.recipes[this.selected].yields)) {
+					return Object.keys(this.recipes[this.selected].yields[0])[0];	  			
+		  		} else {
+		  			return 'Units'
+		  		}
+		  	}, set(val) {
+		  		if(!!this.recipes && !!(this.recipes[this.selected].yields)) {
+					Object.keys(this.recipes[this.selected].yields[0])[0] = val;
+		  		} 
+		  	} 
+	  	}  	, 
+	  	yields_value: {
+	  		get() {
+	  			if(!!this.recipes && !!(this.recipes[this.selected].yields)) {
+					return this.recipes[this.selected].yields[0][this.yields_unit];
+		  		} else {
+		  			return 1;
+		  		}
+	  		},
+	  		set(val) {
+				if(!!this.recipes && !!(this.recipes[this.selected].yields)) {
+					var oldVal = this.recipes[this.selected].yields[0][this.yields_unit];
+					this.recipes[this.selected].yields[0][this.yields_unit] = val;
+					this.calcNewAmounts(oldVal);
+		  		}
+	  		}
 	  	}
 	},
 	filters : {
@@ -104,7 +133,7 @@ var app = new Vue({
 	methods: {
 		saveRecipeAsFile: function () {
 	    	var fileNameToSaveAs = "recipe.yaml"
-	    	var textFileAsBlob = new Blob([jsyaml.dump(this.recipes[0])], {type:'text/plain'}); 
+	    	var textFileAsBlob = new Blob([jsyaml.dump(this.recipes[this.selected])], {type:'text/plain'}); 
 	    	var downloadLink = document.createElement("a");
 	    	downloadLink.download = fileNameToSaveAs;
 	    	downloadLink.innerHTML = "Download File";
@@ -144,7 +173,7 @@ var app = new Vue({
 	    	this.recipes = recipes;
 	    },
 	    saveToLocalStorage: function () {
-	    	localStorage.setItem('recipe', jsyaml.dump(this.recipes[0]));
+	    	localStorage.setItem('recipe', jsyaml.dump(this.recipes[this.selected]));
 	    	localStorage.setItem('recipes', jsyaml.dump(this.recipes));
 	    },
 	    loadSample: function (){
@@ -163,13 +192,11 @@ var app = new Vue({
 	        
 	        return newGuid;
 	    },
-	    calcNewYield: function(ev) {
-	    	var oldYield = this.recipes[0].yields[0][Object.keys(this.recipes[0].yields[0])[0]] ;
-	    	var newYield = ev.target.value;
-	    	this.recipes[0].yields[0][Object.keys(this.recipes[0].yields[0])[0]] = newYield;
-	    	console.log(this.recipes[0].ingredients);
+	    calcNewAmounts: function(oldYield) {
+	    	var newYield = this.yields_value
+	    	//console.log(this.recipes[this.selected].ingredients);
 			
-			this.recipes[0].ingredients.forEach( function(ingredient) {
+			this.recipes[this.selected].ingredients.forEach( function(ingredient) {
 				Object.entries(ingredient).forEach(entry => {
 					const [key, value] = entry;
 					if (typeof value.amounts[0].amount == "number") {						
