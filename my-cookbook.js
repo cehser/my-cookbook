@@ -196,17 +196,25 @@ var app = new Vue({
 	        return newGuid;
 	    },
 	    calcNewAmounts: function(oldYield) {
-	    	var newYield = this.yields_value
+	    	var newYield = this.yields_value;
+	    	var exp=1;
+	    	if(this.recipes[this.selected].recalc_exp) {
+	    		exp=this.recipes[this.selected].recalc_exp;
+	    	}
 	    	//console.log(this.recipes[this.selected].ingredients);
 			
 			this.recipes[this.selected].ingredients.forEach( function(ingredient) {
 				Object.entries(ingredient).forEach(entry => {
 					const [key, value] = entry;
 					if (typeof value.amounts[0].amount == "number") {						
-						value.amounts[0].amount = value.amounts[0].amount * newYield/oldYield;
+						value.amounts[0].amount = value.amounts[0].amount * Math.pow(newYield,exp)/Math.pow(oldYield,exp);
 					}
 				});
 			});
+	    },
+	    selectStep: function(ev) {
+	    	$('#steps .list-group-item').removeClass("active");
+	    	ev.target.classList.add("active");
 	    }
 
 	}
