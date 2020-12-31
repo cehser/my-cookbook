@@ -104,16 +104,19 @@
                                 </div>  
                             </div>
                         </div>
+                        <p>
+                            <h5 class="card-title">Umrechnen</h5>
+                            <div class="input-group">
+                                <input type="number" min="0" v-model.number="yields_value" step=".1" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing">
+                                <div class="input-group-append">
+                                    <span class="input-group-text" id="inputGroup-sizing">{{yields_unit}}</span>
+                                    
+                                </div>
+                            </div>
+                        </p>   
                     </div>
                     <div class="card-body">
-                                <h5 class="card-title">Umrechnen</h5>
-                                <div class="input-group">
-                                    <input type="number" min="0" v-model.number="yields_value" step=".1" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing">
-                                    <div class="input-group-append">
-                                        <span class="input-group-text" id="inputGroup-sizing">{{yields_unit}}</span>
-                                        
-                                    </div>
-                                </div>
+                        
                     </div>
                 </div>
             </div>

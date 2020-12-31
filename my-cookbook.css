@@ -35,7 +35,7 @@ svg.rotate180 {
   position: fixed;
   top: 56px;
   right: 0;
-  /*height: calc(100vh - 56px);*/
+  height: calc(100vh - 56px);
   z-index: 999;
   /*transition: all 0.3s;*/
   transition: all 0s;
