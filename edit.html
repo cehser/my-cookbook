@@ -129,12 +129,10 @@
             <h2>Ingredients</h2>
             <draggable v-model="recipes[selected].ingredients" draggable=".drag-ingredient-item">
                 <div v-for="(ingredient, index) in recipes[selected].ingredients" class="drag-ingredient-item" :key="index">
-                  
-                  <div v-for="(value, name) in ingredient" :key="name">
-                    <b-form-row> 
-                    <b-col sm="3">{{name}}</b-col>
-                    <b-col sm="1"><b-form-input number v-model="value.amounts[0].amount"></b-form-input></b-col>
-                    <b-col sm="3"><b-form-input list="ingredient-units-list" v-model="value.amounts[0].unit"></b-form-input></b-col>
+                  <b-form-row> 
+                    <b-col sm="3">{{Object.keys(ingredient)[0]}}</b-col>
+                    <b-col sm="1"><b-form-input number v-model="ingredient[Object.keys(ingredient)[0]].amounts[0].amount"></b-form-input></b-col>
+                    <b-col sm="3"><b-form-input list="ingredient-units-list" v-model="ingredient[Object.keys(ingredient)[0]].amounts[0].unit"></b-form-input></b-col>
                     <b-col sm="3"><b-button @click="recipes[selected].ingredients.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button> 
                                   <b-button v-b-toggle="'notes-ingredient-' + index"><b-icon icon="chat-square-text"></b-icon></b-button>
                     </b-col> 
@@ -143,17 +141,16 @@
                       <b-form-row> 
                         <b-col offset="1" sm="1">Notizen</b-col>
                         <b-col sm="10">
-                          <b-form-row v-for="(note, index) in value.notes" :key="index">
-                            <b-col sm="8"><b-form-input v-model="value.notes[index]"></b-form-input></b-col>
-                            <b-col sm ="1"><b-button @click="value.notes.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button></b-col> 
+                          <b-form-row v-for="(note, index) in ingredient[Object.keys(ingredient)[0]].notes" :key="index">
+                            <b-col sm="8"><b-form-input v-model="ingredient[Object.keys(ingredient)[0]].notes[index]"></b-form-input></b-col>
+                            <b-col sm ="1"><b-button @click="ingredient[Object.keys(ingredient)[0]].notes.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button></b-col> 
                           </b-form-row>
                           <b-form-row>
-                            <b-button @click="value.notes.push('Neue Notiz')"><b-icon icon="plus"></b-icon></b-button>
+                            <b-button @click="ingredient[Object.keys(ingredient)[0]].notes.push('Neue Notiz')"><b-icon icon="plus"></b-icon></b-button>
                           </b-form-row>
                         </b-col>
                       </b-form-row>
                     </b-collapse>
-                </div>
                 </div>
               </draggable>
             <h2>Steps</h2>

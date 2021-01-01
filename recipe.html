@@ -93,15 +93,13 @@
                         <div class="card-subtitle">für {{yields_value | formatNumbers}} {{yields_unit}}</div>
                     </div>
                     <div class="card-body" v-model="ingredients">
-                        <div v-for="(ingredient, index) in recipes[selected].ingredients" :key="index">
-                            <div class="row" v-for="(value, name) in ingredient" :key="name">
-                                <div class="col-4">
-                                    {{value.amounts[0].amount | formatNumbers}} {{value.amounts[0].unit}}
-                                </div>  
-                                <div class="col-8">
-                                    {{name}}
-                                </div>  
-                            </div>
+                        <div class="row" v-for="(ingredient, index) in recipes[selected].ingredients" :key="index">
+                            <div class="col-4">
+                                {{ingredient[Object.keys(ingredient)[0]].amounts[0].amount | formatNumbers}} {{ingredient[Object.keys(ingredient)[0]].amounts[0].unit}}
+                            </div>  
+                            <div class="col-8">
+                                {{Object.keys(ingredient)[0]}}
+                            </div>  
                         </div>
                         <p>
                             <h5 class="card-title">Umrechnen</h5>
