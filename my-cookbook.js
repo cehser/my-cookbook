@@ -3,7 +3,7 @@
    https://open-recipe-format.readthedocs.io/en/latest/
 */
 
-var yaml_data = `ingredients:
+var sample_recipe = `ingredients:
     - apple:
         usda_num: 09003
         amounts:
@@ -158,6 +158,30 @@ var app = new Vue({
 	    
 	    	downloadLink.click();
 	    },
+	    saveCookbookAsFile: function () {
+	    	var fileNameToSaveAs = "cookbook.yaml"
+	    	var textFileAsBlob = new Blob([jsyaml.dump(this.recipes)], {type:'text/plain'}); 
+	    	var downloadLink = document.createElement("a");
+	    	downloadLink.download = fileNameToSaveAs;
+	    	downloadLink.innerHTML = "Download File";
+	    	if (window.webkitURL != null)
+	    	{
+	    		// Chrome allows the link to be clicked
+	    		// without actually adding it to the DOM.
+	    		downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
+	    	}
+	    	else
+	    	{
+	    		// Firefox requires the link to be added to the DOM
+	    		// before it can be clicked.
+	    		downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
+	    		downloadLink.onclick = destroyClickedElement;
+	    		downloadLink.style.display = "none";
+	    		document.body.appendChild(downloadLink);
+	    	}
+	    
+	    	downloadLink.click();
+	    },
 	    loadFromFile: function (ev) {
 			const file = ev.target.files[0];
 			const reader = new FileReader();
@@ -180,7 +204,10 @@ var app = new Vue({
 	    	localStorage.setItem('recipes', jsyaml.dump(this.recipes));
 	    },
 	    loadSample: function (){
-	    	this.loadYamlRecipe(yaml_data);
+	    	this.loadYamlRecipe(sample_recipe);
+	    },
+	    newRecipe: function() {
+
 	    },
 	    generateUUID: function() { // Public Domain/MIT
 	        var d = new Date().getTime();
@@ -215,6 +242,10 @@ var app = new Vue({
 	    selectStep: function(ev) {
 	    	$('#steps .list-group-item').removeClass("active");
 	    	ev.target.classList.add("active");
+	    },
+	    deleteSelected: function() {
+	    	this.recipes.splice(this.selected, 1);
+	    	this.selected=this.selected-1;
 	    }
 
 	}

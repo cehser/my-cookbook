@@ -10,13 +10,18 @@
         <!-- Load required Bootstrap and BootstrapVue CSS -->
         <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
         <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css" />
+        <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue-icons.min.css" />
 
+        <!-- see https://bootstrap-vue.org/docs/icons for icons -->
         <!-- Load polyfills to support older browsers -->
         <script src="https://polyfill.io/v3/polyfill.min.js?features=es2015%2CIntersectionObserver" crossorigin="anonymous"></script>
 
         <!-- Load Vue followed by BootstrapVue -->
         <script src="https://unpkg.com/vue@latest/dist/vue.min.js"></script>
         <script src="https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
+
+        <script src="https://unpkg.com/jquery@latest/dist/jquery.min.js"></script>
+        <script src="https://unpkg.com/bootstrap@latest/dist/js/bootstrap.min.js"></script>
 
         <!-- Load the following for BootstrapVueIcons support -->
         <script src="https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue-icons.min.js"></script>
@@ -27,6 +32,7 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.20.0/vuedraggable.umd.min.js"></script>
 
         <script src="jsonpath-0.8.0.js"></script>
+
     </head>
     <body>
         <div id="app">
@@ -43,6 +49,24 @@
                     <li class="nav-item active">
                         <a class="nav-link" href="./edit.html">Bearbeiten</a>
                     </li>
+                    <li class="nav-item dropdown">
+                      <a class="nav-link dropdown-toggle" href="#" role="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Organisation
+                      </a>
+                      <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <a class="dropdown-item" href="#" @click="newRecipe"><b-icon-file-earmark-plus></b-icon-file-earmark-plus> Neues Rezept</a>
+                        <a class="dropdown-item" href="#" @click="deleteSelected"><b-icon-trash></b-icon-trash> Rezept löschen</a>
+                        <a class="dropdown-item" href="#" @click="loadSample"><b-icon-file-earmark-text></b-icon-file-earmark-text> Beispielrezept</a>
+
+                        <a class="dropdown-item" href="#" @click="saveRecipeAsFile"><b-icon-file-earmark-arrow-down></b-icon-file-earmark-arrow-down> Rezept exportieren</a>
+                        <a class="dropdown-item" href="#" @click="realFileBtn.click()"><b-icon-file-earmark-arrow-up></b-icon-file-earmark-arrow-up> Rezept importieren</a>
+                        
+
+                        <a class="dropdown-item" href="#" @click="saveCookbookAsFile"><b-icon-journal-arrow-down></b-icon-journal-arrow-down> Kochbuch exportieren</a>
+                        <a class="dropdown-item" href="#"><b-icon-journal-arrow-up></b-icon-journal-arrow-up> Kochbuch importieren</a>
+                        <a class="dropdown-item" href="#" @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill> Speichern</a>
+                       </div>
+                      </li>
                 </ul>
                 <form class="form-inline">
                     <b-form-select class="form-control mr-sm-2" v-model.number="selected" :options="recipes_list"></b-form-select>
@@ -54,7 +78,7 @@
             <h1>Rezepte</h1>
             <form class="form-inline">
                 <b-form-select class="form-control mr-sm-2" v-model.number="selected" :options="recipes_list"></b-form-select>
-                <b-button @click="recipes.splice(selected, 1)"><b-icon icon="trash"></b-icon></b-button>
+                <b-button @click="deleteSelected"><b-icon icon="trash"></b-icon></b-button>
             </form>   
             <h2>General</h2>
 
@@ -112,7 +136,7 @@
                     <b-col sm="1"><b-form-input number v-model="value.amounts[0].amount"></b-form-input></b-col>
                     <b-col sm="3"><b-form-input list="ingredient-units-list" v-model="value.amounts[0].unit"></b-form-input></b-col>
                     <b-col sm="3"><b-button @click="recipes[selected].ingredients.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button> 
-                                  <b-button v-b-toggle="'notes-ingredient-' + index"><b-icon icon="document-text"></b-icon></b-button>
+                                  <b-button v-b-toggle="'notes-ingredient-' + index"><b-icon icon="chat-square-text"></b-icon></b-button>
                     </b-col> 
                     </b-form-row> 
                     <b-collapse :id="'notes-ingredient-' + index"> 
@@ -146,12 +170,7 @@
             <b-form-row>
               <b-form-textarea readonly rows="10" :value="yaml"></b-form-textarea>
             </b-form-row>
-            <b-button-group>
-              <b-button @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill> Speichern</b-button>
-              <b-button @click="saveRecipeAsFile"><b-icon-download></b-icon-download> Export</b-button>
-              <b-button @click="realFileBtn.click()"><b-icon-upload></b-icon-upload> Import</b-button>
-              <b-button @click="loadSample"><b-icon-document-text></b-icon-document-text> Load sample</b-button>
-            </b-button-group>
+            
             <b-collapse id="collapse-file-upload">
               <b-form-file hidden="hidden" id="realFileBtn" @change="loadFromFile" v-model="file" placeholder="Choose a file or drop it here..." drop-placeholder="Drop file here..." accept=".yaml"></b-form-file>
             </b-collapse>
