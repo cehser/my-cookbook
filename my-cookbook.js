@@ -246,6 +246,13 @@ var app = new Vue({
 	    deleteSelected: function() {
 	    	this.recipes.splice(this.selected, 1);
 	    	this.selected=this.selected-1;
+	    },
+	    renameIngredient: function(index, newName) {
+	    	var oldName = Object.keys(this.recipes[this.selected].ingredients[index])[0];
+	    	var newItem = {};
+	    	newItem[newName] = this.recipes[this.selected].ingredients[index][oldName];
+
+	    	this.recipes[this.selected].ingredients.splice(index, 1, newItem)
 	    }
 
 	}
