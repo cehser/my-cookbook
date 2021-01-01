@@ -70,6 +70,9 @@ var app = new Vue({
 	    else  {
 	    	this.loadSample();
 	    }
+	    if (localStorage.getItem('selected')) {
+	    	this.selected  = localStorage.getItem('selected');
+	    } else{}
 	},
     computed: {
 	 	yaml: function () {
@@ -133,6 +136,12 @@ var app = new Vue({
 			});
 		}
 	},
+	watch: {
+	    selected: function (val) {
+	     	localStorage.setItem('selected', val);
+	     	document.title = "Kochbuch: " + this.recipes[val].recipe_name;
+    	}
+    },
 	methods: {
 		saveRecipeAsFile: function () {
 	    	var fileNameToSaveAs = "recipe.yaml"
