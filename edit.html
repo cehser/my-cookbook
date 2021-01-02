@@ -139,8 +139,8 @@
                 <div v-for="(ingredient, index) in recipes[selected].ingredients" class="drag-ingredient-item" :key="index">
                   <b-form-row> 
                     <b-col sm="3">{{Object.keys(ingredient)[0]}}</b-col>
-                    <b-col sm="1"><b-form-input number v-model="ingredient[Object.keys(ingredient)[0]].amounts[0].amount"></b-form-input></b-col>
-                    <b-col sm="3"><b-form-input list="ingredient-units-list" v-model="ingredient[Object.keys(ingredient)[0]].amounts[0].unit"></b-form-input></b-col>
+                    <b-col sm="1"><b-form-input placeholder="1" min="0.001" step="0.001" type="number" v-model.number="ingredient[Object.keys(ingredient)[0]].amounts[0].amount"></b-form-input></b-col>
+                    <b-col sm="3"><b-form-input placeholder="Stück" list="ingredient-units-list" v-model="ingredient[Object.keys(ingredient)[0]].amounts[0].unit"></b-form-input></b-col>
                     <b-col sm="3"><b-button @click="recipes[selected].ingredients.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button> 
                                   <b-button v-b-toggle="'notes-ingredient-' + index"><b-icon icon="chat-square-text"></b-icon></b-button>
                                   <b-button type="button" data-toggle="modal" :data-target="'#editIngredientName'+index"><b-icon icon="pencil"></b-icon></b-button>
@@ -187,18 +187,18 @@
                 </div>
               </draggable>
                 <b-form-row>
-                <b-button @click="recipes[selected].ingredients.push({'Neue Zutat':{amounts:[{amount: 1,unit:'Stück'}]}})"><b-icon icon="plus"></b-icon></b-button>
+                <b-button @click="recipes[selected].ingredients.push({'Neue Zutat':{amounts:[{amount: null,unit:''}]}})"><b-icon icon="plus"></b-icon></b-button>
               </b-form-row>
 
             <h2>Zubereitung</h2>
             <draggable v-model="recipes[selected].steps" draggable=".drag-step-item">
                 <b-form-row v-for="(step, index) in recipes[selected].steps" class="drag-step-item">
-                  <b-col col="11"><b-form-input v-model="step.step"></b-form-input></b-col>
+                  <b-col col="11"><b-form-input placeholder="Neuer Schritt" v-model="step.step"></b-form-input></b-col>
                   <b-col col="1"><b-button @click="recipes[selected].steps.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button></b-col>
                 </b-form-row>
             </draggable>
               <b-form-row>
-                <b-button @click="recipes[selected].steps.push({step:'Neuer Schritt'})"><b-icon icon="plus"></b-icon></b-button>
+                <b-button @click="recipes[selected].steps.push({step:''})"><b-icon icon="plus"></b-icon></b-button>
               </b-form-row>
             <h2>Code</h2>
             <b-form-row>
