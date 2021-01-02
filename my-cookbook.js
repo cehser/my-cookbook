@@ -188,7 +188,7 @@ var app = new Vue({
 	    	window.URL = window.URL || window.webkitURL;
     		
     		if (userAgent.match(/iPad/i) || userAgent.match(/iPhone/i)) { //Safari & Opera iOS
-			  var url = $window.URL.createObjectURL(blob);
+			  var url = window.URL.createObjectURL(blob);
 			  window.location.href = url;
 			}
 			else {
