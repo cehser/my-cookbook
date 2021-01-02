@@ -209,8 +209,23 @@ var app = new Vue({
 	    loadFromFile: function (ev) {
 			const file = ev.target.files[0];
 			const reader = new FileReader();
+			var that = this;
 
-			reader.onload = e => this.loadYamlRecipe(e.target.result);
+			reader.onload = function(e) {
+				var content = jsyaml.load(e.target.result);
+				var recipes=[];
+
+				if(!Array.isArray(content)) {
+					recipes = [content];
+				}
+				else {
+					recipes = content;
+				}
+
+				recipes.forEach( function(recipe) {
+					that.appendRecipe(recipe);
+				});
+			};
 			//reader.onload = e => console.log(e.target.result);
 
 			reader.readAsText(file);		
@@ -283,7 +298,7 @@ var app = new Vue({
 	    },
 	    deleteSelected: function() {
 	    	this.recipes.splice(this.selected, 1);
-	    	this.selected=this.selected-1;
+	    	this.selected=Math.min(this.selected-1,0);
 	    },
 	    renameIngredient: function(index, newName) {
 	    	var oldName = Object.keys(this.recipes[this.selected].ingredients[index])[0];
