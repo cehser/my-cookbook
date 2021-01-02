@@ -72,6 +72,9 @@
                 <form class="form-inline">
                     <b-form-select class="form-control mr-sm-2" v-model.number="selected" :options="recipes_list"></b-form-select>
                 </form>      
+                <b-button @click="saveToLocalStorage">
+                  <b-icon-archive-fill></b-icon-archive-fill>
+                </b-button>
             </div>
           </nav>
           <b-container> 
