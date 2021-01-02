@@ -298,7 +298,7 @@ var app = new Vue({
 	    },
 	    deleteSelected: function() {
 	    	this.recipes.splice(this.selected, 1);
-	    	this.selected=Math.min(this.selected-1,0);
+	    	this.selected=Math.max(this.selected-1,0);
 	    },
 	    renameIngredient: function(index, newName) {
 	    	var oldName = Object.keys(this.recipes[this.selected].ingredients[index])[0];
