@@ -184,18 +184,24 @@ var app = new Vue({
 	    },
 	    saveCookbookAsFile: function () {
 	    	var fileNameToSaveAs = "cookbook.yaml"
-	    	var textFileAsBlob = new Blob([jsyaml.dump(this.recipes)], {type:'text/plain'}); 
-	    	var downloadLink = document.createElement("a");
-	    	downloadLink.download = fileNameToSaveAs;
-	    	downloadLink.innerHTML = "Download File";
-			window.URL = window.URL || window.webkitURL;
+	    	var blob = new Blob([jsyaml.dump(this.recipes)], {type:'text/plain'}); 
+	    	window.URL = window.URL || window.webkitURL;
     		
-    		downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
-    		downloadLink.onclick = destroyClickedElement;
-    		downloadLink.style.display = "none";
-    		document.body.appendChild(downloadLink);
-    
-	    	downloadLink.click();
+    		if (userAgent.match(/iPad/i) || userAgent.match(/iPhone/i)) { //Safari & Opera iOS
+			  var url = $window.URL.createObjectURL(blob);
+			  window.location.href = url;
+			}
+			else {
+				var downloadLink = document.createElement("a");
+		    	downloadLink.download = fileNameToSaveAs;
+		    	downloadLink.innerHTML = "Download File";
+				downloadLink.href = window.URL.createObjectURL(blob);
+	    		downloadLink.onclick = destroyClickedElement;
+	    		downloadLink.style.display = "none";
+	    		document.body.appendChild(downloadLink);
+				downloadLink.click();	
+			}
+	    	
 	    },
 	    loadFromFile: function (ev) {
 			const file = ev.target.files[0];
