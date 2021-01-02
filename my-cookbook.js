@@ -2,6 +2,15 @@
    for recipes in Open Recipe Format, see
    https://open-recipe-format.readthedocs.io/en/latest/
 */
+var new_recipe_de = `
+ingredients: []
+steps: []
+recipe_name: Neues Rezept
+imageurl: ./placeholder-image.png
+yields:
+  - Portionen: 4
+recalc_exp: 1`
+
 
 var sample_recipe = `ingredients:
     - apple:
@@ -56,7 +65,8 @@ var app = new Vue({
     data: {
         recipes: [{}],
         file: null,
-        selected: 0
+        selected: 0,
+        do_recalc: true //enable amounts recalculation
     },
     created() {
 	    if (localStorage.getItem('recipes')) {
@@ -71,7 +81,7 @@ var app = new Vue({
 	    	this.loadSample();
 	    }
 	    if (localStorage.getItem('selected')) {
-	    	this.selected  = localStorage.getItem('selected');
+	    	this.selected  = Math.min(localStorage.getItem('selected'), this.recipes.length - 1);
 	    } else{}
 	},
     computed: {
@@ -120,7 +130,10 @@ var app = new Vue({
 				if(!!this.recipes && !!(this.recipes[this.selected].yields)) {
 					var oldVal = this.recipes[this.selected].yields[0][this.yields_unit];
 					this.recipes[this.selected].yields[0][this.yields_unit] = val;
-					this.calcNewAmounts(oldVal);
+					
+					if(this.do_recalc) {
+						this.calcNewAmounts(oldVal); 
+					}
 		  		}
 	  		}
 	  	}
@@ -139,7 +152,9 @@ var app = new Vue({
 	watch: {
 	    selected: function (val) {
 	     	localStorage.setItem('selected', val);
-	     	document.title = "Kochbuch: " + this.recipes[val].recipe_name;
+	     	if(this.recipes[val]) {
+	     		document.title = "Kochbuch: " + this.recipes[val].recipe_name;	
+	     	}
     	}
     },
 	methods: {
@@ -200,10 +215,16 @@ var app = new Vue({
 
 			reader.readAsText(file);		
 	    },
-	    loadYamlRecipe: function (content) {
-	    	var recipe = jsyaml.load(content)
+	    appendRecipe: function(recipe) {
+	    	if(!recipe.recipe_uuid) {
+				recipe.recipe_uuid = this.generateUUID();
+			}
 	    	this.selected = this.recipes.push(recipe) - 1;
 	    },
+	    loadYamlRecipe: function (content) {
+	    	var recipe = jsyaml.load(content);
+	    	this.appendRecipe(recipe);
+		},
 	    loadYamlFull: function (content) {
 	    	var recipes = jsyaml.load(content)
 	    	this.recipes = recipes;
@@ -216,7 +237,15 @@ var app = new Vue({
 	    	this.loadYamlRecipe(sample_recipe);
 	    },
 	    newRecipe: function() {
-
+	    	this.loadYamlRecipe(new_recipe_de);
+	    },
+	    copyRecipe: function (index) {
+	    	//deep copy recipe
+	    	var recipe = jsyaml.load(jsyaml.dump(this.recipes[this.selected]));
+	    	//new uuid
+	    	recipe.recipe_uuid = this.generateUUID();
+	    	//load
+	    	this.appendRecipe(recipe);
 	    },
 	    generateUUID: function() { // Public Domain/MIT
 	        var d = new Date().getTime();

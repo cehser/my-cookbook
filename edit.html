@@ -55,15 +55,16 @@
                       </a>
                       <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                         <a class="dropdown-item" href="#" @click="newRecipe"><b-icon-file-earmark-plus></b-icon-file-earmark-plus> Neues Rezept</a>
+                        <a class="dropdown-item" href="#" @click="copyRecipe"><b-icon-files></b-icon-files> Rezept kopieren</a>
                         <a class="dropdown-item" href="#" @click="deleteSelected"><b-icon-trash></b-icon-trash> Rezept löschen</a>
                         <a class="dropdown-item" href="#" @click="loadSample"><b-icon-file-earmark-text></b-icon-file-earmark-text> Beispielrezept</a>
 
                         <a class="dropdown-item" href="#" @click="saveRecipeAsFile"><b-icon-file-earmark-arrow-down></b-icon-file-earmark-arrow-down> Rezept exportieren</a>
-                        <a class="dropdown-item" href="#" @click="realFileBtn.click()"><b-icon-file-earmark-arrow-up></b-icon-file-earmark-arrow-up> Rezept importieren</a>
+                        <a class="dropdown-item" href="#" @click="fileUploadButton.click()"><b-icon-file-earmark-arrow-up></b-icon-file-earmark-arrow-up> Rezept importieren</a>
                         
 
                         <a class="dropdown-item" href="#" @click="saveCookbookAsFile"><b-icon-journal-arrow-down></b-icon-journal-arrow-down> Kochbuch exportieren</a>
-                        <a class="dropdown-item" href="#"><b-icon-journal-arrow-up></b-icon-journal-arrow-up> Kochbuch importieren</a>
+                        <a class="dropdown-item" href="#" @click="fileUploadButton.click()"><b-icon-journal-arrow-up></b-icon-journal-arrow-up> Kochbuch importieren</a>
                         <a class="dropdown-item" href="#" @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill> Speichern</a>
                        </div>
                       </li>
@@ -75,29 +76,43 @@
           </nav>
           <b-container> 
             <b-form-datalist id="ingredient-units-list" :options="ingredient_units"></b-form-datalist>
-            <h1>Rezepte</h1>
-            <form class="form-inline">
-                <b-form-select class="form-control mr-sm-2" v-model.number="selected" :options="recipes_list"></b-form-select>
-                <b-button @click="deleteSelected"><b-icon icon="trash"></b-icon></b-button>
-            </form>   
-            <h2>General</h2>
+            <h2>Rezept</h2>
 
             <b-container fluid>
               <b-row class="my-1">
                 <b-col sm="2">
-                  <label for="input-name">Title:</label>
+                  <label for="input-name">Titel:</label>
                 </b-col>
                 <b-col sm="10">
-                  <b-form-input id="input-name" size="sm" placeholder="Enter a name" v-model="recipes[selected].recipe_name"></b-form-input>
+                  <b-form-input id="input-name" size="sm" placeholder="Namen eingeben" v-model="recipes[selected].recipe_name"></b-form-input>
+                </b-col>
+              </b-row>
+               <b-row class="my-1">
+                <b-col sm="2">
+                  <label for="input-name">Untertitel:</label>
+                </b-col>
+                <b-col sm="10">
+                  <b-form-input id="input-name" size="sm" placeholder="Untertitel eingeben" v-model="recipes[selected].subtitle"></b-form-input>
                 </b-col>
               </b-row>
               <b-row class="my-1">
                 <b-col sm="2">
-                  <label for="input-yields">Yields:</label>
+                  <label for="input-yields-value">Ergibt Menge:</label>
+                </b-col>
+                <b-col sm="10">
+                  <b-form-input id="input-yields-value" size="sm" type="number" min="0.001" step="0.001" placeholder="100.0" v-model.number="yields_value"></b-form-input>
+                  <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="recalc-switch" v-model="do_recalc">
+                    <label class="custom-control-label" for="recalc-switch">Umrechnen</label>
+                  </div>
+                </b-col>
+              </b-row>
+              <b-row class="my-1">
+                <b-col sm="2">
+                  <label for="input-yields">Ergibt Einheiten:</label>
                 </b-col>
                 <b-col sm="10">
                   <b-form-input id="input-yields" size="sm" placeholder="Enter a name" v-model="yields_unit"></b-form-input>
-                  <b-form-input id="input-yields-value" size="sm" placeholder="Enter a name" v-model.number="yields_value"></b-form-input>
                 </b-col>
               </b-row>
               <b-row class="my-1">
@@ -108,17 +123,10 @@
                   <b-form-input id="input-recalc_exp" type="number" min="1" step="1" size="sm" placeholder="1" v-model.number="recipes[selected].recalc_exp"></b-form-input>
                 </b-col>
               </b-row>
+             
               <b-row class="my-1">
                 <b-col sm="2">
-                  <label for="input-name">Subtitle:</label>
-                </b-col>
-                <b-col sm="10">
-                  <b-form-input id="input-name" size="sm" placeholder="Enter a name" v-model="recipes[selected].subtitle"></b-form-input>
-                </b-col>
-              </b-row>
-              <b-row class="my-1">
-                <b-col sm="2">
-                  <label for="input-name">Image:</label>
+                  <label for="input-name">Abbildung:</label>
                 </b-col>
                 <b-col sm="10">
                   <b-form-input id="input-name" size="sm" placeholder="Enter a name" v-model="recipes[selected].imageurl"></b-form-input>
@@ -126,7 +134,7 @@
               </b-row>
       
             </b-container>
-            <h2>Ingredients</h2>
+            <h2>Zutaten</h2>
             <draggable v-model="recipes[selected].ingredients" draggable=".drag-ingredient-item">
                 <div v-for="(ingredient, index) in recipes[selected].ingredients" class="drag-ingredient-item" :key="index">
                   <b-form-row> 
@@ -182,7 +190,7 @@
                 <b-button @click="recipes[selected].ingredients.push({'Neue Zutat':{amounts:[{amount: 1,unit:'Stück'}]}})"><b-icon icon="plus"></b-icon></b-button>
               </b-form-row>
 
-            <h2>Steps</h2>
+            <h2>Zubereitung</h2>
             <draggable v-model="recipes[selected].steps" draggable=".drag-step-item">
                 <b-form-row v-for="(step, index) in recipes[selected].steps" class="drag-step-item">
                   <b-col col="11"><b-form-input v-model="step.step"></b-form-input></b-col>
@@ -198,7 +206,7 @@
             </b-form-row>
             
             <b-collapse id="collapse-file-upload">
-              <b-form-file hidden="hidden" id="realFileBtn" @change="loadFromFile" v-model="file" placeholder="Choose a file or drop it here..." drop-placeholder="Drop file here..." accept=".yaml"></b-form-file>
+              <b-form-file hidden="hidden" id="fileUploadButton" @change="loadFromFile" v-model="file" placeholder="Choose a file or drop it here..." drop-placeholder="Drop file here..." accept=".yaml"></b-form-file>
             </b-collapse>
           </b-container>
         </div>
