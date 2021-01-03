@@ -102,7 +102,7 @@ var app = new Vue({
 	mounted() {
 		//do login
 	    this.webdavclient = window.WebDAV.createClient(this.webdav_url, this.webdav_creds);
-	};
+	},
     computed: {
 	 	yaml: function () {
 	    	return jsyaml.dump(this.recipes[this.selected])
