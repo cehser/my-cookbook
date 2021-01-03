@@ -334,8 +334,8 @@ var app = new Vue({
 	    saveToWebDAV: function() {
 	    	this.webdavclient.putFileContents(this.webdav.filepath, jsyaml.dump(this.recipes));
 	    },
-	    loadFromWebDAV: function() {
-	    	var data = await this.webdavclient.getFileContents(this.webdav.filepath { format: "text" });
+	    loadFromWebDAV: async function() {
+	    	var data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
 	    	console.log(data);
 	    }
 
