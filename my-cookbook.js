@@ -339,6 +339,7 @@ var app = new Vue({
 	    },
 	    saveWebDAVConfig: function () {
 	    	localStorage.setItem('webdav', JSON.stringify(this.webdav));
+	    	this.webdavclient = window.WebDAV.createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
 		}
 
 	}
