@@ -94,7 +94,7 @@ var app = new Vue({
 	    } else{}
 
 	    if (localStorage.getItem('webdav_creds')) {
-	    	this.webdav_creds  = localStorage.getItem('webdav_creds');
+	    	this.webdav_creds  = JSON.parse(localStorage.getItem('webdav_creds'));
 	    } else{}
 
 	    
