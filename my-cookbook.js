@@ -101,7 +101,12 @@ var app = new Vue({
 	},
 	mounted() {
 		//do login
-	    this.webdavclient = window.WebDAV.createClient(this.webdav_url, this.webdav_creds);
+		document.onreadystatechange = () => { 
+		    if (document.readyState == "complete") { 
+		        this.webdavclient = window.WebDAV.createClient(this.webdav_url, this.webdav_creds);
+		    } 
+		}
+	    
 	},
     computed: {
 	 	yaml: function () {
