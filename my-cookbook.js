@@ -330,6 +330,13 @@ var app = new Vue({
 	    	newItem[newName] = this.recipes[this.selected].ingredients[index][oldName];
 
 	    	this.recipes[this.selected].ingredients.splice(index, 1, newItem)
+	    },
+	    saveToWebDAV: function() {
+	    	this.webdavclient.putFileContents(this.webdav.filepath, jsyaml.dump(this.recipes));
+	    },
+	    loadFromWebDAV: function() {
+	    	var data = await this.webdavclient.getFileContents(this.webdav.filepath { format: "text" });
+	    	console.log(data);
 	    }
 
 	}
