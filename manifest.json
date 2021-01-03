@@ -1,0 +1,7 @@
+{
+  "name": "Rezepte",
+  "short_name": "Rezepte",
+  "lang": "de",
+  "start_url": "https://cookbook.cehser.de/recipe.html",
+  "display": "standalone"
+}
