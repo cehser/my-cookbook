@@ -57,6 +57,9 @@
                         Organisation
                       </a>
                       <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <a class="dropdown-item" href="#" @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill> Speichern</a>
+
+                        <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="#" @click="newRecipe"><b-icon-file-earmark-plus></b-icon-file-earmark-plus> Neues Rezept</a>
                         <a class="dropdown-item" href="#" @click="copyRecipe"><b-icon-files></b-icon-files> Rezept kopieren</a>
                         <a class="dropdown-item" href="#" @click="deleteSelected"><b-icon-trash></b-icon-trash> Rezept löschen</a>
@@ -72,16 +75,16 @@
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="#" @click="saveCookbookAsFile"><b-icon-journal-arrow-down></b-icon-journal-arrow-down> Kochbuch exportieren</a>
                         <a class="dropdown-item" href="#" @click="fileUploadButton.click()"><b-icon-journal-arrow-up></b-icon-journal-arrow-up> Kochbuch importieren</a>
-                        <a class="dropdown-item" href="#" @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill> Speichern</a>
                        </div>
                       </li>
                 </ul>
                 <form class="form-inline">
+                    <b-button data-toggle="modal" data-target="#settings"><b-icon-gear></b-icon-gear></b-button>
+                
                     <b-form-select class="form-control mr-sm-2" v-model.number="selected" :options="recipes_list"></b-form-select>
+                
+                    <b-button @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill></b-button>
                 </form>      
-                <b-button @click="saveToLocalStorage">
-                  <b-icon-archive-fill></b-icon-archive-fill>
-                </b-button>
             </div>
           </nav>
           <b-container> 
@@ -199,7 +202,6 @@
                 <b-form-row>
                 <b-button @click="recipes[selected].ingredients.push({'Neue Zutat':{amounts:[{amount: null,unit:''}]}})"><b-icon icon="plus"></b-icon></b-button>
               </b-form-row>
-
             <h2>Zubereitung</h2>
             <draggable v-model="recipes[selected].steps" draggable=".drag-step-item">
                 <b-form-row v-for="(step, index) in recipes[selected].steps" class="drag-step-item">
@@ -218,6 +220,43 @@
             <b-collapse id="collapse-file-upload">
               <b-form-file hidden="hidden" id="fileUploadButton" @change="loadFromFile" v-model="file" placeholder="Choose a file or drop it here..." drop-placeholder="Drop file here..." accept=".yaml"></b-form-file>
             </b-collapse>
+
+            <div class="modal fade" id="settings" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Cloud-Konfiguration (WebDAV)</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <form>
+                      <div class="form-group">
+                        <label for="webdav_url" class="col-form-label">URL</label>
+                        <input type="text" class="form-control" id="webdav_url" v-model="webdav.webdav_url">
+                      </div>
+                      <div class="form-group">
+                        <label for="webdav_username" class="col-form-label">User</label>
+                        <input type="text" class="form-control" id="webdav_username" v-model="webdav.webdav_creds.username">
+                      </div>
+                      <div class="form-group">
+                        <label for="webdav_password" class="col-form-label">Passwort</label>
+                        <input type="text" class="form-control" id="webdav_password" v-model="webdav.webdav_creds.password">
+                      </div>
+                      <div class="form-group">
+                        <label for="webdav_filepath" class="col-form-label">Pfad</label>
+                        <input type="text" class="form-control" id="webdav_filepath" v-model="webdav.filepath">
+                      </div>
+                    </form>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button"b class="btn btn-primary" data-dismiss="modal" @click="saveWebDAVConfig">Save changes</button>
+                  </div>
+                </div>
+              </div>
+            </div> 
           </b-container>
         </div>
 

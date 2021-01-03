@@ -96,8 +96,7 @@ var app = new Vue({
 	    if (localStorage.getItem('webdav')) {
 	    	this.webdav  = JSON.parse(localStorage.getItem('webdav'));
 	    } else{}
-
-	    
+	    //
 	},
 	mounted() {
 		//do login
@@ -337,7 +336,10 @@ var app = new Vue({
 	    loadFromWebDAV: async function() {
 	    	var data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
 	    	this.loadYamlFull(data);
-	    }
+	    },
+	    saveWebDAVConfig: function () {
+	    	localStorage.setItem('webdav', JSON.stringify(this.webdav));
+		}
 
 	}
 });
