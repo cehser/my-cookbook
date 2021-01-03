@@ -97,9 +97,12 @@ var app = new Vue({
 	    	this.webdav_creds  = localStorage.getItem('webdav_creds');
 	    } else{}
 
-	    //do login
-	    this.webdavclient = window.WebDAV.createClient(this.webdav_url, this.webdav_creds);
+	    
 	},
+	mounted() {
+		//do login
+	    this.webdavclient = window.WebDAV.createClient(this.webdav_url, this.webdav_creds);
+	};
     computed: {
 	 	yaml: function () {
 	    	return jsyaml.dump(this.recipes[this.selected])
