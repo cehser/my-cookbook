@@ -66,7 +66,12 @@ var app = new Vue({
         recipes: [{}],
         file: null,
         selected: 0,
-        do_recalc: true //enable amounts recalculation
+        do_recalc: true, //enable amounts recalculation
+        webdav_creds: {
+	        username: "user",
+	        password: "pass"
+	    },
+	    webdav_url: "https://webdav.server"
     },
     created() {
 	    if (localStorage.getItem('recipes')) {
@@ -83,6 +88,17 @@ var app = new Vue({
 	    if (localStorage.getItem('selected')) {
 	    	this.selected  = Math.min(localStorage.getItem('selected'), this.recipes.length - 1);
 	    } else{}
+
+	    if (localStorage.getItem('webdav_url')) {
+	    	this.webdav_url  = localStorage.getItem('webdav_url');
+	    } else{}
+
+	    if (localStorage.getItem('webdav_creds')) {
+	    	this.webdav_creds  = localStorage.getItem('webdav_creds');
+	    } else{}
+
+	    //do login
+	    this.webdavclient = window.WebDAV.createClient(this.webdav_url, this.webdav_creds);
 	},
     computed: {
 	 	yaml: function () {
