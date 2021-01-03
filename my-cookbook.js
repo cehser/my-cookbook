@@ -64,6 +64,7 @@ var app = new Vue({
     el: '#app',
     data: {
         recipes: [{}],
+        file:null, 		//used for file upload
         selected: 0,
         do_recalc: true, //enable amounts recalculation
         
