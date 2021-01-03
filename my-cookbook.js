@@ -64,14 +64,17 @@ var app = new Vue({
     el: '#app',
     data: {
         recipes: [{}],
-        file: null,
         selected: 0,
         do_recalc: true, //enable amounts recalculation
-        webdav_creds: {
-	        username: "user",
-	        password: "pass"
-	    },
-	    webdav_url: "https://webdav.server"
+        
+        webdav: {
+	        webdav_creds: {
+		        username: "user",
+		        password: "pass"
+		    },
+		    webdav_url: "https://webdav.server",
+		    filepath: "/cookbook.yaml"
+	    }
     },
     created() {
 	    if (localStorage.getItem('recipes')) {
@@ -81,7 +84,7 @@ var app = new Vue({
 	        localStorage.removeItem('recipes');
 	        this.loadSample();
 	      }
-	    } 
+	    }
 	    else  {
 	    	this.loadSample();
 	    }
@@ -89,12 +92,8 @@ var app = new Vue({
 	    	this.selected  = Math.min(localStorage.getItem('selected'), this.recipes.length - 1);
 	    } else{}
 
-	    if (localStorage.getItem('webdav_url')) {
-	    	this.webdav_url  = localStorage.getItem('webdav_url');
-	    } else{}
-
-	    if (localStorage.getItem('webdav_creds')) {
-	    	this.webdav_creds  = JSON.parse(localStorage.getItem('webdav_creds'));
+	    if (localStorage.getItem('webdav')) {
+	    	this.webdav  = JSON.parse(localStorage.getItem('webdav'));
 	    } else{}
 
 	    
@@ -103,7 +102,7 @@ var app = new Vue({
 		//do login
 		document.onreadystatechange = () => { 
 		    if (document.readyState == "complete") { 
-		        this.webdavclient = window.WebDAV.createClient(this.webdav_url, this.webdav_creds);
+		        this.webdavclient = window.WebDAV.createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
 		    } 
 		}
 	    
