@@ -336,7 +336,7 @@ var app = new Vue({
 	    },
 	    loadFromWebDAV: async function() {
 	    	var data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
-	    	console.log(data);
+	    	this.loadYamlFull(data);
 	    }
 
 	}
