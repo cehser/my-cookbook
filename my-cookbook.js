@@ -158,8 +158,9 @@ var app = new Vue({
 		  		}
 	  		},
 	  		set(val) {
-				if(!!this.recipes && !!(this.recipes[this.selected].yields)) {
+				if(!!this.recipes && !!(this.recipes[this.selected].yields) && val > 0) {
 					var oldVal = this.recipes[this.selected].yields[0][this.yields_unit];
+
 					this.recipes[this.selected].yields[0][this.yields_unit] = val;
 					
 					if(this.do_recalc) {
@@ -356,7 +357,7 @@ var app = new Vue({
 
 			this.recipes[this.selected].ingredients.push({'Neue Zutat':{amounts:[{amount: null,unit:''}]}});
 			//tried to show modal dialog but needs rendering to be done first
-			
+
 			//console.log("new ingredient " + '#editIngredientName'+(this.recipes[this.selected].ingredients.length -1));
 			//console.log($('#editIngredientName'+(this.recipes[this.selected].ingredients.length -1)));
 			//$('#editIngredientName'+(this.recipes[this.selected].ingredients.length -1)).modal('toggle');
