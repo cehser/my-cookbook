@@ -81,3 +81,9 @@ svg.rotate180 {
 	background-color: rgba(230, 230, 230,0.6)
 }
 
+.my-toast {
+    position: fixed;
+    bottom: 2em;
+    left: 2em;
+}
+

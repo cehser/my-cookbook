@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="de">
     <head>
-        <link rel="stylesheet" href="index.css">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" charset="UTF-8">
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.13.1/js-yaml.js"></script>
@@ -35,7 +34,7 @@
 
         <script type="module"  src="https://www.unpkg.com/webdav@3.6.1/web/index.js"></script>
         
-
+        <link type="text/css" rel="stylesheet" href="my-cookbook.css" />
 
         <link rel="manifest" href="manifest.json">
 
@@ -209,7 +208,7 @@
                 </div>
               </div>
                 <b-form-row>
-                <b-button @click="recipes[selected].ingredients.push({'Neue Zutat':{amounts:[{amount: null,unit:''}]}})"><b-icon icon="plus"></b-icon></b-button>
+                <b-button @click="addIngredient"><b-icon icon="plus"></b-icon></b-button>
               </b-form-row>
             <h2>Zubereitung</h2>
             <div v-model="recipes[selected].steps">
@@ -264,6 +263,11 @@
                     <button type="button"b class="btn btn-primary" data-dismiss="modal" @click="saveWebDAVConfig">Save changes</button>
                   </div>
                 </div>
+              </div>
+            </div>
+            <div class="toast my-toast bg-success" role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="toast-body">
+                Gespeichert.
               </div>
             </div> 
           </b-container>

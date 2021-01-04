@@ -105,6 +105,14 @@ var app = new Vue({
 		        this.webdavclient = window.WebDAV.createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
 		    } 
 		}
+		
+		document.onkeydown = (event) => {
+			//ctrl + s
+			if(event.ctrlKey && event.which === 83){ 
+				event.preventDefault(); //do not show browser dialog
+			 	this.saveToLocalStorage();
+			}
+		}
 	    
 	},
     computed: {
@@ -270,6 +278,7 @@ var app = new Vue({
 	    saveToLocalStorage: function () {
 	    	localStorage.setItem('recipe', jsyaml.dump(this.recipes[this.selected]));
 	    	localStorage.setItem('recipes', jsyaml.dump(this.recipes));
+	    	$('.toast').toast('show');
 	    },
 	    loadSample: function (){
 	    	this.loadYamlRecipe(sample_recipe);
@@ -332,6 +341,7 @@ var app = new Vue({
 	    },
 	    saveToWebDAV: function() {
 	    	this.webdavclient.putFileContents(this.webdav.filepath, jsyaml.dump(this.recipes));
+	    	$('.toast').toast('show');
 	    },
 	    loadFromWebDAV: async function() {
 	    	var data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
@@ -340,6 +350,17 @@ var app = new Vue({
 	    saveWebDAVConfig: function () {
 	    	localStorage.setItem('webdav', JSON.stringify(this.webdav));
 	    	this.webdavclient = window.WebDAV.createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
+		},
+		addIngredient: function() {
+
+
+			this.recipes[this.selected].ingredients.push({'Neue Zutat':{amounts:[{amount: null,unit:''}]}});
+			//tried to show modal dialog but needs rendering to be done first
+			
+			//console.log("new ingredient " + '#editIngredientName'+(this.recipes[this.selected].ingredients.length -1));
+			//console.log($('#editIngredientName'+(this.recipes[this.selected].ingredients.length -1)));
+			//$('#editIngredientName'+(this.recipes[this.selected].ingredients.length -1)).modal('toggle');
+
 		}
 
 	}
