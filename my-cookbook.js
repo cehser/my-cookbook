@@ -60,6 +60,58 @@ steps:
       haccp:
           critical_control_point: Wash hands with soap and warm water before distributing.`
 
+
+Vue.component('ingredient-modal-rename', {
+  model: {
+    prop: 'ingredient',
+  },
+  props: ['ingredient', 'index'],
+  mounted() {
+  	//set focus to input field when the modal dialog is being displayed
+  	$('#editIngredientName'+this.index).on('shown.bs.modal',  () => {
+  		$('#new-ingredient-name'+this.index).focus();
+	})
+  },
+  methods: {
+  	renameIngredient: function() {
+  		var newName = $('#new-ingredient-name'+this.index).val();
+  		var oldName = Object.keys(this.ingredient)[0];
+    	
+    	this.ingredient[newName] = this.ingredient[oldName];
+    	delete this.ingredient[oldName];
+    	
+    	//Update vomponent value
+    	this.$emit('update', this.ingredient);
+    },
+  },
+  template: `
+    <div class="modal fade" :id="'editIngredientName'+index" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Zutat umbenennen</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form>
+              <div class="form-group">
+                <label :for="'new-ingredient-name'+index" class="col-form-label">Neue Bezeichnung für {{Object.keys(ingredient)[0]}}</label>
+                <input type="text" class="form-control" :id="'new-ingredient-name'+index" autofocus>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button"b class="btn btn-primary" data-dismiss="modal" @click="renameIngredient">Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div> 
+  `
+});
+
 var app = new Vue({ 
     el: '#app',
     data: {
@@ -333,13 +385,6 @@ var app = new Vue({
 	    	this.recipes.splice(this.selected, 1);
 	    	this.selected=Math.max(this.selected-1,0);
 	    },
-	    renameIngredient: function(index, newName) {
-	    	var oldName = Object.keys(this.recipes[this.selected].ingredients[index])[0];
-	    	var newItem = {};
-	    	newItem[newName] = this.recipes[this.selected].ingredients[index][oldName];
-
-	    	this.recipes[this.selected].ingredients.splice(index, 1, newItem)
-	    },
 	    saveToWebDAV: function() {
 	    	this.webdavclient.putFileContents(this.webdav.filepath, jsyaml.dump(this.recipes));
 	    	$('.toast').toast('show');
@@ -366,3 +411,4 @@ var app = new Vue({
 
 	}
 });
+
