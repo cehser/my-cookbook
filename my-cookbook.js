@@ -61,7 +61,7 @@ steps:
           critical_control_point: Wash hands with soap and warm water before distributing.`
 
 
-Vue.component('ingredient-modal-rename', {
+Vue.component('ingredient-modal-dialog-rename', {
   model: {
     prop: 'ingredient',
   },
@@ -80,37 +80,113 @@ Vue.component('ingredient-modal-rename', {
     	this.ingredient[newName] = this.ingredient[oldName];
     	delete this.ingredient[oldName];
     	
-    	//Update vomponent value
+    	//Update component value
     	this.$emit('update', this.ingredient);
     },
   },
   template: `
-    <div class="modal fade" :id="'editIngredientName'+index" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Zutat umbenennen</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="modal-body">
-            <form>
-              <div class="form-group">
-                <label :for="'new-ingredient-name'+index" class="col-form-label">Neue Bezeichnung für {{Object.keys(ingredient)[0]}}</label>
-                <input type="text" class="form-control" :id="'new-ingredient-name'+index" autofocus>
-              </div>
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            <button type="button"b class="btn btn-primary" data-dismiss="modal" @click="renameIngredient">Save changes</button>
-          </div>
-        </div>
-      </div>
-    </div> 
+  	<div class="modal-dialog" role="document">
+    	<div class="modal-content">
+    	  <div class="modal-header">
+    	    <h5 class="modal-title" id="exampleModalLabel">Zutat umbenennen</h5>
+    	    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    	      <span aria-hidden="true">&times;</span>
+    	    </button>
+    	  </div>
+    	  <div class="modal-body">
+    	    <form>
+    	      <div class="form-group">
+    	        <label :for="'new-ingredient-name'+index" class="col-form-label">Neue Bezeichnung für {{Object.keys(ingredient)[0]}}</label>
+    	        <input type="text" class="form-control" :id="'new-ingredient-name'+index" autofocus>
+    	      </div>
+    	    </form>
+    	  </div>
+    	  <div class="modal-footer">
+    	    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+    	    <button type="button"b class="btn btn-primary" data-dismiss="modal" @click="renameIngredient">Save changes</button>
+    	  </div>
+    	</div>
+  	</div> 
   `
 });
+
+Vue.component('ingredient-notes-form-row', {
+  model: {
+    prop: 'ingredient',
+  },
+  props: ['ingredient', 'index'],
+  methods: {
+    addNote: function() {
+      this.ingredient_data.notes = this.ingredient_data.notes || [];
+      this.ingredient_data.notes.push('Neue Notiz');
+      this.$emit('update', this.ingredient);
+    }
+  },
+  computed: {
+    ingredient_data: function() {
+      return this.ingredient[Object.keys(this.ingredient)[0]];
+    }
+  },
+  template : `
+    <b-form-row> 
+      <b-col offset="1" sm="1">Notizen</b-col>
+      <b-col sm="10">
+        <b-form-row v-for="(note, index) in ingredient_data.notes" :key="index">
+          <b-col sm="8"><b-form-input v-model="ingredient_data.notes[index]"></b-form-input></b-col>
+          <b-col sm ="1"><b-button @click="ingredient_data.notes.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button></b-col> 
+        </b-form-row>
+        <b-form-row>
+          <b-button @click="addNote"><b-icon icon="plus"></b-icon></b-button>
+        </b-form-row>
+      </b-col>
+    </b-form-row>
+  `
+});
+
+Vue.component('ingredient-edit', {
+  model: {
+    prop: 'ingredient',
+  },
+  props: ['ingredient', 'index'],
+  methods: {
+    deleteIngredient() {
+      this.$emit('delete');
+    },
+    updateIngredient(ingredient) {
+      //use deep copy as wokaround to notice update of ingredient name
+      this.ingredient = JSON.parse(JSON.stringify(ingredient)); 
+      this.$emit('update', this.ingredient);
+    }
+  },
+  computed: {
+    ingredient_data: function() {
+      return this.ingredient[Object.keys(this.ingredient)[0]];
+    },
+    ingredient_name: function() {
+      return Object.keys(this.ingredient)[0];
+    }
+  },
+  template: `
+    <div>
+      <b-form-row> 
+        <b-col sm="3">{{ ingredient_name }}</b-col>
+        <b-col sm="1"><b-form-input placeholder="1" min="0.001" step="0.001" type="number" v-model.number="ingredient_data.amounts[0].amount"></b-form-input></b-col>
+        <b-col sm="3"><b-form-input placeholder="Stück" list="ingredient-units-list" v-model="ingredient_data.amounts[0].unit"></b-form-input></b-col>
+        <b-col sm="3"><b-button @click="deleteIngredient"><b-icon icon="trash"></b-icon></b-button> 
+                      <b-button v-b-toggle="'notes-ingredient-' + index"><b-icon icon="chat-square-text"></b-icon></b-button>
+                      <b-button type="button" data-toggle="modal" :data-target="'#editIngredientName'+index"><b-icon icon="pencil"></b-icon></b-button>
+        </b-col> 
+      </b-form-row> 
+      <b-collapse :id="'notes-ingredient-' + index"> 
+        <ingredient-notes-form-row v-bind:ingredient="ingredient" v-on:update="updateIngredient($event);" v-bind:index="index"></ingredient-notes-form-row>
+      </b-collapse>
+      <div class="modal fade" :id="'editIngredientName'+index" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <ingredient-modal-dialog-rename v-bind:ingredient="ingredient" v-on:update="updateIngredient($event)" v-bind:index="index"></ingredient-modal-dialog-rename>
+      </div>
+    </div>
+  `
+});
+
 
 var app = new Vue({ 
     el: '#app',
