@@ -5,6 +5,7 @@
 var new_recipe_de = `
 ingredients: []
 steps: []
+sections: []
 recipe_name: Neues Rezept
 imageurl: ./placeholder-image.png
 yields:
@@ -60,6 +61,10 @@ steps:
       haccp:
           critical_control_point: Wash hands with soap and warm water before distributing.`
 
+function swapElements(array, index1, index2) {
+  var el1 = array.splice(index1, 1, array[index2]);
+  array.splice(index2, 1, el1[0]);
+}
 
 Vue.component('ingredient-modal-dialog-rename', {
   model: {
@@ -76,9 +81,12 @@ Vue.component('ingredient-modal-dialog-rename', {
   	renameIngredient: function() {
   		var newName = $('#new-ingredient-name'+this.index).val();
   		var oldName = Object.keys(this.ingredient)[0];
+
+      var ingredient = {};
+      ingredient[newName] = this.ingredient[oldName];
+      ingredient.section  = this.ingredient.section;
     	
-    	this.ingredient[newName] = this.ingredient[oldName];
-    	delete this.ingredient[oldName];
+    	this.ingredient = ingredient;
     	
     	//Update component value
     	this.$emit('update', this.ingredient);
@@ -97,7 +105,10 @@ Vue.component('ingredient-modal-dialog-rename', {
     	    <form>
     	      <div class="form-group">
     	        <label :for="'new-ingredient-name'+index" class="col-form-label">Neue Bezeichnung für {{Object.keys(ingredient)[0]}}</label>
-    	        <input type="text" class="form-control" :id="'new-ingredient-name'+index" autofocus>
+    	        <input type="text" class="form-control" :id="'new-ingredient-name'+index">
+
+              <label :for="'ingredient-section'+index" class="col-form-label">Abschnitt</label>
+              <input type="text" class="form-control" :id="'ingredient-section'+index" v-model="ingredient.section">
     	      </div>
     	    </form>
     	  </div>
@@ -147,7 +158,7 @@ Vue.component('ingredient-edit', {
   model: {
     prop: 'ingredient',
   },
-  props: ['ingredient', 'index'],
+  props: ['ingredient', 'index', 'sections'],
   methods: {
     deleteIngredient() {
       this.$emit('delete');
@@ -172,9 +183,13 @@ Vue.component('ingredient-edit', {
         <b-col sm="3">{{ ingredient_name }}</b-col>
         <b-col sm="1"><b-form-input placeholder="1" min="0.001" step="0.001" type="number" v-model.number="ingredient_data.amounts[0].amount"></b-form-input></b-col>
         <b-col sm="3"><b-form-input placeholder="Stück" list="ingredient-units-list" v-model="ingredient_data.amounts[0].unit"></b-form-input></b-col>
-        <b-col sm="3"><b-button @click="deleteIngredient"><b-icon icon="trash"></b-icon></b-button> 
-                      <b-button v-b-toggle="'notes-ingredient-' + index"><b-icon icon="chat-square-text"></b-icon></b-button>
-                      <b-button type="button" data-toggle="modal" :data-target="'#editIngredientName'+index"><b-icon icon="pencil"></b-icon></b-button>
+        <b-col sm="4"> 
+          <b-form inline>
+            <b-button @click="deleteIngredient"><b-icon icon="trash"></b-icon></b-button> 
+            <b-button v-b-toggle="'notes-ingredient-' + index"><b-icon icon="chat-square-text"></b-icon></b-button>
+            <b-button type="button" data-toggle="modal" :data-target="'#editIngredientName'+index"><b-icon icon="pencil"></b-icon></b-button>
+            <b-form-select v-model="ingredient.section" :options="sections" size="sm"></b-form-select>
+          </b-form>
         </b-col> 
       </b-form-row> 
       <b-collapse :id="'notes-ingredient-' + index"> 
@@ -187,6 +202,20 @@ Vue.component('ingredient-edit', {
   `
 });
 
+Vue.component('section-ingredients-edit', {
+  model: {
+    prop: 'ingredients',
+  },
+  props: ['ingredients', 'section', 'sections'],
+  template:`
+    <div>
+      <h3>{{ section }}</h3>
+      <div v-for="(ingredient, index) in ingredients" :key="index">
+        <ingredient-edit v-if="section === ingredient.section" v-bind:ingredient="ingredient" v-bind:index="index" v-bind:sections="sections" v-on:update="ingredients.splice(index,1,$event)" v-on:delete="ingredients.splice(index, 1)"></ingredient-edit>
+      </div>
+    </div>
+  `
+});
 
 var app = new Vue({ 
     el: '#app',
@@ -224,7 +253,9 @@ var app = new Vue({
 	    if (localStorage.getItem('webdav')) {
 	    	this.webdav  = JSON.parse(localStorage.getItem('webdav'));
 	    } else{}
-	    //
+	    
+
+      this.recipes[this.selected].sections = this.recipes[this.selected].sections || [];
 	},
 	mounted() {
 		//do login
@@ -261,6 +292,9 @@ var app = new Vue({
 	  		//return this.recipes.map((val,idx) => {value: idx, text: val.recipe_name});
 	  		return this.recipes.map((val,idx) => ({value: idx, text: val.recipe_name}));
 	  	},
+      current_recipe: function() {
+        return this.recipes[this.selected];
+      },
 	  	yields_unit: { 
 	  		get() {
 				if(!!this.recipes && !!(this.recipes[this.selected].yields)) {
@@ -391,18 +425,30 @@ var app = new Vue({
 			reader.readAsText(file);		
 	    },
 	    appendRecipe: function(recipe) {
-	    	if(!recipe.recipe_uuid) {
-				recipe.recipe_uuid = this.generateUUID();
-			}
-	    	this.selected = this.recipes.push(recipe) - 1;
+        //set default values
+	    	recipe.sections     = recipe.sections ||  [{section:""}];
+        recipe.sections     = (recipe.sections.length > 0) ? recipe.sections : [{section:""}];
+        recipe.steps        = recipe.steps || [];
+        recipe.ingredients  = recipe.ingredients || [];
+        recipe.recipe_uuid  = recipe.recipe_uuid || this.generateUUID();
+
+        recipe.ingredients.forEach(ingredient => {
+          ingredient.section = ingredient.section || "";
+        });
+        
+  	    this.selected = this.recipes.push(recipe) - 1;
 	    },
 	    loadYamlRecipe: function (content) {
 	    	var recipe = jsyaml.load(content);
 	    	this.appendRecipe(recipe);
-		},
+		  },
 	    loadYamlFull: function (content) {
 	    	var recipes = jsyaml.load(content)
-	    	this.recipes = recipes;
+        this.recipes=[];
+
+        recipes.forEach( (recipe) => {
+          this.appendRecipe(recipe);
+        });	   
 	    },
 	    saveToLocalStorage: function () {
 	    	localStorage.setItem('recipe', jsyaml.dump(this.recipes[this.selected]));
@@ -439,19 +485,18 @@ var app = new Vue({
 	    calcNewAmounts: function(oldYield) {
 	    	var newYield = this.yields_value;
 	    	var exp=1;
-	    	if(this.recipes[this.selected].recalc_exp) {
-	    		exp=this.recipes[this.selected].recalc_exp;
+	    	if(this.current_recipe.recalc_exp) {
+	    		exp=this.current_recipe.recalc_exp;
 	    	}
 	    	//console.log(this.recipes[this.selected].ingredients);
 			
-			this.recipes[this.selected].ingredients.forEach( function(ingredient) {
-				Object.entries(ingredient).forEach(entry => {
-					const [key, value] = entry;
-					if (typeof value.amounts[0].amount == "number") {						
-						value.amounts[0].amount = value.amounts[0].amount * Math.pow(newYield,exp)/Math.pow(oldYield,exp);
-					}
-				});
-			});
+			  this.current_recipe.ingredients.forEach( function(ingredient) {
+          var name = Object.keys(ingredient)[0];
+
+					if (typeof ingredient[name].amounts[0].amount == "number") {						
+						ingredient[name].amounts[0].amount = ingredient[name].amounts[0].amount * Math.pow(newYield,exp)/Math.pow(oldYield,exp);
+					}	
+			  });
 	    },
 	    selectStep: function(ev) {
 	    	$('#steps .list-group-item').removeClass("active");
@@ -472,19 +517,10 @@ var app = new Vue({
 	    saveWebDAVConfig: function () {
 	    	localStorage.setItem('webdav', JSON.stringify(this.webdav));
 	    	this.webdavclient = window.WebDAV.createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
-		},
-		addIngredient: function() {
-
-
-			this.recipes[this.selected].ingredients.push({'Neue Zutat':{amounts:[{amount: null,unit:''}]}});
-			//tried to show modal dialog but needs rendering to be done first
-
-			//console.log("new ingredient " + '#editIngredientName'+(this.recipes[this.selected].ingredients.length -1));
-			//console.log($('#editIngredientName'+(this.recipes[this.selected].ingredients.length -1)));
-			//$('#editIngredientName'+(this.recipes[this.selected].ingredients.length -1)).modal('toggle');
-
-		}
-
+  		},
+  		addIngredient: function() {
+  			this.current_recipe.ingredients.push({'Neue Zutat':{amounts:[{amount: null,unit:''}]},section:""});
+  		}
 	}
 });
 

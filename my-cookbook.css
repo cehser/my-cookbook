@@ -88,3 +88,9 @@ svg.rotate180 {
     left: 2em;
 }
 
+.btn-group-xs > .btn, .btn-xs {
+  padding: .125rem .2rem;
+  font-size: .7rem;
+  line-height: .5;
+  border-radius: .2rem;
+}
