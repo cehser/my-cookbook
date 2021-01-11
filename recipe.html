@@ -90,11 +90,14 @@
           </div>
           <div class="card-body">
             <h3>Zubereitung</h3>
-            <ol class="list-group list-group-numbered list-group-flush">
-              <li class="list-group-item" v-for="(step, index) in current_recipe.steps" :key="index" @click="selectStep">
-                {{step.step}} 
-              </li>
-            </ol>
+            <div v-for="section in current_recipe.sections">
+              <h4>{{ section.section }}</h4>
+              <ol class="list-group list-group-numbered list-group-flush">
+                <li class="list-group-item" v-for="(step, index) in (current_recipe.steps.filter(x => x.section == section.section))" :key="index" @click="selectStep">
+                  {{step.step}} 
+                </li>
+              </ol>
+            </div>
           </div>
           
         </div>
@@ -104,13 +107,16 @@
             <div class="card-subtitle">für {{yields_value | formatNumbers}} {{yields_unit}}</div>
           </div>
           <div class="card-body" v-model="ingredients">
-            <div class="row" v-for="(ingredient, index) in current_recipe.ingredients" :key="index">
-              <div class="col-4">
-                {{ingredient[Object.keys(ingredient)[0]].amounts[0].amount | formatNumbers}} {{ingredient[Object.keys(ingredient)[0]].amounts[0].unit}}
-              </div>  
-              <div class="col-8">
-                {{Object.keys(ingredient)[0]}}
-              </div>  
+            <div v-for="section in current_recipe.sections">
+              <h4>{{ section.section }}</h4>
+              <div class="row" v-for="(ingredient, index) in (current_recipe.ingredients.filter(x => x.section == section.section))" :key="index">
+                <div class="col-4">
+                  {{ingredient[Object.keys(ingredient)[0]].amounts[0].amount | formatNumbers}} {{ingredient[Object.keys(ingredient)[0]].amounts[0].unit}}
+                </div>  
+                <div class="col-8">
+                  {{Object.keys(ingredient)[0]}}
+                </div>  
+              </div>
             </div>
             <p>
               <h5 class="card-title">Umrechnen</h5>
