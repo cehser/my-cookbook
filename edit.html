@@ -163,10 +163,7 @@
                   <b-col col="11"><b-form-input placeholder="Neuer Abschnitt" v-model="section.section"></b-form-input></b-col>
                   <b-col col="1">
                     <b-button @click="current_recipe.sections.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button>
-                      <div class="btn-group-vertical">
-                        <b-button class="btn-xs" @click="swapElements(current_recipe.sections, index, index-1)" :disabled="index == 0"><b-icon icon="chevron-up"></b-icon></b-button>
-                        <b-button class="btn-xs" @click="swapElements(current_recipe.sections, index, index+1)" :disabled="index == current_recipe.sections.length -1"><b-icon icon="chevron-down"></b-icon></b-button>
-                      </div>
+                    <array-reorder-btn-group :array="current_recipe.sections" :index="index"></array-reorder-btn-group>
                   </b-col>
                 </b-form-row>
               </div> 
@@ -176,20 +173,32 @@
             </b-container>
             <h2>Zutaten</h2>
             <div v-for="(section, index) in current_recipe.sections">
-              <section-ingredients-edit v-bind:section="section.section" v-bind:sections="current_recipe.sections.map( x =>  x.section )" v-model="current_recipe.ingredients"></section-ingredients-edit>
+              <section-ingredients-edit :section="section.section" :sections="current_recipe.sections.map( x =>  x.section )" v-model="current_recipe.ingredients"></section-ingredients-edit>
             </div>
             <b-form-row>
               <b-button @click="addIngredient"><b-icon icon="plus"></b-icon></b-button>
             </b-form-row>
             <h2>Zubereitung</h2>
-            <div v-model="current_recipe.steps">
-                <b-form-row v-for="(step, index) in current_recipe.steps">
-                  <b-col col="11"><b-form-input placeholder="Neuer Schritt" v-model="step.step"></b-form-input></b-col>
-                  <b-col col="1"><b-button @click="current_recipe.steps.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button></b-col>
-                </b-form-row>
+            <div v-for="section in current_recipe.sections">
+              <h3>{{ section.section }}</h3>
+              <div v-model="current_recipe.steps">
+                <div v-for="(step, index) in current_recipe.steps">
+                  <b-form-row  v-if="step.section == section.section">
+                    <b-col col="11"><b-form-input placeholder="Neuer Schritt" v-model="step.step"></b-form-input></b-col>
+                    <b-col col="1">
+                      <b-form inline>
+                        <b-button @click="current_recipe.steps.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button>
+                        <b-form-select v-model="step.section" :options="current_recipe.sections.map( x =>  x.section )" size="sm"></b-form-select>
+                        <array-reorder-btn-group :array="current_recipe.steps" :index="index"></array-reorder-btn-group>
+                      </b-form>
+                    </b-col>
+                  </b-form-row >
+                </div>
+              </div>  
             </div>
+            
             <b-form-row>
-              <b-button @click="current_recipe.steps.push({step:''})"><b-icon icon="plus"></b-icon></b-button>
+              <b-button @click="current_recipe.steps.push({step:'', section:''})"><b-icon icon="plus"></b-icon></b-button>
             </b-form-row>
             <h2>Code</h2>
             <b-form-row>

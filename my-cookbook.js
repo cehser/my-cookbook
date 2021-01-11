@@ -66,6 +66,18 @@ function swapElements(array, index1, index2) {
   array.splice(index2, 1, el1[0]);
 }
 
+Vue.component('array-reorder-btn-group', {
+  props: ['array', 'index'],
+  template: `
+            <div class="btn-group-vertical">
+              <b-button class="btn-xs" @click="swapElements(array, index, index-1)" :disabled="index == 0"><b-icon icon="chevron-up"></b-icon></b-button>
+              <b-button class="btn-xs" @click="swapElements(array, index, index+1)" :disabled="index == array.length -1"><b-icon icon="chevron-down"></b-icon></b-button>
+            </div>
+`   
+});
+
+
+
 Vue.component('ingredient-modal-dialog-rename', {
   model: {
     prop: 'ingredient',
@@ -158,7 +170,7 @@ Vue.component('ingredient-edit', {
   model: {
     prop: 'ingredient',
   },
-  props: ['ingredient', 'index', 'sections'],
+  props: ['ingredient', 'ingredients', 'index', 'sections'],
   methods: {
     deleteIngredient() {
       this.$emit('delete');
@@ -189,6 +201,7 @@ Vue.component('ingredient-edit', {
             <b-button v-b-toggle="'notes-ingredient-' + index"><b-icon icon="chat-square-text"></b-icon></b-button>
             <b-button type="button" data-toggle="modal" :data-target="'#editIngredientName'+index"><b-icon icon="pencil"></b-icon></b-button>
             <b-form-select v-model="ingredient.section" :options="sections" size="sm"></b-form-select>
+            <array-reorder-btn-group :array="ingredients" :index="index"></array-reorder-btn-group>
           </b-form>
         </b-col> 
       </b-form-row> 
@@ -211,7 +224,7 @@ Vue.component('section-ingredients-edit', {
     <div>
       <h3>{{ section }}</h3>
       <div v-for="(ingredient, index) in ingredients" :key="index">
-        <ingredient-edit v-if="section === ingredient.section" v-bind:ingredient="ingredient" v-bind:index="index" v-bind:sections="sections" v-on:update="ingredients.splice(index,1,$event)" v-on:delete="ingredients.splice(index, 1)"></ingredient-edit>
+        <ingredient-edit v-if="section === ingredient.section" :ingredients="ingredients" :ingredient="ingredient" :index="index" :sections="sections" @update="ingredients.splice(index,1,$event)" @delete="ingredients.splice(index, 1)"></ingredient-edit>
       </div>
     </div>
   `
@@ -434,6 +447,10 @@ var app = new Vue({
 
         recipe.ingredients.forEach(ingredient => {
           ingredient.section = ingredient.section || "";
+        });
+
+        recipe.steps.forEach(step => {
+          step.section = step.section || "";
         });
         
   	    this.selected = this.recipes.push(recipe) - 1;
