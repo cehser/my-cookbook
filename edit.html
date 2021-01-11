@@ -164,8 +164,8 @@
                   <b-col col="1">
                     <b-button @click="current_recipe.sections.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button>
                       <div class="btn-group-vertical">
-                        <b-button class="btn-xs" @click="swapElements(current_recipe.sections, index, index-1)"><b-icon icon="chevron-up"></b-icon></b-button>
-                        <b-button class="btn-xs" @click="swapElements(current_recipe.sections, index, index+1)"><b-icon icon="chevron-down"></b-icon></b-button>
+                        <b-button class="btn-xs" @click="swapElements(current_recipe.sections, index, index-1)" :disabled="index == 0"><b-icon icon="chevron-up"></b-icon></b-button>
+                        <b-button class="btn-xs" @click="swapElements(current_recipe.sections, index, index+1)" :disabled="index == current_recipe.sections.length -1"><b-icon icon="chevron-down"></b-icon></b-button>
                       </div>
                   </b-col>
                 </b-form-row>
