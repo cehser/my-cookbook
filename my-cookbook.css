@@ -96,6 +96,13 @@ svg.rotate180 {
 }
 
 h3,h4,h5, .h3, .h4, .h5 {
-  margin-top: .5rem;
+  /*margin-top: .5rem;*/
   margin-bottom: .1rem;
 }
+
+.ingredients-section  {
+  margin: -0.25rem;  
+  padding: 0.25rem;
+  margin-bottom: 0.5em;
+}
+

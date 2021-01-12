@@ -93,7 +93,7 @@
             <div v-for="section in current_recipe.sections">
               <h4>{{ section.section }}</h4>
               <ol class="list-group list-group-numbered list-group-flush">
-                <li class="list-group-item" v-for="(step, index) in (current_recipe.steps.filter(x => x.section == section.section))" :key="index" @click="selectStep">
+                <li class="list-group-item" v-for="(step, index) in (current_recipe.steps.filter(x => x.section == section.section))" :key="index" :data-section="section.section" @click="selectStep">
                   {{step.step}} 
                 </li>
               </ol>
@@ -107,7 +107,7 @@
             <div class="card-subtitle">für {{yields_value | formatNumbers}} {{yields_unit}}</div>
           </div>
           <div class="card-body" v-model="ingredients">
-            <div v-for="section in current_recipe.sections">
+            <div v-for="section in current_recipe.sections" :id="'box-ing-' + section.section" class="ingredients-section">
               <h4>{{ section.section }}</h4>
               <div class="row" v-for="(ingredient, index) in (current_recipe.ingredients.filter(x => x.section == section.section))" :key="index">
                 <div class="col-4">

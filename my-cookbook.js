@@ -516,8 +516,13 @@ var app = new Vue({
 			  });
 	    },
 	    selectStep: function(ev) {
-	    	$('#steps .list-group-item').removeClass("active");
-	    	ev.target.classList.add("active");
+	    	var doHighlight=!$(ev.target).hasClass("list-group-item-primary");
+
+        $('#steps .list-group-item').removeClass("list-group-item-primary");
+	    	$(ev.target).toggleClass("list-group-item-primary", doHighlight);
+
+        $('#ingredients .ingredients-section').removeClass("highlighted list-group-item-primary border-primary");
+        $('#box-ing-'+ ev.target.dataset.section).toggleClass("highlighted list-group-item-primary border-primary", doHighlight);
 	    },
 	    deleteSelected: function() {
 	    	this.recipes.splice(this.selected, 1);
