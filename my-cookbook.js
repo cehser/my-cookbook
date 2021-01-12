@@ -82,7 +82,7 @@ Vue.component('ingredient-modal-dialog-rename', {
   model: {
     prop: 'ingredient',
   },
-  props: ['ingredient', 'index'],
+  props: ['ingredient', 'index', 'sections'],
   mounted() {
   	//set focus to input field when the modal dialog is being displayed
   	$('#editIngredientName'+this.index).on('shown.bs.modal',  () => {
@@ -102,6 +102,8 @@ Vue.component('ingredient-modal-dialog-rename', {
     	
     	//Update component value
     	this.$emit('update', this.ingredient);
+      $('#editIngredientName'+this.index).modal('hide');
+      $('#ingredient-amount-input-'+this.index).focus();
     },
   },
   template: `
@@ -117,10 +119,11 @@ Vue.component('ingredient-modal-dialog-rename', {
     	    <form>
     	      <div class="form-group">
     	        <label :for="'new-ingredient-name'+index" class="col-form-label">Neue Bezeichnung für {{Object.keys(ingredient)[0]}}</label>
-    	        <input type="text" class="form-control" :id="'new-ingredient-name'+index">
-
+    	        <input type="text" class="form-control" :id="'new-ingredient-name'+index" @keydown.enter.prevent="renameIngredient">
+<!--
               <label :for="'ingredient-section'+index" class="col-form-label">Abschnitt</label>
-              <input type="text" class="form-control" :id="'ingredient-section'+index" v-model="ingredient.section">
+              <b-form-select v-model="ingredient.section" :options="sections" size="sm"></b-form-select>
+-->
     	      </div>
     	    </form>
     	  </div>
@@ -156,7 +159,7 @@ Vue.component('ingredient-notes-form-row', {
       <b-col sm="10">
         <b-form-row v-for="(note, index) in ingredient_data.notes" :key="index">
           <b-col sm="8"><b-form-input v-model="ingredient_data.notes[index]"></b-form-input></b-col>
-          <b-col sm ="1"><b-button @click="ingredient_data.notes.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button></b-col> 
+          <b-col sm="1"><b-button @click="ingredient_data.notes.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button></b-col> 
         </b-form-row>
         <b-form-row>
           <b-button @click="addNote"><b-icon icon="plus"></b-icon></b-button>
@@ -181,6 +184,11 @@ Vue.component('ingredient-edit', {
       this.$emit('update', this.ingredient);
     }
   },
+  mounted() {
+    if (this.ingredient_name === 'Neue Zutat') {
+      $('#editIngredientName'+this.index).modal('show');
+    }
+  },
   computed: {
     ingredient_data: function() {
       return this.ingredient[Object.keys(this.ingredient)[0]];
@@ -191,25 +199,26 @@ Vue.component('ingredient-edit', {
   },
   template: `
     <div>
-      <b-form-row> 
-        <b-col sm="3">{{ ingredient_name }}</b-col>
-        <b-col sm="1"><b-form-input placeholder="1" min="0.001" step="0.001" type="number" v-model.number="ingredient_data.amounts[0].amount"></b-form-input></b-col>
-        <b-col sm="3"><b-form-input placeholder="Stück" list="ingredient-units-list" v-model="ingredient_data.amounts[0].unit"></b-form-input></b-col>
-        <b-col sm="4"> 
-          <b-form inline>
-            <b-button @click="deleteIngredient"><b-icon icon="trash"></b-icon></b-button> 
-            <b-button v-b-toggle="'notes-ingredient-' + index"><b-icon icon="chat-square-text"></b-icon></b-button>
-            <b-button type="button" data-toggle="modal" :data-target="'#editIngredientName'+index"><b-icon icon="pencil"></b-icon></b-button>
-            <b-form-select v-model="ingredient.section" :options="sections" size="sm"></b-form-select>
+      <b-form-row align-v="center"> 
+        <b-col sm="3" align-self="center">{{ ingredient_name }}</b-col>
+        <b-col sm="1" align-self="center"><b-form-input :id="'ingredient-amount-input-'+index"  placeholder="1" min="0.001" step="0.001" type="number" v-model.number="ingredient_data.amounts[0].amount" size="sm"></b-form-input></b-col>
+        <b-col sm="3" align-self="center"><b-form-input placeholder="Stück" list="ingredient-units-list" v-model="ingredient_data.amounts[0].unit" size="sm"></b-form-input></b-col>
+        <b-col sm="2" align-self="center"><b-form-select v-model="ingredient.section" :options="sections" size="sm"></b-form-select></b-col>
+        <b-col sm="3" align-self="center"> 
+
+            
+            <b-button @click="deleteIngredient" size="sm"><b-icon icon="trash"></b-icon></b-button> 
+            <b-button v-b-toggle="'notes-ingredient-' + index" size="sm"><b-icon icon="chat-square-text" ></b-icon></b-button>
+            <b-button type="button" data-toggle="modal" :data-target="'#editIngredientName'+index" size="sm"><b-icon icon="pencil"></b-icon></b-button>
             <array-reorder-btn-group :array="ingredients" :index="index"></array-reorder-btn-group>
-          </b-form>
+
         </b-col> 
       </b-form-row> 
       <b-collapse :id="'notes-ingredient-' + index"> 
-        <ingredient-notes-form-row v-bind:ingredient="ingredient" v-on:update="updateIngredient($event);" v-bind:index="index"></ingredient-notes-form-row>
+        <ingredient-notes-form-row :ingredient="ingredient" v-on:update="updateIngredient($event);" :index="index"></ingredient-notes-form-row>
       </b-collapse>
       <div class="modal fade" :id="'editIngredientName'+index" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <ingredient-modal-dialog-rename v-bind:ingredient="ingredient" v-on:update="updateIngredient($event)" v-bind:index="index"></ingredient-modal-dialog-rename>
+        <ingredient-modal-dialog-rename :sections="sections" :ingredient="ingredient" @update="updateIngredient($event)" :index="index"></ingredient-modal-dialog-rename>
       </div>
     </div>
   `
