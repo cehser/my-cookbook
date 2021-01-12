@@ -160,9 +160,9 @@
               <h2>Abschnitte</h2>
               <div v-model="current_recipe.sections">
                 <b-form-row v-for="(section, index) in current_recipe.sections">
-                  <b-col col="11"><b-form-input placeholder="Neuer Abschnitt" v-model="section.section"></b-form-input></b-col>
+                  <b-col col="11"><b-form-input size="sm" placeholder="Neuer Abschnitt" v-model="section.section"></b-form-input></b-col>
                   <b-col col="1">
-                    <b-button @click="current_recipe.sections.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button>
+                    <b-button @click="current_recipe.sections.splice(index, 1)" size="sm"><b-icon icon="trash"></b-icon></b-button>
                     <array-reorder-btn-group :array="current_recipe.sections" :index="index"></array-reorder-btn-group>
                   </b-col>
                 </b-form-row>
@@ -184,13 +184,11 @@
               <div v-model="current_recipe.steps">
                 <div v-for="(step, index) in current_recipe.steps">
                   <b-form-row  v-if="step.section == section.section">
-                    <b-col col="11"><b-form-input placeholder="Neuer Schritt" v-model="step.step"></b-form-input></b-col>
-                    <b-col col="1">
-                      <b-form inline>
-                        <b-button @click="current_recipe.steps.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button>
-                        <b-form-select v-model="step.section" :options="current_recipe.sections.map( x =>  x.section )" size="sm"></b-form-select>
-                        <array-reorder-btn-group :array="current_recipe.steps" :index="index"></array-reorder-btn-group>
-                      </b-form>
+                    <b-col align-self="center" sm="8"><b-form-input placeholder="Neuer Schritt" v-model="step.step" size="sm"></b-form-input></b-col>
+                    <b-col align-self="center" sm="2"><b-form-select v-model="step.section" :options="current_recipe.sections.map( x =>  x.section )" size="sm"></b-form-select></b-col>
+                    <b-col align-self="center" sm="1">
+                      <b-button @click="current_recipe.steps.splice(index, 1)" size="sm"><b-icon icon="trash"></b-icon></b-button>
+                      <array-reorder-btn-group :array="current_recipe.steps" :index="index"></array-reorder-btn-group>
                     </b-col>
                   </b-form-row >
                 </div>
