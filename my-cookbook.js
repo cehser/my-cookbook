@@ -239,6 +239,33 @@ Vue.component('section-ingredients-edit', {
   `
 });
 
+Vue.component('step-edit', {
+  model: {
+    prop: 'step',
+  },
+  props: ['step', 'steps', 'index', 'sections'],
+  mounted() {
+    if (this.step.step === '') {
+      $('#editStep'+this.index).focus();
+    }
+  },
+  methods: {
+    deleteStep() {
+      this.$emit('delete');
+    }
+  },
+  template:`
+    <b-form-row>
+      <b-col align-self="center" sm="8"><b-form-input :id="'editStep'+index" placeholder="Neuer Schritt" v-model="step.step" size="sm"></b-form-input></b-col>
+      <b-col align-self="center" sm="2"><b-form-select v-model="step.section" :options="sections" size="sm"></b-form-select></b-col>
+      <b-col align-self="center" sm="1">
+        <b-button @click="deleteStep" size="sm"><b-icon icon="trash"></b-icon></b-button>
+        <array-reorder-btn-group :array="steps" :index="index"></array-reorder-btn-group>
+      </b-col>
+    </b-form-row >
+  `
+});
+
 var app = new Vue({ 
     el: '#app',
     data: {
@@ -332,7 +359,7 @@ var app = new Vue({
 		  			this.recipes[this.selected].yields[0][newUnit] = value;
 		  		} 
 		  	} 
-	  	}  	, 
+	  	}, 
 	  	yields_value: {
 	  		get() {
 	  			if(!!this.recipes && !!(this.recipes[this.selected].yields)) {
@@ -352,7 +379,10 @@ var app = new Vue({
 					}
 		  		}
 	  		}
-	  	}
+	  	},
+      section_names: function() {
+        return this.current_recipe.sections.map( x =>  x.section );
+      }
 	},
 	filters : {
 		formatNumbers: function(value) {

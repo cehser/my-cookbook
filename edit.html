@@ -173,7 +173,7 @@
             </b-container>
             <h2>Zutaten</h2>
             <div v-for="(section, index) in current_recipe.sections">
-              <section-ingredients-edit :section="section.section" :sections="current_recipe.sections.map( x =>  x.section )" v-model="current_recipe.ingredients"></section-ingredients-edit>
+              <section-ingredients-edit :section="section.section" :sections="section_names" v-model="current_recipe.ingredients"></section-ingredients-edit>
             </div>
             <b-form-row>
               <b-button @click="addIngredient"><b-icon icon="plus"></b-icon></b-button>
@@ -181,17 +181,8 @@
             <h2>Zubereitung</h2>
             <div v-for="section in current_recipe.sections">
               <h3>{{ section.section }}</h3>
-              <div v-model="current_recipe.steps">
-                <div v-for="(step, index) in current_recipe.steps">
-                  <b-form-row  v-if="step.section == section.section">
-                    <b-col align-self="center" sm="8"><b-form-input placeholder="Neuer Schritt" v-model="step.step" size="sm"></b-form-input></b-col>
-                    <b-col align-self="center" sm="2"><b-form-select v-model="step.section" :options="current_recipe.sections.map( x =>  x.section )" size="sm"></b-form-select></b-col>
-                    <b-col align-self="center" sm="1">
-                      <b-button @click="current_recipe.steps.splice(index, 1)" size="sm"><b-icon icon="trash"></b-icon></b-button>
-                      <array-reorder-btn-group :array="current_recipe.steps" :index="index"></array-reorder-btn-group>
-                    </b-col>
-                  </b-form-row >
-                </div>
+              <div v-for="(step, index) in current_recipe.steps" :key="index" >
+                <step-edit v-model="step" :steps="current_recipe.steps" :sections="section_names" :index="index" v-if="step.section == section.section" @delete="current_recipe.steps.splice(index, 1)"></step-edit>
               </div>  
             </div>
             
