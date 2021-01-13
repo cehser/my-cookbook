@@ -41,7 +41,8 @@ function initRecipe(recipe) {
 function mergeCoobooks(local, remote) {
   remote.forEach( remoteRecipe => {
     var localRecipe = local.find(x => x.recipe_uuid === remoteRecipe.recipe_uuid);
-    if(localRecipe && localRecipe.lastUpdated < remoteRecipe.lastUpdated) {
+    //replace also if remote == local to replace unsaved local changes
+    if(localRecipe && localRecipe.lastUpdated <= remoteRecipe.lastUpdated) {
       localRecipe = remoteRecipe;
     }
     else if(!localRecipe) {
