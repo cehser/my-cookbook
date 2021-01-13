@@ -40,17 +40,18 @@ function initRecipe(recipe) {
 // add remote recipe if not found locally
 function mergeCoobooks(local, remote) {
   remote.forEach( remoteRecipe => {
-    var localRecipe = local.find(x => x.recipe_uuid === remoteRecipe.recipe_uuid);
+    var localIndex  = local.findIndex(x => x.recipe_uuid === remoteRecipe.recipe_uuid);
+    var localRecipe = local[localIndex];
     //replace also if remote == local to replace unsaved local changes
 
     console.log(localRecipe.lastUpdated);
     console.log(remoteRecipe.lastUpdated);
     console.log('Local not newer: ' + !(localRecipe.lastUpdated > remoteRecipe.lastUpdated));
-    if(localRecipe && !(localRecipe.lastUpdated > remoteRecipe.lastUpdated)) {
-      localRecipe = remoteRecipe;
+    if(localIndex != -1 && !(localRecipe.lastUpdated > remoteRecipe.lastUpdated)) {
+      local[localIndex] = remoteRecipe;
       console.log('Local replaced');
     }
-    else if(!localRecipe) {
+    else if(localIndex === -1) {
       local.push(remoteRecipe);
     }
     
