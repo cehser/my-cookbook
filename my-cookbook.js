@@ -48,6 +48,7 @@ function mergeCoobooks(local, remote) {
     console.log('Local not newer: ' + !(localRecipe.lastUpdated > remoteRecipe.lastUpdated));
     if(localRecipe && !(localRecipe.lastUpdated > remoteRecipe.lastUpdated)) {
       localRecipe = remoteRecipe;
+      console.log('Local replaced');
     }
     else if(!localRecipe) {
       local.push(remoteRecipe);
