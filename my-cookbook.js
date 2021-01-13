@@ -535,7 +535,7 @@ var app = new Vue({
       return recipes;
     },
     loadYamlFull: function (content) {
-      this.recipes= loadYamlCookbook(content);
+      this.recipes = this.loadYamlCookbook(content);
     },
     saveToLocalStorage: function () {
       localStorage.setItem('recipes', jsyaml.dump(this.recipes));
