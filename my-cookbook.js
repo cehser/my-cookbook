@@ -545,6 +545,7 @@ var app = new Vue({
       this.recipes = this.loadYamlCookbook(content);
     },
     saveToLocalStorage: function () {
+      this.current_recipe.lastUpdated = new Date();
       localStorage.setItem('recipes', jsyaml.dump(this.recipes));
       this.toast('Gespeichert.', 'success');
     },
