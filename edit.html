@@ -82,6 +82,7 @@
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="#" @click="saveToWebDAV"><b-icon-cloud-upload></b-icon-cloud-upload> Cloud-Upload
                         <a class="dropdown-item" href="#" @click="loadFromWebDAV"><b-icon-cloud-download></b-icon-cloud-download> Cloud-Download
+                        <a class="dropdown-item" href="#" @click="syncWithWebDAV"><b-icon-arrow-repeat></b-icon-arrow-repeat> Cloud-Abgleich
 
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="#" @click="saveCookbookAsFile"><b-icon-journal-arrow-down></b-icon-journal-arrow-down> Kochbuch exportieren</a>
@@ -234,11 +235,6 @@
                 </div>
               </div>
             </div>
-            <div class="toast my-toast bg-success" role="alert" aria-live="assertive" aria-atomic="true">
-              <div class="toast-body">
-                Gespeichert.
-              </div>
-            </div> 
           </b-container>
         </div>
 
