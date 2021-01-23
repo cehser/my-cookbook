@@ -60,6 +60,10 @@ function mergeCoobooks(local, remote) {
   return local;
 }
 
+function deepCopyYaml(src) {
+  return jsyaml.load(jsyaml.dump(src));
+}
+
 var new_recipe_de = `
 ingredients: []
 steps: []
@@ -334,7 +338,8 @@ var app = new Vue({
             password: "pass"
         },
         webdav_url: "https://webdav.server",
-        filepath: "/cookbook.yaml"
+        filepath: "/cookbook.yaml",
+        current_recipe: {}
       }
     },
     created() {
@@ -356,9 +361,10 @@ var app = new Vue({
       if (localStorage.getItem('webdav')) {
         this.webdav  = JSON.parse(localStorage.getItem('webdav'));
       } else{}
-      
 
       this.recipes[this.selected].sections = this.recipes[this.selected].sections || [];
+
+      this.current_recipe = deepCopyYaml(this.recipes[this.selected]);
   },
   mounted() {
     //do login
@@ -379,11 +385,11 @@ var app = new Vue({
   },
   computed: {
     yaml: function () {
-        return jsyaml.dump(this.recipes[this.selected])
+        return jsyaml.dump(this.current_recipe)
     },
     ingredient_units:  function () {
       var units = new Set(['g', 'ml', 'each']);
-      var dyn_units = jsonPath(this.recipes[this.selected], 'ingredients[*].*.amounts[*].unit');
+      var dyn_units = jsonPath(this.current_recipe, 'ingredients[*].*.amounts[*].unit');
       //console.log(dyn_units);
       
       if(dyn_units) {
@@ -395,38 +401,35 @@ var app = new Vue({
       //return this.recipes.map((val,idx) => {value: idx, text: val.recipe_name});
       return this.recipes.map((val,idx) => ({value: idx, text: val.recipe_name}));
     },
-    current_recipe: function() {
-      return this.recipes[this.selected];
-    },
     yields_unit: { 
       get() {
-      if(!!this.recipes && !!(this.recipes[this.selected].yields)) {
-        return Object.keys(this.recipes[this.selected].yields[0])[0];          
+      if(!!this.current_recipe && !!(this.current_recipe.yields)) {
+        return Object.keys(this.current_recipe.yields[0])[0];          
         } else {
           return 'Units'
         }
       }, set(newUnit) {
-        if(!!this.recipes && !!(this.recipes[this.selected].yields)) {
-          var oldUnit = Object.keys(this.recipes[this.selected].yields[0])[0];
+        if(!!this.current_recipe && !!(this.current_recipe.yields)) {
+          var oldUnit = Object.keys(this.current_recipe.yields[0])[0];
           var value = this.yields_value;
-          delete this.recipes[this.selected].yields[0][oldUnit];
-          this.recipes[this.selected].yields[0][newUnit] = value;
+          delete this.current_recipe.yields[0][oldUnit];
+          this.current_recipe.yields[0][newUnit] = value;
         } 
       } 
     }, 
     yields_value: {
       get() {
-        if(!!this.recipes && !!(this.recipes[this.selected].yields)) {
-        return this.recipes[this.selected].yields[0][this.yields_unit];
+        if(!!this.current_recipe && !!(this.current_recipe.yields)) {
+        return this.current_recipe.yields[0][this.yields_unit];
         } else {
           return 1;
         }
       },
       set(val) {
-      if(!!this.recipes && !!(this.recipes[this.selected].yields) && val > 0) {
-        var oldVal = this.recipes[this.selected].yields[0][this.yields_unit];
+      if(!!this.current_recipe && !!(this.current_recipe.yields) && val > 0) {
+        var oldVal = this.current_recipe.yields[0][this.yields_unit];
 
-        this.recipes[this.selected].yields[0][this.yields_unit] = val;
+        this.current_recipe.yields[0][this.yields_unit] = val;
         
         if(this.do_recalc) {
           this.calcNewAmounts(oldVal); 
@@ -454,13 +457,14 @@ var app = new Vue({
        localStorage.setItem('selected', val);
        if(this.recipes[val]) {
          document.title = "Kochbuch: " + this.recipes[val].recipe_name;  
+         this.current_recipe = deepCopyYaml(this.recipes[val]);
        }
     }
   },
   methods: {
     saveRecipeAsFile: function () {
       var fileNameToSaveAs = "recipe.yaml"
-      var textFileAsBlob = new Blob([jsyaml.dump(this.recipes[this.selected])], {type:'text/plain'}); 
+      var textFileAsBlob = new Blob([jsyaml.dump(this.current_recipe)], {type:'text/plain'}); 
       var downloadLink = document.createElement("a");
       downloadLink.download = fileNameToSaveAs;
       downloadLink.innerHTML = "Download File";
@@ -546,6 +550,7 @@ var app = new Vue({
     },
     saveToLocalStorage: function () {
       this.current_recipe.lastUpdated = new Date();
+      this.recipes[this.selected] = deepCopyYaml(this.current_recipe)
       localStorage.setItem('recipes', jsyaml.dump(this.recipes));
       this.toast('Gespeichert.', 'success');
     },
@@ -557,7 +562,7 @@ var app = new Vue({
     },
     copyRecipe: function (index) {
       //deep copy recipe
-      var recipe = jsyaml.load(jsyaml.dump(this.recipes[this.selected]));
+      var recipe = deepCopyYaml(this.current_recipe);
       //new uuid
       recipe.recipe_uuid = this.generateUUID();
       //load
@@ -569,7 +574,6 @@ var app = new Vue({
       if(this.current_recipe.recalc_exp) {
         exp=this.current_recipe.recalc_exp;
       }
-      //console.log(this.recipes[this.selected].ingredients);
     
       this.current_recipe.ingredients.forEach( function(ingredient) {
         var name = Object.keys(ingredient)[0];
