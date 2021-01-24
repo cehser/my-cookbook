@@ -1,0 +1,48 @@
+recipe_uuid: 76817e3f-dfa5-4e4f-a2e3-4212861b6956
+recipe_name: Pfannkuchen
+author: Christoph Eßer
+source_url: None
+source_book: None
+bake_time: 15 Minuten
+yields:
+  - Stück: 6
+subtitle: Christophs Lieblingspfannkuchen-Rezept. Nach Belieben mit Früchten verfeinern.
+ingredients:
+  - Mehl:
+      amounts:
+        - amount: 250
+          unit: g
+  - Backpulver:
+      amounts:
+        - amount: 6
+          unit: g
+  - Eier:
+      amounts:
+        - amount: 3
+          unit: Stück
+  - Salz:
+      amounts:
+        - amount: ''
+          unit: ''
+  - Zucker:
+      amounts:
+        - amount: 50
+          unit: g
+  - Milch:
+      amounts:
+        - amount: 500
+          unit: ml
+steps:
+  - step: 'Eier, Salz, Zucker und Milch verschlagen.'
+    haccp:
+      control_point: The apples must be clean
+    notes:
+      - Some people like green
+      - Some people like red
+  - step: Mehl und Backpulver vermischen. Eine Kuhle bilden.
+    haccp:
+      critical_control_point: Wash hands with soap and warm water before distributing.
+  - step: Eiermilch portionsweise unter das Mehl rühren. Klümpchenbildung vermeiden.
+  - step: Teig 30 Minuten gehen lassen.
+  - step: Beschichtete Pfanne mit Backtrennspray ganz leicht fetten.
+  - step: Pfannkuchen auf mittler Stufe von beiden Seiten goldgelb backen.
