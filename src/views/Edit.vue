@@ -199,8 +199,10 @@ import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup.vue'
 import helper from '../mixins/helper'
 import $ from 'jquery'
 import jsyaml from 'js-yaml'
-const jp = require('jsonpath')
 import { createClient } from "webdav/web";
+const jp = require('jsonpath')
+const deepEqual = require('deep-equal')
+
 
 export default {
   name: 'Edit',
@@ -275,8 +277,8 @@ export default {
         return jsyaml.dump(this.current_recipe)
     },
     ingredient_units:  function () {
-      var units = new Set(['g', 'ml', 'each']);
-      var dyn_units = jp.query(this.current_recipe, 'ingredients[*].*.amounts[*].unit');
+      let units = new Set(['g', 'ml', 'each']);
+      let dyn_units = jp.query(this.current_recipe, 'ingredients[*].*.amounts[*].unit');
       //console.log(dyn_units);
       
       if(dyn_units) {
@@ -297,8 +299,8 @@ export default {
         }
       }, set(newUnit) {
         if(!!this.current_recipe && !!(this.current_recipe.yields)) {
-          var oldUnit = Object.keys(this.current_recipe.yields[0])[0];
-          var value = this.yields_value;
+          let oldUnit = Object.keys(this.current_recipe.yields[0])[0];
+          let value = this.yields_value;
           delete this.current_recipe.yields[0][oldUnit];
           this.current_recipe.yields[0][newUnit] = value;
         } 
@@ -313,14 +315,14 @@ export default {
         }
       },
       set(val) {
-      if(!!this.current_recipe && !!(this.current_recipe.yields) && val > 0) {
-        var oldVal = this.current_recipe.yields[0][this.yields_unit];
+        if(!!this.current_recipe && !!(this.current_recipe.yields) && val > 0) {
+          let oldVal = this.current_recipe.yields[0][this.yields_unit];
 
-        this.current_recipe.yields[0][this.yields_unit] = val;
-        
-        if(this.do_recalc) {
-          this.calcNewAmounts(oldVal); 
-        }
+          this.current_recipe.yields[0][this.yields_unit] = val;
+          
+          if(this.do_recalc) {
+            this.calcNewAmounts(oldVal); 
+          }
         }
       }
     },
@@ -353,9 +355,9 @@ export default {
 
   methods: {
     saveRecipeAsFile: function () {
-      var fileNameToSaveAs = "recipe.yaml"
-      var textFileAsBlob = new Blob([jsyaml.dump(this.current_recipe)], {type:'text/plain'}); 
-      var downloadLink = document.createElement("a");
+      let fileNameToSaveAs = "recipe.yaml"
+      let textFileAsBlob = new Blob([jsyaml.dump(this.current_recipe)], {type:'text/plain'}); 
+      let downloadLink = document.createElement("a");
       downloadLink.download = fileNameToSaveAs;
       downloadLink.innerHTML = "Download File";
       if (window.webkitURL != null)
@@ -377,9 +379,9 @@ export default {
       downloadLink.click();
     },
     saveCookbookAsFile: function () {
-      var fileNameToSaveAs = "cookbook.yaml"
-      var blob = new Blob([jsyaml.dump(this.recipes)], {type:'application/octet-stream'}); 
-      var url = window.URL.createObjectURL(blob);
+      let fileNameToSaveAs = "cookbook.yaml"
+      let blob = new Blob([jsyaml.dump(this.recipes)], {type:'application/octet-stream'}); 
+      let url = window.URL.createObjectURL(blob);
       window.URL = window.URL || window.webkitURL;
       
 
@@ -389,24 +391,23 @@ export default {
           window.location.href = url;
       }
       else {
-        var downloadLink = document.createElement("a");
-          downloadLink.download = fileNameToSaveAs;
-          downloadLink.innerHTML = "Download File";
+        let downloadLink = document.createElement("a");
+        downloadLink.download = fileNameToSaveAs;
+        downloadLink.innerHTML = "Download File";
         downloadLink.href = url;
-          downloadLink.onclick = this.destroyClickedElement;
-          downloadLink.style.display = "none";
-          document.body.appendChild(downloadLink);
+        downloadLink.onclick = this.destroyClickedElement;
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
         downloadLink.click();  
       }     
     },
     loadFromFile: function (ev) {
       const file = ev.target.files[0];
       const reader = new FileReader();
-      var that = this;
 
-      reader.onload = function(e) {
-        var content = jsyaml.load(e.target.result);
-        var recipes=[];
+      reader.onload = (e) => {
+        let content = jsyaml.load(e.target.result);
+        let recipes=[];
 
         if(!Array.isArray(content)) {
           recipes = [content];
@@ -415,8 +416,8 @@ export default {
           recipes = content;
         }
 
-        recipes.forEach( function(recipe) {
-          that.appendRecipe(recipe);
+        recipes.forEach( (recipe) => {
+          this.appendRecipe(recipe);
         });
       };
       //reader.onload = e => console.log(e.target.result);
@@ -427,11 +428,11 @@ export default {
       this.selected = this.recipes.push(recipe) - 1;
     },
     loadYamlRecipe: function (content) {
-      var recipe = this.initRecipe(jsyaml.load(content));
+      let recipe = this.initRecipe(jsyaml.load(content));
       this.appendRecipe(recipe);
     },
     loadYamlCookbook: function(content) {
-      var recipes = jsyaml.load(content);
+      let recipes = jsyaml.load(content);
       recipes.forEach( recipe => {this.initRecipe(recipe)});
       return recipes;
     },
@@ -439,8 +440,12 @@ export default {
       this.recipes = this.loadYamlCookbook(content);
     },
     saveToLocalStorage: function () {
-      this.current_recipe.lastUpdated = new Date();
-      this.recipes[this.selected] = this.deepCopyYaml(this.current_recipe)
+      //only update if current_recipe is really different
+      if(!deepEqual(this.recipes[this.selected], this.current_recipe)) {
+        this.current_recipe.lastUpdated = new Date();
+        this.recipes[this.selected] = this.deepCopyYaml(this.current_recipe)
+      }
+
       localStorage.setItem('recipes', jsyaml.dump(this.recipes));
       this.toast('Gespeichert.', 'success');
     },
@@ -452,21 +457,21 @@ export default {
     },
     copyRecipe: function () {
       //deep copy recipe
-      var recipe = this.deepCopyYaml(this.current_recipe);
+      let recipe = this.deepCopyYaml(this.current_recipe);
       //new uuid
       recipe.recipe_uuid = this.generateUUID();
       //load
       this.appendRecipe(recipe);
     },
     calcNewAmounts: function(oldYield) {
-      var newYield = this.yields_value;
-      var exp=1;
+      let newYield = this.yields_value;
+      let exp=1;
       if(this.current_recipe.recalc_exp) {
         exp=this.current_recipe.recalc_exp;
       }
     
       this.current_recipe.ingredients.forEach( function(ingredient) {
-        var name = Object.keys(ingredient)[0];
+        let name = Object.keys(ingredient)[0];
 
         if (typeof ingredient[name].amounts[0].amount == "number") {            
           ingredient[name].amounts[0].amount = ingredient[name].amounts[0].amount * Math.pow(newYield,exp)/Math.pow(oldYield,exp);
@@ -474,7 +479,7 @@ export default {
       });
     },
     selectStep: function(ev) {
-      var doHighlight=!$(ev.target).hasClass("list-group-item-primary");
+      let doHighlight=!$(ev.target).hasClass("list-group-item-primary");
 
       $('#steps .list-group-item').removeClass("list-group-item-primary");
       $(ev.target).toggleClass("list-group-item-primary", doHighlight);
@@ -491,8 +496,9 @@ export default {
       this.toast('Gespeichert.', 'success');
     },
     loadFromWebDAV: async function() {
-      var data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
+      let data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
       this.loadYamlFull(data);
+      this.updateCurrentRecipe();
       this.toast('Geladen.', 'success');
     },
     saveWebDAVConfig: function () {
@@ -500,10 +506,18 @@ export default {
       this.webdavclient = window.WebDAV.createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
     },
     syncWithWebDAV: async function() {
-      var data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
-      var recipes_remote = jsyaml.load(data);
+      let data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
+      let recipes_remote = jsyaml.load(data);
       this.recipes = this.mergeCoobooks(this.recipes, recipes_remote);
+      this.updateCurrentRecipe();
       this.toast('Synchronisiert.', 'success');
+    },
+    updateCurrentRecipe: function() {
+      let replace_recipe = this.recipes[this.selected]
+      if(replace_recipe) {
+         document.title = "Kochbuch: " + replace_recipe.recipe_name;  
+         this.current_recipe = this.deepCopyYaml(replace_recipe);
+      }
     },
     addIngredient: function() {
       this.current_recipe.ingredients.push({'Neue Zutat':{amounts:[{amount: null,unit:''}]},section:""});
