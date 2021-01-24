@@ -214,51 +214,52 @@ export default {
   },
   data() {
     return {
-        recipes: [{}],
-        file:null,     //used for file upload
-        selected: 0,
-        current_recipe: null,
-        do_recalc: true, //enable amounts recalculation
-        
-        webdav: {
-          webdav_creds: {
-            username: "user",
-            password: "pass"
-          }
-        },
-        webdav_url: "https://webdav.server",
-        filepath: "/cookbook.yaml"
-      }
-    },
-    created() {
-      if (localStorage.getItem('recipes')) {
-        try {
-          this.loadYamlFull(localStorage.getItem('recipes'));
-        } catch(e) {
-          localStorage.removeItem('recipes');
-          this.loadSample();
+      recipes: [{}],
+      file:null,     //used for file upload
+      selected: 0,
+      current_recipe: null,
+      do_recalc: true, //enable amounts recalculation
+      
+      webdav: {
+        webdav_creds: {
+          username: "user",
+          password: "pass"
         }
+      },
+      webdav_url: "https://webdav.server",
+      filepath: "/cookbook.yaml"
       }
-      else  {
+  },
+  created() {
+    if (localStorage.getItem('recipes')) {
+      try {
+        this.loadYamlFull(localStorage.getItem('recipes'));
+      } catch(e) {
+        localStorage.removeItem('recipes');
         this.loadSample();
       }
-      if (localStorage.getItem('selected')) {
-        this.selected  = Math.min(localStorage.getItem('selected'), this.recipes.length - 1);
-      } 
+    }
+    else  {
+      this.loadSample();
+    }
+    if (localStorage.getItem('selected')) {
+      this.selected  = Math.min(localStorage.getItem('selected'), this.recipes.length - 1);
+    } 
 
-      if (localStorage.getItem('webdav')) {
-        this.webdav  = JSON.parse(localStorage.getItem('webdav'));
-      } 
+    if (localStorage.getItem('webdav')) {
+      this.webdav  = JSON.parse(localStorage.getItem('webdav'));
+      this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
+    } 
 
-      this.recipes[this.selected].sections = this.recipes[this.selected].sections || [];
+    this.recipes[this.selected].sections = this.recipes[this.selected].sections || [];
 
-      this.current_recipe = this.deepCopyYaml(this.recipes[this.selected]);
+    this.current_recipe = this.deepCopyYaml(this.recipes[this.selected]);
   },
   mounted() {
     //do login
     document.onreadystatechange = () => { 
         if (document.readyState == "complete") { 
-            this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
+           // this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
         } 
     }
     
