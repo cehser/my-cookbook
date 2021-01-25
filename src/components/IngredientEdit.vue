@@ -25,7 +25,6 @@
 </template>
 
 <script>
-  import helper from '../mixins/helper'
   import $ from 'jquery'
   import IngredientModalDialogRename from '@/components/IngredientModalDialogRename'
   import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup'
@@ -34,7 +33,6 @@
 
   export default {
     name: 'IngredientEdit',
-    mixins: [helper],
     components: {
       IngredientModalDialogRename,
       IngredientNotesFormRow,

@@ -6,10 +6,10 @@
 </template>
 
 <script>
-  import helper from '../mixins/helper'
+  import RecipeHelper from '@/mixins/RecipeHelper'
   export default {
     name: 'ArrayReorderBtnGroup',
-    mixins: [helper],
+    mixins: [RecipeHelper],
     props: ['array', 'index']
 }
 </script>

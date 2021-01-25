@@ -24,12 +24,10 @@
 </template>
 
 <script>
-  import helper from '../mixins/helper'
   import $ from 'jquery'
 
   export default {
     name: 'IngredientModalDialogRename',
-    mixins: [helper],
     model: {
       prop: 'ingredient',
     },

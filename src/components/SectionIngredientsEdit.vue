@@ -8,12 +8,10 @@
 </template>
 
 <script>
-  import helper from '../mixins/helper'
   import IngredientEdit from '@/components/IngredientEdit.vue'
 
   export default {
     name: 'SectionIngredientsEdit',
-    mixins: [helper],
     components: {
       IngredientEdit
     },

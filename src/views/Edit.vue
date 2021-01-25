@@ -196,8 +196,7 @@ import StepEdit from '@/components/StepEdit.vue'
 import SectionIngredientsEdit from '@/components/SectionIngredientsEdit.vue'
 import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup.vue'
 
-import helper from '../mixins/helper'
-import $ from 'jquery'
+import RecipeHelper from '@/mixins/RecipeHelper'
 import jsyaml from 'js-yaml'
 import { createClient } from "webdav/web";
 const jp = require('jsonpath')
@@ -206,7 +205,7 @@ const deepEqual = require('deep-equal')
 
 export default {
   name: 'Edit',
-  mixins: [helper],
+  mixins: [RecipeHelper],
   components: {
     StepEdit,
     SectionIngredientsEdit,
@@ -214,55 +213,26 @@ export default {
   },
   data() {
     return {
-      recipes: [{}],
       file:null,     //used for file upload
-      selected: 0,
-      current_recipe: null,
-      do_recalc: true, //enable amounts recalculation
-      
+      do_recalc: false,  //replace default value
+
       webdav: {
         webdav_creds: {
           username: "user",
           password: "pass"
-        }
-      },
-      webdav_url: "https://webdav.server",
-      filepath: "/cookbook.yaml"
+        },
+        webdav_url: "https://webdav.server",
+        filepath: "/cookbook.yaml"
       }
+    };
   },
   created() {
-    if (localStorage.getItem('recipes')) {
-      try {
-        this.loadYamlFull(localStorage.getItem('recipes'));
-      } catch(e) {
-        localStorage.removeItem('recipes');
-        this.loadSample();
-      }
-    }
-    else  {
-      this.loadSample();
-    }
-    if (localStorage.getItem('selected')) {
-      this.selected  = Math.min(localStorage.getItem('selected'), this.recipes.length - 1);
-    } 
-
     if (localStorage.getItem('webdav')) {
       this.webdav  = JSON.parse(localStorage.getItem('webdav'));
-      this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
+      this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds)
     } 
-
-    this.recipes[this.selected].sections = this.recipes[this.selected].sections || [];
-
-    this.current_recipe = this.deepCopyYaml(this.recipes[this.selected]);
   },
-  mounted() {
-    //do login
-    document.onreadystatechange = () => { 
-        if (document.readyState == "complete") { 
-           // this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
-        } 
-    }
-    
+  mounted() {  
     document.onkeydown = (event) => {
       //ctrl + s
       if(event.ctrlKey && event.which === 83){ 
@@ -270,7 +240,6 @@ export default {
          this.saveToLocalStorage();
       }
     }
-      
   },
 
   computed: {
@@ -278,82 +247,16 @@ export default {
         return jsyaml.dump(this.current_recipe)
     },
     ingredient_units:  function () {
-      let units = new Set(['g', 'ml', 'each']);
-      let dyn_units = jp.query(this.current_recipe, 'ingredients[*].*.amounts[*].unit');
+      let units = new Set(['g', 'ml', 'Stück']);
+      let dyn_units = jp.query(this, 'recipes[*].ingredients[*].*.amounts[*].unit');
       //console.log(dyn_units);
       
       if(dyn_units) {
         dyn_units.forEach(item => units.add(item))
       }
         return [...units].sort(); //convert to array
-    },
-    recipes_list: function() {
-      //return this.recipes.map((val,idx) => {value: idx, text: val.recipe_name});
-      return this.recipes.map((val,idx) => ({value: idx, text: val.recipe_name}));
-    },
-    yields_unit: { 
-      get() {
-      if(!!this.current_recipe && !!(this.current_recipe.yields)) {
-        return Object.keys(this.current_recipe.yields[0])[0];          
-        } else {
-          return 'Units'
-        }
-      }, set(newUnit) {
-        if(!!this.current_recipe && !!(this.current_recipe.yields)) {
-          let oldUnit = Object.keys(this.current_recipe.yields[0])[0];
-          let value = this.yields_value;
-          delete this.current_recipe.yields[0][oldUnit];
-          this.current_recipe.yields[0][newUnit] = value;
-        } 
-      } 
-    }, 
-    yields_value: {
-      get() {
-        if(!!this.current_recipe && !!(this.current_recipe.yields)) {
-        return this.current_recipe.yields[0][this.yields_unit];
-        } else {
-          return 1;
-        }
-      },
-      set(val) {
-        if(!!this.current_recipe && !!(this.current_recipe.yields) && val > 0) {
-          let oldVal = this.current_recipe.yields[0][this.yields_unit];
-
-          this.current_recipe.yields[0][this.yields_unit] = val;
-          
-          if(this.do_recalc) {
-            this.calcNewAmounts(oldVal); 
-          }
-        }
-      }
-    },
-    section_names: function() {
-      return this.current_recipe.sections.map( x =>  x.section );
     }
   },
-
-  filters : {
-    formatNumbers: function(value) {
-      if (typeof value !== "number") {
-            return value;
-        }
-      return Number(value).toLocaleString('de-DE', {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 2
-      });
-    }
-  },
-
-  watch: {
-    selected: function (val) {
-       localStorage.setItem('selected', val);
-       if(this.recipes[val]) {
-         document.title = "Kochbuch: " + this.recipes[val].recipe_name;  
-         this.current_recipe = this.deepCopyYaml(this.recipes[val]);
-       }
-    }
-  },
-
   methods: {
     saveRecipeAsFile: function () {
       let fileNameToSaveAs = "recipe.yaml"
@@ -425,21 +328,6 @@ export default {
 
       reader.readAsText(file);    
     },
-    appendRecipe: function(recipe) {
-      this.selected = this.recipes.push(recipe) - 1;
-    },
-    loadYamlRecipe: function (content) {
-      let recipe = this.initRecipe(jsyaml.load(content));
-      this.appendRecipe(recipe);
-    },
-    loadYamlCookbook: function(content) {
-      let recipes = jsyaml.load(content);
-      recipes.forEach( recipe => {this.initRecipe(recipe)});
-      return recipes;
-    },
-    loadYamlFull: function (content) {
-      this.recipes = this.loadYamlCookbook(content);
-    },
     saveToLocalStorage: function () {
       //only update if current_recipe is really different
       if(!deepEqual(this.recipes[this.selected], this.current_recipe)) {
@@ -449,9 +337,6 @@ export default {
 
       localStorage.setItem('recipes', jsyaml.dump(this.recipes));
       this.toast('Gespeichert.', 'success');
-    },
-    loadSample: function (){
-      this.loadYamlRecipe(this.sample_recipe);
     },
     newRecipe: function() {
       this.loadYamlRecipe(this.new_recipe_de);
@@ -463,30 +348,6 @@ export default {
       recipe.recipe_uuid = this.generateUUID();
       //load
       this.appendRecipe(recipe);
-    },
-    calcNewAmounts: function(oldYield) {
-      let newYield = this.yields_value;
-      let exp=1;
-      if(this.current_recipe.recalc_exp) {
-        exp=this.current_recipe.recalc_exp;
-      }
-    
-      this.current_recipe.ingredients.forEach( function(ingredient) {
-        let name = Object.keys(ingredient)[0];
-
-        if (typeof ingredient[name].amounts[0].amount == "number") {            
-          ingredient[name].amounts[0].amount = ingredient[name].amounts[0].amount * Math.pow(newYield,exp)/Math.pow(oldYield,exp);
-        }  
-      });
-    },
-    selectStep: function(ev) {
-      let doHighlight=!$(ev.target).hasClass("list-group-item-primary");
-
-      $('#steps .list-group-item').removeClass("list-group-item-primary");
-      $(ev.target).toggleClass("list-group-item-primary", doHighlight);
-
-      $('#ingredients .ingredients-section').removeClass("highlighted list-group-item-primary border-primary");
-      $('#box-ing-'+ ev.target.dataset.section).toggleClass("highlighted list-group-item-primary border-primary", doHighlight);
     },
     deleteSelected: function() {
       this.recipes.splice(this.selected, 1);
@@ -504,7 +365,7 @@ export default {
     },
     saveWebDAVConfig: function () {
       localStorage.setItem('webdav', JSON.stringify(this.webdav));
-      this.webdavclient = window.WebDAV.createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
+      this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
     },
     syncWithWebDAV: async function() {
       let data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });

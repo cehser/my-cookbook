@@ -14,10 +14,8 @@
 </template>
 
 <script>
-  import helper from '../mixins/helper'
   export default {
     name: 'IngredientNotesFormRow',
-    mixins: [helper],
     model: {
       prop: 'ingredient',
     },
