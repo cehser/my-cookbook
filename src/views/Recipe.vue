@@ -106,6 +106,7 @@ export default {
   },
   
   mounted () {
+    //add some extra layout magic on collapsing the ingredients sidebar
     $('#ingredients').on('hide.bs.collapse', function () {
       $("#arrow-ing").addClass("rotate180");
       $("#steps").addClass("full");
@@ -114,6 +115,12 @@ export default {
       $("#arrow-ing").removeClass("rotate180");
       $("#steps").removeClass("full");
     });
+
+    //hide ingredients sidebar on default in portrait mode
+    let x = window.matchMedia("(max-width: 812px)")
+    if (x.matches) {
+      $('#ingredients').collapse();
+    }
   },
   computed : {
 
