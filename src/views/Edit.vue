@@ -177,6 +177,8 @@
                   <input type="text" class="form-control" id="webdav_filepath" v-model="webdav.filepath" autocorrect="off">
                 </div>
               </form>
+              <canvas id="qrcode_config" width="100" height="100"></canvas>
+              <button type="button" class="btn btn-secondary" @click="scanQRConfig">QR-Code scannen</button>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -199,8 +201,11 @@ import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup.vue'
 import RecipeHelper from '@/mixins/RecipeHelper'
 import jsyaml from 'js-yaml'
 import { createClient } from "webdav/web";
+import QRScanner from 'qr-code-scanner';
+
 const jp = require('jsonpath')
 const deepEqual = require('deep-equal')
+const QRCode = require('qrcode')
 
 
 export default {
@@ -240,8 +245,23 @@ export default {
          this.saveToLocalStorage();
       }
     }
-  },
+    let canvas = document.getElementById('qrcode_config')
+    QRCode.toCanvas(canvas, JSON.stringify(this.webdav), function (error) {
+      if (error) console.error(error)
+      console.log('success!');
+    });
 
+  },
+  watch: {
+    webdav :{
+      deep: true,
+      //update qr code
+      handler() {
+        let canvas = document.getElementById('qrcode_config')
+        QRCode.toCanvas(canvas, JSON.stringify(this.webdav), (error) => { if (error) console.error(error) });
+      }
+    }
+  },
   computed: {
     yaml: function () {
         return jsyaml.dump(this.current_recipe)
@@ -392,7 +412,34 @@ export default {
           noCloseButton: true,
           variant: variant
         });
+    },
+    scanQRConfig: function() {
+      QRScanner.initiate({
+        onResult: (result) => { 
+          try {
+            let webdav_qr = JSON.parse(result); 
+            this.webdav.webdav_url = webdav_qr.webdav_url;
+            this.webdav.filepath   = webdav_qr.filepath;
+            this.webdav.webdav_creds.username = webdav_qr.webdav_creds.username;
+            this.webdav.webdav_creds.password = webdav_qr.webdav_creds.password;
+          }
+          catch(e) {
+            console.log(e);
+          } 
+        },
+        timeout: 20000,
+      });
     }
   }
 }
 </script>
+
+
+webdav: {
+        webdav_creds: {
+          username: "user",
+          password: "pass"
+        },
+        webdav_url: "https://webdav.server",
+        filepath: "/cookbook.yaml"
+      }

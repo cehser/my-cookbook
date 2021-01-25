@@ -16,6 +16,8 @@
     "js-yaml": "^4.0.0",
     "jsonpath": "^1.1.0",
     "popper.js": "^1.16.1",
+    "qr-code-scanner": "^1.0.8",
+    "qrcode": "^1.4.4",
     "sortablejs": "^1.13.0",
     "vue": "^2.6.11",
     "vue-router": "^3.2.0",
