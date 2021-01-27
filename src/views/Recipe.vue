@@ -1,24 +1,7 @@
 <template>
   <div id="recipe">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-      <a class="navbar-brand" href="#">Kochbuch</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainmenu" aria-controls="mainmenu" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div id="mainmenu" class="collapse navbar-collapse">
-        <ul class="navbar-nav">
-          <li class="nav-item">
-              <router-link class="nav-link" to="/">Home</router-link>
-          </li>
-          <li class="nav-item active">
-              <router-link class="nav-link" to="/edit">Bearbeiten</router-link>
-          </li>
-        </ul>
-        <form class="form-inline">
-          <b-form-select class="form-control mr-sm-2" v-model.number="selected" :options="recipes_list"></b-form-select>
-        </form>    
-      </div>
-    </nav>
+    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected">
+    </Navbar>
     <div class="wrapper">
       <div id="steps" class="card rounded-0">
         <div id="collapesebutton" class="ml-auto">

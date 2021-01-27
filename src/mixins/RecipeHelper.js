@@ -83,8 +83,11 @@ export default {
       this.loadSample();
     }
     if (localStorage.getItem('selected')) {
-      this.selected  = Math.min(localStorage.getItem('selected'), this.recipes.length - 1);
+      this.selected = Math.min(localStorage.getItem('selected'), this.recipes.length - 1);
     } 
+    if (Number.isNaN(this.selected)) {
+      this.selected = 0;
+    }
 
     this.recipes[this.selected].sections = this.recipes[this.selected].sections || [];
 
