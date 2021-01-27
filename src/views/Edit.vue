@@ -1,45 +1,39 @@
 <template>
   <div id="edit">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-      <a class="navbar-brand" href="#">Kochbuch</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainmenu" aria-controls="mainmenu" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-      </button>
-      <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected">
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          Organisation
-          </a>
-          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-            <a class="dropdown-item" href="#" @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill> Speichern</a>
+    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected">
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" role="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        Organisation
+        </a>
+        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+          <a class="dropdown-item" href="#" @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill> Speichern</a>
 
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="#" @click="newRecipe"><b-icon-file-earmark-plus></b-icon-file-earmark-plus> Neues Rezept</a>
-            <a class="dropdown-item" href="#" @click="copyRecipe"><b-icon-files></b-icon-files> Rezept kopieren</a>
-            <a class="dropdown-item" href="#" @click="deleteSelected"><b-icon-trash></b-icon-trash> Rezept löschen</a>
-            <a class="dropdown-item" href="#" @click="loadSample"><b-icon-file-earmark-text></b-icon-file-earmark-text> Beispielrezept</a>
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="#" @click="saveRecipeAsFile"><b-icon-file-earmark-arrow-down></b-icon-file-earmark-arrow-down> Rezept exportieren</a>
-            <a class="dropdown-item" href="#" @click="fileUploadButton.click()"><b-icon-file-earmark-arrow-up></b-icon-file-earmark-arrow-up> Rezept importieren</a>
-            
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="#" @click="saveToWebDAV"><b-icon-cloud-upload></b-icon-cloud-upload> Cloud-Upload</a>
-            <a class="dropdown-item" href="#" @click="loadFromWebDAV"><b-icon-cloud-download></b-icon-cloud-download> Cloud-Download</a>
-            <a class="dropdown-item" href="#" @click="syncWithWebDAV"><b-icon-arrow-repeat></b-icon-arrow-repeat> Cloud-Abgleich</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="#" @click="newRecipe"><b-icon-file-earmark-plus></b-icon-file-earmark-plus> Neues Rezept</a>
+          <a class="dropdown-item" href="#" @click="copyRecipe"><b-icon-files></b-icon-files> Rezept kopieren</a>
+          <a class="dropdown-item" href="#" @click="deleteSelected"><b-icon-trash></b-icon-trash> Rezept löschen</a>
+          <a class="dropdown-item" href="#" @click="loadSample"><b-icon-file-earmark-text></b-icon-file-earmark-text> Beispielrezept</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="#" @click="saveRecipeAsFile"><b-icon-file-earmark-arrow-down></b-icon-file-earmark-arrow-down> Rezept exportieren</a>
+          <a class="dropdown-item" href="#" @click="fileUploadButton.click()"><b-icon-file-earmark-arrow-up></b-icon-file-earmark-arrow-up> Rezept importieren</a>
+          
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="#" @click="saveToWebDAV"><b-icon-cloud-upload></b-icon-cloud-upload> Cloud-Upload</a>
+          <a class="dropdown-item" href="#" @click="loadFromWebDAV"><b-icon-cloud-download></b-icon-cloud-download> Cloud-Download</a>
+          <a class="dropdown-item" href="#" @click="syncWithWebDAV"><b-icon-arrow-repeat></b-icon-arrow-repeat> Cloud-Abgleich</a>
 
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="#" @click="saveCookbookAsFile"><b-icon-journal-arrow-down></b-icon-journal-arrow-down> Kochbuch exportieren</a>
-            <a class="dropdown-item" href="#" @click="fileUploadButton.click()"><b-icon-journal-arrow-up></b-icon-journal-arrow-up> Kochbuch importieren</a>
-          </div>
-        </li>
-        <li>
-          <form class="form-inline">
-            <b-button data-toggle="modal" data-target="#settings"><b-icon-gear></b-icon-gear></b-button>
-            <b-button @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill></b-button>
-          </form>
-        </li>
-      </Navbar>
-    </nav>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="#" @click="saveCookbookAsFile"><b-icon-journal-arrow-down></b-icon-journal-arrow-down> Kochbuch exportieren</a>
+          <a class="dropdown-item" href="#" @click="fileUploadButton.click()"><b-icon-journal-arrow-up></b-icon-journal-arrow-up> Kochbuch importieren</a>
+        </div>
+      </li>
+      <li>
+        <form class="form-inline">
+          <b-button data-toggle="modal" data-target="#settings"><b-icon-gear></b-icon-gear></b-button>
+          <b-button @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill></b-button>
+        </form>
+      </li>
+    </Navbar>
     <b-container> 
       <b-form-datalist id="ingredient-units-list" :options="ingredient_units"></b-form-datalist>
       <h2>Rezept</h2>

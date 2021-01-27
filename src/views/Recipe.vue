@@ -74,13 +74,15 @@
 <script>
 // @ is an alias to /src
 import RecipeHelper from '@/mixins/RecipeHelper'
+import Navbar from '@/components/Navbar.vue'
+
 import $ from 'jquery'
 
 export default {
   name: 'Recipe',
   mixins: [RecipeHelper],
   components: {
-    
+    Navbar
   },
   data () {
     return {  

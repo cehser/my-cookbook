@@ -1,5 +1,10 @@
 <template>
-  <div id="mainmenu" class="collapse navbar-collapse">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <a class="navbar-brand" href="#">Kochbuch</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainmenu" aria-controls="mainmenu" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div id="mainmenu" class="collapse navbar-collapse">
       <ul class="navbar-nav">
         <li class="nav-item">
           <router-link class="nav-link" to="/">Home</router-link>
@@ -15,6 +20,7 @@
         <slot></slot>
       </ul>
     </div>
+  </nav>
 </template>
 
 <script>
