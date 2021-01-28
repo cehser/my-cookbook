@@ -89,6 +89,11 @@ export default {
       do_recalc: true,  //replace default value
     }
   },
+  created() {
+    if(this.$route.params.id) {
+      this.selected = this.$route.params.id;
+    }
+  },
   
   mounted () {
     //add some extra layout magic on collapsing the ingredients sidebar

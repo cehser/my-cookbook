@@ -7,7 +7,10 @@
     <div id="mainmenu" class="collapse navbar-collapse">
       <ul class="navbar-nav">
         <li class="nav-item">
-          <router-link class="nav-link" to="/">Home</router-link>
+          <router-link class="nav-link" to="/">Galerie</router-link>
+        </li>
+        <li class="nav-item">
+          <router-link class="nav-link" to="/recipe">Rezept</router-link>
         </li>
         <li class="nav-item active">
           <router-link class="nav-link" to="/edit">Bearbeiten</router-link>
