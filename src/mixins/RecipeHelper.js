@@ -187,14 +187,17 @@ export default {
         let localRecipe = local[localIndex];
         //replace also if remote == local to replace unsaved local changes
 
-        console.log(localRecipe.lastUpdated);
-        console.log(remoteRecipe.lastUpdated);
-        console.log('Local not newer: ' + !(localRecipe.lastUpdated > remoteRecipe.lastUpdated));
+        console.log(localIndex);
+        
         if(localIndex != -1 && !(localRecipe.lastUpdated > remoteRecipe.lastUpdated)) {
           local.splice(localIndex, 1, remoteRecipe);
+          console.log(localRecipe.lastUpdated);
+          console.log(remoteRecipe.lastUpdated);
+          console.log('Local not newer: ' + !(localRecipe.lastUpdated > remoteRecipe.lastUpdated));
           console.log('Local replaced');
         }
         else if(localIndex === -1) {
+          console.log('remote pushed');
           local.push(remoteRecipe);
         }
         
