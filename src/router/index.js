@@ -2,6 +2,7 @@ import Vue from 'vue'
 import VueRouter from 'vue-router'
 import Recipe from '@/views/Recipe.vue'
 import Gallery from '@/views/Gallery.vue'
+import Edit from '@/views/Edit.vue'
 
 Vue.use(VueRouter)
 
@@ -28,6 +29,7 @@ const routes = [
     // which is lazy-loaded when the route is visited.
     component: () => import(/* webpackChunkName: "about" */ '../views/Edit.vue')
   },
+  { path: '/edit/:id', component: Edit },
   //legacy paths for compatibility reasons
   { path: '/edit.html', redirect: '/edit' }, 
   { path: '/recipe.html', redirect: '/recipe' }

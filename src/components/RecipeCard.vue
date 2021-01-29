@@ -5,9 +5,10 @@
       <div class="card-body recipe_title">
         <h2 class="card-title d-flex flex-row flex-wrap justify-content-between">
           <div>
-            {{recipe.recipe_name}}
+            {{recipe.recipe_name}} 
           </div>
         </h2>
+        <router-link class="editLink" :to="'/edit/' + index"><b-icon-pencil></b-icon-pencil></router-link>
         <p class="card-text">{{recipe.subtitle}}</p>
       </div>
     </div>
@@ -45,7 +46,22 @@
   /*color: black;*/
 }
 
-a * {
+a .recipe_card_container {
     color: initial;
+}
+ 
+.recipe_title p {
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+}
+
+.editLink {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  color: #888;
 }
 </style>

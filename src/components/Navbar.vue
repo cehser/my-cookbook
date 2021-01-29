@@ -10,16 +10,16 @@
           <router-link class="nav-link" to="/">Galerie</router-link>
         </li>
         <li class="nav-item">
-          <router-link class="nav-link" to="/recipe">Rezept</router-link>
+          <router-link class="nav-link" :to="'/recipe/' + $route.params.id">Rezept</router-link>
         </li>
         <li class="nav-item active">
-          <router-link class="nav-link" to="/edit">Bearbeiten</router-link>
+          <router-link class="nav-link" :to="'/edit/' + $route.params.id">Bearbeiten</router-link>
         </li>
-        <li class="nav-item">
+<!--       <li class="nav-item">
           <form class="form-inline">
               <b-form-select class="form-control mr-sm-2" v-model.number="data_selected" :options="recipes_list"></b-form-select>
           </form>
-        </li>
+        </li>-->
         <slot></slot>
       </ul>
     </div>
