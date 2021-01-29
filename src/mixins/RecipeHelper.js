@@ -13,7 +13,7 @@ export default {
         steps: []
         sections: []
         recipe_name: Neues Rezept
-        imageurl: ./placeholder-image.png
+        imageurl: /placeholder-image.png
         yields:
           - Portionen: 4
         recalc_exp: 1
