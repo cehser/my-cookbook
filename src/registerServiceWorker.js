@@ -22,7 +22,7 @@ if (process.env.NODE_ENV === 'production') {
     updated () {
       console.log('New content is available; please refresh.')
       //see https://medium.com/@dougallrich/give-users-control-over-app-updates-in-vue-cli-3-pwas-20453aedc1f2 for user controlled update
-      window.location.reload(true)
+      //window.location.reload(true)
     },
     offline () {
       console.log('No internet connection found. App is running in offline mode.')
