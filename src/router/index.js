@@ -1,8 +1,7 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import Recipe from '@/views/Recipe.vue'
 import Gallery from '@/views/Gallery.vue'
-import Edit from '@/views/Edit.vue'
+
 
 Vue.use(VueRouter)
 
@@ -10,26 +9,23 @@ const routes = [
   {
     path: '/',
     name: 'Gallery',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
     component: Gallery
   },
   {
     path: '/recipe',
     name: 'Recipe',
-    component: Recipe
+    component: () => import(/* webpackChunkName: "recipe" */ '../views/Recipe.vue')
   },
-  { path: '/recipe/:id', component: Recipe },
+  { path: '/recipe/:id', component: () => import(/* webpackChunkName: "recipe" */ '../views/Recipe.vue') },
   {
     path: '/edit',
     name: 'Edit',
     // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
+    // this generates a separate chunk (edit.[hash].js) for this route
     // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/Edit.vue')
+    component: () => import(/* webpackChunkName: "edit" */ '../views/Edit.vue')
   },
-  { path: '/edit/:id', component: Edit },
+  { path: '/edit/:id', component: () => import(/* webpackChunkName: "edit" */ '../views/Edit.vue') },
   //legacy paths for compatibility reasons
   { path: '/edit.html', redirect: '/edit' }, 
   { path: '/recipe.html', redirect: '/recipe' }
