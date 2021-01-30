@@ -1,9 +1,9 @@
 <template>
   <div id="recipe">
     <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected">
-      <button v-if="updateExists" @click="refreshApp">
+      <b-button v-if="updateExists" @click="refreshApp">
         New version available! Click to update
-      </button>
+      </b-button>
     </Navbar>
     <b-container fluid>
       <h2>Galerie</h2>
