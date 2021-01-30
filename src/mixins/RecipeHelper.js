@@ -19,6 +19,9 @@ export default {
         recalc_exp: 1
       `,
       sample_recipe: `
+        sections: []
+        recipe_name: Neues Rezept
+        imageurl: /placeholder-image.png
         ingredients:
           - apple:
               usda_num: 09003
