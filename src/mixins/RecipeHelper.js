@@ -1,6 +1,8 @@
 /*eslint no-unused-labels: "warn"*/
 
 const jsyaml = require('js-yaml');
+const jQuery = require ('jquery');
+
 export default {
   data () {
     return {
@@ -233,7 +235,14 @@ export default {
       this.loadYamlRecipe(this.sample_recipe);
     },
     appendRecipe: function(recipe) {
-      this.selected = this.recipes.push(recipe) - 1;
+      if(!jQuery.isEmptyObject(this.recipes[0])) {
+        this.selected = this.recipes.push(recipe) - 1;
+      }
+      else {
+        //replace empty recipe
+        this.recipes[0] = recipe;
+      }
+
     },
     loadYamlRecipe: function (content) {
       let recipe = this.initRecipe(jsyaml.load(content));
