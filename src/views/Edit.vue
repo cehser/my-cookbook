@@ -228,9 +228,6 @@ export default {
       this.webdav  = JSON.parse(localStorage.getItem('webdav'));
       this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds)
     } 
-    if(this.$route.params.id) {
-      this.selected = this.$route.params.id;
-    }
   },
   mounted() {  
     document.onkeydown = (event) => {

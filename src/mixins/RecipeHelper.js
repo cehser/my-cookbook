@@ -4,10 +4,15 @@ const jsyaml = require('js-yaml');
 const jQuery = require ('jquery');
 
 export default {
+  props: {
+    selected: {
+      type: Number,
+      default: 0
+    }
+  },
   data () {
     return {
       recipes: [{}],
-      selected: 0,
       current_recipe: null,
       do_recalc: true, //enable amounts recalculation
       new_recipe_de:  `
@@ -87,13 +92,7 @@ export default {
     else  {
       this.loadSample();
     }
-    if (localStorage.getItem('selected')) {
-      this.selected = Math.min(localStorage.getItem('selected'), this.recipes.length - 1);
-    } 
-    if (Number.isNaN(this.selected)) {
-      this.selected = 0;
-    }
-
+   
     this.recipes[this.selected].sections = this.recipes[this.selected].sections || [];
 
     this.current_recipe = this.deepCopyYaml(this.recipes[this.selected]);
@@ -236,7 +235,7 @@ export default {
     },
     appendRecipe: function(recipe) {
       if(!jQuery.isEmptyObject(this.recipes[0])) {
-        this.selected = this.recipes.push(recipe) - 1;
+        this.recipes.push(recipe);
       }
       else {
         //replace empty recipe

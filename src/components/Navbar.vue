@@ -10,10 +10,10 @@
           <router-link class="nav-link" to="/" exact>Galerie</router-link>
         </li>
         <li class="nav-item">
-          <router-link class="nav-link" :to="'/recipe/' + $route.params.id">Rezept</router-link>
+          <router-link class="nav-link" :to="'/recipe/' + selected">Rezept</router-link>
         </li>
         <li class="nav-item">
-          <router-link class="nav-link" :to="'/edit/' + $route.params.id">Bearbeiten</router-link>
+          <router-link class="nav-link" :to="'/edit/' + selected">Bearbeiten</router-link>
         </li>
 <!--       <li class="nav-item">
           <form class="form-inline">
@@ -32,7 +32,10 @@
   export default {
     name: 'Recipe',
     props: {
-      selected: Number,
+      selected: {
+        type: Number,
+        default: 0
+      },
       recipes_list: Array
     },
     data () {

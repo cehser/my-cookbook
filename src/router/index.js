@@ -11,24 +11,33 @@ const routes = [
     name: 'Gallery',
     component: Gallery
   },
-  {
-    path: '/recipe',
-    name: 'Recipe',
-    component: () => import(/* webpackChunkName: "recipe" */ '../views/Recipe.vue')
+  { 
+    path: '/recipe/:selected', 
+    component: () => import(/* webpackChunkName: "recipe" */ '../views/Recipe.vue'),
+    props: (route) => {
+      const selected = Number.parseInt(route.params.selected, 10)
+      if (Number.isNaN(selected)) {
+        return 0
+      }
+      return { selected }
+    }
   },
-  { path: '/recipe/:id', component: () => import(/* webpackChunkName: "recipe" */ '../views/Recipe.vue') },
-  {
-    path: '/edit',
-    name: 'Edit',
-    // route level code-splitting
-    // this generates a separate chunk (edit.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "edit" */ '../views/Edit.vue')
+  { 
+    path: '/edit/:selected', 
+    component: () => import(/* webpackChunkName: "edit" */ '../views/Edit.vue'),
+    props: (route) => {
+      const selected = Number.parseInt(route.params.selected, 10)
+      if (Number.isNaN(selected)) {
+        return 0
+      }
+      return { selected }
+    }
   },
-  { path: '/edit/:id', component: () => import(/* webpackChunkName: "edit" */ '../views/Edit.vue') },
   //legacy paths for compatibility reasons
-  { path: '/edit.html', redirect: '/edit' }, 
-  { path: '/recipe.html', redirect: '/recipe' }
+  { path: '/edit.html', redirect: '/edit/0' }, 
+  { path: '/edit', redirect: '/edit/0' },
+  { path: '/recipe.html', redirect: '/recipe' },
+  { path: '/recipe', redirect: '/recipe/0' }
 ]
 
 const router = new VueRouter({
