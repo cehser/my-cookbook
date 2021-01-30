@@ -33,6 +33,10 @@ const routes = [
       return { selected }
     }
   },
+  { 
+    path: '/settings', 
+    component: () => import(/* webpackChunkName: "settings" */ '../views/Settings.vue'),
+  },
   //legacy paths for compatibility reasons
   { path: '/edit.html', redirect: '/edit/0' }, 
   { path: '/edit', redirect: '/edit/0' },

@@ -15,6 +15,9 @@
         <li class="nav-item">
           <router-link class="nav-link" :to="'/edit/' + selected">Bearbeiten</router-link>
         </li>
+        <li class="nav-item">
+          <router-link class="nav-link" to="/settings">Einstellungen</router-link>
+        </li>
 <!--       <li class="nav-item">
           <form class="form-inline">
               <b-form-select class="form-control mr-sm-2" v-model.number="data_selected" :options="recipes_list"></b-form-select>
