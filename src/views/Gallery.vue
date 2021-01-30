@@ -6,11 +6,19 @@
       </b-button>
     </Navbar>
     <b-container fluid>
-      <h2>Galerie</h2>
-      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4">  
-        <div v-for="(recipe, index) in recipes" :key="index" class="col mb-4">
+      <h2 class="mt-2 mb-0">Galerie</h2>
+      <b-form inline>
+        <b-input-group prepend="Filter" class="mt-2">
+          <b-form-input v-model="filter" type="text"></b-form-input>
+          <b-input-group-append>
+            <b-button @click="filter=''"><b-icon-x></b-icon-x></b-button>
+          </b-input-group-append>
+        </b-input-group>
+      </b-form> 
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 mt-2">  
+        <div v-for="(recipe, index) in recipes" :key="index" class="col mb-4" v-show="recipe.recipe_name.toLowerCase().includes(filter.toLowerCase())">
           <b-link :to="{ path: '/recipe/'+index }">
-            <RecipeCard class='cardAspect' :recipe="recipe" :index="index"></RecipeCard>
+            <RecipeCard class='cardAspect' :recipe="recipe" :index="index" :highlight="filter"></RecipeCard>
           </b-link>
         </div>
       </div>
@@ -36,6 +44,7 @@
         refreshing: false,
         registration: null,
         updateExists: false,
+        filter: ''
       };
     },
     created () {
@@ -84,5 +93,12 @@
 
   .cardAspect {
     @include fluid-aspect(3 2);
+  }
+</style>
+
+<style scoped>
+  input {
+    outline:none !important;
+    box-shadow: none !important;
   }
 </style>

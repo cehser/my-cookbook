@@ -5,7 +5,7 @@
       <div class="card-body recipe_title">
         <h2 class="card-title d-flex flex-row flex-wrap justify-content-between">
           <div>
-            {{recipe.recipe_name}} 
+            <TextHighlight :queries="highlight" :caseSensitive="false">{{ recipe.recipe_name }}</TextHighlight>
           </div>
         </h2>
         <router-link class="editLink" :to="'/edit/' + index"><b-icon-pencil></b-icon-pencil></router-link>
@@ -17,11 +17,20 @@
 
 
 <script>
+  import TextHighlight from 'vue-text-highlight';
   export default {
     name: 'RecipeCard',
+    components: {TextHighlight},
     props: {
       recipe: Object,
-      index: Number
+      index: Number,
+      highlight: String
+    },
+    computed: {
+      highlightArray: function () {
+        //return [this.highlight];
+        return ['Pfa', 'Pudd'];
+      }
     }
   }
 </script>
@@ -63,5 +72,10 @@ a .recipe_card_container {
   top: 1.25rem;
   right: 1.25rem;
   color: #888;
+}
+
+.card-title >>> mark {
+  padding: 0 !important;
+  background-color: rgba(255, 204, 0, 0.5);
 }
 </style>
