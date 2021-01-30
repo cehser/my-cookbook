@@ -97,15 +97,6 @@ export default {
 
     this.current_recipe = this.deepCopyYaml(this.recipes[this.selected]);
   },
-  watch: {
-    selected: function (val) {
-       localStorage.setItem('selected', val);
-       if(this.recipes[val]) {
-         document.title = "Kochbuch: " + this.recipes[val].recipe_name;  
-         this.current_recipe = this.deepCopyYaml(this.recipes[val]);
-       }
-    }
-  },
   computed: {
        recipes_list: function() {
       return this.recipes.map((val,idx) => ({value: idx, text: val.recipe_name}));
