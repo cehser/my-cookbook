@@ -1,6 +1,6 @@
 <template>
   <div id="edit">
-    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected">
+    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="read_only">
       <li>
         <form class="form-inline">
           <b-button @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill></b-button>
@@ -119,6 +119,9 @@ import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup.vue'
 import Navbar from '@/components/Navbar.vue'
 
 import RecipeHelper from '@/mixins/RecipeHelper'
+import Settings from '@/mixins/Settings'
+import Toast from '@/mixins/Toast'
+
 import jsyaml from 'js-yaml'
 import { createClient } from "webdav/web";
 
@@ -134,7 +137,7 @@ QrScanner.WORKER_PATH = QrScannerWorkerPath;
 
 export default {
   name: 'Edit',
-  mixins: [RecipeHelper],
+  mixins: [RecipeHelper,Settings,Toast],
   components: {
     StepEdit,
     SectionIngredientsEdit,
@@ -302,38 +305,9 @@ export default {
     newRecipe: function() {
       this.loadYamlRecipe(this.new_recipe_de);
     },
-    copyRecipe: function () {
-      //deep copy recipe
-      let recipe = this.deepCopyYaml(this.current_recipe);
-      //new uuid
-      recipe.recipe_uuid = this.generateUUID();
-      //load
-      this.appendRecipe(recipe);
-    },
-    deleteSelected: function() {
-      this.recipes.splice(this.selected, 1);
-      this.selected=Math.max(this.selected-1,0);
-    },
-    saveToWebDAV: function() {
-      this.webdavclient.putFileContents(this.webdav.filepath, jsyaml.dump(this.recipes));
-      this.toast('Gespeichert.', 'success');
-    },
-    loadFromWebDAV: async function() {
-      let data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
-      this.loadYamlFull(data);
-      this.updateCurrentRecipe();
-      this.toast('Geladen.', 'success');
-    },
     saveWebDAVConfig: function () {
       localStorage.setItem('webdav', JSON.stringify(this.webdav));
       this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
-    },
-    syncWithWebDAV: async function() {
-      let data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
-      let recipes_remote = jsyaml.load(data);
-      this.recipes = this.mergeCoobooks(this.recipes, recipes_remote);
-      this.updateCurrentRecipe();
-      this.toast('Synchronisiert.', 'success');
     },
     updateCurrentRecipe: function() {
       let replace_recipe = this.recipes[this.selected]
@@ -344,15 +318,6 @@ export default {
     },
     addIngredient: function() {
       this.current_recipe.ingredients.push({'Neue Zutat':{amounts:[{amount: null,unit:''}]},section:""});
-    },
-    toast: function(content,variant)  {
-      this.$bvToast.toast(content, {
-          toaster: 'b-toaster-bottom-left',
-         // solid: true,
-          appendToast: true,
-          noCloseButton: true,
-          variant: variant
-        });
     },
     scanQRConfig: function() {
       this.qrScanner.start();

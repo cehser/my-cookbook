@@ -12,11 +12,14 @@
         <li class="nav-item">
           <router-link class="nav-link" :to="'/recipe/' + selected">Rezept</router-link>
         </li>
-        <li class="nav-item">
+        <li class="nav-item" v-if="!read_only">
           <router-link class="nav-link" :to="'/edit/' + selected">Bearbeiten</router-link>
         </li>
         <li class="nav-item">
           <router-link class="nav-link" to="/settings">Einstellungen</router-link>
+        </li>
+        <li class="nav-item">
+          <router-link class="nav-link" to="/administration">Verwaltung</router-link>
         </li>
 <!--       <li class="nav-item">
           <form class="form-inline">
@@ -38,6 +41,10 @@
       selected: {
         type: Number,
         default: 0
+      },
+      read_only: {
+        type: Boolean,
+        default: true
       },
       recipes_list: Array
     },

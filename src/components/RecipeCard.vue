@@ -8,7 +8,7 @@
             <TextHighlight :queries="highlight" :caseSensitive="false">{{ recipe.recipe_name }}</TextHighlight>
           </div>
         </h2>
-        <router-link class="editLink" :to="'/edit/' + index"><b-icon-pencil></b-icon-pencil></router-link>
+        <router-link v-if="!read_only" class="editLink" :to="'/edit/' + index"><b-icon-pencil></b-icon-pencil></router-link>
         <p class="card-text">{{recipe.subtitle}}</p>
       </div>
     </div>
@@ -24,7 +24,8 @@
     props: {
       recipe: Object,
       index: Number,
-      highlight: String
+      highlight: String,
+      read_only: Boolean
     },
     computed: {
       highlightArray: function () {

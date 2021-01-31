@@ -2,6 +2,7 @@
 
 const jsyaml = require('js-yaml');
 const jQuery = require ('jquery');
+import { setMany, getMany } from 'idb-keyval';
 
 export default {
   props: {
@@ -15,6 +16,7 @@ export default {
       recipes: [{}],
       current_recipe: null,
       do_recalc: true, //enable amounts recalculation
+      read_only: true,
       new_recipe_de:  `
         ingredients: []
         steps: []
@@ -80,22 +82,13 @@ export default {
     }
   },
   created() {
-    if (localStorage.getItem('recipes')) {
-      try {
-        this.loadYamlFull(localStorage.getItem('recipes'));
-      } catch(e) {
-        console.log(e)
-        localStorage.removeItem('recipes');
-        this.loadSample();
-      }
-    }
-    else  {
-      this.loadSample();
-    }
-   
+    this.readLocalData();
+    //normalize recipe
     this.recipes[this.selected].sections = this.recipes[this.selected].sections || [];
 
     this.current_recipe = this.deepCopyYaml(this.recipes[this.selected]);
+
+    this.readLocalDataSingle("read_only")
   },
   computed: {
        recipes_list: function() {
@@ -142,6 +135,27 @@ export default {
     }
   },
   methods: {
+    saveLocalData(data) {
+      setMany([[data],[this[data]]]);
+
+    },
+    readLocalDataSingle(data) {
+      getMany([data]).then( ([value]) => this[data] = value )
+    },
+    readLocalData() {
+      if (localStorage.getItem('recipes')) {
+        try {
+          this.loadYamlFull(localStorage.getItem('recipes'));
+        } catch(e) {
+          console.log(e)
+          localStorage.removeItem('recipes');
+          this.loadSample();
+        }
+      }
+      else  {
+        this.loadSample();
+      }
+    },
     generateUUID() { // Public Domain/MIT
       let d = new Date().getTime();
       if (typeof performance !== 'undefined' && typeof performance.now === 'function'){

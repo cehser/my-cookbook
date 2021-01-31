@@ -1,6 +1,6 @@
 <template>
   <div id="recipe">
-    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected">
+    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="read_only">
     </Navbar>
     <div class="wrapper">
       <div id="steps" class="card rounded-0">
@@ -160,10 +160,6 @@ export default {
     transition-duration: 0.35s;
     -webkit-transition-timing-function: ease;
     transition-timing-function: ease;
-  }
-
-
-  .card img {
   }
 
   svg.rotate180 {

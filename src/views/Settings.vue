@@ -1,32 +1,22 @@
 <template>
   <div id="settings">
-    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected">
-      <li class="nav-item dropdown">
+    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="read_only">
+      <!-- <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" role="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         Organisation
         </a>
         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-          <a class="dropdown-item" href="#" @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill> Speichern</a>
-
           <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="#" @click="newRecipe"><b-icon-file-earmark-plus></b-icon-file-earmark-plus> Neues Rezept</a>
-          <a class="dropdown-item" href="#" @click="copyRecipe"><b-icon-files></b-icon-files> Rezept kopieren</a>
-          <a class="dropdown-item" href="#" @click="deleteSelected"><b-icon-trash></b-icon-trash> Rezept löschen</a>
-          <a class="dropdown-item" href="#" @click="loadSample"><b-icon-file-earmark-text></b-icon-file-earmark-text> Beispielrezept</a>
+
           <div class="dropdown-divider"></div>
           <a class="dropdown-item" href="#" @click="saveRecipeAsFile"><b-icon-file-earmark-arrow-down></b-icon-file-earmark-arrow-down> Rezept exportieren</a>
           <a class="dropdown-item" href="#" @click="fileUploadButton.click()"><b-icon-file-earmark-arrow-up></b-icon-file-earmark-arrow-up> Rezept importieren</a>
-          
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="#" @click="saveToWebDAV"><b-icon-cloud-upload></b-icon-cloud-upload> Cloud-Upload</a>
-          <a class="dropdown-item" href="#" @click="loadFromWebDAV"><b-icon-cloud-download></b-icon-cloud-download> Cloud-Download</a>
-          <a class="dropdown-item" href="#" @click="syncWithWebDAV"><b-icon-arrow-repeat></b-icon-arrow-repeat> Cloud-Abgleich</a>
 
           <div class="dropdown-divider"></div>
           <a class="dropdown-item" href="#" @click="saveCookbookAsFile"><b-icon-journal-arrow-down></b-icon-journal-arrow-down> Kochbuch exportieren</a>
           <a class="dropdown-item" href="#" @click="fileUploadButton.click()"><b-icon-journal-arrow-up></b-icon-journal-arrow-up> Kochbuch importieren</a>
-        </div>
-      </li>
+        </div> 
+      </li>-->
     </Navbar>
     <b-container> 
       <h2>Einstellungen</h2>
@@ -34,6 +24,10 @@
       <b-collapse id="collapse-file-upload">
         <b-form-file hidden="hidden" id="fileUploadButton" @change="loadFromFile" v-model="file" placeholder="Choose a file or drop it here..." drop-placeholder="Drop file here..." accept=".yaml"></b-form-file>
       </b-collapse>
+
+      <b-form-checkbox v-model="read_only" name="check-button" switch>
+        Nur lesen 
+      </b-form-checkbox>
 
       <div id="settings" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <h5 id="exampleModalLabel">Cloud-Konfiguration (WebDAV)</h5>
@@ -57,11 +51,11 @@
             </div>
           </form>
           
-          <div class="d-flex flex-row">
+          <div class="d-flex flex-row flex-wrap justify-content-around align-items-center">
             <canvas id="qrcode_config" width="100" height="100"></canvas>
-            <video id="qrcode_scan_video" width="200"> </video>
+            <video id="qrcode_scan_video" height="200"> </video>
           </div> 
-          <button type="button" class="btn btn-secondary" @click="scanQRConfig">QR-Code scannen</button>
+          <button type="button" class="btn btn-secondary mt-2" @click="scanQRConfig">QR-Code scannen</button>
         </div>
         <div class="mt-2">
           <button type="button" class="btn btn-primary" data-dismiss="modal" @click="saveWebDAVConfig">Save changes</button>
@@ -77,11 +71,13 @@
 import Navbar from '@/components/Navbar.vue'
 
 import RecipeHelper from '@/mixins/RecipeHelper'
+import Settings from '@/mixins/Settings'
+import Toast from '@/mixins/Toast'
+
 import jsyaml from 'js-yaml'
 import { createClient } from "webdav/web";
 import $ from 'jquery'
 
-const deepEqual = require('deep-equal')
 const QRCode = require('qrcode')
 
 //qr code scanning
@@ -91,39 +87,27 @@ QrScanner.WORKER_PATH = QrScannerWorkerPath;
 
 export default {
   name: 'Settings',
-  mixins: [RecipeHelper],
+  mixins: [RecipeHelper, Settings,Toast],
   components: {
     Navbar
   },
   data() {
     return {
       file:null,     //used for file upload
-      do_recalc: false,  //replace default value
-
-      webdav: {
-        webdav_creds: {
-          username: "user",
-          password: "pass"
-        },
-        webdav_url: "https://webdav.server",
-        filepath: "/cookbook.yaml"
-      }
     };
   },
   created() {
-     
-  },
-  mounted() { 
     if (localStorage.getItem('webdav')) {
       this.webdav  = JSON.parse(localStorage.getItem('webdav'));
-      this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds)
-    }
-
+    }  
+    this.readLocalSettings();
+  },
+  mounted() { 
     document.onkeydown = (event) => {
       //ctrl + s
       if(event.ctrlKey && event.which === 83){ 
         event.preventDefault(); //do not show browser dialog
-         this.saveToLocalStorage();
+         this.saveWebDAVConfig();
       }
     }
     this.updateQRCode();
@@ -158,7 +142,7 @@ export default {
   methods: {
     updateQRCode: function() {
       let canvas = $('#qrcode_config')[0]
-      if(canvas) {
+      if(canvas && this.webdav) {
         QRCode.toCanvas(canvas, JSON.stringify(this.webdav), (error) => { if (error) console.error(error) });  
       }
     },
@@ -232,60 +216,21 @@ export default {
 
       reader.readAsText(file);    
     },
-    saveToLocalStorage: function () {
-      //only update if current_recipe is really different
-      if(!deepEqual(this.recipes[this.selected], this.current_recipe)) {
-        this.current_recipe.lastUpdated = new Date();
-        this.recipes[this.selected] = this.deepCopyYaml(this.current_recipe)
-      }
-
-      localStorage.setItem('recipes', jsyaml.dump(this.recipes));
-      this.toast('Gespeichert.', 'success');
-    },
-    newRecipe: function() {
-      this.loadYamlRecipe(this.new_recipe_de);
-    },
-    copyRecipe: function () {
-      //deep copy recipe
-      let recipe = this.deepCopyYaml(this.current_recipe);
-      //new uuid
-      recipe.recipe_uuid = this.generateUUID();
-      //load
-      this.appendRecipe(recipe);
-    },
-    deleteSelected: function() {
-      this.recipes.splice(this.selected, 1);
-      this.selected=Math.max(this.selected-1,0);
-    },
-    saveToWebDAV: function() {
-      this.webdavclient.putFileContents(this.webdav.filepath, jsyaml.dump(this.recipes));
-      this.toast('Gespeichert.', 'success');
-    },
-    loadFromWebDAV: async function() {
-      let data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
-      this.loadYamlFull(data);
-      this.updateCurrentRecipe();
-      this.toast('Geladen.', 'success');
-    },
     saveWebDAVConfig: function () {
-      localStorage.setItem('webdav', JSON.stringify(this.webdav));
-      this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
-    },
-    syncWithWebDAV: async function() {
-      let data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
-      let recipes_remote = jsyaml.load(data);
-      this.recipes = this.mergeCoobooks(this.recipes, recipes_remote);
-      this.updateCurrentRecipe();
-      this.toast('Synchronisiert.', 'success');
-    },
-    toast: function(content,variant)  {
-      this.$bvToast.toast(content, {
-          toaster: 'b-toaster-bottom-left',
-         // solid: true,
-          appendToast: true,
-          noCloseButton: true,
-          variant: variant
-        });
+      let webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
+      
+      webdavclient.getFileContents(this.webdav.filepath, { format: "text" })
+        .then((x) => {
+          this.toast('Datei gefunden.', 'success')
+          //localStorage.setItem('webdav', JSON.stringify(this.webdav));
+          this.saveLocalSettings();
+          this.webdavclient = webdavclient;
+          this.toast('Gespeichert.', 'success');
+          console.log(x);
+        })
+        .catch(() => {
+          this.toast('Datei nicht gefunden.', 'danger')
+        })
     },
     scanQRConfig: function() {
       this.qrScanner.start();

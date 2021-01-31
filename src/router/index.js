@@ -37,6 +37,10 @@ const routes = [
     path: '/settings', 
     component: () => import(/* webpackChunkName: "settings" */ '../views/Settings.vue'),
   },
+  { 
+    path: '/administration', 
+    component: () => import(/* webpackChunkName: "settings" */ '../views/Administration.vue'),
+  },
   //legacy paths for compatibility reasons
   { path: '/edit.html', redirect: '/edit/0' }, 
   { path: '/edit', redirect: '/edit/0' },
