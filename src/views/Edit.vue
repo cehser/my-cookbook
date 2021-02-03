@@ -1,6 +1,6 @@
 <template>
   <div id="edit">
-    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="read_only">
+    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="settings.read_only">
       <li>
         <form class="form-inline">
           <b-button @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill></b-button>
@@ -119,7 +119,6 @@ import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup.vue'
 import Navbar from '@/components/Navbar.vue'
 
 import RecipeHelper from '@/mixins/RecipeHelper'
-import Settings from '@/mixins/Settings'
 import Toast from '@/mixins/Toast'
 
 import jsyaml from 'js-yaml'
@@ -135,9 +134,11 @@ import QrScanner from 'qr-scanner';
 import QrScannerWorkerPath from '!!file-loader!../../node_modules/qr-scanner/qr-scanner-worker.min.js';
 QrScanner.WORKER_PATH = QrScannerWorkerPath;
 
+import { mapState } from 'vuex'
+
 export default {
   name: 'Edit',
-  mixins: [RecipeHelper,Settings,Toast],
+  mixins: [RecipeHelper,Toast],
   components: {
     StepEdit,
     SectionIngredientsEdit,
@@ -219,8 +220,12 @@ export default {
         dyn_units.forEach(item => units.add(item))
       }
         return [...units].sort(); //convert to array
-    }
+    },
+    ...mapState([
+        'settings'
+      ])
   },
+
   methods: {
     saveRecipeAsFile: function () {
       let fileNameToSaveAs = "recipe.yaml"
@@ -318,10 +323,6 @@ export default {
     },
     addIngredient: function() {
       this.current_recipe.ingredients.push({'Neue Zutat':{amounts:[{amount: null,unit:''}]},section:""});
-    },
-    scanQRConfig: function() {
-      this.qrScanner.start();
-      setTimeout(() => this.qrScanner.stop(), 10000);
     }
   }
 }

@@ -1,6 +1,6 @@
 <template>
   <div id="recipe">
-    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="read_only">
+    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="settings.read_only">
     </Navbar>
     <div class="wrapper">
       <div id="steps" class="card rounded-0">
@@ -75,6 +75,7 @@
 // @ is an alias to /src
 import RecipeHelper from '@/mixins/RecipeHelper'
 import Navbar from '@/components/Navbar.vue'
+import { mapState } from 'vuex'
 
 import $ from 'jquery'
 
@@ -106,8 +107,11 @@ export default {
       $('#ingredients').collapse();
     }
   },
-  computed : {
-
+  computed: {
+    ...mapState([
+      'settings',
+      'recipes'
+    ])
   },
   filters: {
     formatNumbers: function(value) {

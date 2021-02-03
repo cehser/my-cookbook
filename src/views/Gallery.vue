@@ -1,6 +1,6 @@
 <template>
   <div id="recipe">
-    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="read_only">
+    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="settings.read_only">
       <b-button v-if="updateExists" @click="refreshApp">
         New version available! Click to update
       </b-button>
@@ -18,7 +18,7 @@
       <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 mt-2">  
         <div v-for="(recipe, index) in recipes" :key="index" class="col mb-4" v-show="recipe.recipe_name.toLowerCase().includes(filter.toLowerCase())">
           <b-link :to="{ path: '/recipe/'+index }">
-            <RecipeCard class='cardAspect' :recipe="recipe" :index="index" :highlight="filter" :read_only="read_only"></RecipeCard>
+            <RecipeCard class='cardAspect' :recipe="recipe" :index="index" :highlight="filter" :read_only="settings.read_only"></RecipeCard>
           </b-link>
         </div>
       </div>
@@ -29,13 +29,13 @@
 <script>
   // @ is an alias to /src
   import RecipeHelper from '@/mixins/RecipeHelper'
-  import Settings from '@/mixins/Settings'
   import Navbar from '@/components/Navbar.vue'
   import RecipeCard from '@/components/RecipeCard.vue'
+  import { mapState } from 'vuex'
 
   export default {
     name: 'Recipe',
-    mixins: [RecipeHelper, Settings],
+    mixins: [RecipeHelper],
     components: {
       Navbar,
       RecipeCard
@@ -61,6 +61,12 @@
           }
         );
       }
+    },
+    computed: {
+      // mix the getters into computed with object spread operator
+      ...mapState([
+        'settings'
+      ])
     },
     methods: {
       showRefreshUI (e) {

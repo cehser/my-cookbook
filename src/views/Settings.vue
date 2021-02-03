@@ -1,6 +1,6 @@
 <template>
   <div id="settings">
-    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="read_only">
+    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="settings.read_only">
       <!-- <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" role="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         Organisation
@@ -25,7 +25,7 @@
         <b-form-file hidden="hidden" id="fileUploadButton" @change="loadFromFile" v-model="file" placeholder="Choose a file or drop it here..." drop-placeholder="Drop file here..." accept=".yaml"></b-form-file>
       </b-collapse>
 
-      <b-form-checkbox v-model="read_only" name="check-button" switch>
+      <b-form-checkbox v-model="settings.read_only" name="check-button" switch>
         Nur lesen 
       </b-form-checkbox>
 
@@ -35,19 +35,19 @@
           <form>
             <div class="form-group">
               <label for="webdav_url" class="col-form-label">URL</label>
-              <input type="text" class="form-control" id="webdav_url" v-model="webdav.webdav_url" autocorrect="off">
+              <input type="text" class="form-control" id="webdav_url" v-model="settings.webdav.webdav_url" autocorrect="off">
             </div>
             <div class="form-group">
               <label for="webdav_username" class="col-form-label">User</label>
-              <input type="text" class="form-control" id="webdav_username" v-model="webdav.webdav_creds.username" autocorrect="off"> 
+              <input type="text" class="form-control" id="webdav_username" v-model="settings.webdav.webdav_creds.username" autocorrect="off"> 
             </div>
             <div class="form-group">
               <label for="webdav_password" class="col-form-label">Passwort</label>
-              <input type="text" class="form-control" id="webdav_password" v-model="webdav.webdav_creds.password" autocorrect="off">
+              <input type="text" class="form-control" id="webdav_password" v-model="settings.webdav.webdav_creds.password" autocorrect="off">
             </div>
             <div class="form-group">
               <label for="webdav_filepath" class="col-form-label">Pfad</label>
-              <input type="text" class="form-control" id="webdav_filepath" v-model="webdav.filepath" autocorrect="off">
+              <input type="text" class="form-control" id="webdav_filepath" v-model="settings.webdav.filepath" autocorrect="off">
             </div>
           </form>
           
@@ -71,11 +71,10 @@
 import Navbar from '@/components/Navbar.vue'
 
 import RecipeHelper from '@/mixins/RecipeHelper'
-import Settings from '@/mixins/Settings'
+import { mapState } from 'vuex'
 import Toast from '@/mixins/Toast'
 
 import jsyaml from 'js-yaml'
-import { createClient } from "webdav/web";
 import $ from 'jquery'
 
 const QRCode = require('qrcode')
@@ -87,21 +86,24 @@ QrScanner.WORKER_PATH = QrScannerWorkerPath;
 
 export default {
   name: 'Settings',
-  mixins: [RecipeHelper, Settings,Toast],
+  mixins: [RecipeHelper,Toast],
   components: {
     Navbar
   },
   data() {
     return {
       file:null,     //used for file upload
+      settings: null
     };
   },
   created() {
-    if (localStorage.getItem('webdav')) {
-      this.webdav  = JSON.parse(localStorage.getItem('webdav'));
-    }  
-    this.readLocalSettings();
+    //local copy of store settings
+    this.settings = JSON.parse(JSON.stringify(this.store_settings))
   },
+  computed: mapState({
+    // passing the string value 'count' is same as `state => state.count`
+    store_settings: 'settings'
+  }),
   mounted() { 
     document.onkeydown = (event) => {
       //ctrl + s
@@ -117,10 +119,10 @@ export default {
     this.qrScanner = new QrScanner(videoElem, result => { 
       try {
         let webdav_qr = JSON.parse(result); 
-        this.webdav.webdav_url = webdav_qr.webdav_url;
-        this.webdav.filepath   = webdav_qr.filepath;
-        this.webdav.webdav_creds.username = webdav_qr.webdav_creds.username;
-        this.webdav.webdav_creds.password = webdav_qr.webdav_creds.password;
+        this.settings.webdav.webdav_url = webdav_qr.webdav_url;
+        this.settings.webdav.filepath   = webdav_qr.filepath;
+        this.settings.webdav.webdav_creds.username = webdav_qr.webdav_creds.username;
+        this.settings.webdav.webdav_creds.password = webdav_qr.webdav_creds.password;
         this.qrScanner.stop();
       }
       catch(e) {
@@ -131,7 +133,7 @@ export default {
 
   },
   watch: {
-    webdav :{
+    settings :{
       deep: true,
       //update qr code
       handler() {
@@ -142,8 +144,8 @@ export default {
   methods: {
     updateQRCode: function() {
       let canvas = $('#qrcode_config')[0]
-      if(canvas && this.webdav) {
-        QRCode.toCanvas(canvas, JSON.stringify(this.webdav), (error) => { if (error) console.error(error) });  
+      if(canvas && this.settings.webdav) {
+        QRCode.toCanvas(canvas, JSON.stringify(this.settings.webdav), (error) => { if (error) console.error(error) });  
       }
     },
     saveRecipeAsFile: function () {
@@ -217,20 +219,9 @@ export default {
       reader.readAsText(file);    
     },
     saveWebDAVConfig: function () {
-      let webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
-      
-      webdavclient.getFileContents(this.webdav.filepath, { format: "text" })
-        .then((x) => {
-          this.toast('Datei gefunden.', 'success')
-          //localStorage.setItem('webdav', JSON.stringify(this.webdav));
-          this.saveLocalSettings();
-          this.webdavclient = webdavclient;
-          this.toast('Gespeichert.', 'success');
-          console.log(x);
-        })
-        .catch(() => {
-          this.toast('Datei nicht gefunden.', 'danger')
-        })
+      this.$store.dispatch("saveSettings", this.settings)
+        .then(() => this.toast('Gespeichert.', 'success'))
+        .catch(() => this.toast('Datei nicht gefunden.', 'danger'))
     },
     scanQRConfig: function() {
       this.qrScanner.start();
