@@ -36,6 +36,7 @@
   import UUID from '../js/uuid'
   import DeepCopy from '../js/deepCopy'
   import Recipes from '../js/recipes'
+  import Cloud from '../js/cloud'
 
   import jsyaml from 'js-yaml'
 
@@ -70,8 +71,9 @@
         this.$store.dispatch("appendRecipe", Recipes.loadSample())
       },
       saveToWebDAV: function() {
-        this.webdavclient.putFileContents(this.webdav.filepath, jsyaml.dump(this.recipes))
-          .then(() => this.toast('Gespeichert.', 'success')).catch(() => this.toast('Fehlgeschlagen.', 'danger'));
+        Cloud.putFile(this.settings, this.recipes)
+          .then(() => this.toast('Gespeichert.', 'success'))
+          .catch(() => this.toast('Fehlgeschlagen.', 'danger'));
       },
       loadFromWebDAV: async function() {
         this.$store.dispatch('getRecipesFromCloud')

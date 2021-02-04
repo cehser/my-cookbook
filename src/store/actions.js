@@ -2,8 +2,7 @@ import { set, getMany, get, del} from 'idb-keyval';
 import {ADD_RECIPE, DEL_RECIPE, SET_RECIPE, SET_RECIPES, SET_SETTINGS} from './mutations';
 import RecipeHelper from '../js/recipes'
 import DeepCopy from '../js/deepCopy'
-
-import { createClient } from 'webdav/web';
+import Cloud from '../js/cloud'
 
 export default {
   loadSettings({ commit , state}) {
@@ -82,14 +81,12 @@ export default {
     dispatch('saveRecipes')
   },
   async getRecipesFromCloud({ commit, state}){
-    let webdavclient = createClient(state.settings.webdav.webdav_url, state.settings.webdav.webdav_creds);
-    let data = await webdavclient.getFileContents(state.settings.webdav.filepath, { format: "text" })
+    let data = await Cloud.getFile(state.settings)
     let recipes = RecipeHelper.loadYamlCookbook(data)
     commit(SET_RECIPES, recipes);
   },
   async syncRecipesWithCloud({ commit, state}){
-    let webdavclient = createClient(state.settings.webdav.webdav_url, state.settings.webdav.webdav_creds);
-    let data = await webdavclient.getFileContents(state.settings.webdav.filepath, { format: "text" })
+    let data = await Cloud.getFile(state.settings)
     let recipes_remote = RecipeHelper.loadYamlCookbook(data)
     let recipes = RecipeHelper.mergeCoobooks(DeepCopy.deepCopyYaml(state.recipes), recipes_remote);
     commit(SET_RECIPES, recipes);

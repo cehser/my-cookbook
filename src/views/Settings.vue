@@ -77,6 +77,8 @@ import Toast from '@/mixins/Toast'
 import jsyaml from 'js-yaml'
 import $ from 'jquery'
 
+import Cloud from '../js/cloud'
+
 const QRCode = require('qrcode')
 
 //qr code scanning
@@ -218,10 +220,21 @@ export default {
 
       reader.readAsText(file);    
     },
-    saveWebDAVConfig: function () {
-      this.$store.dispatch("saveSettings", this.settings)
-        .then(() => this.toast('Gespeichert.', 'success'))
-        .catch(() => this.toast('Datei nicht gefunden.', 'danger'))
+    async saveWebDAVConfig () {
+      Cloud.checkFile(this.settings)
+        .then((fileExists) =>{ 
+          if(fileExists) {
+            this.$store.dispatch("saveSettings", this.settings)
+              .then(() => this.toast('Gespeichert.', 'success'))
+          }
+          else {
+            this.toast('Datei nicht gefunden.', 'danger')
+          }
+        })
+        .catch((e) => {
+          this.toast('Zugriffsfehler!', 'danger');
+          console.log(e);
+        })
     },
     scanQRConfig: function() {
       this.qrScanner.start();
