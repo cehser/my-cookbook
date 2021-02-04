@@ -11,8 +11,8 @@ export default {
     [SET_RECIPES] (state, recipes) {
       state.recipes = recipes
     },
-    [SET_RECIPE] (state, index, recipe) {
-      state.recipes[index] = recipe
+    [SET_RECIPE] (state, {index, recipe}) {
+      state.recipes.splice(index, 1, recipe)
     },
     [DEL_RECIPE] (state, index) {
       state.recipes.splice(index, 1)

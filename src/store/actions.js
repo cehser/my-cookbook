@@ -1,5 +1,5 @@
 import { set, getMany, get, del} from 'idb-keyval';
-import {ADD_RECIPE, DEL_RECIPE, SET_RECIPES, SET_SETTINGS} from './mutations';
+import {ADD_RECIPE, DEL_RECIPE, SET_RECIPE, SET_RECIPES, SET_SETTINGS} from './mutations';
 import RecipeHelper from '../js/recipes'
 import DeepCopy from '../js/deepCopy'
 
@@ -69,6 +69,12 @@ export default {
   appendRecipe({commit}, recipe) {
     commit(ADD_RECIPE, recipe)
   },
+  setRecipe({commit, dispatch}, {index, recipe}) {
+    console.log(index)
+    console.log(recipe)
+    commit(SET_RECIPE, {index, recipe: DeepCopy.deepCopyYaml(recipe)})
+    dispatch('saveRecipes')
+  },
   async getRecipesFromCloud({ commit, state}){
     let webdavclient = createClient(state.settings.webdav.webdav_url, state.settings.webdav.webdav_creds);
     let data = await webdavclient.getFileContents(state.settings.webdav.filepath, { format: "text" })
@@ -79,7 +85,7 @@ export default {
     let webdavclient = createClient(state.settings.webdav.webdav_url, state.settings.webdav.webdav_creds);
     let data = await webdavclient.getFileContents(state.settings.webdav.filepath, { format: "text" })
     let recipes_remote = RecipeHelper.loadYamlCookbook(data)
-    let recipes = RecipeHelper.mergeCoobooks(DeepCopy.deepCopyJSON(state.recipes), recipes_remote);
+    let recipes = RecipeHelper.mergeCoobooks(DeepCopy.deepCopyYaml(state.recipes), recipes_remote);
     commit(SET_RECIPES, recipes);
   }
 }

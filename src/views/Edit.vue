@@ -3,7 +3,7 @@
     <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="settings.read_only">
       <li>
         <form class="form-inline">
-          <b-button @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill></b-button>
+          <b-button @click="saveRecipe"><b-icon-archive-fill></b-icon-archive-fill></b-button>
         </form>
       </li>
     </Navbar>
@@ -122,8 +122,6 @@ import RecipeHelper from '@/mixins/RecipeHelper'
 import Toast from '@/mixins/Toast'
 
 import jsyaml from 'js-yaml'
-import { createClient } from "webdav/web";
-
 
 const jp = require('jsonpath')
 const deepEqual = require('deep-equal')
@@ -141,31 +139,15 @@ export default {
   },
   data() {
     return {
-      file:null,     //used for file upload
       do_recalc: false,  //replace default value
-
-      webdav: {
-        webdav_creds: {
-          username: "user",
-          password: "pass"
-        },
-        webdav_url: "https://webdav.server",
-        filepath: "/cookbook.yaml"
-      }
     };
-  },
-  created() {
-    if (localStorage.getItem('webdav')) {
-      this.webdav  = JSON.parse(localStorage.getItem('webdav'));
-      this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds)
-    } 
   },
   mounted() {  
     document.onkeydown = (event) => {
       //ctrl + s
       if(event.ctrlKey && event.which === 83){ 
         event.preventDefault(); //do not show browser dialog
-         this.saveToLocalStorage();
+         this.saveRecipe();
       }
     }
   },
@@ -189,92 +171,18 @@ export default {
   },
 
   methods: {
-    saveRecipeAsFile: function () {
-      let fileNameToSaveAs = "recipe.yaml"
-      let textFileAsBlob = new Blob([jsyaml.dump(this.current_recipe)], {type:'text/plain'}); 
-      let downloadLink = document.createElement("a");
-      downloadLink.download = fileNameToSaveAs;
-      downloadLink.innerHTML = "Download File";
-      if (window.webkitURL != null)
-      {
-        // Chrome allows the link to be clicked
-        // without actually adding it to the DOM.
-        downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
-      }
-      else
-      {
-        // Firefox requires the link to be added to the DOM
-        // before it can be clicked.
-        downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
-        downloadLink.onclick = this.destroyClickedElement;
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
-      }
-    
-      downloadLink.click();
-    },
-    saveCookbookAsFile: function () {
-      let fileNameToSaveAs = "cookbook.yaml"
-      let blob = new Blob([jsyaml.dump(this.recipes)], {type:'application/octet-stream'}); 
-      let url = window.URL.createObjectURL(blob);
-      window.URL = window.URL || window.webkitURL;
-      
-
-      window.location.href = url;
-
-        if (navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) { //Safari & Opera iOS
-          window.location.href = url;
-      }
-      else {
-        let downloadLink = document.createElement("a");
-        downloadLink.download = fileNameToSaveAs;
-        downloadLink.innerHTML = "Download File";
-        downloadLink.href = url;
-        downloadLink.onclick = this.destroyClickedElement;
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
-        downloadLink.click();  
-      }     
-    },
-    loadFromFile: function (ev) {
-      const file = ev.target.files[0];
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        let content = jsyaml.load(e.target.result);
-        let recipes=[];
-
-        if(!Array.isArray(content)) {
-          recipes = [content];
-        }
-        else {
-          recipes = content;
-        }
-
-        recipes.forEach( (recipe) => {
-          this.appendRecipe(recipe);
-        });
-      };
-      //reader.onload = e => console.log(e.target.result);
-
-      reader.readAsText(file);    
-    },
-    saveToLocalStorage: function () {
+    saveRecipe: function () {
       //only update if current_recipe is really different
       if(!deepEqual(this.recipes[this.selected], this.current_recipe)) {
         this.current_recipe.lastUpdated = new Date();
-        this.recipes[this.selected] = this.deepCopyYaml(this.current_recipe)
+        console.log(this.current_recipe.lastUpdated)
+        this.$store.dispatch('setRecipe', { index: this.selected, recipe: this.current_recipe })
+          .then(() => this.toast('Gespeichert.', 'success'))
+          .catch(() => this.toast('Fehler.', 'danger'))
       }
-
-      localStorage.setItem('recipes', jsyaml.dump(this.recipes));
-      this.toast('Gespeichert.', 'success');
-    },
-    newRecipe: function() {
-      this.loadYamlRecipe(this.new_recipe_de);
-    },
-    saveWebDAVConfig: function () {
-      localStorage.setItem('webdav', JSON.stringify(this.webdav));
-      this.webdavclient = createClient(this.webdav.webdav_url, this.webdav.webdav_creds);
+      else {
+        this.toast('Unverändert.', 'success');
+      }
     },
     updateCurrentRecipe: function() {
       let replace_recipe = this.recipes[this.selected]

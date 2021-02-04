@@ -87,6 +87,76 @@
         this.$store.dispatch('saveRecipes')
           .then(() => this.toast('Gespeichert.', 'success'))
       },
+      saveRecipeAsFile: function () {
+        let fileNameToSaveAs = "recipe.yaml"
+        let textFileAsBlob = new Blob([jsyaml.dump(this.current_recipe)], {type:'text/plain'}); 
+        let downloadLink = document.createElement("a");
+        downloadLink.download = fileNameToSaveAs;
+        downloadLink.innerHTML = "Download File";
+        if (window.webkitURL != null)
+        {
+          // Chrome allows the link to be clicked
+          // without actually adding it to the DOM.
+          downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
+        }
+        else
+        {
+          // Firefox requires the link to be added to the DOM
+          // before it can be clicked.
+          downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
+          downloadLink.onclick = this.destroyClickedElement;
+          downloadLink.style.display = "none";
+          document.body.appendChild(downloadLink);
+        }
+      
+        downloadLink.click();
+      },
+      saveCookbookAsFile: function () {
+        let fileNameToSaveAs = "cookbook.yaml"
+        let blob = new Blob([jsyaml.dump(this.recipes)], {type:'application/octet-stream'}); 
+        let url = window.URL.createObjectURL(blob);
+        window.URL = window.URL || window.webkitURL;
+        
+
+        window.location.href = url;
+
+          if (navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) { //Safari & Opera iOS
+            window.location.href = url;
+        }
+        else {
+          let downloadLink = document.createElement("a");
+          downloadLink.download = fileNameToSaveAs;
+          downloadLink.innerHTML = "Download File";
+          downloadLink.href = url;
+          downloadLink.onclick = this.destroyClickedElement;
+          downloadLink.style.display = "none";
+          document.body.appendChild(downloadLink);
+          downloadLink.click();  
+        }     
+      },
+      loadFromFile: function (ev) {
+        const file = ev.target.files[0];
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          let content = jsyaml.load(e.target.result);
+          let recipes=[];
+
+          if(!Array.isArray(content)) {
+            recipes = [content];
+          }
+          else {
+            recipes = content;
+          }
+
+          recipes.forEach( (recipe) => {
+            this.appendRecipe(recipe);
+          });
+        };
+        //reader.onload = e => console.log(e.target.result);
+
+        reader.readAsText(file);    
+      },
     }
   }
 </script>
