@@ -1,8 +1,9 @@
 import { set, getMany, get, del} from 'idb-keyval';
-import {SET_RECIPES, SET_SETTINGS} from './mutations';
-import RecipeHelper from './recipes'
+import {ADD_RECIPE, DEL_RECIPE, SET_RECIPES, SET_SETTINGS} from './mutations';
+import RecipeHelper from '../js/recipes'
+import DeepCopy from '../js/deepCopy'
 
-//import { createClient } from 'webdav/web';
+import { createClient } from 'webdav/web';
 
 export default {
   loadSettings({ commit , state}) {
@@ -11,7 +12,7 @@ export default {
         if(val) commit(SET_SETTINGS, val)
         else {
           //fallback to separately stored values
-          let val = JSON.parse(JSON.stringify(state.settings))
+          let val = DeepCopy.deepCopyJSON(state.settings)
           getMany(['webdav', 'read_only']).then( ([webdav, read_only]) => {
             if(webdav) {
               val.webdav = webdav;  
@@ -52,16 +53,33 @@ export default {
         }
       })
   },
-  saveRecipes({ commit }, recipes){
+  saveRecipes({ commit, state }){
     //save to idb first, then commit to store
-    set('recipes', recipes)
-      .then(()=>commit(SET_RECIPES, recipes))
+    set('recipes', state.recipes)
+      .then(()=>commit(SET_RECIPES, state.recipes))
   },
   saveSettings({ commit }, settings){
     //save to idb first, then commit to store
     set('settings', settings)
       .then(()=>commit(SET_SETTINGS, settings))
   },
-  /*getRecipesFromCloud({ commit }, settings){
-  }*/
+  deleteRecipe({commit}, index) {
+    commit(DEL_RECIPE, index)
+  },
+  appendRecipe({commit}, recipe) {
+    commit(ADD_RECIPE, recipe)
+  },
+  async getRecipesFromCloud({ commit, state}){
+    let webdavclient = createClient(state.settings.webdav.webdav_url, state.settings.webdav.webdav_creds);
+    let data = await webdavclient.getFileContents(state.settings.webdav.filepath, { format: "text" })
+    let recipes = RecipeHelper.loadYamlCookbook(data)
+    commit(SET_RECIPES, recipes);
+  },
+  async syncRecipesWithCloud({ commit, state}){
+    let webdavclient = createClient(state.settings.webdav.webdav_url, state.settings.webdav.webdav_creds);
+    let data = await webdavclient.getFileContents(state.settings.webdav.filepath, { format: "text" })
+    let recipes_remote = RecipeHelper.loadYamlCookbook(data)
+    let recipes = RecipeHelper.mergeCoobooks(DeepCopy.deepCopyJSON(state.recipes), recipes_remote);
+    commit(SET_RECIPES, recipes);
+  }
 }

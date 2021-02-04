@@ -1,7 +1,6 @@
 /*eslint no-unused-labels: "warn"*/
-
-const jsyaml = require('js-yaml');
 import { mapState } from 'vuex'
+import DeepCopy from '../js/deepCopy'
 
 export default {
   props: {
@@ -82,10 +81,7 @@ export default {
     loadRecipe (recipe) {
       console.log('loading')
       console.log(recipe)
-      this.current_recipe = this.deepCopyYaml(recipe);
-    },
-    deepCopyYaml(src) {
-      return jsyaml.load(jsyaml.dump(src));
+      this.current_recipe = DeepCopy.deepCopyYaml(recipe);
     },
     swapElements(array, index1, index2) {
       let el1 = array.splice(index1, 1, array[index2]);

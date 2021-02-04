@@ -33,10 +33,11 @@
   import Navbar from '@/components/Navbar.vue'
   import RecipeHelper from '@/mixins/RecipeHelper'
   import Toast from '@/mixins/Toast'
+  import UUID from '../js/uuid'
+  import DeepCopy from '../js/deepCopy'
+  import Recipes from '../js/recipes'
 
   import jsyaml from 'js-yaml'
-
-  const deepEqual = require('deep-equal')
 
   export default {
     name: 'Administration',
@@ -56,39 +57,35 @@
       },
       copyRecipe: function (index) {
         //deep copy recipe
-        let recipe = this.deepCopyYaml(this.recipes[index]);
+        let recipe = DeepCopy.deepCopyYaml(this.recipes[index]);
         //new uuid
-        recipe.recipe_uuid = this.generateUUID();
+        recipe.recipe_uuid = UUID.generateUUID();
         //load
         this.$store.dispatch("appendRecipe", recipe);
       },
       newRecipe: function() {
-        this.loadYamlRecipe(this.new_recipe_de);
+        this.$store.dispatch("appendRecipe", Recipes.loadNewRecipe())
+      },
+      loadSample: function() {
+        this.$store.dispatch("appendRecipe", Recipes.loadSample())
       },
       saveToWebDAV: function() {
         this.webdavclient.putFileContents(this.webdav.filepath, jsyaml.dump(this.recipes))
           .then(() => this.toast('Gespeichert.', 'success')).catch(() => this.toast('Fehlgeschlagen.', 'danger'));
       },
       loadFromWebDAV: async function() {
-        let data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
-        this.loadYamlFull(data);
-        this.toast('Geladen.', 'success');
+        this.$store.dispatch('getRecipesFromCloud')
+          .then(() => this.toast('Geladen.', 'success'))
+          .catch(() => this.toast('Fehler.', 'danger'))
       },
       syncWithWebDAV: async function() {
-        let data = await this.webdavclient.getFileContents(this.webdav.filepath, { format: "text" });
-        let recipes_remote = jsyaml.load(data);
-        this.recipes = this.mergeCoobooks(this.recipes, recipes_remote);
-        this.toast('Synchronisiert.', 'success');
+        this.$store.dispatch('syncRecipesWithCloud')
+          .then(() => this.toast('Synchronisiert.', 'success'))
+          .catch(() => this.toast('Fehler.', 'danger'))
       },
       saveToLocalStorage: function () {
-        //only update if current_recipe is really different
-        if(!deepEqual(this.recipes[this.selected], this.current_recipe)) {
-          this.current_recipe.lastUpdated = new Date();
-          this.recipes[this.selected] = this.deepCopyYaml(this.current_recipe)
-        }
-
-        localStorage.setItem('recipes', jsyaml.dump(this.recipes));
-        this.toast('Gespeichert.', 'success');
+        this.$store.dispatch('saveRecipes')
+          .then(() => this.toast('Gespeichert.', 'success'))
       },
     }
   }

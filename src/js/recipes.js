@@ -1,4 +1,5 @@
 const jsyaml = require('js-yaml');
+import UUID from './uuid'
 
 export default {
   new_recipe_de:  `
@@ -13,7 +14,7 @@ export default {
   `,
   sample_recipe: `
     sections: []
-    recipe_name: Neues Rezept
+    recipe_name: Beispiel
     imageurl: /placeholder-image.png
     yields:
       - Portionen: 4
@@ -66,26 +67,13 @@ export default {
             critical_control_point: Wash hands with soap and warm water before distributing.
   `
   ,
-  generateUUID() { // Public Domain/MIT
-    let d = new Date().getTime();
-    if (typeof performance !== 'undefined' && typeof performance.now === 'function'){
-      d += performance.now(); //use high-precision timer if available
-    }
-    let newGuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      let r = (d + Math.random() * 16) % 16 | 0;
-      d = Math.floor(d / 16);
-      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-    });
-    
-    return newGuid;
-  },
   initRecipe(recipe) {
     //set default values
     recipe.sections     = recipe.sections ||  [{section:""}];
     recipe.sections     = (recipe.sections.length > 0) ? recipe.sections : [{section:""}];
     recipe.steps        = recipe.steps || [];
     recipe.ingredients  = recipe.ingredients || [];
-    recipe.recipe_uuid  = recipe.recipe_uuid || this.generateUUID();
+    recipe.recipe_uuid  = recipe.recipe_uuid || UUID.generateUUID();
     recipe.lastUpdated  = recipe.lastUpdated || new Date();
 
     recipe.ingredients.forEach(ingredient => {
@@ -105,6 +93,9 @@ export default {
   },
   loadSample: function (){
     return this.loadYamlRecipe(this.sample_recipe);
+  },
+  loadNewRecipe: function() {
+    return this.loadYamlRecipe(this.new_recipe_de);
   },
   loadYamlRecipe: function (content) {
     return this.initRecipe(jsyaml.load(content));
