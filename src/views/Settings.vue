@@ -1,6 +1,6 @@
 <template>
   <div id="settings">
-    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="settings.read_only">
+    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="store_settings.read_only">
       <!-- <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" role="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         Organisation

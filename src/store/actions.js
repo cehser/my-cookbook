@@ -60,6 +60,8 @@ export default {
   },
   saveSettings({ commit }, settings){
     //save to idb first, then commit to store
+    //kill all possible references to vue model
+    settings = DeepCopy.deepCopyJSON(settings)
     set('settings', settings)
       .then(()=>commit(SET_SETTINGS, settings))
   },
@@ -67,12 +69,16 @@ export default {
     commit(DEL_RECIPE, index)
   },
   appendRecipe({commit}, recipe) {
+    //kill all possible references to vue model
+    recipe = DeepCopy.deepCopyYaml(recipe)
     commit(ADD_RECIPE, recipe)
   },
   setRecipe({commit, dispatch}, {index, recipe}) {
     console.log(index)
     console.log(recipe)
-    commit(SET_RECIPE, {index, recipe: DeepCopy.deepCopyYaml(recipe)})
+    //kill all possible references to vue model
+    recipe = DeepCopy.deepCopyYaml(recipe)
+    commit(SET_RECIPE, {index, recipe})
     dispatch('saveRecipes')
   },
   async getRecipesFromCloud({ commit, state}){
