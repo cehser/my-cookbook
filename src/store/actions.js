@@ -1,5 +1,6 @@
 import { set, getMany, get, del} from 'idb-keyval';
 import {SET_RECIPES, SET_SETTINGS} from './mutations';
+import RecipeHelper from './recipes'
 
 //import { createClient } from 'webdav/web';
 
@@ -27,8 +28,29 @@ export default {
       })
   },
   loadRecipes({ commit }) {
+    console.log('Read recipes from idb')
     get('recipes')
-      .then((val) => { if(val) commit(SET_RECIPES, val) })
+      .then((val) => { 
+        if(val) {
+          commit(SET_RECIPES, val) 
+        }
+        //fallback to local storage instead of idb
+        else {
+          console.log('Fallback to localstorage')
+          let recipes = localStorage.getItem('recipes')
+          if (recipes) {
+            recipes = RecipeHelper.loadYamlCookbook(localStorage.getItem('recipes'));
+            localStorage.removeItem('recipes');
+          } 
+          else {
+            console.log('Fallback to sample')
+            recipes = [RecipeHelper.loadSample()]
+          }
+          console.log(recipes);
+          set('recipes',recipes )
+          commit(SET_RECIPES, recipes);
+        }
+      })
   },
   saveRecipes({ commit }, recipes){
     //save to idb first, then commit to store
@@ -39,5 +61,7 @@ export default {
     //save to idb first, then commit to store
     set('settings', settings)
       .then(()=>commit(SET_SETTINGS, settings))
-  }
+  },
+  /*getRecipesFromCloud({ commit }, settings){
+  }*/
 }

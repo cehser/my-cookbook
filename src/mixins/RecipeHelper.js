@@ -1,8 +1,7 @@
 /*eslint no-unused-labels: "warn"*/
 
 const jsyaml = require('js-yaml');
-const jQuery = require ('jquery');
-import { setMany, getMany } from 'idb-keyval';
+import { mapState } from 'vuex'
 
 export default {
   props: {
@@ -13,85 +12,29 @@ export default {
   },
   data () {
     return {
-      recipes: [{}],
       current_recipe: null,
       do_recalc: true, //enable amounts recalculation
-      read_only: true,
-      new_recipe_de:  `
-        ingredients: []
-        steps: []
-        sections: []
-        recipe_name: Neues Rezept
-        imageurl: /placeholder-image.png
-        yields:
-          - Portionen: 4
-        recalc_exp: 1
-      `,
-      sample_recipe: `
-        sections: []
-        recipe_name: Neues Rezept
-        imageurl: /placeholder-image.png
-        ingredients:
-          - apple:
-              usda_num: 09003
-              amounts:
-                  - amount: 1
-                    unit: each
-              processing:
-                  - whole
-                  - raw
-              substitutions:
-                  - pears:
-                      usda_num: 09252
-                      amounts:
-                          - amount: 1
-                            unit: each
-              notes:
-                  - Use whole apples
-                  - Apples may be substituted, but produce a different flavor and mouthfeel
-          - pear:
-              usda_num: 09003
-              amounts:
-                  - amount: 1
-                    unit: each
-              processing:
-                  - whole
-                  - raw
-              substitutions:
-                  - pears:
-                      usda_num: 09252
-                      amounts:
-                          - amount: 1
-                            unit: each
-              notes:
-                  - Use whole pears
-                  - Pears may be substituted, but produce a different flavor and mouthfeel
-        steps:
-          - step:
-                Gather the apples.
-            haccp:
-                control_point: The apples must be clean
-            notes:
-                - Some people like green
-                - Some people like red
-          - step:
-                Hand out the apples.
-            haccp:
-                critical_control_point: Wash hands with soap and warm water before distributing.
-      `
     }
   },
   created() {
-    this.readLocalData();
     //normalize recipe
-    this.recipes[this.selected].sections = this.recipes[this.selected].sections || [];
-
-    this.current_recipe = this.deepCopyYaml(this.recipes[this.selected]);
-
-    this.readLocalDataSingle("read_only")
+    //this.recipes[this.selected].sections = this.recipes[this.selected].sections || [];
+    this.loadRecipe(this.recipes[this.selected]);
+  },
+  watch: {
+    recipes :{
+      deep: true,
+      //update qr code
+      handler() {
+        this.loadRecipe(this.recipes[this.selected]);
+      }
+    }
   },
   computed: {
-       recipes_list: function() {
+    ...mapState([
+      'recipes'
+    ]),
+    recipes_list: function() {
       return this.recipes.map((val,idx) => ({value: idx, text: val.recipe_name}));
     },
     yields_unit: { 
@@ -113,20 +56,21 @@ export default {
     yields_value: {
       get() {
         if(!!this.current_recipe && !!(this.current_recipe.yields)) {
-        return this.current_recipe.yields[0][this.yields_unit];
+          return this.current_recipe.yields[0][this.yields_unit];
         } else {
           return 1;
         }
       },
       set(val) {
-      if(!!this.current_recipe && !!(this.current_recipe.yields) && val > 0) {
-        let oldVal = this.current_recipe.yields[0][this.yields_unit];
+        if(!!this.current_recipe && !!(this.current_recipe.yields) && val > 0) {
+          let oldVal = this.current_recipe.yields[0][this.yields_unit];
 
-        this.current_recipe.yields[0][this.yields_unit] = val;
-        
-        if(this.do_recalc) {
-          this.calcNewAmounts(oldVal); 
-        }
+
+          this.current_recipe.yields[0][this.yields_unit] = val;
+          
+          if(this.do_recalc) {
+            this.calcNewAmounts(oldVal); 
+          }
         }
       }
     },
@@ -134,84 +78,11 @@ export default {
       return this.current_recipe.sections.map( x =>  x.section );
     }
   },
-  methods: {
-    saveLocalData(data) {
-      setMany([[data],[this[data]]]);
-
-    },
-    readLocalDataSingle(data) {
-      getMany([data]).then( ([value]) => this[data] = value )
-    },
-    readLocalData() {
-      if (localStorage.getItem('recipes')) {
-        try {
-          this.loadYamlFull(localStorage.getItem('recipes'));
-        } catch(e) {
-          console.log(e)
-          localStorage.removeItem('recipes');
-          this.loadSample();
-        }
-      }
-      else  {
-        this.loadSample();
-      }
-    },
-    generateUUID() { // Public Domain/MIT
-      let d = new Date().getTime();
-      if (typeof performance !== 'undefined' && typeof performance.now === 'function'){
-        d += performance.now(); //use high-precision timer if available
-      }
-      let newGuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        let r = (d + Math.random() * 16) % 16 | 0;
-        d = Math.floor(d / 16);
-        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-      });
-      
-      return newGuid;
-    },
-    initRecipe(recipe) {
-      //set default values
-      recipe.sections     = recipe.sections ||  [{section:""}];
-      recipe.sections     = (recipe.sections.length > 0) ? recipe.sections : [{section:""}];
-      recipe.steps        = recipe.steps || [];
-      recipe.ingredients  = recipe.ingredients || [];
-      recipe.recipe_uuid  = recipe.recipe_uuid || this.generateUUID();
-      recipe.lastUpdated  = recipe.lastUpdated || new Date();
-
-      recipe.ingredients.forEach(ingredient => {
-        ingredient.section = ingredient.section || "";
-      });
-
-      recipe.steps.forEach(step => {
-        step.section = step.section || "";
-      });
-
-      return recipe;
-    },
-    // find local recipe by uuid, replace it by remote if newer
-    // add remote recipe if not found locally
-    mergeCoobooks(local, remote) {
-      remote.forEach( remoteRecipe => {
-        let localIndex  = local.findIndex(x => x.recipe_uuid === remoteRecipe.recipe_uuid);
-        let localRecipe = local[localIndex];
-        //replace also if remote == local to replace unsaved local changes
-
-        console.log(localIndex);
-        
-        if(localIndex != -1 && !(localRecipe.lastUpdated > remoteRecipe.lastUpdated)) {
-          local.splice(localIndex, 1, remoteRecipe);
-          console.log(localRecipe.lastUpdated);
-          console.log(remoteRecipe.lastUpdated);
-          console.log('Local not newer: ' + !(localRecipe.lastUpdated > remoteRecipe.lastUpdated));
-          console.log('Local replaced');
-        }
-        else if(localIndex === -1) {
-          console.log('remote pushed');
-          local.push(remoteRecipe);
-        }
-        
-      });
-      return local;
+  methods: {    
+    loadRecipe (recipe) {
+      console.log('loading')
+      console.log(recipe)
+      this.current_recipe = this.deepCopyYaml(recipe);
     },
     deepCopyYaml(src) {
       return jsyaml.load(jsyaml.dump(src));
@@ -235,30 +106,5 @@ export default {
         }  
       });
     },
-    loadSample: function (){
-      this.loadYamlRecipe(this.sample_recipe);
-    },
-    appendRecipe: function(recipe) {
-      if(!jQuery.isEmptyObject(this.recipes[0])) {
-        this.recipes.push(recipe);
-      }
-      else {
-        //replace empty recipe
-        this.recipes[0] = recipe;
-      }
-
-    },
-    loadYamlRecipe: function (content) {
-      let recipe = this.initRecipe(jsyaml.load(content));
-      this.appendRecipe(recipe);
-    },
-    loadYamlCookbook: function(content) {
-      let recipes = jsyaml.load(content);
-      recipes.forEach( recipe => {this.initRecipe(recipe)});
-      return recipes;
-    },
-    loadYamlFull: function (content) {
-      this.recipes = this.loadYamlCookbook(content);
-    }
   }
 };

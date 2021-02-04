@@ -110,7 +110,6 @@ export default {
   computed: {
     ...mapState([
       'settings',
-      'recipes'
     ])
   },
   filters: {
