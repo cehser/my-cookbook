@@ -127,12 +127,6 @@ import { createClient } from "webdav/web";
 
 const jp = require('jsonpath')
 const deepEqual = require('deep-equal')
-const QRCode = require('qrcode')
-
-//qr code scanning
-import QrScanner from 'qr-scanner';
-import QrScannerWorkerPath from '!!file-loader!../../node_modules/qr-scanner/qr-scanner-worker.min.js';
-QrScanner.WORKER_PATH = QrScannerWorkerPath;
 
 import { mapState } from 'vuex'
 
@@ -172,38 +166,6 @@ export default {
       if(event.ctrlKey && event.which === 83){ 
         event.preventDefault(); //do not show browser dialog
          this.saveToLocalStorage();
-      }
-    }
-    let canvas = document.getElementById('qrcode_config')
-    QRCode.toCanvas(canvas, JSON.stringify(this.webdav), function (error) {
-      if (error) console.error(error)
-      console.log('success!');
-    });
-
-    let videoElem = document.getElementById('qrcode_scan_video')
-    this.qrScanner = new QrScanner(videoElem, result => { 
-      try {
-        let webdav_qr = JSON.parse(result); 
-        this.webdav.webdav_url = webdav_qr.webdav_url;
-        this.webdav.filepath   = webdav_qr.filepath;
-        this.webdav.webdav_creds.username = webdav_qr.webdav_creds.username;
-        this.webdav.webdav_creds.password = webdav_qr.webdav_creds.password;
-        this.qrScanner.stop();
-      }
-      catch(e) {
-        console.log(e);
-        this.qrScanner.stop();
-      } 
-    });
-
-  },
-  watch: {
-    webdav :{
-      deep: true,
-      //update qr code
-      handler() {
-        let canvas = document.getElementById('qrcode_config')
-        QRCode.toCanvas(canvas, JSON.stringify(this.webdav), (error) => { if (error) console.error(error) });
       }
     }
   },
