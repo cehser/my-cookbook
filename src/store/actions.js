@@ -90,5 +90,6 @@ export default {
     let recipes_remote = RecipeHelper.loadYamlCookbook(data)
     let recipes = RecipeHelper.mergeCoobooks(DeepCopy.deepCopyYaml(state.recipes), recipes_remote);
     commit(SET_RECIPES, recipes);
-  }
+  },
+
 }

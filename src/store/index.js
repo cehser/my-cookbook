@@ -9,6 +9,7 @@ const debug = process.env.NODE_ENV !== 'production'
 
 const default_settings =  {
   read_only: true,
+  autosync: false,
   webdav: {
     webdav_creds: {
       username: "user",

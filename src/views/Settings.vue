@@ -28,6 +28,9 @@
       <b-form-checkbox v-model="settings.read_only" name="check-button" switch>
         Nur lesen 
       </b-form-checkbox>
+      <b-form-checkbox v-model="settings.autosync" name="check-button" switch>
+        Auto-Sync 
+      </b-form-checkbox>
 
       <div id="settings" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <h5 id="exampleModalLabel">Cloud-Konfiguration (WebDAV)</h5>
