@@ -1,9 +1,6 @@
 <template>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
     <router-link class="navbar-brand" to="/">Kochbuch</router-link>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainmenu" aria-controls="mainmenu" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
     <div id="mainmenu" class="collapse navbar-collapse">
       <ul class="navbar-nav">
         <li class="nav-item">
@@ -21,13 +18,16 @@
         <li class="nav-item">
           <router-link class="nav-link" to="/administration">Verwaltung</router-link>
         </li>
-<!--       <li class="nav-item">
-          <form class="form-inline">
-              <b-form-select class="form-control mr-sm-2" v-model.number="data_selected" :options="recipes_list"></b-form-select>
-          </form>
-        </li>-->
         <slot></slot>
       </ul>
+    </div>
+    <div class="d-flex align-items-center">      
+      <div id="loading-spinner" class="spinner-border spinner-border-sm text-light d-none" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+      <button class="navbar-toggler ml-4" type="button" data-toggle="collapse" data-target="#mainmenu" aria-controls="mainmenu" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
     </div>
   </nav>
 </template>

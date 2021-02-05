@@ -61,7 +61,7 @@
           <button type="button" class="btn btn-secondary mt-2" @click="scanQRConfig">QR-Code scannen</button>
         </div>
         <div class="mt-2">
-          <button type="button" class="btn btn-primary" data-dismiss="modal" @click="saveWebDAVConfig">Save changes</button>
+          <button type="button" class="btn btn-primary" :disabled="!changed" @click="saveWebDAVConfig">Save changes</button>
         </div>
       </div>
     </b-container>
@@ -84,6 +84,8 @@ import Cloud from '../js/cloud'
 
 const QRCode = require('qrcode')
 
+const deepEqual = require('deep-equal')
+
 //qr code scanning
 import QrScanner from 'qr-scanner';
 import QrScannerWorkerPath from '!!file-loader!../../node_modules/qr-scanner/qr-scanner-worker.min.js';
@@ -105,10 +107,15 @@ export default {
     //local copy of store settings
     this.settings = JSON.parse(JSON.stringify(this.store_settings))
   },
-  computed: mapState({
-    // passing the string value 'count' is same as `state => state.count`
-    store_settings: 'settings'
-  }),
+  computed: {
+    ...mapState({
+      // passing the string value 'count' is same as `state => state.count`
+      store_settings: 'settings'
+    }),
+    changed: function() {
+      return !deepEqual(this.settings, this.store_settings)
+    }
+  },
   mounted() { 
     document.onkeydown = (event) => {
       //ctrl + s
@@ -224,11 +231,14 @@ export default {
       reader.readAsText(file);    
     },
     async saveWebDAVConfig () {
+      $("#loading-spinner").removeClass('d-none');
       Cloud.checkFile(this.settings)
         .then((fileExists) =>{ 
           if(fileExists) {
             this.$store.dispatch("saveSettings", this.settings)
-              .then(() => this.toast('Gespeichert.', 'success'))
+              .then(() => {
+                this.toast('Gespeichert.', 'success')
+              })
           }
           else {
             this.toast('Datei nicht gefunden.', 'danger')
@@ -238,6 +248,7 @@ export default {
           this.toast('Zugriffsfehler!', 'danger');
           console.log(e);
         })
+        .finally(() => $("#loading-spinner").addClass('d-none'))
     },
     scanQRConfig: function() {
       this.qrScanner.start();

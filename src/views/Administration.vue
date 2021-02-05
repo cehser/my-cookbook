@@ -37,7 +37,8 @@
   import DeepCopy from '../js/deepCopy'
   import Recipes from '../js/recipes'
   import Cloud from '../js/cloud'
-
+  
+  import $ from 'jquery'
   import jsyaml from 'js-yaml'
 
   export default {
@@ -71,19 +72,25 @@
         this.$store.dispatch("appendRecipe", Recipes.loadSample())
       },
       saveToWebDAV: function() {
+        $("#loading-spinner").removeClass('d-none');
         Cloud.putFile(this.settings, this.recipes)
           .then(() => this.toast('Gespeichert.', 'success'))
-          .catch(() => this.toast('Fehlgeschlagen.', 'danger'));
+          .catch(() => this.toast('Fehlgeschlagen.', 'danger'))
+          .finally(() => $("#loading-spinner").addClass('d-none'))
       },
       loadFromWebDAV: async function() {
+        $("#loading-spinner").removeClass('d-none');
         this.$store.dispatch('getRecipesFromCloud')
           .then(() => this.toast('Geladen.', 'success'))
           .catch(() => this.toast('Fehler.', 'danger'))
+          .finally(() => $("#loading-spinner").addClass('d-none'))
       },
       syncWithWebDAV: async function() {
+        $("#loading-spinner").removeClass('d-none');
         this.$store.dispatch('syncRecipesWithCloud')
           .then(() => this.toast('Synchronisiert.', 'success'))
           .catch(() => this.toast('Fehler.', 'danger'))
+          .finally(() => $("#loading-spinner").addClass('d-none'))
       },
       saveToLocalStorage: function () {
         this.$store.dispatch('saveRecipes')
