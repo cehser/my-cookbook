@@ -6,6 +6,9 @@ import store from './store'
 
 import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
 
+import AsyncComputed from 'vue-async-computed'
+import Clipboard from 'v-clipboard'
+
 // Import Bootstrap an BootstrapVue CSS files (order is important)
 import 'bootstrap'
 import 'bootstrap/dist/css/bootstrap.css'
@@ -16,8 +19,8 @@ import './registerServiceWorker'
 Vue.use(BootstrapVue)
 // Optionally install the BootstrapVue icon components plugin
 Vue.use(IconsPlugin)
-
-
+Vue.use(AsyncComputed)
+Vue.use(Clipboard)
 
 Vue.config.productionTip = false
 

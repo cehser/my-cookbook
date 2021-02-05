@@ -60,8 +60,17 @@
           </div> 
           <button type="button" class="btn btn-secondary mt-2" @click="scanQRConfig">QR-Code scannen</button>
         </div>
-        <div class="mt-2">
+        <div class="mt-2 mb-2">
           <button type="button" class="btn btn-primary" :disabled="!changed" @click="saveWebDAVConfig">Save changes</button>
+        </div>
+        <div class="form-group">
+            <label for="configurl" class="col-form-label">Konfiguration teilen</label>
+            <b-input-group>
+              <b-form-input  type="text" class="form-control" id="configurl" v-model="configurl" autocorrect="off" disabled></b-form-input>
+              <b-input-group-append>
+                <b-button v-clipboard="() => configurl"><b-icon-files></b-icon-files></b-button>
+              </b-input-group-append>
+            </b-input-group>
         </div>
       </div>
     </b-container>
@@ -86,6 +95,8 @@ const QRCode = require('qrcode')
 
 const deepEqual = require('deep-equal')
 
+const json_url = require('json-url')('lzma');
+
 //qr code scanning
 import QrScanner from 'qr-scanner';
 import QrScannerWorkerPath from '!!file-loader!../../node_modules/qr-scanner/qr-scanner-worker.min.js';
@@ -103,9 +114,14 @@ export default {
       settings: null
     };
   },
-  created() {
+  async created() {
     //local copy of store settings
     this.settings = JSON.parse(JSON.stringify(this.store_settings))
+    if(this.$route.query.config) {
+      console.log(this.$route.query.config)
+      this.settings = await json_url.decompress(this.$route.query.config)
+      console.log(this.settings)
+    }
   },
   computed: {
     ...mapState({
@@ -114,6 +130,11 @@ export default {
     }),
     changed: function() {
       return !deepEqual(this.settings, this.store_settings)
+    }
+  },
+  asyncComputed: {
+    async configurl() {
+      return location.toString() + "?config=" + await json_url.compress(this.settings);
     }
   },
   mounted() { 
