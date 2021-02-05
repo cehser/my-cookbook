@@ -32,8 +32,8 @@
         Auto-Sync 
       </b-form-checkbox>
 
-      <div id="settings" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <h5 id="exampleModalLabel">Cloud-Konfiguration (WebDAV)</h5>
+      <div id="settings">
+        <h5>Cloud-Konfiguration (WebDAV)</h5>
         <div>
           <form>
             <div class="form-group">
