@@ -156,12 +156,15 @@ export default {
         this.settings.webdav.filepath   = webdav_qr.filepath;
         this.settings.webdav.webdav_creds.username = webdav_qr.webdav_creds.username;
         this.settings.webdav.webdav_creds.password = webdav_qr.webdav_creds.password;
-        this.qrScanner.stop();
+        this.scrollto('#settings')
       }
       catch(e) {
         console.log(e);
-        this.qrScanner.stop();
       } 
+      finally {
+        this.qrScanner.stop();
+        this.closeFullscreen();   
+      }
     });
 
   },
@@ -273,7 +276,39 @@ export default {
     },
     scanQRConfig: function() {
       this.qrScanner.start();
-      setTimeout(() => this.qrScanner.stop(), 10000);
+      let videoElem = $('#qrcode_scan_video')[0]
+      this.openFullscreen(videoElem)
+      setTimeout(() => {
+          this.qrScanner.stop()
+          this.closeFullscreen()
+        }
+        , 10000);
+    },
+    openFullscreen: function (elem) {
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) { /* Safari */
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) { /* IE11 */
+        elem.msRequestFullscreen();
+      }
+    },
+
+    /* Close fullscreen */
+    closeFullscreen: function () {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.mozCancelFullScreen) { /* Firefox */
+        document.mozCancelFullScreen();
+      } 
+      else if (document.webkitExitFullscreen) { /* Safari */
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) { /* IE11 */
+        document.msExitFullscreen();
+      }
+    },
+    scrollto: function(element){
+      $('html, body').animate({ scrollTop: ($(element).offset().top)}, 'slow');
     }
   }
 }
