@@ -211,7 +211,6 @@ export default {
       this.$refs['input-foto'].reset()
     },
     preview_image: function(file) {
-      console.log("test")
       var preview = document.querySelector('#image-preview');
       if(file) {
          preview.src = URL.createObjectURL(file)
@@ -239,7 +238,7 @@ export default {
             .then(() => this.delete_image = false)
             .catch(() => this.toast('Bildfehler.', 'danger'))
         }
-    
+        console.log(this.current_recipe.cloud_images)
         this.$store.dispatch('setRecipe', { index: this.selected, recipe: this.current_recipe })
           .then(() => this.toast('Gespeichert.', 'success'))
           .catch(() => this.toast('Fehler.', 'danger'))

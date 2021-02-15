@@ -106,11 +106,10 @@ export default {
     commit(SET_RECIPES, recipes);
   },
   async downloadRecipePictures({ commit, state}) {
-    state.recipes.forEach(recipe => {
-      fetch(recipe.imageurl)
-      .then(response => response.blob())
-      .then(blob => commit(SET_RECIPE_PICTURE, {uuid: recipe.uuid, picture: blob}));
-      })
+    Cloud.getRecipeImages(state.settings, state.recipes)
+      .then(recipe_images =>  {
+        commit(SET_RECIPE_PICTURES, recipe_images)
+      });
   },
   setRecipePicture({commit, dispatch}, {uuid, picture}) {
     commit(SET_RECIPE_PICTURE, {uuid, picture})

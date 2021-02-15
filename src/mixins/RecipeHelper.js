@@ -84,18 +84,19 @@ export default {
   },
   methods: {   
     recipePictureSrc (recipe) {
-      console.log(recipe.imageurl)
-      console.log(this.recipe_pictures[recipe.recipe_uuid])
-      if(this.recipe_pictures[recipe.recipe_uuid] && this.recipe_pictures[recipe.recipe_uuid][0]) {
-        console.log("object")
-        return URL.createObjectURL(this.recipe_pictures[recipe.recipe_uuid][0])
+      if(recipe.cloud_images && recipe.cloud_images[0] && this.recipe_pictures[recipe.recipe_uuid] && this.recipe_pictures[recipe.recipe_uuid][0]) {
+        let filename = recipe.cloud_images[0]
+        let picturesByName = this.recipe_pictures[recipe.recipe_uuid].reduce((map, file) => {
+          map[file.name] = file
+          return map
+        }, {})
+
+        return URL.createObjectURL(picturesByName[filename])
       }
       else if(recipe.imageurl && recipe.imageurl.localeCompare("") != 0) {
-        console.log("web")
         return new URL(recipe.imageurl, location.toString())
       }
       else {
-        console.log("fallback")
         return new URL("/placeholder-image.png", location.toString())
       }
 

@@ -24,7 +24,7 @@
     components: {TextHighlight},
     props: {
       recipe: Object,
-      picture_src: Object,
+      picture_src: [Object, URL],
       index: Number,
       highlight: String,
       read_only: Boolean
