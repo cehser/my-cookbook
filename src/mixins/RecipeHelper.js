@@ -25,7 +25,8 @@ export default {
       deep: true,
       //update qr code
       handler() {
-        this.loadRecipe(this.recipes[this.selected]);
+        // updating current recipe leads to problems like unwantedly changing the amounts calculation
+        // this.loadRecipe(this.recipes[this.selected]);
       }
     }
   },
