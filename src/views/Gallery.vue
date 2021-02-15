@@ -18,7 +18,7 @@
       <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 mt-2">  
         <div v-for="(recipe, index) in recipes" :key="index" class="col mb-4" v-show="recipe.recipe_name.toLowerCase().includes(filter.toLowerCase())">
           <b-link :to="{ path: '/recipe/'+index }">
-            <RecipeCard class='cardAspect' :recipe="recipe" :index="index" :highlight="filter" :read_only="settings.read_only"></RecipeCard>
+            <RecipeCard class='cardAspect' :recipe="recipe" :picture_src="recipePictureSrc(recipe)" :index="index" :highlight="filter" :read_only="settings.read_only"></RecipeCard>
           </b-link>
         </div>
       </div>

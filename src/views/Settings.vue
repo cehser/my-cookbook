@@ -256,7 +256,7 @@ export default {
     },
     async saveWebDAVConfig () {
       $("#loading-spinner").removeClass('d-none');
-      Cloud.checkFile(this.settings)
+      Cloud.checkPath(this.settings)
         .then((fileExists) =>{ 
           if(fileExists) {
             this.$store.dispatch("saveSettings", this.settings)

@@ -7,7 +7,7 @@ export default {
     steps: []
     sections: []
     recipe_name: Neues Rezept
-    imageurl: /placeholder-image.png
+    imageurl: 
     yields:
       - Portionen: 4
     recalc_exp: 1
@@ -15,7 +15,7 @@ export default {
   sample_recipe: `
     sections: []
     recipe_name: Beispiel
-    imageurl: /placeholder-image.png
+    imageurl: 
     yields:
       - Portionen: 4
     ingredients:
@@ -124,5 +124,5 @@ export default {
       
     });
     return local;
-  },
+  }
 }

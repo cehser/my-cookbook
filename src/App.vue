@@ -10,6 +10,7 @@
       //load settings from IDB on aplication loading
       this.$store.dispatch("loadSettings");
       this.$store.dispatch("loadRecipes");
+      this.$store.dispatch("loadRecipePictures");
 
       setInterval(() => {
         if(this.$store.state.settings.autosync) {

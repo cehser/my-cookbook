@@ -7,6 +7,7 @@
         <div class="d-flex flex-wrap">
           <b-button v-if="!settings.read_only" class="btn m-2" @click="syncWithWebDAV"><b-icon-arrow-repeat></b-icon-arrow-repeat><br/>Cloud-Abgleich</b-button>
           <b-button class="btn m-2" @click="loadFromWebDAV"><b-icon-cloud-download></b-icon-cloud-download><br/>Cloud-Download</b-button>
+          <b-button class="btn m-2" @click="loadPictures"><b-icon-cloud-download></b-icon-cloud-download><br/>Bilder-Download</b-button>
           <b-button v-if="!settings.read_only" class="btn m-2" @click="saveToWebDAV"><b-icon-cloud-upload></b-icon-cloud-upload><br/>Cloud-Upload</b-button>
         </div>
 
@@ -73,7 +74,7 @@
       },
       saveToWebDAV: function() {
         $("#loading-spinner").removeClass('d-none');
-        Cloud.putFile(this.settings, this.recipes)
+        Cloud.putRecipes(this.settings, this.recipes, this.recipe_pictures)
           .then(() => this.toast('Gespeichert.', 'success'))
           .catch(() => this.toast('Fehlgeschlagen.', 'danger'))
           .finally(() => $("#loading-spinner").addClass('d-none'))
@@ -81,6 +82,13 @@
       loadFromWebDAV: async function() {
         $("#loading-spinner").removeClass('d-none');
         this.$store.dispatch('getRecipesFromCloud')
+          .then(() => this.toast('Geladen.', 'success'))
+          .catch(() => this.toast('Fehler.', 'danger'))
+          .finally(() => $("#loading-spinner").addClass('d-none'))
+      },
+      loadPictures: async function() {
+        $("#loading-spinner").removeClass('d-none');
+        this.$store.dispatch('downloadRecipePictures')
           .then(() => this.toast('Geladen.', 'success'))
           .catch(() => this.toast('Fehler.', 'danger'))
           .finally(() => $("#loading-spinner").addClass('d-none'))

@@ -1,5 +1,5 @@
 import { set, getMany, get, del} from 'idb-keyval';
-import {ADD_RECIPE, DEL_RECIPE, SET_RECIPE, SET_RECIPES, SET_SETTINGS} from './mutations';
+import {ADD_RECIPE, DEL_RECIPE, SET_RECIPE, SET_RECIPES, SET_RECIPE_PICTURE, SET_RECIPE_PICTURES, SET_SETTINGS} from './mutations';
 import RecipeHelper from '../js/recipes'
 import DeepCopy from '../js/deepCopy'
 import Cloud from '../js/cloud'
@@ -52,6 +52,15 @@ export default {
         }
       })
   },
+  loadRecipePictures({ commit }) {
+    console.log('Read recipe pictures from idb')
+    get('recipe_pictures')
+      .then((val) => { 
+        if(val) {
+          commit(SET_RECIPE_PICTURES, val) 
+        }
+      })
+  },
   saveRecipes({ commit, state }){
     //save to idb first, then commit to store
     set('recipes', state.recipes)
@@ -64,6 +73,11 @@ export default {
     set('settings', settings)
       .then(()=>commit(SET_SETTINGS, settings))
   },
+  saveRecipePictures({ commit, state }){
+    //save to idb first, then commit to store
+    set('recipe_pictures', state.recipe_pictures)
+      .then(()=>commit(SET_RECIPE_PICTURES, state.recipe_pictures))
+  },
   deleteRecipe({commit}, index) {
     commit(DEL_RECIPE, index)
   },
@@ -73,23 +87,34 @@ export default {
     commit(ADD_RECIPE, recipe)
   },
   setRecipe({commit, dispatch}, {index, recipe}) {
-    console.log(index)
-    console.log(recipe)
     //kill all possible references to vue model
     recipe = DeepCopy.deepCopyYaml(recipe)
     commit(SET_RECIPE, {index, recipe})
     dispatch('saveRecipes')
   },
   async getRecipesFromCloud({ commit, state}){
-    let data = await Cloud.getFile(state.settings)
-    let recipes = RecipeHelper.loadYamlCookbook(data)
+    let recipes_data = await Cloud.getRecipes(state.settings)
+    let recipes = RecipeHelper.loadYamlCookbook(recipes_data)
+    let images = await Cloud.getRecipeImages(state.settings, recipes)
     commit(SET_RECIPES, recipes);
+    commit(SET_RECIPE_PICTURES, images);
   },
   async syncRecipesWithCloud({ commit, state}){
-    let data = await Cloud.getFile(state.settings)
+    let data = await Cloud.getRecipes(state.settings)
     let recipes_remote = RecipeHelper.loadYamlCookbook(data)
     let recipes = RecipeHelper.mergeCoobooks(DeepCopy.deepCopyYaml(state.recipes), recipes_remote);
     commit(SET_RECIPES, recipes);
+  },
+  async downloadRecipePictures({ commit, state}) {
+    state.recipes.forEach(recipe => {
+      fetch(recipe.imageurl)
+      .then(response => response.blob())
+      .then(blob => commit(SET_RECIPE_PICTURE, {uuid: recipe.uuid, picture: blob}));
+      })
+  },
+  setRecipePicture({commit, dispatch}, {uuid, picture}) {
+    commit(SET_RECIPE_PICTURE, {uuid, picture})
+    dispatch('saveRecipePictures')
   },
 
 }

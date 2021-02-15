@@ -1,7 +1,7 @@
 <template>
   <div class="card recipe_card_container">
     <div class="recipe_card_container">
-      <img class="" id="recipe_img" :src="recipe.imageurl" alt="Card image cap">
+      <img class="" id="recipe_img" :src="picture_src" alt="Card image cap">
       <div class="card-body recipe_title">
         <h2 class="card-title d-flex flex-row flex-wrap justify-content-between">
           <div>
@@ -18,20 +18,19 @@
 
 <script>
   import TextHighlight from 'vue-text-highlight';
+
   export default {
     name: 'RecipeCard',
     components: {TextHighlight},
     props: {
       recipe: Object,
+      picture_src: Object,
       index: Number,
       highlight: String,
       read_only: Boolean
     },
     computed: {
-      highlightArray: function () {
-        //return [this.highlight];
-        return ['Pfa', 'Pudd'];
-      }
+      
     }
   }
 </script>

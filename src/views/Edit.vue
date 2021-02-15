@@ -22,10 +22,10 @@
         </b-row>
          <b-row class="my-1">
           <b-col sm="2">
-            <label for="input-name">Untertitel:</label>
+            <label for="input-subtitle">Untertitel:</label>
           </b-col>
           <b-col sm="10">
-            <b-form-input id="input-name" size="sm" placeholder="Untertitel eingeben" v-model="current_recipe.subtitle"></b-form-input>
+            <b-form-input id="input-subtitle" size="sm" placeholder="Untertitel eingeben" v-model="current_recipe.subtitle"></b-form-input>
           </b-col>
         </b-row>
         <b-row class="my-1">
@@ -58,12 +58,46 @@
         </b-row>
         <b-row class="my-1">
           <b-col sm="2">
-            <label for="input-name">Abbildung:</label>
+            <label for="input-name">Web-Foto:</label>
           </b-col>
           <b-col sm="10">
-            <b-form-input id="input-name" size="sm" placeholder="Enter a name" v-model="current_recipe.imageurl"></b-form-input>
+            <b-form-input id="input-name" size="sm" placeholder="https://..." v-model="current_recipe.imageurl"></b-form-input>
           </b-col>
         </b-row>
+        <b-row class="my-1" v-if="recipe_pictures[current_recipe.recipe_uuid]">
+          <b-col sm="2">
+            <label for="input-name">Gespeichertes Foto:</label>
+          </b-col>
+          <b-col sm="10">
+            <img :src="picture_src" height="100">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" id="delete_image-switch" v-model="delete_image">
+              <label class="custom-control-label" for="delete_image-switch">Löschen</label>
+            </div>
+          </b-col>
+        </b-row>
+        <b-row class="my-1">
+          <b-col sm="2">
+            <label for="input-foto">Foto-Upload:</label>
+          </b-col>
+          <b-col sm="10">
+            <b-input-group size="sm">
+              <b-input-group-prepend>
+                <b-button size="sm" @click="clearFile"><b-icon-x></b-icon-x></b-button>
+              </b-input-group-prepend>
+            
+              <b-form-file size="sm" id="input-foto" ref="input-foto" accept="image/*" placeholder="Datei auswählen oder ablegen" drop-placeholder="Hier ablegen" browse-text="Durchsuchen" v-model="file"></b-form-file>
+            </b-input-group>
+          </b-col>
+        </b-row>
+        <b-row>
+          <b-col sm="2">
+            Upload-Vorschau
+          </b-col>
+          <b-col sm="10">
+            <img id="image-preview" height="100">
+          </b-col>
+        </b-row> 
       </b-container>
       <b-container fluid>
         <h2>Abschnitte</h2>
@@ -102,10 +136,6 @@
       <b-form-row>
         <b-form-textarea readonly rows="10" :value="yaml"></b-form-textarea>
       </b-form-row>
-      
-      <b-collapse id="collapse-file-upload">
-        <b-form-file hidden="hidden" id="fileUploadButton" @change="loadFromFile" v-model="file" placeholder="Choose a file or drop it here..." drop-placeholder="Drop file here..." accept=".yaml"></b-form-file>
-      </b-collapse>
     </b-container>
   </div>
 
@@ -139,7 +169,9 @@ export default {
   },
   data() {
     return {
+      file: null,
       do_recalc: false,  //replace default value
+      delete_image: false
     };
   },
   mounted() {  
@@ -169,13 +201,45 @@ export default {
         'settings'
       ])
   },
-
+  watch: {
+    file: function(newFile) {
+      this.preview_image(newFile)
+    }
+  },
   methods: {
+    clearFile: function () {
+      this.$refs['input-foto'].reset()
+    },
+    preview_image: function(file) {
+      console.log("test")
+      var preview = document.querySelector('#image-preview');
+      if(file) {
+         preview.src = URL.createObjectURL(file)
+      }
+      else {
+        preview.src = ""
+      }
+    },
     saveRecipe: function () {
       //only update if current_recipe is really different
-      if(!deepEqual(this.recipes[this.selected], this.current_recipe)) {
+      console.log(this.file)
+      if(!deepEqual(this.recipes[this.selected], this.current_recipe) || this.file || this.delete_image) {
         this.current_recipe.lastUpdated = new Date();
         console.log(this.current_recipe.lastUpdated)
+    
+        if(this.file) {
+          this.current_recipe.cloud_images = [this.file.name]
+          this.$store.dispatch('setRecipePicture', { uuid: this.current_recipe.recipe_uuid, picture: this.file })
+            .catch(() => this.toast('Bildfehler.', 'danger'))
+        }
+
+        if(this.delete_image) {
+          this.current_recipe.cloud_images = []
+          this.$store.dispatch('setRecipePicture', { uuid: this.current_recipe.recipe_uuid, picture: null })
+            .then(() => this.delete_image = false)
+            .catch(() => this.toast('Bildfehler.', 'danger'))
+        }
+    
         this.$store.dispatch('setRecipe', { index: this.selected, recipe: this.current_recipe })
           .then(() => this.toast('Gespeichert.', 'success'))
           .catch(() => this.toast('Fehler.', 'danger'))

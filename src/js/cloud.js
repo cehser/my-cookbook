@@ -5,16 +5,69 @@ export default {
   webdavClient(settings) {
     return createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
   },
-  checkFile(settings) {
+  checkPath(settings) {
     let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
     return webdavclient.exists(settings.webdav.filepath)
   },
-  getFile(settings) {
+  getRecipes(settings) {
+    let path = this.getRootpath(settings) + "cookbook.yaml"
     let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
-    return webdavclient.getFileContents(settings.webdav.filepath, { format: "text" })
+    return webdavclient.getFileContents(path, { format: "text" })
   },
-  async putFile(settings, recipes) {
+  //TODO get images
+  async getRecipeImages(settings, recipes) {
     let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
-    await webdavclient.putFileContents(settings.webdav.filepath, jsyaml.dump(recipes))
+    let path = this.getRootpath(settings) + "pictures/"
+    //load images for all recipes
+    let recipe_images = {}
+    recipes.forEach(async recipe => {
+      let images = []
+      if(await webdavclient.exists(path + recipe.recipe_uuid)) {
+        //load all images for recipe
+        recipe.cloud_images.forEach(async imagename => {
+          let image_path = path + recipe.recipe_uuid + "/" + imagename
+          if(await webdavclient.exists(image_path)) {
+            const buff = await webdavclient.getFileContents(image_path);
+            images.push(new File(buff, imagename))
+          }
+        });
+      }
+      recipe_images[recipe.recipe_uuid] = images
+    });
+    return recipe_images
+  },
+  async putRecipes(settings, recipes, recipe_pictures) {
+    let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
+    let rootpath = this.getRootpath(settings)
+    let path = rootpath + "cookbook.yaml"
+    
+    webdavclient.putFileContents(path, jsyaml.dump(recipes))
+      .then(async () => {
+        if(!await webdavclient.exists(rootpath + "pictures")) {
+          console.log("create pictures dir")
+          await webdavclient.createDirectory(rootpath + "pictures");
+        }
+        
+        recipes.forEach(async recipe => {
+          if(recipe_pictures[recipe.recipe_uuid] && recipe_pictures[recipe.recipe_uuid][0]) {
+            this.putImageFile(settings, recipe.recipe_uuid, recipe_pictures[recipe.recipe_uuid][0])
+          }
+          //TODO: Delete superflous cloud images
+        });
+      })
+  },
+  async putImageFile(settings, recipe_uuid, file) {
+    let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
+    let path = this.getRootpath(settings) + "pictures/" + recipe_uuid
+
+    if(!await webdavclient.exists(path)) {
+      await webdavclient.createDirectory(path);
+    }
+
+    var buffer = await file.arrayBuffer();
+    await webdavclient.putFileContents(path + "/" + file.name, buffer)
+  },
+  getRootpath(settings) {
+    return settings.webdav.filepath.substr(0, settings.webdav.filepath.lastIndexOf("/")+1)
   }
 }

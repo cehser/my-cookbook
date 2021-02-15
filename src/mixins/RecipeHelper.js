@@ -32,10 +32,14 @@ export default {
   },
   computed: {
     ...mapState([
-      'recipes'
+      'recipes',
+      'recipe_pictures'
     ]),
     recipes_list: function() {
       return this.recipes.map((val,idx) => ({value: idx, text: val.recipe_name}));
+    },
+    picture_src: function() {
+      return this.recipePictureSrc(this.current_recipe)
     },
     yields_unit: { 
       get() {
@@ -78,10 +82,25 @@ export default {
       return this.current_recipe.sections.map( x =>  x.section );
     }
   },
-  methods: {    
+  methods: {   
+    recipePictureSrc (recipe) {
+      console.log(recipe.imageurl)
+      console.log(this.recipe_pictures[recipe.recipe_uuid])
+      if(this.recipe_pictures[recipe.recipe_uuid] && this.recipe_pictures[recipe.recipe_uuid][0]) {
+        console.log("object")
+        return URL.createObjectURL(this.recipe_pictures[recipe.recipe_uuid][0])
+      }
+      else if(recipe.imageurl && recipe.imageurl.localeCompare("") != 0) {
+        console.log("web")
+        return new URL(recipe.imageurl, location.toString())
+      }
+      else {
+        console.log("fallback")
+        return new URL("/placeholder-image.png", location.toString())
+      }
+
+    },
     loadRecipe (recipe) {
-      console.log('loading')
-      console.log(recipe)
       this.current_recipe = DeepCopy.deepCopyYaml(recipe);
     },
     swapElements(array, index1, index2) {
