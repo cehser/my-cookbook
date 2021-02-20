@@ -145,9 +145,9 @@ export default {
   mounted() {  
     document.onkeydown = (event) => {
       //ctrl + s
-      if(event.ctrlKey && event.which === 83){ 
+      if(event.ctrlKey && event.code === "KeyS") { 
         event.preventDefault(); //do not show browser dialog
-         this.saveRecipe();
+        this.saveRecipe();
       }
     }
   },
