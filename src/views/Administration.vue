@@ -22,7 +22,7 @@
           </b-list-group-item>
         </b-list-group>
 
-        <b-button class="btn" @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill> Speichern</b-button>
+        <b-button class="btn mb-4" @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill> Speichern</b-button>
     </b-container>
   </div>
 </template>
@@ -52,6 +52,15 @@
       ...mapState([
         'settings'
       ])
+    },
+    mounted() {  
+      document.onkeydown = (event) => {
+        //ctrl + s
+        if(event.ctrlKey && event.code === "KeyS"){ 
+          event.preventDefault(); //do not show browser dialog
+          this.saveToLocalStorage();
+        }
+      }
     },
     methods: {
       deleteRecipe: function(index) {
