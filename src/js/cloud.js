@@ -16,25 +16,34 @@ export default {
   },
   //TODO get images
   async getRecipeImages(settings, recipes) {
-    let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
-    let path = this.getRootpath(settings) + "pictures/"
     //load images for all recipes
     let recipe_images = {}
     for await (const recipe of recipes) {
-      let images = []
-      if(await webdavclient.exists(path + recipe.recipe_uuid)) {
-        //load all images for recipe
-        for await(const imagename of recipe.cloud_images) {
-          let image_path = path + recipe.recipe_uuid + "/" + imagename
-          if(await webdavclient.exists(image_path)) {
-            let buff = await webdavclient.getFileContents(image_path);
-            images.push(new File([buff], imagename))
-          }
-        }
-      }
+      let images = await this.getSingleRecipeImages(settings, recipe)
       recipe_images[recipe.recipe_uuid] = images
     }
     return recipe_images
+  },
+  async getSingleRecipeImages(settings, recipe) {
+    let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
+    let path = this.getRootpath(settings) + "pictures/"
+        
+    let images = []
+    
+    if(recipe.cloud_images && recipe.cloud_images.length > 0) {
+      //load all images for recipe
+      for await(const imagename of recipe.cloud_images) {
+        let image_path = path + recipe.recipe_uuid + "/" + imagename
+        try {
+          let buff = await webdavclient.getFileContents(image_path)
+          images.push(new File([buff], imagename))
+        }
+        catch (e) {
+          console.log(e)
+        }
+      }
+    }
+    return images
   },
   async putRecipes(settings, recipes, recipe_pictures) {
     let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);

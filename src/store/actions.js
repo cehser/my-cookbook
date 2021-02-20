@@ -1,5 +1,5 @@
 import { set, getMany, get, del} from 'idb-keyval';
-import {ADD_RECIPE, DEL_RECIPE, SET_RECIPE, SET_RECIPES, SET_RECIPE_PICTURE, SET_RECIPE_PICTURES, SET_SETTINGS} from './mutations';
+import {ADD_RECIPE, DEL_RECIPE, SET_RECIPE, SET_RECIPES, SET_RECIPE_PICTURES, SET_RECIPES_PICTURES, SET_SETTINGS} from './mutations';
 import RecipeHelper from '../js/recipes'
 import DeepCopy from '../js/deepCopy'
 import Cloud from '../js/cloud'
@@ -57,7 +57,7 @@ export default {
     get('recipe_pictures')
       .then((val) => { 
         if(val) {
-          commit(SET_RECIPE_PICTURES, val) 
+          commit(SET_RECIPES_PICTURES, val) 
         }
       })
   },
@@ -76,7 +76,7 @@ export default {
   saveRecipePictures({ commit, state }){
     //save to idb first, then commit to store
     set('recipe_pictures', state.recipe_pictures)
-      .then(()=>commit(SET_RECIPE_PICTURES, state.recipe_pictures))
+      .then(()=>commit(SET_RECIPES_PICTURES, state.recipe_pictures))
   },
   deleteRecipe({commit}, index) {
     commit(DEL_RECIPE, index)
@@ -97,22 +97,30 @@ export default {
     let recipes = RecipeHelper.loadYamlCookbook(recipes_data)
     let images = await Cloud.getRecipeImages(state.settings, recipes)
     commit(SET_RECIPES, recipes);
-    commit(SET_RECIPE_PICTURES, images);
+    commit(SET_RECIPES_PICTURES, images);
   },
-  async syncRecipesWithCloud({ commit, state}){
-    let data = await Cloud.getRecipes(state.settings)
-    let recipes_remote = RecipeHelper.loadYamlCookbook(data)
-    let recipes = RecipeHelper.mergeCoobooks(DeepCopy.deepCopyYaml(state.recipes), recipes_remote);
+  async syncRecipesWithCloud({ commit, state, dispatch}){
+    let recipes_data = await Cloud.getRecipes(state.settings)
+    let recipes_remote = RecipeHelper.loadYamlCookbook(recipes_data)
+
+    let recipes = RecipeHelper.mergeCoobooks(DeepCopy.deepCopyYaml(state.recipes), recipes_remote, dispatch);
     commit(SET_RECIPES, recipes);
   },
   async downloadRecipePictures({ commit, state}) {
     Cloud.getRecipeImages(state.settings, state.recipes)
       .then(recipe_images =>  {
-        commit(SET_RECIPE_PICTURES, recipe_images)
+        commit(SET_RECIPES_PICTURES, recipe_images)
+      });
+  },
+  async downloadSingleRecipePictures({ commit, dispatch, state}, {recipe}) {
+    Cloud.getSingleRecipeImages(state.settings, recipe)
+      .then(pictures =>  {
+        commit(SET_RECIPE_PICTURES, {uuid:recipe.recipe_uuid, pictures})
+        dispatch('saveRecipePictures')
       });
   },
   setRecipePicture({commit, dispatch}, {uuid, picture}) {
-    commit(SET_RECIPE_PICTURE, {uuid, picture})
+    commit(SET_RECIPE_PICTURES, {uuid, pictures:[picture]})
     dispatch('saveRecipePictures')
   },
 
