@@ -111,6 +111,7 @@
       },
       saveToLocalStorage: function () {
         this.$store.dispatch('saveRecipes')
+        this.$store.dispatch('saveRecipePictures')
           .then(() => this.toast('Gespeichert.', 'success'))
       },
       saveRecipeAsFile: function () {
