@@ -1,12 +1,10 @@
 <template>
   <div class="card recipe_card_container">
     <div class="recipe_card_container">
-      <img class="" id="recipe_img" :src="recipe.imageurl" alt="Card image cap">
+      <img class="" id="recipe_img" :src="picture_src" alt="Card image cap">
       <div class="card-body recipe_title">
         <h2 class="card-title d-flex flex-row flex-wrap justify-content-between">
-          <div>
-            <TextHighlight :queries="highlight" :caseSensitive="false">{{ recipe.recipe_name }}</TextHighlight>
-          </div>
+          <TextHighlight class="card-title-text" :queries="highlight" :caseSensitive="false">{{ recipe.recipe_name }}</TextHighlight>
         </h2>
         <router-link v-if="!read_only" class="editLink" :to="'/edit/' + index"><b-icon-pencil></b-icon-pencil></router-link>
         <p class="card-text">{{recipe.subtitle}}</p>
@@ -18,20 +16,19 @@
 
 <script>
   import TextHighlight from 'vue-text-highlight';
+
   export default {
     name: 'RecipeCard',
     components: {TextHighlight},
     props: {
       recipe: Object,
+      picture_src: [Object, URL],
       index: Number,
       highlight: String,
       read_only: Boolean
     },
     computed: {
-      highlightArray: function () {
-        //return [this.highlight];
-        return ['Pfa', 'Pudd'];
-      }
+      
     }
   }
 </script>
@@ -73,6 +70,13 @@ a .recipe_card_container {
   top: 1.25rem;
   right: 1.25rem;
   color: #888;
+}
+
+.card-title-text {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  line-height: 1.3;
 }
 
 .card-title >>> mark {

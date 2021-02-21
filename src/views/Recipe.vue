@@ -12,7 +12,7 @@
           </div>
         </div>
         <div id="recipe_title_container">
-          <img class="card-img-top rounded-0" id="recipe_img" :src="current_recipe.imageurl" alt="Card image cap">
+          <img class="card-img-top rounded-0" id="recipe_img" :src="picture_src" alt="Card image cap">
           <div class="card-body" id="recipe_title">
             <h2 class="card-title d-flex flex-row flex-wrap justify-content-between">
               <div>

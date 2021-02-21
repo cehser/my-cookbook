@@ -26,7 +26,8 @@ export default new Vuex.Store({
   strict: debug,
   state: {
     recipes: [],
-    settings: default_settings
+    settings: default_settings,
+    recipe_pictures: {}
   },
   actions,
   mutations

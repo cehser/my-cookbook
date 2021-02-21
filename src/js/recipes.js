@@ -7,7 +7,7 @@ export default {
     steps: []
     sections: []
     recipe_name: Neues Rezept
-    imageurl: /placeholder-image.png
+    imageurl: 
     yields:
       - Portionen: 4
     recalc_exp: 1
@@ -15,7 +15,7 @@ export default {
   sample_recipe: `
     sections: []
     recipe_name: Beispiel
-    imageurl: /placeholder-image.png
+    imageurl: 
     yields:
       - Portionen: 4
     ingredients:
@@ -102,7 +102,7 @@ export default {
   },
   // find local recipe by uuid, replace it by remote if newer
   // add remote recipe if not found locally
-  mergeCoobooks(local, remote) {
+  mergeCoobooks(local, remote, dispatch) {
     remote.forEach( remoteRecipe => {
       let localIndex  = local.findIndex(x => x.recipe_uuid === remoteRecipe.recipe_uuid);
       let localRecipe = local[localIndex];
@@ -112,6 +112,7 @@ export default {
       
       if(localIndex != -1 && !(localRecipe.lastUpdated > remoteRecipe.lastUpdated)) {
         local.splice(localIndex, 1, remoteRecipe);
+        dispatch('downloadSingleRecipePictures', {recipe: remoteRecipe})
         console.log(localRecipe.lastUpdated);
         console.log(remoteRecipe.lastUpdated);
         console.log('Local not newer: ' + !(localRecipe.lastUpdated > remoteRecipe.lastUpdated));
@@ -125,4 +126,7 @@ export default {
     });
     return local;
   },
+  filesEqual(file1, file2) {
+    return (file1.name === file2.name && file1.lastModifiedDate === file2.lastModifiedDate && file1.size === file2.size)
+  }
 }
