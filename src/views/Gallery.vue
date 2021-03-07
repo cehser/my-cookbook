@@ -7,16 +7,20 @@
     </Navbar>
     <b-container fluid>
       <h2 class="mt-2 mb-0">Galerie</h2>
-      <b-form inline>
-        <b-input-group prepend="Filter" class="mt-2">
+      <b-form inline> 
+        <b-input-group prepend="Filter" class="mt-2 mr-sm-2 mb-sm-0">
           <b-form-input v-model="filter" type="text"></b-form-input>
           <b-input-group-append>
             <b-button @click="filter=''"><b-icon-x></b-icon-x></b-button>
           </b-input-group-append>
         </b-input-group>
+        <b-button class="mt-2 mr-sm-2 mb-sm-0" :pressed.sync="favoritesFilter">
+          <b-icon-star v-if="!favoritesFilter"></b-icon-star>
+          <b-icon-star-fill v-if="favoritesFilter"></b-icon-star-fill>
+        </b-button>
       </b-form> 
       <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 mt-2">  
-        <div v-for="(recipe, index) in recipes" :key="index" class="col mb-4" v-show="recipe.recipe_name.toLowerCase().includes(filter.toLowerCase())">
+        <div v-for="(recipe, index) in recipes" :key="index" class="col mb-4" v-show="galleryFilter(recipe)">
           <b-link :to="{ path: '/recipe/'+index }">
             <RecipeCard class='cardAspect' :recipe="recipe" :picture_src="recipePictureSrc(recipe)" :index="index" :highlight="filter" :read_only="settings.read_only"></RecipeCard>
           </b-link>
@@ -45,7 +49,8 @@
         refreshing: false,
         registration: null,
         updateExists: false,
-        filter: ''
+        filter: '',
+        favoritesFilter: false
       };
     },
     created () {
@@ -65,7 +70,8 @@
     computed: {
       // mix the getters into computed with object spread operator
       ...mapState([
-        'settings'
+        'settings',
+        'favorites'
       ])
     },
     methods: {
@@ -76,6 +82,11 @@
       refreshApp () {
         this.updateExists = false;  if (!this.registration || !this.registration.waiting) { return; }
         this.registration.waiting.postMessage('skipWaiting');
+      },
+      galleryFilter(recipe) {
+        let textFilter = recipe.recipe_name.toLowerCase().includes(this.filter.toLowerCase())
+        let favoritesFilter = !this.favoritesFilter || this.favorites['Favoriten'].includes(recipe.recipe_uuid) 
+        return textFilter && favoritesFilter
       }
     }
   }
@@ -105,6 +116,11 @@
 
 <style scoped>
   input {
+    outline:none !important;
+    box-shadow: none !important;
+  }
+
+  button {
     outline:none !important;
     box-shadow: none !important;
   }
