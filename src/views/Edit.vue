@@ -11,7 +11,7 @@
       <b-form-datalist id="ingredient-units-list" :options="ingredient_units"></b-form-datalist>
       <h2>Rezept</h2>
 
-      <b-container fluid>
+      <div>
         <b-row class="my-1">
           <b-col sm="2">
             <label for="input-name">Titel:</label>
@@ -98,9 +98,9 @@
             <img id="image-preview" height="100">
           </b-col>
         </b-row> 
-      </b-container>
-      <b-container fluid>
-        <h2>Abschnitte</h2>
+      </div>
+      
+        <h2>Abschnitte <b-button @click="current_recipe.sections.push({section:''})"><b-icon icon="plus"></b-icon></b-button></h2>
         <div>
           <b-form-row v-for="(section, index_s) in current_recipe.sections" :key="index_s">
             <b-col cols="11"><b-form-input size="sm" placeholder="Neuer Abschnitt" v-model="section.section"></b-form-input></b-col>
@@ -110,28 +110,20 @@
             </b-col>
           </b-form-row>
         </div> 
-        <b-form-row>
-          <b-button @click="current_recipe.sections.push({section:''})"><b-icon icon="plus"></b-icon></b-button>
-        </b-form-row> 
-      </b-container>
-      <h2>Zutaten</h2>
+
+      <h2>Zutaten <b-button @click="addIngredient"><b-icon icon="plus"></b-icon></b-button></h2>
       <div v-for="(section, index) in current_recipe.sections" :key="'sectiona-'+index">
         <section-ingredients-edit :section="section.section" :sections="section_names" v-model="current_recipe.ingredients"></section-ingredients-edit>
       </div>
-      <b-form-row>
-        <b-button @click="addIngredient"><b-icon icon="plus"></b-icon></b-button>
-      </b-form-row>
-      <h2>Zubereitung</h2>
+
+      <h2>Zubereitung <b-button @click="current_recipe.steps.push({step:'', section:''})"><b-icon icon="plus"></b-icon></b-button></h2>
       <div v-for="(section, index) in current_recipe.sections" :key="'sectionb-'+index">
         <h3>{{ section.section }}</h3>
         <div v-for="(step, stepindex) in current_recipe.steps" :key="stepindex" >
           <step-edit v-model="current_recipe.steps[stepindex]" :steps="current_recipe.steps" :sections="section_names" :index="stepindex" v-if="step.section == section.section" @delete="current_recipe.steps.splice(stepindex, 1)"></step-edit>
         </div>  
       </div>
-      
-      <b-form-row>
-        <b-button @click="current_recipe.steps.push({step:'', section:''})"><b-icon icon="plus"></b-icon></b-button>
-      </b-form-row>
+    
       <h2>Code</h2>
       <b-form-row>
         <b-form-textarea readonly rows="10" :value="yaml"></b-form-textarea>
