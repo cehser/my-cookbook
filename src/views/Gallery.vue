@@ -20,10 +20,8 @@
         </b-button>
       </b-form> 
       <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 mt-2">  
-        <div v-for="(recipe, index) in recipes" :key="index" class="col mb-4" v-show="galleryFilter(recipe)">
-          <b-link :to="{ path: '/recipe/'+index }">
-            <RecipeCard class='cardAspect' :recipe="recipe" :picture_src="recipePictureSrc(recipe)" :index="index" :highlight="filter" :read_only="settings.read_only"></RecipeCard>
-          </b-link>
+        <div v-for="(recipe, index) in recipes" :key="index" class="col mb-4" v-show="galleryFilter(recipe)">          
+          <RecipeCard class='cardAspect' @favtoggle="toggleFav(recipe)"  :is_favorite="favorites['Favoriten'].includes(recipe.recipe_uuid) " :recipe="recipe" :picture_src="recipePictureSrc(recipe)" :index="index" :highlight="filter" :read_only="settings.read_only"></RecipeCard>
         </div>
       </div>
     </b-container>
@@ -36,6 +34,8 @@
   import Navbar from '@/components/Navbar.vue'
   import RecipeCard from '@/components/RecipeCard.vue'
   import { mapState } from 'vuex'
+  import { xor } from 'lodash'
+
 
   export default {
     name: 'Recipe',
@@ -87,6 +87,10 @@
         let textFilter = recipe.recipe_name.toLowerCase().includes(this.filter.toLowerCase())
         let favoritesFilter = !this.favoritesFilter || this.favorites['Favoriten'].includes(recipe.recipe_uuid) 
         return textFilter && favoritesFilter
+      },
+      toggleFav(recipe) {
+        console.log( xor(this.favorites['Favoriten'], [recipe.recipe_uuid]))
+        this.$store.dispatch('setFavorites', {list:'Favoriten', favorites:xor(this.favorites['Favoriten'], [recipe.recipe_uuid])})
       }
     }
   }

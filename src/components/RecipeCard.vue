@@ -6,10 +6,17 @@
         <h2 class="card-title d-flex flex-row flex-wrap justify-content-between">
           <TextHighlight class="card-title-text" :queries="highlight" :caseSensitive="false">{{ recipe.recipe_name }}</TextHighlight>
         </h2>
-        <router-link v-if="!read_only" class="editLink" :to="'/edit/' + index"><b-icon-pencil></b-icon-pencil></router-link>
+        <div class="icons">
+          <router-link v-if="!read_only" class="editLink" :to="'/edit/' + index"><b-icon-pencil class="icon"></b-icon-pencil></router-link>
+          <a href="javascript:void(0)" @click="$emit('favtoggle')">
+            <b-icon-star class="icon" v-if="!is_favorite"></b-icon-star>
+            <b-icon-star-fill class="icon" v-if="is_favorite"></b-icon-star-fill>
+          </a>
+        </div>
         <p class="card-text">{{recipe.subtitle}}</p>
       </div>
     </div>
+    <b-link :to="{ path: '/recipe/'+index }" class="stretched-link"></b-link>
   </div>
 </template>
 
@@ -25,7 +32,8 @@
       picture_src: [Object, URL],
       index: Number,
       highlight: String,
-      read_only: Boolean
+      read_only: Boolean,
+      is_favorite: Boolean
     },
     computed: {
       
@@ -65,11 +73,20 @@ a .recipe_card_container {
   -webkit-box-orient: vertical;
 }
 
-.editLink {
+.icons {
   position: absolute;
-  top: 1.25rem;
-  right: 1.25rem;
+  top: 0.25rem;
+  right: 0.5rem;
   color: #888;
+  z-index: 100;
+}
+
+.icons a {
+  color: #888;
+}
+
+.icon {
+  margin-right: 0.5rem;
 }
 
 .card-title-text {
