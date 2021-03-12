@@ -1,7 +1,6 @@
 import Vue from 'vue'
-import VueRouter from 'vue-router'
+import VueRouter, { Route, RouteConfig } from 'vue-router'
 import Gallery from '@/views/Gallery.vue'
-
 
 Vue.use(VueRouter)
 
@@ -14,7 +13,7 @@ const routes = [
   { 
     path: '/recipe/:selected', 
     component: () => import(/* webpackChunkName: "recipe" */ '../views/Recipe.vue'),
-    props: (route) => {
+    props: (route:Route) => {
       const selected = Number.parseInt(route.params.selected, 10)
       if (Number.isNaN(selected)) {
         return 0
@@ -25,7 +24,7 @@ const routes = [
   { 
     path: '/edit/:selected', 
     component: () => import(/* webpackChunkName: "edit" */ '../views/Edit.vue'),
-    props: (route) => {
+    props: (route:Route) => {
       const selected = Number.parseInt(route.params.selected, 10)
       if (Number.isNaN(selected)) {
         return 0

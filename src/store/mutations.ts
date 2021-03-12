@@ -5,7 +5,6 @@ export const ADD_RECIPE = 'addRecipe'
 export const DEL_RECIPE = 'delRecipe'
 export const SET_RECIPE_PICTURES = 'setRecipePictures'
 export const SET_RECIPES_PICTURES = 'setRecipesPictures'
-export const SET_FAVORITES = 'setFavorites'
 
 export default {
     [SET_SETTINGS] (state, settings) {
@@ -28,8 +27,5 @@ export default {
     },
     [SET_RECIPE_PICTURES] (state, {uuid, pictures}) {
       state.recipe_pictures[uuid] = pictures
-    },
-    [SET_FAVORITES] (state, {list, favorites}) {
-      state.favorites[list] = favorites
-    },
+    }
 }

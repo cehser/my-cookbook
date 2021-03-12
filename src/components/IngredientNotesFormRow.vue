@@ -13,24 +13,23 @@
   </b-form-row>
 </template>
 
-<script>
-  export default {
-    name: 'IngredientNotesFormRow',
-    model: {
-      prop: 'ingredient',
-    },
-    props: ['ingredient', 'index'],
-    methods: {
-      addNote: function() {
-        this.ingredient_data.notes = this.ingredient_data.notes || [];
-        this.ingredient_data.notes.push('Neue Notiz');
-        this.$emit('update', this.ingredient);
-      }
-    },
-    computed: {
-      ingredient_data: function() {
-        return this.ingredient[Object.keys(this.ingredient)[0]];
-      }
+<script lang="ts">
+  import { Component, Model, Prop, Vue, Emit} from 'vue-property-decorator'
+  @Component
+  export default class IngredientNotesFormRow extends Vue {
+    @Model() ingredient:any
+    
+    @Prop({type: Number, default:0}) index!:number
+
+    @Emit('update')
+    public addNote () {
+      this.ingredient_data.notes = this.ingredient_data.notes || [];
+      this.ingredient_data.notes.push('Neue Notiz');
+      return this.ingredient;
+    }
+  
+    get ingredient_data() {
+      return this.ingredient[Object.keys(this.ingredient)[0]];
     }
   }
 </script>

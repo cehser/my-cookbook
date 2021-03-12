@@ -32,36 +32,13 @@
   </nav>
 </template>
 
-<script>
-  // @ is an alias to /src
-
-  export default {
-    name: 'Recipe',
-    props: {
-      selected: {
-        type: Number,
-        default: 0
-      },
-      read_only: {
-        type: Boolean,
-        default: true
-      },
-      recipes_list: Array
-    },
-    data () {
-      return {
-        data_selected: 0
-      }
-    },
-    watch: {
-      data_selected: function(value){
-        this.$emit('input', value);
-      }
-    },
-    created() {
-      this.data_selected = this.selected;
-    }
-  }
+<script lang="ts">
+  import { Component, Prop, Vue} from 'vue-property-decorator'
+  @Component
+  export default class Recipe extends Vue {
+    @Prop({type: Number,default: 0}) selected!:number
+    @Prop({type: Boolean, default: true}) read_only!:boolean
+ }
 </script>
 
 <style scoped> 

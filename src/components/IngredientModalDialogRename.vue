@@ -23,41 +23,36 @@
   </div> 
 </template>
 
-<script>
+<script lang="ts">
   import $ from 'jquery'
+  import { Component, Model, Prop, Vue} from 'vue-property-decorator'
 
-  export default {
-    name: 'IngredientModalDialogRename',
-    model: {
-      prop: 'ingredient',
-    },
-    props: {
-      ingredient: Object,
-      index: Number,
-      sections: Array
-    },
+  @Component
+  export default class IngredientModalDialogRename extends Vue {
+    @Model() ingredient!:any
+    @Prop({type:Number}) index!: number
+    @Prop({type:Array}) sections!: Array<any>
+    
     mounted() {
       //set focus to input field when the modal dialog is being displayed
       $('#editIngredientName'+this.index).on('shown.bs.modal',  () => {
           $('#new-ingredient-name'+this.index).focus();
       });
-    },
-    methods: {
-      renameIngredient: function() {
-        var newName = $('#new-ingredient-name'+this.index).val();
-        var oldName = Object.keys(this.ingredient)[0];
+    }
+    public renameIngredient() {
+      let newName:string = $('#new-ingredient-name'+this.index).val().toString();
+      let oldName:string = Object.keys(this.ingredient)[0];
 
-        var ingredient = {};
-        ingredient[newName] = this.ingredient[oldName];
-        ingredient.section  = this.ingredient.section;
-        
-        this.ingredient = ingredient;
-        
-        //Update component value
-        this.$emit('update', this.ingredient);
-        $('#editIngredientName'+this.index).modal('hide');
-        $('#ingredient-amount-input-'+this.index).focus();
-      }
+      let ingredient:any = {};
+      ingredient[newName] = this.ingredient[oldName];
+      ingredient.section  = this.ingredient.section;
+      
+      this.ingredient = ingredient;
+      
+      //Update component value
+      this.$emit('update', this.ingredient);
+      $('#editIngredientName'+this.index).modal('hide');
+      $('#ingredient-amount-input-'+this.index).focus();
     }
   }
 </script>

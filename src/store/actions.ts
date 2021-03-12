@@ -1,5 +1,5 @@
 import { set, getMany, get, del} from 'idb-keyval';
-import {ADD_RECIPE, DEL_RECIPE, SET_RECIPE, SET_RECIPES, SET_RECIPE_PICTURES, SET_RECIPES_PICTURES, SET_SETTINGS, SET_FAVORITES} from './mutations';
+import {ADD_RECIPE, DEL_RECIPE, SET_RECIPE, SET_RECIPES, SET_RECIPE_PICTURES, SET_RECIPES_PICTURES, SET_SETTINGS} from './mutations';
 import RecipeHelper from '../js/recipes'
 import DeepCopy from '../js/deepCopy'
 import Cloud from '../js/cloud'
@@ -122,8 +122,5 @@ export default {
   setRecipePicture({commit, dispatch}, {uuid, picture}) {
     commit(SET_RECIPE_PICTURES, {uuid, pictures:[picture]})
     dispatch('saveRecipePictures')
-  },
-  setFavorites({commit}, {list, favorites}) {
-    commit(SET_FAVORITES, {list, favorites})
   }
 }

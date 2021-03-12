@@ -9,29 +9,30 @@
   </b-form-row>
 </template>
 
-<script>
+<script lang="ts">
+  import { Component, Model, Prop, Vue} from 'vue-property-decorator'
   import $ from 'jquery'
   import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup.vue'
 
-  export default {
-    name: 'StepEdit',
-    model: {
-      prop: 'step',
-    },
+  @Component ( {
     components: {
       ArrayReorderBtnGroup
     },
-    props: ['step', 'steps', 'index', 'sections'],
+  })
+  export default class StepEdit extends Vue {
+    @Prop() steps:any
+    @Prop() index!:number
+    @Prop() sections!: Array<any>
+    @Model() step:any
+
     mounted() {
       if (this.step.step === '') {
         $('#editStep'+this.index).focus();
       }
-    },
-    methods: {
-      deleteStep() {
-        this.$emit('delete');
-      }
     }
+   public deleteStep() {
+    this.$emit('delete');
+  }  
 }
 </script>
 

@@ -1,6 +1,6 @@
 export default {
   methods: {
-    toast: function(content,variant)  {
+    toast: function(content:string,variant:string)  {
       this.$bvToast.toast(content, {
           toaster: 'b-toaster-bottom-left',
          // solid: true,

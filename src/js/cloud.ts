@@ -1,21 +1,21 @@
-import { createClient } from 'webdav/web';
+import { createClient } from 'webdav';
 const jsyaml = require('js-yaml');
 
 export default {
-  webdavClient(settings) {
+  webdavClient(settings:any) {
     return createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
   },
-  checkPath(settings) {
+  checkPath(settings:any) {
     let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
     return webdavclient.exists(settings.webdav.filepath)
   },
-  getRecipes(settings) {
+  getRecipes(settings:any) {
     let path = this.getRootpath(settings) + "cookbook.yaml"
     let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
     return webdavclient.getFileContents(path, { format: "text" })
   },
   //TODO get images
-  async getRecipeImages(settings, recipes) {
+  async getRecipeImages(settings:any, recipes:any) {
     //load images for all recipes
     let recipe_images = {}
     for await (const recipe of recipes) {
@@ -24,7 +24,7 @@ export default {
     }
     return recipe_images
   },
-  async getSingleRecipeImages(settings, recipe) {
+  async getSingleRecipeImages(settings:any, recipe:any) {
     let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
     let path = this.getRootpath(settings) + "pictures/"
         
@@ -45,7 +45,7 @@ export default {
     }
     return images
   },
-  async putRecipes(settings, recipes, recipe_pictures) {
+  async putRecipes(settings:any, recipes:Array<any>, recipe_pictures:any) {
     let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
     let rootpath = this.getRootpath(settings)
     let path = rootpath + "cookbook.yaml"
@@ -65,7 +65,7 @@ export default {
         });
       })
   },
-  async putImageFile(settings, recipe_uuid, file) {
+  async putImageFile(settings:any, recipe_uuid:string, file:File) {
     let webdavclient = createClient(settings.webdav.webdav_url, settings.webdav.webdav_creds);
     let path = this.getRootpath(settings) + "pictures/" + recipe_uuid
 
@@ -76,7 +76,7 @@ export default {
     var buffer = await file.arrayBuffer();
     await webdavclient.putFileContents(path + "/" + file.name, buffer)
   },
-  getRootpath(settings) {
+  getRootpath(settings:any) {
     return settings.webdav.filepath.substr(0, settings.webdav.filepath.lastIndexOf("/")+1)
   }
 }

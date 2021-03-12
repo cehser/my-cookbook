@@ -7,17 +7,19 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
   import IngredientEdit from '@/components/IngredientEdit.vue'
+  import { Component, Model, Prop, Vue} from 'vue-property-decorator'
 
-  export default {
-    name: 'SectionIngredientsEdit',
+  @Component({
     components: {
       IngredientEdit
-    },
-    model: {
-      prop: 'ingredients',
-    },
-    props: ['ingredients', 'section', 'sections']
+    }
+  })
+  export default class SectionIngredientsEdit extends Vue {
+
+    @Model() ingredients!:Array<any>
+    @Prop() section:any 
+    @Prop() sections!:Array<any>
   }
 </script>

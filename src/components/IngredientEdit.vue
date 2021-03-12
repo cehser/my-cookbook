@@ -24,45 +24,45 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
   import $ from 'jquery'
-  import IngredientModalDialogRename from '@/components/IngredientModalDialogRename'
-  import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup'
-  import IngredientNotesFormRow from '@/components/IngredientNotesFormRow'
+  import IngredientModalDialogRename from '@/components/IngredientModalDialogRename.vue'
+  import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup.vue'
+  import IngredientNotesFormRow from '@/components/IngredientNotesFormRow.vue'
+  import { Component, Vue, Prop, Model} from 'vue-property-decorator'
 
-
-  export default {
-    name: 'IngredientEdit',
+  @Component({
     components: {
       IngredientModalDialogRename,
       IngredientNotesFormRow,
       ArrayReorderBtnGroup
     },
-    model: {
-      prop: 'ingredient',
-    },
-    props: ['ingredient', 'ingredients', 'index', 'sections'],
-    methods: {
-      deleteIngredient() {
-        this.$emit('delete');
-      },
-      updateIngredient(ingredient) {
-        //use deep copy as wokaround to notice update of ingredient name
-        this.ingredient = JSON.parse(JSON.stringify(ingredient)); 
-        this.$emit('update', this.ingredient);
-      }
-    },
+  })
+  export default class IngredientEdit extends Vue {
+    @Model() ingredient:any
+    
+    @Prop() ingredients:any
+    @Prop() index:any
+    @Prop() sections:any
+
+    get ingredient_data():any {
+      return this.ingredient[Object.keys(this.ingredient)[0]];
+    }
+    get ingredient_name():string {
+      return Object.keys(this.ingredient)[0];
+    }
+
+    public deleteIngredient() {
+      this.$emit('delete');
+    }
+    public updateIngredient(ingredient:any) {
+      //use deep copy as wokaround to notice update of ingredient name
+      this.ingredient = JSON.parse(JSON.stringify(ingredient)); 
+      this.$emit('update', this.ingredient);
+    }
     mounted() {
       if (this.ingredient_name === 'Neue Zutat') {
         $('#editIngredientName'+this.index).modal('show');
-      }
-    },
-    computed: {
-      ingredient_data: function() {
-        return this.ingredient[Object.keys(this.ingredient)[0]];
-      },
-      ingredient_name: function() {
-        return Object.keys(this.ingredient)[0];
       }
     }
   }

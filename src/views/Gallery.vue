@@ -28,31 +28,34 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
   // @ is an alias to /src
   import RecipeHelper from '@/mixins/RecipeHelper'
   import Navbar from '@/components/Navbar.vue'
   import RecipeCard from '@/components/RecipeCard.vue'
-  import { mapState } from 'vuex'
   import { xor } from 'lodash'
+  import { Component, Mixins} from 'vue-property-decorator'
+  import { State, namespace } from 'vuex-class'
 
+  const VuexFavorites = namespace('Favorites')
 
-  export default {
-    name: 'Recipe',
-    mixins: [RecipeHelper],
+  @Component ({
     components: {
       Navbar,
       RecipeCard
     },
-    data() {
-      return {
-        refreshing: false,
-        registration: null,
-        updateExists: false,
-        filter: '',
-        favoritesFilter: false
-      };
-    },
+  })
+  export default class Gallery extends Mixins(RecipeHelper) {
+    
+    private refreshing:boolean = false
+    private registration:any = null
+    private updateExists:boolean = false
+    private filter:string = ''
+    private favoritesFilter:boolean = false
+   
+    @State settings:any
+    @VuexFavorites.State favorites:any
+
     created () {
       document.addEventListener(
         'swUpdated', this.showRefreshUI, { once: true }
@@ -66,33 +69,27 @@
           }
         );
       }
-    },
-    computed: {
-      // mix the getters into computed with object spread operator
-      ...mapState([
-        'settings',
-        'favorites'
-      ])
-    },
-    methods: {
-      showRefreshUI (e) {
-        this.registration = e.detail;
-        this.updateExists = true;
-      },
-      refreshApp () {
-        this.updateExists = false;  if (!this.registration || !this.registration.waiting) { return; }
-        this.registration.waiting.postMessage('skipWaiting');
-      },
-      galleryFilter(recipe) {
-        let textFilter = recipe.recipe_name.toLowerCase().includes(this.filter.toLowerCase())
-        let favoritesFilter = !this.favoritesFilter || this.favorites['Favoriten'].includes(recipe.recipe_uuid) 
-        return textFilter && favoritesFilter
-      },
-      toggleFav(recipe) {
-        console.log( xor(this.favorites['Favoriten'], [recipe.recipe_uuid]))
-        this.$store.dispatch('setFavorites', {list:'Favoriten', favorites:xor(this.favorites['Favoriten'], [recipe.recipe_uuid])})
-      }
     }
+  
+    showRefreshUI (e:any) {
+      this.registration = e.detail;
+      this.updateExists = true;
+    }
+    refreshApp () {
+      this.updateExists = false;  if (!this.registration || !this.registration.waiting) { return; }
+      this.registration.waiting.postMessage('skipWaiting');
+    }
+    galleryFilter(recipe:any) {
+      let textFilter = recipe.recipe_name.toLowerCase().includes(this.filter.toLowerCase())
+      let favoritesFilter = !this.favoritesFilter || this.favorites['Favoriten'].includes(recipe.recipe_uuid) 
+      return textFilter && favoritesFilter
+    }
+    toggleFav(recipe:any) {
+      console.log( xor(this.favorites['Favoriten'], [recipe.recipe_uuid]))      
+      this.setFavorites({list:'Favoriten', favorites:xor(this.favorites['Favoriten'], [recipe.recipe_uuid])})
+    }
+    @VuexFavorites.Mutation
+    private setFavorites!: (data: {list :string, favorites:Array<string>}) => void
   }
 
 </script>

@@ -71,60 +71,53 @@
   </div>
 </template>
 
-<script>
-// @ is an alias to /src
-import RecipeHelper from '@/mixins/RecipeHelper'
-import Navbar from '@/components/Navbar.vue'
-import { mapState } from 'vuex'
+<script lang="ts">
+  // @ is an alias to /src
+  import RecipeHelper from '@/mixins/RecipeHelper'
+  import Navbar from '@/components/Navbar.vue'
+  
+  import $ from 'jquery'
+  import { Component , Mixins} from 'vue-property-decorator'
+  import { State } from 'vuex-class'
 
-import $ from 'jquery'
-
-export default {
-  name: 'Recipe',
-  mixins: [RecipeHelper],
-  components: {
-    Navbar
-  },
-  data () {
-    return {  
-      do_recalc: true,  //replace default value
-    }
-  },
-  mounted () {
-    //add some extra layout magic on collapsing the ingredients sidebar
-    $('#ingredients').on('hide.bs.collapse', function () {
-      $("#arrow-ing").addClass("rotate180");
-      $("#steps").addClass("full");
-    });
-    $('#ingredients').on('show.bs.collapse', function () {
-      $("#arrow-ing").removeClass("rotate180");
-      $("#steps").removeClass("full");
-    });
-
-    //hide ingredients sidebar on default in portrait mode
-    let x = window.matchMedia("(max-width: 812px)")
-    if (x.matches) {
-      $('#ingredients').collapse();
-    }
-  },
-  computed: {
-    ...mapState([
-      'settings',
-    ])
-  },
-  filters: {
-    formatNumbers: function(value) {
-      if (typeof value !== "number") {
-            return value;
-        }
-      return Number(value).toLocaleString('de-DE', {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 2
+  @Component({
+    components: {
+      Navbar
+    },
+    filters: {
+      formatNumbers: function(value:number) {
+        if (typeof value !== "number") {
+              return value;
+          }
+        return Number(value).toLocaleString('de-DE', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        });
+      }
+    },
+  })
+  export default class Recipe extends Mixins(RecipeHelper) { 
+    public do_recalc:boolean= true  //replace default value
+    @State settings:any
+    
+    mounted () {
+      //add some extra layout magic on collapsing the ingredients sidebar
+      $('#ingredients').on('hide.bs.collapse', function () {
+        $("#arrow-ing").addClass("rotate180");
+        $("#steps").addClass("full");
       });
+      $('#ingredients').on('show.bs.collapse', function () {
+        $("#arrow-ing").removeClass("rotate180");
+        $("#steps").removeClass("full");
+      });
+
+      //hide ingredients sidebar on default in portrait mode
+      let x = window.matchMedia("(max-width: 812px)")
+      if (x.matches) {
+        $('#ingredients').collapse();
+      }
     }
-  },
-  methods: {
-    selectStep: function(ev) {
+    selectStep(ev:any) {
       let doHighlight=!$(ev.target).hasClass("list-group-item-primary");
 
       $('#steps .list-group-item').removeClass("list-group-item-primary");
@@ -132,8 +125,9 @@ export default {
 
       $('#ingredients .ingredients-section').removeClass("highlighted list-group-item-primary border-primary");
       $('#box-ing-'+ ev.target.dataset.section).toggleClass("highlighted list-group-item-primary border-primary", doHighlight);
-    },
-    toast: function(content,variant)  {
+    }
+
+    toast(content:string,variant:string)  {
       this.$bvToast.toast(content, {
         toaster: 'b-toaster-bottom-left',
         // solid: true,
@@ -141,9 +135,8 @@ export default {
         noCloseButton: true,
         variant: variant
       });
-    },
+    }
   }
-}
 </script>
 
 <style scoped>

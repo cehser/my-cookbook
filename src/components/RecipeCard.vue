@@ -21,23 +21,20 @@
 </template>
 
 
-<script>
+<script lang="ts">
+  import { Component, Vue, Prop} from 'vue-property-decorator'
   import TextHighlight from 'vue-text-highlight';
 
-  export default {
-    name: 'RecipeCard',
-    components: {TextHighlight},
-    props: {
-      recipe: Object,
-      picture_src: [Object, URL],
-      index: Number,
-      highlight: String,
-      read_only: Boolean,
-      is_favorite: Boolean
-    },
-    computed: {
-      
-    }
+  @Component({
+    components: {TextHighlight}
+  })
+  export default class RecipeCard extends Vue{
+    @Prop(Object) recipe:any
+    @Prop([Object, URL, String]) picture_src:any
+    @Prop(Number) index!: number
+    @Prop(String) highlight!: string
+    @Prop(Boolean) read_only!: boolean
+    @Prop(Boolean) is_favorite!: boolean
   }
 </script>
 

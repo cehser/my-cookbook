@@ -5,12 +5,14 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+  import { Component, Mixins, Prop} from 'vue-property-decorator'
   import RecipeHelper from '@/mixins/RecipeHelper'
-  export default {
-    name: 'ArrayReorderBtnGroup',
-    mixins: [RecipeHelper],
-    props: ['array', 'index']
+
+  @Component
+  export default class ArrayReorderBtnGroup extends Mixins(RecipeHelper) {
+    @Prop() readonly index:number=0
+    @Prop() array:Array<object> =[]
 }
 </script>
 
