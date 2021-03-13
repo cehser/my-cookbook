@@ -19,7 +19,9 @@ export default class RecipeHelper extends Vue {
   created() {
     //normalize recipe
     //this.recipes[this.selected].sections = this.recipes[this.selected].sections || [];
-    this.loadRecipe(this.recipes[this.selected]);
+    if(this.recipes) {
+      this.loadRecipe(this.recipes[this.selected])
+    }
   }
 
   get picture_src() {
@@ -43,8 +45,8 @@ export default class RecipeHelper extends Vue {
     } 
   } 
 
-  get recipes_list() : Array<string> {
-    return this.recipes.map((val:any,idx:number) => ({value: idx, text: val.recipe_name}));
+  get recipes_list() : Array<{value:number, text:string}> {
+    return this.recipes?.map((val:Recipe,idx:number) => ({value: idx, text: val.recipe_name})) || []
   }
 
   get yields_value() :number {

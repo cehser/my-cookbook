@@ -257,7 +257,7 @@ export default class Settings extends Mixins(RecipeHelper, Toast) {
     Cloud.checkPath(this.settings)
       .then((fileExists) =>{ 
         if(fileExists) {
-          this.$store.dispatch("saveSettings", this.settings)
+          this.$store.dispatch("Settings/saveSettings", this.settings)
             .then(() => {
               this.toast('Gespeichert.', 'success')
             })

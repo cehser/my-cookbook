@@ -68,7 +68,7 @@
     }
     copyRecipe(index:number) {
       //deep copy recipe
-      let recipe = DeepCopy.deepCopyYaml(this.recipes[index]);
+      let recipe = DeepCopy.deepCopyYaml(this.recipes ? this.recipes[index] : null);
       //new uuid
       recipe.recipe_uuid = UUID.generateUUID();
       //load
@@ -82,10 +82,12 @@
     }
     saveToWebDAV() {
       $("#loading-spinner").removeClass('d-none');
-      Cloud.putRecipes(this.settings, this.recipes, this.recipe_pictures)
-        .then(() => this.toast('Gespeichert.', 'success'))
-        .catch(() => this.toast('Fehlgeschlagen.', 'danger'))
-        .finally(() => $("#loading-spinner").addClass('d-none'))
+      if(this.recipes) {
+        Cloud.putRecipes(this.settings, this.recipes, this.recipe_pictures)
+          .then(() => this.toast('Gespeichert.', 'success'))
+          .catch(() => this.toast('Fehlgeschlagen.', 'danger'))
+          .finally(() => $("#loading-spinner").addClass('d-none'))
+      }
     }
     async loadFromWebDAV() {
       $("#loading-spinner").removeClass('d-none');

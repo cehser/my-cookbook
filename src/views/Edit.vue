@@ -217,7 +217,7 @@ export default class Edit extends Mixins(RecipeHelper,Toast) {
   saveRecipe() {
     //only update if current_recipe is really different
     console.log(this.file)
-    if(!deepEqual(this.recipes[this.selected], this.current_recipe) || this.file || this.delete_image) {
+    if(this.recipes && !deepEqual(this.recipes[this.selected], this.current_recipe) || this.file || this.delete_image) {
       this.current_recipe.lastUpdated = new Date();
       console.log(this.current_recipe.lastUpdated)
   
@@ -243,10 +243,12 @@ export default class Edit extends Mixins(RecipeHelper,Toast) {
     }
   }
   updateCurrentRecipe() {
-    let replace_recipe = this.recipes[this.selected]
-    if(replace_recipe) {
-        document.title = "Kochbuch: " + replace_recipe.recipe_name;  
-        this.current_recipe = _.cloneDeep(replace_recipe);
+    if(this.recipes) {
+      let replace_recipe = this.recipes[this.selected]
+      if(replace_recipe) {
+          document.title = "Kochbuch: " + replace_recipe.recipe_name;  
+          this.current_recipe = _.cloneDeep(replace_recipe);
+      }
     }
   }
   addIngredient() {
