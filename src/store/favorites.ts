@@ -1,4 +1,4 @@
-import { VuexModule, Module, Mutation, Action } from 'vuex-module-decorators'
+import { VuexModule, Module, Mutation, } from 'vuex-module-decorators'
 
 @Module({
   namespaced: true
@@ -10,9 +10,4 @@ export default class Favorites extends VuexModule {
   setFavorites (data: {list :string, favorites:Array<string>}) {
     this.favorites[data.list] = data.favorites
   }
-  
-/*  @Action
-  setFavorites({commit}, {list, favorites}) {
-    commit(SET_FAVORITES, {list, favorites})
-  }*/
 }

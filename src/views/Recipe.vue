@@ -78,7 +78,10 @@
   
   import $ from 'jquery'
   import { Component , Mixins} from 'vue-property-decorator'
-  import { State } from 'vuex-class'
+  import { namespace } from 'vuex-class'
+  // eslint-disable-next-line no-unused-vars
+  import SettingsType from '@/types/settings'
+  const VuexSettings = namespace('Settings')
 
   @Component({
     components: {
@@ -98,7 +101,7 @@
   })
   export default class Recipe extends Mixins(RecipeHelper) { 
     public do_recalc:boolean= true  //replace default value
-    @State settings:any
+    @VuexSettings.State settings!:SettingsType
     
     mounted () {
       //add some extra layout magic on collapsing the ingredients sidebar

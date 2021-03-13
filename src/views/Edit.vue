@@ -133,7 +133,7 @@
 
 </template>
 
-<script>
+<script lang="ts">
 // @ is an alias to /src
 import StepEdit from '@/components/StepEdit.vue'
 import SectionIngredientsEdit from '@/components/SectionIngredientsEdit.vue'
@@ -148,24 +148,46 @@ import jsyaml from 'js-yaml'
 const jp = require('jsonpath')
 const deepEqual = require('deep-equal')
 
-import { mapState } from 'vuex'
+import { Component, Mixins, Watch } from 'vue-property-decorator/'
+import { namespace } from 'vuex-class'
 
-export default {
-  name: 'Edit',
-  mixins: [RecipeHelper,Toast],
+// eslint-disable-next-line no-unused-vars
+import SettingsType from '@/types/settings'
+
+import _ from 'lodash'
+
+const VuexSettings = namespace('Settings')
+
+@Component({
   components: {
     StepEdit,
     SectionIngredientsEdit,
     ArrayReorderBtnGroup,
     Navbar
   },
-  data() {
-    return {
-      file: null,
-      do_recalc: false,  //replace default value
-      delete_image: false
-    };
-  },
+})
+export default class Edit extends Mixins(RecipeHelper,Toast) {
+  public file:(File|null) = null
+  public do_recalc:boolean = false
+  public delete_image:boolean = false
+
+  @VuexSettings.State settings!:SettingsType
+
+  get yaml() {
+    return jsyaml.dump(this.current_recipe)
+  }
+
+  get ingredient_units() {
+    let units = new Set(['g', 'ml', 'Stück']);
+    let dyn_units = jp.query(this, 'recipes[*].ingredients[*].*.amounts[*].unit');
+    //console.log(dyn_units);
+    
+    if(dyn_units) {
+      dyn_units.forEach((item:any) => units.add(item))
+    }
+      return [...units].sort(); //convert to array
+  }
+
   mounted() {  
     document.onkeydown = (event) => {
       //ctrl + s
@@ -174,81 +196,62 @@ export default {
         this.saveRecipe();
       }
     }
-  },
-  computed: {
-    yaml: function () {
-        return jsyaml.dump(this.current_recipe)
-    },
-    ingredient_units:  function () {
-      let units = new Set(['g', 'ml', 'Stück']);
-      let dyn_units = jp.query(this, 'recipes[*].ingredients[*].*.amounts[*].unit');
-      //console.log(dyn_units);
-      
-      if(dyn_units) {
-        dyn_units.forEach(item => units.add(item))
-      }
-        return [...units].sort(); //convert to array
-    },
-    ...mapState([
-        'settings'
-      ])
-  },
-  watch: {
-    file: function(newFile) {
-      this.preview_image(newFile)
-    }
-  },
-  methods: {
-    clearFile: function () {
-      this.$refs['input-foto'].reset()
-    },
-    preview_image: function(file) {
-      var preview = document.querySelector('#image-preview');
-      if(file) {
-         preview.src = URL.createObjectURL(file)
-      }
-      else {
-        preview.src = ""
-      }
-    },
-    saveRecipe: function () {
-      //only update if current_recipe is really different
-      console.log(this.file)
-      if(!deepEqual(this.recipes[this.selected], this.current_recipe) || this.file || this.delete_image) {
-        this.current_recipe.lastUpdated = new Date();
-        console.log(this.current_recipe.lastUpdated)
-    
-        if(this.file) {
-          this.current_recipe.cloud_images = [this.file.name]
-          this.$store.dispatch('setRecipePicture', { uuid: this.current_recipe.recipe_uuid, picture: this.file })
-            .catch(() => this.toast('Bildfehler.', 'danger'))
-        }
+  }
 
-        if(this.delete_image) {
-          this.current_recipe.cloud_images = []
-          this.$store.dispatch('setRecipePicture', { uuid: this.current_recipe.recipe_uuid, picture: null })
-            .then(() => this.delete_image = false)
-            .catch(() => this.toast('Bildfehler.', 'danger'))
-        }
-        console.log(this.current_recipe.cloud_images)
-        this.$store.dispatch('setRecipe', { index: this.selected, recipe: this.current_recipe })
-          .then(() => this.toast('Gespeichert.', 'success'))
-          .catch(() => this.toast('Fehler.', 'danger'))
-      }
-      else {
-        this.toast('Unverändert.', 'success');
-      }
-    },
-    updateCurrentRecipe: function() {
-      let replace_recipe = this.recipes[this.selected]
-      if(replace_recipe) {
-         document.title = "Kochbuch: " + replace_recipe.recipe_name;  
-         this.current_recipe = this.deepCopyYaml(replace_recipe);
-      }
-    },
-    addIngredient: function() {
-      this.current_recipe.ingredients.push({'Neue Zutat':{amounts:[{amount: null,unit:''}]},section:""});
+  @Watch('file')
+  preview_image(file:File) {
+    let preview = document.querySelector('#image-preview') as HTMLImageElement
+    if(file) {
+        preview.src = URL.createObjectURL(file)
+    }
+    else {
+      preview.src = ""
     }
   }
+
+  clearFile() {
+    let elem = this.$refs['input-foto'] as HTMLFormElement
+    elem.reset()
+  }
+  
+  saveRecipe() {
+    //only update if current_recipe is really different
+    console.log(this.file)
+    if(!deepEqual(this.recipes[this.selected], this.current_recipe) || this.file || this.delete_image) {
+      this.current_recipe.lastUpdated = new Date();
+      console.log(this.current_recipe.lastUpdated)
+  
+      if(this.file) {
+        this.current_recipe.cloud_images = [this.file.name]
+        this.$store.dispatch('setRecipePicture', { uuid: this.current_recipe.recipe_uuid, picture: this.file })
+          .catch(() => this.toast('Bildfehler.', 'danger'))
+      }
+
+      if(this.delete_image) {
+        this.current_recipe.cloud_images = []
+        this.$store.dispatch('setRecipePicture', { uuid: this.current_recipe.recipe_uuid, picture: null })
+          .then(() => this.delete_image = false)
+          .catch(() => this.toast('Bildfehler.', 'danger'))
+      }
+      console.log(this.current_recipe.cloud_images)
+      this.$store.dispatch('setRecipe', { index: this.selected, recipe: this.current_recipe })
+        .then(() => this.toast('Gespeichert.', 'success'))
+        .catch(() => this.toast('Fehler.', 'danger'))
+    }
+    else {
+      this.toast('Unverändert.', 'success');
+    }
+  }
+  updateCurrentRecipe() {
+    let replace_recipe = this.recipes[this.selected]
+    if(replace_recipe) {
+        document.title = "Kochbuch: " + replace_recipe.recipe_name;  
+        this.current_recipe = _.cloneDeep(replace_recipe);
+    }
+  }
+  addIngredient() {
+    this.current_recipe.ingredients.push({'Neue Zutat':{amounts:[{amount: null,unit:''}]},section:""});
+  }
+
 }
 </script>

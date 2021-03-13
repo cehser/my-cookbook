@@ -35,9 +35,12 @@
   import RecipeCard from '@/components/RecipeCard.vue'
   import { xor } from 'lodash'
   import { Component, Mixins} from 'vue-property-decorator'
-  import { State, namespace } from 'vuex-class'
+  import { namespace } from 'vuex-class'
+  // eslint-disable-next-line no-unused-vars
+  import SettingsType from '@/types/settings'
 
   const VuexFavorites = namespace('Favorites')
+  const VuexSettings = namespace('Settings')
 
   @Component ({
     components: {
@@ -53,7 +56,7 @@
     private filter:string = ''
     private favoritesFilter:boolean = false
    
-    @State settings:any
+    @VuexSettings.State settings!:SettingsType
     @VuexFavorites.State favorites:any
 
     created () {

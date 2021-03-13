@@ -68,7 +68,7 @@
             <b-input-group>
               <b-form-input  type="text" class="form-control" id="configurl" v-model="configurl" autocorrect="off" disabled></b-form-input>
               <b-input-group-append>
-                <b-button v-clipboard="() => configurl"><b-icon-files></b-icon-files></b-button>
+                <b-button v-clipboard="() => {this.toast('Kopiert.', 'success'); return configurl}"><b-icon-files></b-icon-files></b-button>
               </b-input-group-append>
             </b-input-group>
         </div>
@@ -78,12 +78,10 @@
 
 </template>
 
-<script>
-// @ is an alias to /src
+<script lang="ts">
 import Navbar from '@/components/Navbar.vue'
 
 import RecipeHelper from '@/mixins/RecipeHelper'
-import { mapState } from 'vuex'
 import Toast from '@/mixins/Toast'
 
 import jsyaml from 'js-yaml'
@@ -93,27 +91,35 @@ import Cloud from '../js/cloud'
 
 const QRCode = require('qrcode')
 
-const deepEqual = require('deep-equal')
-
 const json_url = require('json-url')('lzma');
 
 //qr code scanning
 import QrScanner from 'qr-scanner';
-import QrScannerWorkerPath from '!!file-loader!../../node_modules/qr-scanner/qr-scanner-worker.min.js';
+import QrScannerWorkerPath from '!!file-loader!../../node_modules/qr-scanner/qr-scanner-worker.min.js'
 QrScanner.WORKER_PATH = QrScannerWorkerPath;
 
-export default {
-  name: 'Settings',
-  mixins: [RecipeHelper,Toast],
-  components: {
+import { Component, Mixins, Watch } from 'vue-property-decorator'
+import _ from 'lodash'
+// eslint-disable-next-line no-unused-vars
+import SettingsType from '@/types/settings'
+import {  namespace } from 'vuex-class'
+
+import AsyncComputed  from 'vue-async-computed-decorator';
+
+const VuexSettings = namespace('Settings')
+
+@Component({
+    components: {
     Navbar
-  },
-  data() {
-    return {
-      file:null,     //used for file upload
-      settings: null
-    };
-  },
+  }
+})
+export default class Settings extends Mixins(RecipeHelper, Toast) {
+  public file:(File | null)= null
+  public settings:(SettingsType |null) = null
+  private qrScanner!:QrScanner
+
+  @VuexSettings.State('settings') store_settings!:Settings
+
   async created() {
     //local copy of store settings
     this.settings = JSON.parse(JSON.stringify(this.store_settings))
@@ -122,21 +128,17 @@ export default {
       this.settings = await json_url.decompress(this.$route.query.config)
       console.log(this.settings)
     }
-  },
-  computed: {
-    ...mapState({
-      // passing the string value 'count' is same as `state => state.count`
-      store_settings: 'settings'
-    }),
-    changed: function() {
-      return !deepEqual(this.settings, this.store_settings)
-    }
-  },
-  asyncComputed: {
-    async configurl() {
-      return location.toString() + "?config=" + await json_url.compress(this.settings);
-    }
-  },
+  }
+
+  get changed() {
+    return !_.isEqual(this.settings, this.store_settings)
+  }
+
+  @AsyncComputed()
+  async configurl() {
+    return location.toString() + "?config=" + await json_url.compress(this.settings);
+  }
+
   mounted() { 
     document.onkeydown = (event) => {
       //ctrl + s
@@ -148,15 +150,17 @@ export default {
     this.updateQRCode();
 
     //init QRScanner
-    let videoElem = $('#qrcode_scan_video')[0]
+    let videoElem = $('#qrcode_scan_video')[0] as HTMLVideoElement
     this.qrScanner = new QrScanner(videoElem, result => { 
       try {
-        let webdav_qr = JSON.parse(result); 
-        this.settings.webdav.webdav_url = webdav_qr.webdav_url;
-        this.settings.webdav.filepath   = webdav_qr.filepath;
-        this.settings.webdav.webdav_creds.username = webdav_qr.webdav_creds.username;
-        this.settings.webdav.webdav_creds.password = webdav_qr.webdav_creds.password;
-        this.scrollto('#settings')
+        if(this.settings) {
+          let webdav_qr = JSON.parse(result); 
+          this.settings.webdav.webdav_url = webdav_qr.webdav_url;
+          this.settings.webdav.filepath   = webdav_qr.filepath;
+          this.settings.webdav.webdav_creds.username = webdav_qr.webdav_creds.username;
+          this.settings.webdav.webdav_creds.password = webdav_qr.webdav_creds.password;
+          this.scrollto('#settings')
+        }
       }
       catch(e) {
         console.log(e);
@@ -167,76 +171,69 @@ export default {
       }
     });
 
-  },
-  watch: {
-    settings :{
-      deep: true,
-      //update qr code
-      handler() {
-        this.updateQRCode();
-      }
+  }
+
+  @Watch('settings', {deep:true})
+  updateQRCode() {
+    let canvas = $('#qrcode_config')[0]
+    if(canvas && this.settings?.webdav) {
+      QRCode.toCanvas(canvas, JSON.stringify(this.settings.webdav), (error:any) => { if (error) console.error(error) });  
     }
-  },
-  methods: {
-    updateQRCode: function() {
-      let canvas = $('#qrcode_config')[0]
-      if(canvas && this.settings.webdav) {
-        QRCode.toCanvas(canvas, JSON.stringify(this.settings.webdav), (error) => { if (error) console.error(error) });  
-      }
-    },
-    saveRecipeAsFile: function () {
-      let fileNameToSaveAs = "recipe.yaml"
-      let textFileAsBlob = new Blob([jsyaml.dump(this.current_recipe)], {type:'text/plain'}); 
+  }
+  saveRecipeAsFile() {
+    let fileNameToSaveAs = "recipe.yaml"
+    let textFileAsBlob = new Blob([jsyaml.dump(this.current_recipe)], {type:'text/plain'}); 
+    let downloadLink = document.createElement("a");
+    downloadLink.download = fileNameToSaveAs;
+    downloadLink.innerHTML = "Download File";
+    if (window.webkitURL != null)
+    {
+      // Chrome allows the link to be clicked
+      // without actually adding it to the DOM.
+      downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
+    }
+    else
+    {
+      // Firefox requires the link to be added to the DOM
+      // before it can be clicked.
+      downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
+      //downloadLink.onclick = this.destroyClickedElement;
+      downloadLink.style.display = "none";
+      document.body.appendChild(downloadLink);
+    }
+  
+    downloadLink.click();
+  }
+  saveCookbookAsFile() {
+    let fileNameToSaveAs = "cookbook.yaml"
+    let blob = new Blob([jsyaml.dump(this.recipes)], {type:'application/octet-stream'}); 
+    let url = window.URL.createObjectURL(blob);
+    window.URL = window.URL || window.webkitURL;
+    
+
+    window.location.href = url;
+
+      if (navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) { //Safari & Opera iOS
+        window.location.href = url;
+    }
+    else {
       let downloadLink = document.createElement("a");
       downloadLink.download = fileNameToSaveAs;
       downloadLink.innerHTML = "Download File";
-      if (window.webkitURL != null)
-      {
-        // Chrome allows the link to be clicked
-        // without actually adding it to the DOM.
-        downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
-      }
-      else
-      {
-        // Firefox requires the link to be added to the DOM
-        // before it can be clicked.
-        downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
-        downloadLink.onclick = this.destroyClickedElement;
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
-      }
-    
-      downloadLink.click();
-    },
-    saveCookbookAsFile: function () {
-      let fileNameToSaveAs = "cookbook.yaml"
-      let blob = new Blob([jsyaml.dump(this.recipes)], {type:'application/octet-stream'}); 
-      let url = window.URL.createObjectURL(blob);
-      window.URL = window.URL || window.webkitURL;
-      
+      downloadLink.href = url;
+      //downloadLink.onclick = this.destroyClickedElement;
+      downloadLink.style.display = "none";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();  
+    }     
+  }
+        /*  loadFromFile(ev:any) {
+    const file = ev.target.files[0];
+    const reader = new FileReader();
 
-      window.location.href = url;
-
-        if (navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) { //Safari & Opera iOS
-          window.location.href = url;
-      }
-      else {
-        let downloadLink = document.createElement("a");
-        downloadLink.download = fileNameToSaveAs;
-        downloadLink.innerHTML = "Download File";
-        downloadLink.href = url;
-        downloadLink.onclick = this.destroyClickedElement;
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
-        downloadLink.click();  
-      }     
-    },
-    loadFromFile: function (ev) {
-      const file = ev.target.files[0];
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        let content = jsyaml.load(e.target.result);
+    reader.onload = (e) => {
+      if(e.target && e.target.result) {
+        let content = jsyaml.load(e.target.result as string);
         let recipes=[];
 
         if(!Array.isArray(content)) {
@@ -248,68 +245,81 @@ export default {
 
         recipes.forEach( (recipe) => {
           this.appendRecipe(recipe);
-        });
-      };
-      //reader.onload = e => console.log(e.target.result);
+        }); 
+      }
+    };
+    //reader.onload = e => console.log(e.target.result);
 
-      reader.readAsText(file);    
-    },
-    async saveWebDAVConfig () {
-      $("#loading-spinner").removeClass('d-none');
-      Cloud.checkPath(this.settings)
-        .then((fileExists) =>{ 
-          if(fileExists) {
-            this.$store.dispatch("saveSettings", this.settings)
-              .then(() => {
-                this.toast('Gespeichert.', 'success')
-              })
-          }
-          else {
-            this.toast('Datei nicht gefunden.', 'danger')
-          }
-        })
-        .catch((e) => {
-          this.toast('Zugriffsfehler!', 'danger');
-          console.log(e);
-        })
-        .finally(() => $("#loading-spinner").addClass('d-none'))
-    },
-    scanQRConfig: function() {
-      this.qrScanner.start();
-      let videoElem = $('#qrcode_scan_video')[0]
-      this.openFullscreen(videoElem)
-      setTimeout(() => {
-          this.qrScanner.stop()
-          this.closeFullscreen()
+    reader.readAsText(file);    
+  }*/
+  async saveWebDAVConfig () {
+    $("#loading-spinner").removeClass('d-none');
+    Cloud.checkPath(this.settings)
+      .then((fileExists) =>{ 
+        if(fileExists) {
+          this.$store.dispatch("saveSettings", this.settings)
+            .then(() => {
+              this.toast('Gespeichert.', 'success')
+            })
         }
-        , 10000);
-    },
-    openFullscreen: function (elem) {
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen();
-      } else if (elem.webkitRequestFullscreen) { /* Safari */
-        elem.webkitRequestFullscreen();
-      } else if (elem.msRequestFullscreen) { /* IE11 */
-        elem.msRequestFullscreen();
+        else {
+          this.toast('Datei nicht gefunden.', 'danger')
+        }
+      })
+      .catch((e) => {
+        this.toast('Zugriffsfehler!', 'danger');
+        console.log(e);
+      })
+      .finally(() => $("#loading-spinner").addClass('d-none'))
+  }
+  scanQRConfig() {
+    this.qrScanner.start();
+    let videoElem = $('#qrcode_scan_video')[0]
+    this.openFullscreen(videoElem)
+    setTimeout(() => {
+        this.qrScanner.stop()
+        this.closeFullscreen()
       }
-    },
-
-    /* Close fullscreen */
-    closeFullscreen: function () {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.mozCancelFullScreen) { /* Firefox */
-        document.mozCancelFullScreen();
-      } 
-      else if (document.webkitExitFullscreen) { /* Safari */
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) { /* IE11 */
-        document.msExitFullscreen();
-      }
-    },
-    scrollto: function(element){
-      $('html, body').animate({ scrollTop: ($(element).offset().top)}, 'slow');
+      , 10000);
+  }
+  openFullscreen(elem:FsElement) {
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) { /* Safari */
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { /* IE11 */
+      elem.msRequestFullscreen();
     }
   }
+
+  /* Close fullscreen */
+  closeFullscreen() {
+    let fsdoc = document as FsDocument
+    if (fsdoc.exitFullscreen) {
+      fsdoc.exitFullscreen();
+    } else if (fsdoc.mozCancelFullScreen) { /* Firefox */
+      fsdoc.mozCancelFullScreen();
+    } 
+    else if (fsdoc.webkitExitFullscreen) { /* Safari */
+      fsdoc.webkitExitFullscreen();
+    } else if (fsdoc.msExitFullscreen) { /* IE11 */
+      fsdoc.msExitFullscreen();
+    }
+  }
+  scrollto(element:string){
+    let elem = $(element)
+    $('html, body').animate({ scrollTop: (elem?.offset()?.top)}, 'slow');
+  }
+}
+
+interface FsDocument extends HTMLDocument  {
+  mozCancelFullScreen?: () => void;
+  webkitExitFullscreen?: () => void;
+  msExitFullscreen?: () => void;
+}
+
+interface FsElement extends HTMLElement  {
+  webkitRequestFullscreen?: () => void;
+  msRequestFullscreen?: () => void;
 }
 </script>

@@ -40,7 +40,7 @@
       });
     }
     public renameIngredient() {
-      let newName:string = $('#new-ingredient-name'+this.index).val().toString();
+      let newName:string = $('#new-ingredient-name'+this.index)?.val()?.toString() || "err";
       let oldName:string = Object.keys(this.ingredient)[0];
 
       let ingredient:any = {};

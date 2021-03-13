@@ -1,4 +1,4 @@
-import { createClient } from 'webdav';
+import { BufferLike, createClient } from 'webdav';
 const jsyaml = require('js-yaml');
 
 export default {
@@ -17,7 +17,7 @@ export default {
   //TODO get images
   async getRecipeImages(settings:any, recipes:any) {
     //load images for all recipes
-    let recipe_images = {}
+    let recipe_images = {} as any
     for await (const recipe of recipes) {
       let images = await this.getSingleRecipeImages(settings, recipe)
       recipe_images[recipe.recipe_uuid] = images
@@ -35,7 +35,7 @@ export default {
       for await(const imagename of recipe.cloud_images) {
         let image_path = path + recipe.recipe_uuid + "/" + imagename
         try {
-          let buff = await webdavclient.getFileContents(image_path)
+          let buff = await webdavclient.getFileContents(image_path) as BufferLike
           images.push(new File([buff], imagename))
         }
         catch (e) {

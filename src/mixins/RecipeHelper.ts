@@ -1,17 +1,18 @@
 /*eslint no-unused-labels: "warn"*/
-import { mapState } from 'vuex'
 import DeepCopy from '../js/deepCopy'
 import { Component, Prop, Vue } from 'vue-property-decorator'
-import {  State } from 'vuex-class'
+import {  namespace } from 'vuex-class'
+import { Recipe } from '@/types/recipe'
 
+const VuexRecipes = namespace('Recipes')
 
 @Component
 export default class RecipeHelper extends Vue {
-  private current_recipe: any = null
+  public current_recipe: any = null
   public do_recalc: boolean = true //enable amounts recalculation
 
-  @State recipes:any
-  @State recipe_pictures:any
+  @VuexRecipes.State recipes?:Array<Recipe>
+  @VuexRecipes.State recipe_pictures?:any
 
   @Prop({type: Number,default: 0}) selected!: number
       

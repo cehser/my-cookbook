@@ -1,4 +1,5 @@
 const jsyaml = require('js-yaml');
+import { Recipe } from '@/types/recipe';
 import UUID from './uuid'
 
 export default {
@@ -67,16 +68,17 @@ export default {
             critical_control_point: Wash hands with soap and warm water before distributing.
   `
   ,
-  initRecipe(recipe) {
+  initRecipe(recipe:Recipe) {
     //set default values
     recipe.sections     = recipe.sections ||  [{section:""}];
     recipe.sections     = (recipe.sections.length > 0) ? recipe.sections : [{section:""}];
     recipe.steps        = recipe.steps || [];
-    recipe.ingredients  = recipe.ingredients || [];
+    recipe.ingredients  = recipe.ingredients || [] 
     recipe.recipe_uuid  = recipe.recipe_uuid || UUID.generateUUID();
     recipe.lastUpdated  = recipe.lastUpdated || new Date();
 
-    recipe.ingredients.forEach(ingredient => {
+    //recipe.ingredients.forEach(ingredient => {
+    Object.entries(recipe.ingredients).forEach(([name, ingredient]) => {
       ingredient.section = ingredient.section || "";
     });
 
@@ -86,8 +88,8 @@ export default {
 
     return recipe;
   },
-  loadYamlCookbook: function(content) {
-    let recipes = jsyaml.load(content);
+  loadYamlCookbook: function(content:string) {
+    let recipes = jsyaml.load(content) as Array<Recipe>;
     recipes.forEach( recipe => {this.initRecipe(recipe)});
     return recipes;
   },
@@ -97,13 +99,13 @@ export default {
   loadNewRecipe: function() {
     return this.loadYamlRecipe(this.new_recipe_de);
   },
-  loadYamlRecipe: function (content) {
+  loadYamlRecipe: function (content:string) {
     return this.initRecipe(jsyaml.load(content));
   },
   // find local recipe by uuid, replace it by remote if newer
   // add remote recipe if not found locally
-  mergeCoobooks(local, remote, dispatch) {
-    remote.forEach( remoteRecipe => {
+  mergeCoobooks(local:Array<Recipe>, remote:Array<Recipe>, dispatch:any) {
+    remote.forEach( (remoteRecipe) => {
       let localIndex  = local.findIndex(x => x.recipe_uuid === remoteRecipe.recipe_uuid);
       let localRecipe = local[localIndex];
       //replace also if remote == local to replace unsaved local changes
@@ -126,7 +128,7 @@ export default {
     });
     return local;
   },
-  filesEqual(file1, file2) {
-    return (file1.name === file2.name && file1.lastModifiedDate === file2.lastModifiedDate && file1.size === file2.size)
+  filesEqual(file1:File, file2:File) {
+    return (file1.name === file2.name && file1.lastModified === file2.lastModified && file1.size === file2.size)
   }
 }
