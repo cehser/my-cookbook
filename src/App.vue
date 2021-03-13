@@ -18,7 +18,7 @@
       const interval = 60000
 
       setInterval(() => {
-        if(this.$store.state.settings.autosync) {
+        if(this.$store.state.Settings.settings.autosync) {
           console.log('syncing with cloud')
           this.$store.dispatch('Recipes/syncRecipesWithCloud')
             .then(() => {

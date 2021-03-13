@@ -64,7 +64,7 @@
     }
     
     deleteRecipe(index:number) {
-      this.$store.dispatch("deleteRecipe", index);
+      this.$store.dispatch("Recipes/deleteRecipe", index);
     }
     copyRecipe(index:number) {
       //deep copy recipe
@@ -72,13 +72,13 @@
       //new uuid
       recipe.recipe_uuid = UUID.generateUUID();
       //load
-      this.$store.dispatch("appendRecipe", recipe);
+      this.$store.dispatch("Recipes/appendRecipe", recipe);
     }
     newRecipe() {
-      this.$store.dispatch("appendRecipe", Recipes.loadNewRecipe())
+      this.$store.dispatch("Recipes/appendRecipe", Recipes.loadNewRecipe())
     }
     loadSample() {
-      this.$store.dispatch("appendRecipe", Recipes.loadSample())
+      this.$store.dispatch("Recipes/appendRecipe", Recipes.loadSample())
     }
     saveToWebDAV() {
       $("#loading-spinner").removeClass('d-none');
@@ -89,28 +89,28 @@
     }
     async loadFromWebDAV() {
       $("#loading-spinner").removeClass('d-none');
-      this.$store.dispatch('getRecipesFromCloud')
+      this.$store.dispatch('Recipes/getRecipesFromCloud')
         .then(() => this.toast('Geladen.', 'success'))
         .catch(() => this.toast('Fehler.', 'danger'))
         .finally(() => $("#loading-spinner").addClass('d-none'))
     }
     async loadPictures() {
       $("#loading-spinner").removeClass('d-none');
-      this.$store.dispatch('downloadRecipePictures')
+      this.$store.dispatch('Recipes/downloadRecipePictures')
         .then(() => this.toast('Geladen.', 'success'))
         .catch(() => this.toast('Fehler.', 'danger'))
         .finally(() => $("#loading-spinner").addClass('d-none'))
     }
     async syncWithWebDAV() {
       $("#loading-spinner").removeClass('d-none');
-      this.$store.dispatch('syncRecipesWithCloud')
+      this.$store.dispatch('Recipes/syncRecipesWithCloud')
         .then(() => this.toast('Synchronisiert.', 'success'))
         .catch(() => this.toast('Fehler.', 'danger'))
         .finally(() => $("#loading-spinner").addClass('d-none'))
     }
     saveToLocalStorage() {
-      this.$store.dispatch('saveRecipes')
-      this.$store.dispatch('saveRecipePictures')
+      this.$store.dispatch('Recipes/saveRecipes')
+      this.$store.dispatch('Recipes/saveRecipePictures')
         .then(() => this.toast('Gespeichert.', 'success'))
     }
   }

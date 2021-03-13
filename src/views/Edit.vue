@@ -223,18 +223,18 @@ export default class Edit extends Mixins(RecipeHelper,Toast) {
   
       if(this.file) {
         this.current_recipe.cloud_images = [this.file.name]
-        this.$store.dispatch('setRecipePicture', { uuid: this.current_recipe.recipe_uuid, picture: this.file })
+        this.$store.dispatch('Recipes/setRecipePicture', { uuid: this.current_recipe.recipe_uuid, picture: this.file })
           .catch(() => this.toast('Bildfehler.', 'danger'))
       }
 
       if(this.delete_image) {
         this.current_recipe.cloud_images = []
-        this.$store.dispatch('setRecipePicture', { uuid: this.current_recipe.recipe_uuid, picture: null })
+        this.$store.dispatch('Recipes/setRecipePicture', { uuid: this.current_recipe.recipe_uuid, picture: null })
           .then(() => this.delete_image = false)
           .catch(() => this.toast('Bildfehler.', 'danger'))
       }
       console.log(this.current_recipe.cloud_images)
-      this.$store.dispatch('setRecipe', { index: this.selected, recipe: this.current_recipe })
+      this.$store.dispatch('Recipes/setRecipe', { index: this.selected, recipe: this.current_recipe })
         .then(() => this.toast('Gespeichert.', 'success'))
         .catch(() => this.toast('Fehler.', 'danger'))
     }
