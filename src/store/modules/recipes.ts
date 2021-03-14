@@ -2,7 +2,7 @@ import { VuexModule, Module, Mutation, Action} from 'vuex-module-decorators'
 import {Recipe} from '@/types/recipe'
 import { set, getMany, get, del} from 'idb-keyval';
 import _ from 'lodash'
-import Cloud from '../js/cloud'
+import Cloud from '@/js/cloud'
 
 @Module({
   namespaced: true

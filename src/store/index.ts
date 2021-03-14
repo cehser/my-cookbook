@@ -1,9 +1,9 @@
 import Vuex from 'vuex'
 import Vue from 'vue'
 
-import Favorites from './favorites'
-import Settings from './settings'
-import Recipes from './recipes'
+import Favorites from './modules/favorites'
+import Settings from './modules/settings'
+import Recipes from './modules/recipes'
 
 const debug = process.env.NODE_ENV !== 'production'
 
