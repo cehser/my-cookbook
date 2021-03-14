@@ -11,8 +11,8 @@
 
   @Component
   export default class ArrayReorderBtnGroup extends Mixins(RecipeHelper) {
-    @Prop() readonly index:number=0
-    @Prop() array:Array<object> =[]
+    @Prop() index!:number
+    @Prop() array!:Array<object>
 }
 </script>
 
