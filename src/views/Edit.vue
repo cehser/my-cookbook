@@ -183,12 +183,10 @@ export default class Edit extends Mixins(RecipeHelper,Toast) {
 
   get ingredient_units() {
     let units = new Set(['g', 'ml', 'Stück']);
-    //let dyn_units = jp.query(this, 'recipes[*].ingredients[*].*.amounts[*].unit');
 
     let dyn_units = this.recipes.reduce((retVal:Set<string>, recipe) => {
-      let arr:Set<string> = Object.entries(recipe.ingredients).reduce((retVal:Set<string>, ingredient) => {
-        //console.log(Object.entries(ingredient[1])[0][1].amounts[0].unit)
-        let ing:any = (Object.entries(ingredient[1])[0][1])
+      let arr:Set<string> = _.reduce(recipe.ingredients, (retVal:Set<string>, ingredient) => {
+        let ing:any = (Object.entries(ingredient)[0][1])
         
         return retVal.add(ing.amounts[0].unit)
       },new Set([]))
