@@ -1,8 +1,7 @@
-/*eslint no-unused-labels: "warn"*/
-import DeepCopy from '../js/deepCopy'
 import { Component, Prop, Vue } from 'vue-property-decorator'
 import {  namespace } from 'vuex-class'
 import { Recipe } from '@/types/recipe'
+import _ from 'lodash'
 
 const VuexRecipes = namespace('Recipes')
 
@@ -93,7 +92,7 @@ export default class RecipeHelper extends Vue {
   }
 
   public loadRecipe (recipe:object) {
-    this.current_recipe = DeepCopy.deepCopyYaml(recipe);
+    this.current_recipe = _.cloneDeep(recipe);
   }
 
   public swapElements(array :Array<any>, index1:number, index2:number) {
