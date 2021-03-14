@@ -115,14 +115,16 @@ const VuexSettings = namespace('Settings')
 })
 export default class Settings extends Mixins(RecipeHelper, Toast) {
   public file:(File | null)= null
-  public settings:(SettingsType |null) = null
+  public settings:(SettingsType | null) = null
   private qrScanner!:QrScanner
 
-  @VuexSettings.State('settings') store_settings!:Settings
+  @VuexSettings.State('settings') store_settings!:SettingsType
+
+  @VuexSettings.Action saveSettings!:(settings:SettingsType) => Promise<void>
 
   async created() {
     //local copy of store settings
-    this.settings = JSON.parse(JSON.stringify(this.store_settings))
+    this.settings = _.cloneDeep(this.store_settings)
     if(this.$route.query.config) {
       console.log(this.$route.query.config)
       this.settings = await json_url.decompress(this.$route.query.config)
@@ -256,8 +258,8 @@ export default class Settings extends Mixins(RecipeHelper, Toast) {
     $("#loading-spinner").removeClass('d-none');
     Cloud.checkPath(this.settings)
       .then((fileExists) =>{ 
-        if(fileExists) {
-          this.$store.dispatch("Settings/saveSettings", this.settings)
+        if(fileExists && this.settings) {
+          this.saveSettings(this.settings)
             .then(() => {
               this.toast('Gespeichert.', 'success')
             })

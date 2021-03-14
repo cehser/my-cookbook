@@ -1,4 +1,4 @@
-const jsyaml = require('js-yaml');
+import jsyaml from 'js-yaml';
 import { Recipe } from '@/types/recipe';
 import UUID from './uuid'
 
@@ -100,7 +100,7 @@ export default {
     return this.loadYamlRecipe(this.new_recipe_de);
   },
   loadYamlRecipe: function (content:string) {
-    return this.initRecipe(jsyaml.load(content));
+    return this.initRecipe(jsyaml.load(content) as Recipe);
   },
   // find local recipe by uuid, replace it by remote if newer
   // add remote recipe if not found locally

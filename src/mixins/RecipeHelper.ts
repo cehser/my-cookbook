@@ -11,8 +11,8 @@ export default class RecipeHelper extends Vue {
   public current_recipe: any = null
   public do_recalc: boolean = true //enable amounts recalculation
 
-  @VuexRecipes.State recipes?:Array<Recipe>
-  @VuexRecipes.State recipe_pictures?:any
+  @VuexRecipes.State recipes!:Array<Recipe>
+  @VuexRecipes.State recipe_pictures!:any
 
   @Prop({type: Number,default: 0}) selected!: number
       

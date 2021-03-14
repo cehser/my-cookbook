@@ -125,7 +125,7 @@ export default class Recipes extends VuexModule {
   }
 
   @Action
-  setRecipePicture({uuid, picture}:{uuid:string, picture:File}) {
+  setRecipePicture({uuid, picture}:{uuid:string, picture:File|null}) {
     this.context.commit('setRecipePictures', {uuid, pictures:[picture]})
     this.context.dispatch('saveRecipePictures')
   }

@@ -1,5 +1,5 @@
 import { BufferLike, createClient } from 'webdav';
-const jsyaml = require('js-yaml');
+import jsyaml from 'js-yaml';
 
 export default {
   webdavClient(settings:any) {

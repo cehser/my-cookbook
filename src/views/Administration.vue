@@ -33,7 +33,6 @@
   import RecipeHelper from '@/mixins/RecipeHelper'
   import Toast from '@/mixins/Toast'
   import UUID from '../js/uuid'
-  import DeepCopy from '../js/deepCopy'
   import Recipes from '../js/recipes'
   import Cloud from '../js/cloud'
   
@@ -43,7 +42,13 @@
 
   // eslint-disable-next-line no-unused-vars
   import SettingsType from '@/types/settings'
+  // eslint-disable-next-line no-unused-vars
+  import { Recipe } from '@/types/recipe'
+  
+  import _ from 'lodash'
+
   const VuexSettings = namespace('Settings')
+  const VuexRecipes = namespace('Recipes')
 
   @Component({
     components: {
@@ -52,6 +57,16 @@
   })
   export default class Administration extends Mixins(RecipeHelper,Toast)  {
     @VuexSettings.State settings!:SettingsType
+    
+    @VuexRecipes.Action syncRecipesWithCloud!: () => Promise<void>
+    @VuexRecipes.Action getRecipesFromCloud!: () => Promise<void>
+    @VuexRecipes.Action downloadRecipePictures!: () => Promise<void>
+
+    @VuexRecipes.Action saveRecipes!: () => Promise<void>
+    @VuexRecipes.Action saveRecipePictures!: () => Promise<void>
+    
+    @VuexRecipes.Action deleteRecipe!: (index:number) => Promise<void>
+    @VuexRecipes.Action appendRecipe!: (recipe:Recipe) => Promise<void>
 
     mounted() {  
       document.onkeydown = (event) => {
@@ -63,22 +78,21 @@
       }
     }
     
-    deleteRecipe(index:number) {
-      this.$store.dispatch("Recipes/deleteRecipe", index);
-    }
     copyRecipe(index:number) {
       //deep copy recipe
-      let recipe = DeepCopy.deepCopyYaml(this.recipes ? this.recipes[index] : null);
-      //new uuid
-      recipe.recipe_uuid = UUID.generateUUID();
-      //load
-      this.$store.dispatch("Recipes/appendRecipe", recipe);
+      if(this.recipes) {
+        let recipe = _.cloneDeep(this.recipes[index])
+        //new uuid
+        recipe.recipe_uuid = UUID.generateUUID();
+        //load
+        this.appendRecipe(recipe);
+      }
     }
     newRecipe() {
-      this.$store.dispatch("Recipes/appendRecipe", Recipes.loadNewRecipe())
+      this.appendRecipe(Recipes.loadNewRecipe())
     }
     loadSample() {
-      this.$store.dispatch("Recipes/appendRecipe", Recipes.loadSample())
+      this.appendRecipe(Recipes.loadSample())
     }
     saveToWebDAV() {
       $("#loading-spinner").removeClass('d-none');
@@ -91,29 +105,29 @@
     }
     async loadFromWebDAV() {
       $("#loading-spinner").removeClass('d-none');
-      this.$store.dispatch('Recipes/getRecipesFromCloud')
+      this.getRecipesFromCloud()
         .then(() => this.toast('Geladen.', 'success'))
         .catch(() => this.toast('Fehler.', 'danger'))
         .finally(() => $("#loading-spinner").addClass('d-none'))
     }
     async loadPictures() {
       $("#loading-spinner").removeClass('d-none');
-      this.$store.dispatch('Recipes/downloadRecipePictures')
+      this.downloadRecipePictures()
         .then(() => this.toast('Geladen.', 'success'))
         .catch(() => this.toast('Fehler.', 'danger'))
         .finally(() => $("#loading-spinner").addClass('d-none'))
     }
     async syncWithWebDAV() {
       $("#loading-spinner").removeClass('d-none');
-      this.$store.dispatch('Recipes/syncRecipesWithCloud')
+      this.syncRecipesWithCloud()
         .then(() => this.toast('Synchronisiert.', 'success'))
         .catch(() => this.toast('Fehler.', 'danger'))
         .finally(() => $("#loading-spinner").addClass('d-none'))
     }
     saveToLocalStorage() {
-      this.$store.dispatch('Recipes/saveRecipes')
-      this.$store.dispatch('Recipes/saveRecipePictures')
-        .then(() => this.toast('Gespeichert.', 'success'))
+      const promise1 = this.saveRecipes()
+      const promise2 = this.saveRecipePictures()
+      Promise.all([promise1, promise2]).then(() => this.toast('Gespeichert.', 'success'))
     }
   }
 </script>

@@ -126,7 +126,7 @@
     
       <h2>Code</h2>
       <b-form-row>
-        <b-form-textarea readonly rows="10" :value="yaml"></b-form-textarea>
+        <b-form-textarea readonly rows="10" :value="yaml" class="mb-3"></b-form-textarea>
       </b-form-row>
     </b-container>
   </div>
@@ -145,18 +145,18 @@ import Toast from '@/mixins/Toast'
 
 import jsyaml from 'js-yaml'
 
-const jp = require('jsonpath')
-const deepEqual = require('deep-equal')
-
 import { Component, Mixins, Watch } from 'vue-property-decorator/'
 import { namespace } from 'vuex-class'
 
 // eslint-disable-next-line no-unused-vars
 import SettingsType from '@/types/settings'
+// eslint-disable-next-line no-unused-vars
+import { Recipe } from '@/types/recipe'
 
 import _ from 'lodash'
 
 const VuexSettings = namespace('Settings')
+const VuexRecipes = namespace('Recipes')
 
 @Component({
   components: {
@@ -173,19 +173,33 @@ export default class Edit extends Mixins(RecipeHelper,Toast) {
 
   @VuexSettings.State settings!:SettingsType
 
+  @VuexRecipes.Action setRecipePicture!: ({uuid, picture}:{ uuid: string, picture: File | null}) => Promise<void>
+  @VuexRecipes.Action setRecipe!: ({index, recipe}:{ index: number, recipe: Recipe }) => Promise<void>
+
+
   get yaml() {
     return jsyaml.dump(this.current_recipe)
   }
 
   get ingredient_units() {
     let units = new Set(['g', 'ml', 'Stück']);
-    let dyn_units = jp.query(this, 'recipes[*].ingredients[*].*.amounts[*].unit');
-    //console.log(dyn_units);
+    //let dyn_units = jp.query(this, 'recipes[*].ingredients[*].*.amounts[*].unit');
+
+    let dyn_units = this.recipes.reduce((retVal:Set<string>, recipe) => {
+      let arr:Set<string> = Object.entries(recipe.ingredients).reduce((retVal:Set<string>, ingredient) => {
+        //console.log(Object.entries(ingredient[1])[0][1].amounts[0].unit)
+        let ing:any = (Object.entries(ingredient[1])[0][1])
+        
+        return retVal.add(ing.amounts[0].unit)
+      },new Set([]))
+
+      return new Set([...retVal, ...arr])
+    }, new Set([]))
+
+    console.log(dyn_units);
     
-    if(dyn_units) {
-      dyn_units.forEach((item:any) => units.add(item))
-    }
-      return [...units].sort(); //convert to array
+    units = new Set([...units, ...dyn_units])
+    return [...units].sort(); //convert to array
   }
 
   mounted() {  
@@ -217,24 +231,24 @@ export default class Edit extends Mixins(RecipeHelper,Toast) {
   saveRecipe() {
     //only update if current_recipe is really different
     console.log(this.file)
-    if(this.recipes && !deepEqual(this.recipes[this.selected], this.current_recipe) || this.file || this.delete_image) {
+    if(this.recipes && !_.isEqual(this.recipes[this.selected], this.current_recipe) || this.file || this.delete_image) {
       this.current_recipe.lastUpdated = new Date();
       console.log(this.current_recipe.lastUpdated)
   
       if(this.file) {
         this.current_recipe.cloud_images = [this.file.name]
-        this.$store.dispatch('Recipes/setRecipePicture', { uuid: this.current_recipe.recipe_uuid, picture: this.file })
+        this.setRecipePicture({ uuid: this.current_recipe.recipe_uuid, picture: this.file })
           .catch(() => this.toast('Bildfehler.', 'danger'))
       }
 
       if(this.delete_image) {
         this.current_recipe.cloud_images = []
-        this.$store.dispatch('Recipes/setRecipePicture', { uuid: this.current_recipe.recipe_uuid, picture: null })
+        this.setRecipePicture({ uuid: this.current_recipe.recipe_uuid, picture: null })
           .then(() => this.delete_image = false)
           .catch(() => this.toast('Bildfehler.', 'danger'))
       }
       console.log(this.current_recipe.cloud_images)
-      this.$store.dispatch('Recipes/setRecipe', { index: this.selected, recipe: this.current_recipe })
+      this.setRecipe({ index: this.selected, recipe: this.current_recipe })
         .then(() => this.toast('Gespeichert.', 'success'))
         .catch(() => this.toast('Fehler.', 'danger'))
     }
