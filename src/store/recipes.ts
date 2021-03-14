@@ -2,8 +2,6 @@ import { VuexModule, Module, Mutation, Action} from 'vuex-module-decorators'
 import {Recipe} from '@/types/recipe'
 import { set, getMany, get, del} from 'idb-keyval';
 import _ from 'lodash'
-
-import RecipeHelper from '../js/recipes'
 import Cloud from '../js/cloud'
 
 @Module({
@@ -96,7 +94,7 @@ export default class Recipes extends VuexModule {
   @Action
   async getRecipesFromCloud(){
     let recipes_data = await Cloud.getRecipes(this.settings) as string
-    let recipes = RecipeHelper.loadYamlCookbook(recipes_data)
+    let recipes = Recipe.createCookbookFromYaml(recipes_data)
     let images = await Cloud.getRecipeImages(this.settings, recipes)
     this.context.commit('setRecipes', recipes)
     this.context.commit('setRecipesPictures', images)
@@ -105,9 +103,9 @@ export default class Recipes extends VuexModule {
   @Action
   async syncRecipesWithCloud(){
     let recipes_data = await Cloud.getRecipes(this.settings) as string
-    let recipes_remote = RecipeHelper.loadYamlCookbook(recipes_data)
+    let recipes_remote = Recipe.createCookbookFromYaml(recipes_data)
 
-    let recipes = RecipeHelper.mergeCoobooks(_.cloneDeep(this.recipes), recipes_remote, this.context.dispatch);
+    let recipes = Recipe.mergeCoobooks(_.cloneDeep(this.recipes), recipes_remote, this.context.dispatch);
     this.context.commit('setRecipes', recipes);
   }
 

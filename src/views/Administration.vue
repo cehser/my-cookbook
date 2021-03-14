@@ -33,7 +33,6 @@
   import RecipeHelper from '@/mixins/RecipeHelper'
   import Toast from '@/mixins/Toast'
   import UUID from '../js/uuid'
-  import Recipes from '../js/recipes'
   import Cloud from '../js/cloud'
   
   import $ from 'jquery'
@@ -43,7 +42,7 @@
   // eslint-disable-next-line no-unused-vars
   import SettingsType from '@/types/settings'
   // eslint-disable-next-line no-unused-vars
-  import { Recipe } from '@/types/recipe'
+  import { Recipe, sample_recipe, new_recipe_de} from '@/types/recipe'
   
   import _ from 'lodash'
 
@@ -89,10 +88,10 @@
       }
     }
     newRecipe() {
-      this.appendRecipe(Recipes.loadNewRecipe())
+      this.appendRecipe(Recipe.createRecipeFromYaml(new_recipe_de))
     }
     loadSample() {
-      this.appendRecipe(Recipes.loadSample())
+      this.appendRecipe(Recipe.createRecipeFromYaml(sample_recipe))
     }
     saveToWebDAV() {
       $("#loading-spinner").removeClass('d-none');
