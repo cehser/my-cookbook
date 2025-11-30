@@ -1,11 +1,9 @@
-import Vuex from 'vuex'
-import Vue from 'vue'
-
+import { createStore } from 'vuex'
 
 import actions from './actions'
 import mutations from './mutations'
 
-const debug = process.env.NODE_ENV !== 'production'
+const debug = import.meta.env.MODE !== 'production'
 
 const default_settings =  {
   read_only: true,
@@ -20,9 +18,7 @@ const default_settings =  {
   }
 }
 
-Vue.use(Vuex)
-
-export default new Vuex.Store({
+export default createStore({
   strict: debug,
   state: {
     recipes: [],

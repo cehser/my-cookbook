@@ -1,31 +1,19 @@
-import Vue from 'vue'
+import { createApp } from 'vue'
 import App from './App.vue'
 
 import router from './router'
 import store from './store'
 
-import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
+import { createBootstrap } from 'bootstrap-vue-next'
 
-import AsyncComputed from 'vue-async-computed'
-import Clipboard from 'v-clipboard'
-
-// Import Bootstrap an BootstrapVue CSS files (order is important)
-import 'bootstrap'
+// Import Bootstrap and BootstrapVueNext CSS files
 import 'bootstrap/dist/css/bootstrap.css'
-import 'bootstrap-vue/dist/bootstrap-vue.css'
-import './registerServiceWorker'
+import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 
-// Make BootstrapVue available throughout your project
-Vue.use(BootstrapVue)
-// Optionally install the BootstrapVue icon components plugin
-Vue.use(IconsPlugin)
-Vue.use(AsyncComputed)
-Vue.use(Clipboard)
+const app = createApp(App)
 
-Vue.config.productionTip = false
+app.use(router)
+app.use(store)
+app.use(createBootstrap())
 
-new Vue({
-  router,
-  store,
-  render: h => h(App)
-}).$mount('#app')
+app.mount('#app')
