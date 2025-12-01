@@ -10,7 +10,7 @@ services:
       - npm_cache:/root/.npm                # Bonus: Cache npm downloads
     ports:
       - "8080:8080"
-    command: sh -c "npm install --legacy-peer-deps && npm run serve -- --host 0.0.0.0 --port 8080"
+    command: sh -c "npm install --legacy-peer-deps && npm run dev -- --host 0.0.0.0"
     environment:
       - NODE_ENV=development
 
