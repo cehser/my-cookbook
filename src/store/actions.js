@@ -63,7 +63,9 @@ export default {
   },
   saveRecipes({ commit, state }){
     //save to idb first, then commit to store
-    set('recipes', state.recipes)
+    //kill all possible references to vue model and proxies
+    const recipes = DeepCopy.deepCopyYaml(state.recipes)
+    set('recipes', recipes)
       .then(()=>commit(SET_RECIPES, state.recipes))
   },
   saveSettings({ commit }, settings){
@@ -75,7 +77,9 @@ export default {
   },
   saveRecipePictures({ commit, state }){
     //save to idb first, then commit to store
-    set('recipe_pictures', state.recipe_pictures)
+    //kill all possible references to vue model
+    const pictures = DeepCopy.deepCopyJSON(state.recipe_pictures)
+    set('recipe_pictures', pictures)
       .then(()=>commit(SET_RECIPES_PICTURES, state.recipe_pictures))
   },
   deleteRecipe({commit}, index) {

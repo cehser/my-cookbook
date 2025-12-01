@@ -9,8 +9,17 @@
           <BButton @click="nextRecipe" :disabled="selected >= recipes.length - 1" title="Nächstes Rezept" size="sm">
             <i class="bi bi-chevron-right"></i>
           </BButton>
-          <BButton v-if="!settings.read_only" @click="$router.push('/edit/' + selected)" title="Bearbeiten" variant="primary" size="sm">
+          <BButton v-if="!settings.read_only && !editMode" @click="toggleEditMode" title="Inline bearbeiten" variant="primary" size="sm">
             <i class="bi bi-pencil"></i>
+          </BButton>
+          <BButton v-if="!settings.read_only && editMode" @click="saveRecipe" title="Speichern" variant="success" size="sm">
+            <i class="bi bi-check-lg"></i>
+          </BButton>
+          <BButton v-if="!settings.read_only && editMode" @click="cancelEdit" title="Abbrechen" variant="secondary" size="sm">
+            <i class="bi bi-x-lg"></i>
+          </BButton>
+          <BButton v-if="!settings.read_only && !editMode" @click="$router.push('/edit/' + selected)" title="Vollständig bearbeiten" variant="outline-primary" size="sm">
+            <i class="bi bi-pencil-square"></i>
           </BButton>
           <BButton @click="exportRecipe" title="Als YAML exportieren" size="sm">
             <i class="bi bi-download"></i>
@@ -37,11 +46,13 @@
           <img class="card-img-top rounded-0" id="recipe_img" :src="picture_src" alt="Card image cap">
           <div class="card-body" id="recipe_title">
             <h2 class="card-title d-flex flex-row flex-wrap justify-content-between">
-              <div>
+              <div v-if="!editMode">
                 {{current_recipe.recipe_name}}
               </div>
+              <BFormInput v-else v-model="current_recipe.recipe_name" size="lg" class="fw-bold" />
             </h2>
-            <p class="card-text">{{current_recipe.subtitle}}</p>
+            <p v-if="!editMode" class="card-text">{{current_recipe.subtitle}}</p>
+            <BFormInput v-else v-model="current_recipe.subtitle" placeholder="Untertitel" />
             <div v-if="current_recipe.tags && current_recipe.tags.length" class="mt-2">
               <span v-for="(tag, idx) in current_recipe.tags" :key="idx" class="badge bg-light text-dark me-1">{{ tag }}</span>
             </div>
@@ -50,10 +61,12 @@
         <div class="card-body">
           <h3>Zubereitung</h3>
           <div v-for="(section, sectionIndex) in current_recipe.sections" :key="'section-' + sectionIndex">
-            <h4>{{ section.section }}</h4>
+            <h4 v-if="!editMode">{{ section.section }}</h4>
+            <BFormInput v-else v-model="section.section" class="mb-2 fw-bold" placeholder="Abschnittsname" />
             <ul class="list-group list-group-numbered list-group-flush">
-              <li class="list-group-item" v-for="(step, stepIndex) in (current_recipe.steps.filter(x => x.section == section.section))" :key="'step-' + stepIndex" :data-section="section.section" :data-step-number="getStepNumber(section.section, stepIndex)" @click="selectStep">
-                {{step.step}} 
+              <li class="list-group-item" v-for="(step, stepIndex) in (current_recipe.steps.filter(x => x.section == section.section))" :key="'step-' + stepIndex" :data-section="section.section" :data-step-number="getStepNumber(section.section, stepIndex)" @click="!editMode && selectStep($event)">
+                <span v-if="!editMode">{{step.step}}</span>
+                <BFormTextarea v-else v-model="step.step" rows="3" />
               </li>
             </ul>
           </div>
@@ -63,21 +76,34 @@
       <div id="ingredients" class="w-25 width card rounded-0" v-show="showIngredients" :class="{ 'show': showIngredients }">
         <div class="card-header">  
           <h3 class="card-title">Zutaten</h3>
-          <div class="card-subtitle">für {{formatNumbers(yields_value)}} {{yields_unit}}</div>
+          <div v-if="!editMode" class="card-subtitle">für {{formatNumbers(yields_value)}} {{yields_unit}}</div>
+          <div v-else class="d-flex gap-2 align-items-center mt-2">
+            <span>für</span>
+            <BFormInput v-model.number="yields_value" type="number" size="sm" style="width: 80px" />
+            <BFormInput v-model="yields_unit" size="sm" style="width: 100px" />
+          </div>
         </div>
         <div class="card-body">
           <div v-for="(section, index) in current_recipe.sections" :id="'box-ing-' + section.section" class="ingredients-section" :key="index">
             <h4>{{ section.section }}</h4>
-            <div class="row" v-for="(ingredient, index) in (current_recipe.ingredients.filter(x => x.section == section.section))" :key="index">
-              <div class="col-4">
+            <div class="row mb-2" v-for="(ingredient, index) in (current_recipe.ingredients.filter(x => x.section == section.section))" :key="index">
+              <div v-if="!editMode" class="col-4">
                 {{formatNumbers(ingredient[Object.keys(ingredient)[0]].amounts[0].amount)}} {{ingredient[Object.keys(ingredient)[0]].amounts[0].unit}}
-              </div>  
-              <div class="col-8">
+              </div>
+              <div v-else class="col-4 d-flex gap-1">
+                <BFormInput v-model.number="ingredient[Object.keys(ingredient)[0]].amounts[0].amount" type="number" size="sm" step="0.1" />
+                <BFormInput v-model="ingredient[Object.keys(ingredient)[0]].amounts[0].unit" size="sm" />
+              </div>
+              <div v-if="!editMode" class="col-8">
                 {{Object.keys(ingredient)[0]}}
-              </div>  
+              </div>
+              <div v-else class="col-8">
+                <BFormInput v-model="ingredient[Object.keys(ingredient)[0]].name" :value="Object.keys(ingredient)[0]" size="sm" @input="renameIngredient(ingredient, $event)" />
+              </div>
             </div>
           </div>
           
+          <div v-if="!editMode">
             <h5 class="card-title">Umrechnen</h5>
             <div class="input-group">
               <input type="number" min="0" v-model.number="yields_value" step=".1" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing">
@@ -86,7 +112,7 @@
                 
               </div>
             </div>
-          
+          </div>
         </div>
         <div class="card-body">
           
@@ -114,7 +140,9 @@ export default {
   data () {
     return {  
       do_recalc: true,  //replace default value
-      showIngredients: true  // control ingredients panel visibility
+      showIngredients: true,  // control ingredients panel visibility
+      editMode: false,  // inline edit mode
+      originalRecipe: null  // backup for cancel
     }
   },
   mounted () {
@@ -213,6 +241,36 @@ export default {
         this.$store.dispatch("deleteRecipe", this.selected);
         // Navigate to gallery after deletion
         this.$router.push('/');
+      }
+    },
+    toggleEditMode() {
+      this.editMode = !this.editMode;
+      if (this.editMode) {
+        // Backup current recipe for cancel
+        this.originalRecipe = DeepCopy.deepCopyYaml(this.current_recipe);
+      }
+    },
+    saveRecipe() {
+      // Save changes to store
+      this.$store.dispatch("updateRecipe", { index: this.selected, recipe: this.current_recipe });
+      this.$store.dispatch("saveToLocalStorage");
+      this.editMode = false;
+      this.originalRecipe = null;
+    },
+    cancelEdit() {
+      // Restore original recipe
+      if (this.originalRecipe) {
+        this.current_recipe = DeepCopy.deepCopyYaml(this.originalRecipe);
+      }
+      this.editMode = false;
+      this.originalRecipe = null;
+    },
+    renameIngredient(ingredient, newName) {
+      // Rename ingredient key
+      const oldName = Object.keys(ingredient)[0];
+      if (oldName !== newName && newName) {
+        ingredient[newName] = ingredient[oldName];
+        delete ingredient[oldName];
       }
     },
     selectStep: function(ev) {
@@ -346,5 +404,54 @@ export default {
     margin: -0.25rem;  
     padding: 0.25rem;
     margin-bottom: 0.5em;
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 812px) {
+    #ingredients {
+      min-width: 100%;
+      max-width: 100%;
+      position: fixed;
+      top: 56px;
+      left: 0;
+      right: 0;
+      height: calc(100vh - 56px);
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+    
+    #ingredients.show {
+      transform: translateX(0);
+    }
+    
+    #steps {
+      width: 100%;
+    }
+    
+    #collapesebutton {
+      position: fixed;
+      right: 1rem;
+      top: 65px;
+      z-index: 1000;
+      width: auto;
+    }
+    
+    #collapesebutton button {
+      background: rgba(0,0,0,0.7);
+      border-radius: 50%;
+      padding: 0.5rem;
+    }
+    
+    /* Larger touch targets for mobile */
+    .list-group-item {
+      padding: 1rem;
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+    
+    /* Action buttons wrapping */
+    .form-inline.d-flex {
+      flex-wrap: wrap;
+    }
   }
 </style>

@@ -62,6 +62,10 @@
     watch: {
       data_selected: function(value){
         this.$emit('update:selected', value);
+      },
+      '$route'() {
+        // Close mobile menu when route changes
+        this.isMenuOpen = false;
       }
     },
     created() {
@@ -78,5 +82,23 @@
 <style scoped> 
   .router-link-active {
     color: #FFFFFF !important;
+  }
+  
+  /* Mobile improvements */
+  @media (max-width: 768px) {
+    .navbar-nav {
+      padding: 0.5rem 0;
+    }
+    
+    .nav-link {
+      padding: 0.75rem 1rem;
+      font-size: 1.1rem;
+    }
+    
+    /* Better touch targets for action buttons in navbar slot */
+    ::v-deep .btn {
+      min-width: 44px;
+      min-height: 44px;
+    }
   }
 </style>

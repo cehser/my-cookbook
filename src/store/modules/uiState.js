@@ -39,21 +39,21 @@ const mutations = {
 }
 
 const actions = {
-  setGalleryFilter({ commit }, filter) {
+  setGalleryFilter({ commit, state }, filter) {
     commit('SET_GALLERY_FILTER', filter)
-    saveToLocalStorage()
+    saveToLocalStorage(state)
   },
-  setGallerySelectedTags({ commit }, tags) {
+  setGallerySelectedTags({ commit, state }, tags) {
     commit('SET_GALLERY_SELECTED_TAGS', tags)
-    saveToLocalStorage()
+    saveToLocalStorage(state)
   },
-  setGalleryScrollPosition({ commit }, position) {
+  setGalleryScrollPosition({ commit, state }, position) {
     commit('SET_GALLERY_SCROLL_POSITION', position)
-    saveToLocalStorage()
+    saveToLocalStorage(state)
   },
-  setRecipeShowIngredients({ commit }, show) {
+  setRecipeShowIngredients({ commit, state }, show) {
     commit('SET_RECIPE_SHOW_INGREDIENTS', show)
-    saveToLocalStorage()
+    saveToLocalStorage(state)
   },
   restoreUIState({ commit }) {
     const savedState = localStorage.getItem('my-cookbook-ui-state')
@@ -67,7 +67,7 @@ const actions = {
   }
 }
 
-function saveToLocalStorage() {
+function saveToLocalStorage(state) {
   try {
     localStorage.setItem('my-cookbook-ui-state', JSON.stringify(state))
   } catch (e) {

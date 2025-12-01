@@ -18,7 +18,9 @@ export default {
   created() {
     //normalize recipe
     //this.recipes[this.selected].sections = this.recipes[this.selected].sections || [];
-    this.loadRecipe(this.recipes[this.selected]);
+    if (this.recipes && this.recipes[this.selected]) {
+      this.loadRecipe(this.recipes[this.selected]);
+    }
   },
   watch: {
     recipes :{
@@ -91,15 +93,18 @@ export default {
           return map
         }, {})
 
-        return URL.createObjectURL(picturesByName[filename])
+        const file = picturesByName[filename]
+        // Check if file is a Blob/File object
+        if (file instanceof Blob) {
+          return URL.createObjectURL(file)
+        }
       }
-      else if(recipe.imageurl && recipe.imageurl.localeCompare("") != 0) {
+      
+      if(recipe.imageurl && recipe.imageurl.localeCompare("") != 0) {
         return new URL(recipe.imageurl, location.toString()).href
       }
-      else {
-        return new URL("/placeholder-image.png", location.toString()).href
-      }
-
+      
+      return new URL("/placeholder-image.png", location.toString()).href
     },
     loadRecipe (recipe) {
       this.current_recipe = DeepCopy.deepCopyYaml(recipe);

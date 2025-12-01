@@ -18,7 +18,7 @@
             </BButton>
           </template>
         </BInputGroup>
-        <div v-if="allTags.length" class="d-flex flex-wrap gap-1 align-items-center">
+        <div v-if="allTags.length || selectedTags.length" class="d-flex flex-wrap gap-1 align-items-center">
           <span class="text-muted small">Tags:</span>
           <span 
             v-for="tag in allTags" 
@@ -29,8 +29,18 @@
             style="cursor: pointer;">
             {{ tag }}
           </span>
-          <BButton v-if="selectedTags.length" @click="selectedTags = []" size="sm" variant="outline-secondary">
-            Alle Tags
+          <!-- Show selected tags that don't exist anymore -->
+          <span 
+            v-for="tag in orphanedTags" 
+            :key="'orphan-' + tag" 
+            @click="toggleTag(tag)"
+            class="badge bg-danger"
+            style="cursor: pointer;"
+            :title="'Tag existiert nicht mehr'">
+            {{ tag }} <i class="bi bi-exclamation-triangle-fill"></i>
+          </span>
+          <BButton v-if="selectedTags.length" @click="clearAllFilters" size="sm" variant="outline-secondary">
+            Filter zurücksetzen
           </BButton>
         </div>
       </div> 
@@ -84,17 +94,21 @@
     },
     mounted() {
       // Restore UI state
-      this.$store.dispatch('restoreUIState');
-      this.filter = this.$store.getters.galleryFilter;
-      this.selectedTags = [...this.$store.getters.gallerySelectedTags];
-      
-      // Restore scroll position
-      this.$nextTick(() => {
-        const scrollPos = this.$store.getters.galleryScrollPosition;
-        if (scrollPos > 0) {
-          window.scrollTo(0, scrollPos);
-        }
-      });
+      try {
+        this.$store.dispatch('restoreUIState');
+        this.filter = this.$store.getters.galleryFilter || '';
+        this.selectedTags = this.$store.getters.gallerySelectedTags ? [...this.$store.getters.gallerySelectedTags] : [];
+        
+        // Restore scroll position
+        this.$nextTick(() => {
+          const scrollPos = this.$store.getters.galleryScrollPosition || 0;
+          if (scrollPos > 0) {
+            window.scrollTo(0, scrollPos);
+          }
+        });
+      } catch (e) {
+        console.error('Failed to restore UI state:', e);
+      }
     },
     beforeUnmount() {
       // Save scroll position before leaving
@@ -102,12 +116,20 @@
     },
     watch: {
       filter(newFilter) {
-        this.$store.dispatch('setGalleryFilter', newFilter);
+        try {
+          this.$store.dispatch('setGalleryFilter', newFilter);
+        } catch (e) {
+          console.error('Failed to save filter:', e);
+        }
       },
       selectedTags: {
         deep: true,
         handler(newTags) {
-          this.$store.dispatch('setGallerySelectedTags', newTags);
+          try {
+            this.$store.dispatch('setGallerySelectedTags', newTags);
+          } catch (e) {
+            console.error('Failed to save tags:', e);
+          }
         }
       }
     },
@@ -123,6 +145,10 @@
           }
         });
         return Array.from(tags).sort();
+      },
+      orphanedTags() {
+        // Tags that are selected but don't exist in any recipe
+        return this.selectedTags.filter(tag => !this.allTags.includes(tag));
       },
       filteredRecipes() {
         return this.recipes.filter(recipe => {
@@ -145,6 +171,10 @@
         } else {
           this.selectedTags.push(tag);
         }
+      },
+      clearAllFilters() {
+        this.filter = '';
+        this.selectedTags = [];
       },
       showRefreshUI (e) {
         this.registration = e.detail;
@@ -188,5 +218,41 @@
   input {
     outline:none !important;
     box-shadow: none !important;
+  }
+  
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    h2 {
+      font-size: 1.5rem;
+    }
+    
+    /* Stack filter and tags vertically on mobile */
+    .d-flex.flex-wrap.gap-2 {
+      flex-direction: column;
+      gap: 1rem !important;
+    }
+    
+    /* Full width filter on mobile */
+    .input-group {
+      max-width: 100% !important;
+    }
+    
+    /* Larger touch targets for tags */
+    .badge {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      margin: 0.25rem;
+    }
+    
+    /* Single column on small mobile */
+    @media (max-width: 576px) {
+      .row {
+        --bs-gutter-x: 0.5rem;
+      }
+      
+      .col {
+        padding: 0.25rem;
+      }
+    }
   }
 </style>
