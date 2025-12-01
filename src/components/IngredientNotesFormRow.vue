@@ -1,16 +1,16 @@
 <template>
-  <b-form-row> 
-    <b-col offset="1" sm="1">Notizen</b-col>
-    <b-col sm="10">
-      <b-form-row v-for="(note, index) in ingredient_data.notes" :key="index">
-        <b-col sm="8"><b-form-input v-model="ingredient_data.notes[index]"></b-form-input></b-col>
-        <b-col sm="1"><b-button @click="ingredient_data.notes.splice(index, 1)"><b-icon icon="trash"></b-icon></b-button></b-col> 
-      </b-form-row>
-      <b-form-row>
-        <b-button @click="addNote"><b-icon icon="plus"></b-icon></b-button>
-      </b-form-row>
-    </b-col>
-  </b-form-row>
+  <BRow> 
+    <BCol offset="1" sm="1">Notizen</BCol>
+    <BCol sm="10">
+      <BRow v-for="(note, index) in ingredient_data.notes" :key="index">
+        <BCol sm="8"><BFormInput v-model="ingredient_data.notes[index]"></BFormInput></BCol>
+        <BCol sm="1"><BButton @click="ingredient_data.notes.splice(index, 1)"><i class="bi bi-trash"></i></BButton></BCol> 
+      </BRow>
+      <BRow>
+        <BButton @click="addNote"><i class="bi bi-plus"></i></BButton>
+      </BRow>
+    </BCol>
+  </BRow>
 </template>
 
 <script>

@@ -6,7 +6,7 @@
         <h2 class="card-title d-flex flex-row flex-wrap justify-content-between">
           <TextHighlight class="card-title-text" :queries="highlight" :caseSensitive="false">{{ recipe.recipe_name }}</TextHighlight>
         </h2>
-        <router-link v-if="!read_only" class="editLink" :to="'/edit/' + index"><b-icon-pencil></b-icon-pencil></router-link>
+        <router-link v-if="!read_only" class="editLink" :to="'/edit/' + index"><i class="bi bi-pencil"></i></router-link>
         <p class="card-text">{{recipe.subtitle}}</p>
       </div>
     </div>

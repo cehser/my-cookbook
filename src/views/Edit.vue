@@ -3,124 +3,124 @@
     <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="settings.read_only">
       <li>
         <form class="form-inline">
-          <b-button @click="saveRecipe"><b-icon-archive-fill></b-icon-archive-fill></b-button>
+          <BButton @click="saveRecipe"><i class="bi bi-archive-fill"></i></BButton>
         </form>
       </li>
     </Navbar>
-    <b-container> 
-      <b-form-datalist id="ingredient-units-list" :options="ingredient_units"></b-form-datalist>
+    <BContainer> 
+      <BFormDatalist id="ingredient-units-list" :options="ingredient_units"></BFormDatalist>
       <h2>Rezept</h2>
 
-      <b-container fluid>
-        <b-row class="my-1">
-          <b-col sm="2">
+      <BContainer fluid>
+        <BRow class="my-1">
+          <BCol sm="2">
             <label for="input-name">Titel:</label>
-          </b-col>
-          <b-col sm="10">
-            <b-form-input id="input-name" size="sm" placeholder="Namen eingeben" v-model="current_recipe.recipe_name"></b-form-input>
-          </b-col>
-        </b-row>
-         <b-row class="my-1">
-          <b-col sm="2">
+          </BCol>
+          <BCol sm="10">
+            <BFormInput id="input-name" size="sm" placeholder="Namen eingeben" v-model="current_recipe.recipe_name"></BFormInput>
+          </BCol>
+        </BRow>
+         <BRow class="my-1">
+          <BCol sm="2">
             <label for="input-subtitle">Untertitel:</label>
-          </b-col>
-          <b-col sm="10">
-            <b-form-input id="input-subtitle" size="sm" placeholder="Untertitel eingeben" v-model="current_recipe.subtitle"></b-form-input>
-          </b-col>
-        </b-row>
-        <b-row class="my-1">
-          <b-col sm="2">
+          </BCol>
+          <BCol sm="10">
+            <BFormInput id="input-subtitle" size="sm" placeholder="Untertitel eingeben" v-model="current_recipe.subtitle"></BFormInput>
+          </BCol>
+        </BRow>
+        <BRow class="my-1">
+          <BCol sm="2">
             <label for="input-yields-value">Ergibt Menge:</label>
-          </b-col>
-          <b-col sm="10">
-            <b-form-input id="input-yields-value" size="sm" type="number" min="0.001" step="0.001" placeholder="100.0" v-model.number="yields_value"></b-form-input>
+          </BCol>
+          <BCol sm="10">
+            <BFormInput id="input-yields-value" size="sm" type="number" min="0.001" step="0.001" placeholder="100.0" v-model.number="yields_value"></BFormInput>
             <div class="custom-control custom-switch">
               <input type="checkbox" class="custom-control-input" id="recalc-switch" v-model="do_recalc">
               <label class="custom-control-label" for="recalc-switch">Umrechnen</label>
             </div>
           </b-col>
         </b-row>
-        <b-row class="my-1">
-          <b-col sm="2">
+        <BRow class="my-1">
+          <BCol sm="2">
             <label for="input-yields">Ergibt Einheiten:</label>
-          </b-col>
-          <b-col sm="10">
-            <b-form-input id="input-yields" size="sm" placeholder="Enter a name" v-model="yields_unit"></b-form-input>
-          </b-col>
-        </b-row>
-        <b-row class="my-1">
-          <b-col sm="2">
+          </BCol>
+          <BCol sm="10">
+            <BFormInput id="input-yields" size="sm" placeholder="Enter a name" v-model="yields_unit"></BFormInput>
+          </BCol>
+        </BRow>
+        <BRow class="my-1">
+          <BCol sm="2">
             <label for="input-recalc_exp">Umrechnungsexponent:</label>
-          </b-col>
-          <b-col sm="10">
-            <b-form-input id="input-recalc_exp" type="number" min="1" step="1" size="sm" placeholder="1" v-model.number="current_recipe.recalc_exp"></b-form-input>
-          </b-col>
-        </b-row>
-        <b-row class="my-1">
-          <b-col sm="2">
+          </BCol>
+          <BCol sm="10">
+            <BFormInput id="input-recalc_exp" type="number" min="1" step="1" size="sm" placeholder="1" v-model.number="current_recipe.recalc_exp"></BFormInput>
+          </BCol>
+        </BRow>
+        <BRow class="my-1">
+          <BCol sm="2">
             <label for="input-name">Web-Foto:</label>
-          </b-col>
-          <b-col sm="10">
-            <b-form-input id="input-name" size="sm" placeholder="https://..." v-model="current_recipe.imageurl"></b-form-input>
-          </b-col>
-        </b-row>
-        <b-row class="my-1" v-if="recipe_pictures[current_recipe.recipe_uuid]">
-          <b-col sm="2">
+          </BCol>
+          <BCol sm="10">
+            <BFormInput id="input-name" size="sm" placeholder="https://..." v-model="current_recipe.imageurl"></BFormInput>
+          </BCol>
+        </BRow>
+        <BRow class="my-1" v-if="recipe_pictures[current_recipe.recipe_uuid]">
+          <BCol sm="2">
             <label for="input-name">Gespeichertes Foto:</label>
-          </b-col>
-          <b-col sm="10">
+          </BCol>
+          <BCol sm="10">
             <img :src="picture_src" height="100">
             <div class="custom-control custom-switch">
               <input type="checkbox" class="custom-control-input" id="delete_image-switch" v-model="delete_image">
               <label class="custom-control-label" for="delete_image-switch">Löschen</label>
             </div>
-          </b-col>
-        </b-row>
-        <b-row class="my-1">
-          <b-col sm="2">
+          </BCol>
+        </BRow>
+        <BRow class="my-1">
+          <BCol sm="2">
             <label for="input-foto">Foto-Upload:</label>
-          </b-col>
-          <b-col sm="10">
-            <b-input-group size="sm">
-              <b-input-group-prepend>
-                <b-button size="sm" @click="clearFile"><b-icon-x></b-icon-x></b-button>
-              </b-input-group-prepend>
+          </BCol>
+          <BCol sm="10">
+            <BInputGroup size="sm">
+              <template #prepend>
+                <BButton size="sm" @click="clearFile"><i class="bi bi-x"></i></BButton>
+              </template>
             
-              <b-form-file size="sm" id="input-foto" ref="input-foto" accept="image/*" placeholder="Datei auswählen oder ablegen" drop-placeholder="Hier ablegen" browse-text="Durchsuchen" v-model="file"></b-form-file>
-            </b-input-group>
-          </b-col>
-        </b-row>
-        <b-row>
-          <b-col sm="2">
+              <BFormFile size="sm" id="input-foto" ref="input-foto" accept="image/*" placeholder="Datei auswählen oder ablegen" drop-placeholder="Hier ablegen" browse-text="Durchsuchen" v-model="file"></BFormFile>
+            </BInputGroup>
+          </BCol>
+        </BRow>
+        <BRow>
+          <BCol sm="2">
             Upload-Vorschau
-          </b-col>
-          <b-col sm="10">
+          </BCol>
+          <BCol sm="10">
             <img id="image-preview" height="100">
-          </b-col>
-        </b-row> 
-      </b-container>
-      <b-container fluid>
+          </BCol>
+        </BRow> 
+      </BContainer>
+      <BContainer fluid>
         <h2>Abschnitte</h2>
         <div>
-          <b-form-row v-for="(section, index_s) in current_recipe.sections" :key="index_s">
-            <b-col cols="11"><b-form-input size="sm" placeholder="Neuer Abschnitt" v-model="section.section"></b-form-input></b-col>
-            <b-col cols="1">
-              <b-button @click="current_recipe.sections.splice(index_s, 1)" size="sm"><b-icon icon="trash"></b-icon></b-button>
+          <BRow v-for="(section, index_s) in current_recipe.sections" :key="index_s">
+            <BCol cols="11"><BFormInput size="sm" placeholder="Neuer Abschnitt" v-model="section.section"></BFormInput></BCol>
+            <BCol cols="1">
+              <BButton @click="current_recipe.sections.splice(index_s, 1)" size="sm"><i class="bi bi-trash"></i></BButton>
               <array-reorder-btn-group :array="current_recipe.sections" :index="index_s"></array-reorder-btn-group>
-            </b-col>
-          </b-form-row>
+            </BCol>
+          </BRow>
         </div> 
-        <b-form-row>
-          <b-button @click="current_recipe.sections.push({section:''})"><b-icon icon="plus"></b-icon></b-button>
-        </b-form-row> 
-      </b-container>
+        <BRow>
+          <BButton @click="current_recipe.sections.push({section:''})"><i class="bi bi-plus"></i></BButton>
+        </BRow> 
+      </BContainer>
       <h2>Zutaten</h2>
       <div v-for="(section, index) in current_recipe.sections" :key="'sectiona-'+index">
         <section-ingredients-edit :section="section.section" :sections="section_names" v-model="current_recipe.ingredients"></section-ingredients-edit>
       </div>
-      <b-form-row>
-        <b-button @click="addIngredient"><b-icon icon="plus"></b-icon></b-button>
-      </b-form-row>
+      <BRow>
+        <BButton @click="addIngredient"><i class="bi bi-plus"></i></BButton>
+      </BRow>
       <h2>Zubereitung</h2>
       <div v-for="(section, index) in current_recipe.sections" :key="'sectionb-'+index">
         <h3>{{ section.section }}</h3>
@@ -129,14 +129,14 @@
         </div>  
       </div>
       
-      <b-form-row>
-        <b-button @click="current_recipe.steps.push({step:'', section:''})"><b-icon icon="plus"></b-icon></b-button>
-      </b-form-row>
+      <BRow>
+        <BButton @click="current_recipe.steps.push({step:'', section:''})"><i class="bi bi-plus"></i></BButton>
+      </BRow>
       <h2>Code</h2>
-      <b-form-row>
-        <b-form-textarea readonly rows="10" :value="yaml"></b-form-textarea>
-      </b-form-row>
-    </b-container>
+      <BRow>
+        <BFormTextarea readonly rows="10" :value="yaml"></BFormTextarea>
+      </BRow>
+    </BContainer>
   </div>
 
 </template>

@@ -1,16 +1,15 @@
 <template>
-  <b-form-row>
-    <b-col align-self="center" sm="8"><b-form-input :id="'editStep'+index" placeholder="Neuer Schritt" v-model="step.step" size="sm"></b-form-input></b-col>
-    <b-col align-self="center" sm="2"><b-form-select v-model="step.section" :options="sections" size="sm"></b-form-select></b-col>
-    <b-col align-self="center" sm="1">
-      <b-button @click="deleteStep" size="sm"><b-icon icon="trash"></b-icon></b-button>
+  <BRow>
+    <BCol align-self="center" sm="8"><BFormInput :id="'editStep'+index" placeholder="Neuer Schritt" v-model="step.step" size="sm"></BFormInput></BCol>
+    <BCol align-self="center" sm="2"><BFormSelect v-model="step.section" :options="sections" size="sm"></BFormSelect></BCol>
+    <BCol align-self="center" sm="1">
+      <BButton @click="deleteStep" size="sm"><i class="bi bi-trash"></i></BButton>
       <array-reorder-btn-group :array="steps" :index="index"></array-reorder-btn-group>
-    </b-col>
-  </b-form-row>
+    </BCol>
+  </BRow>
 </template>
 
 <script>
-  import $ from 'jquery'
   import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup.vue'
 
   export default {
@@ -24,7 +23,8 @@
     props: ['step', 'steps', 'index', 'sections'],
     mounted() {
       if (this.step.step === '') {
-        $('#editStep'+this.index).focus();
+        const input = document.querySelector('#editStep'+this.index);
+        if (input) input.focus();
       }
     },
     methods: {

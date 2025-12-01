@@ -18,19 +18,19 @@
         </div> 
       </li>-->
     </Navbar>
-    <b-container> 
+    <BContainer> 
       <h2>Einstellungen</h2>
       
-      <b-collapse id="collapse-file-upload">
-        <b-form-file hidden="hidden" id="fileUploadButton" @change="loadFromFile" v-model="file" placeholder="Choose a file or drop it here..." drop-placeholder="Drop file here..." accept=".yaml"></b-form-file>
-      </b-collapse>
+      <BCollapse id="collapse-file-upload">
+        <BFormFile hidden="hidden" id="fileUploadButton" @change="loadFromFile" v-model="file" placeholder="Choose a file or drop it here..." drop-placeholder="Drop file here..." accept=".yaml"></BFormFile>
+      </BCollapse>
 
-      <b-form-checkbox v-model="settings.read_only" name="check-button" switch>
+      <BFormCheckbox v-model="settings.read_only" name="check-button" switch>
         Nur lesen 
-      </b-form-checkbox>
-      <b-form-checkbox v-model="settings.autosync" name="check-button" switch>
+      </BFormCheckbox>
+      <BFormCheckbox v-model="settings.autosync" name="check-button" switch>
         Auto-Sync 
-      </b-form-checkbox>
+      </BFormCheckbox>
 
       <div id="settings">
         <h5>Cloud-Konfiguration (WebDAV)</h5>
@@ -65,15 +65,15 @@
         </div>
         <div class="form-group">
             <label for="configurl" class="col-form-label">Konfiguration teilen</label>
-            <b-input-group>
-              <b-form-input  type="text" class="form-control" id="configurl" v-model="configurl" autocorrect="off" disabled></b-form-input>
-              <b-input-group-append>
-                <b-button v-clipboard="() => configurl"><b-icon-files></b-icon-files></b-button>
-              </b-input-group-append>
-            </b-input-group>
+            <BInputGroup>
+              <BFormInput  type="text" class="form-control" id="configurl" v-model="configurl" autocorrect="off" disabled></BFormInput>
+              <template #append>
+                <BButton @click="copyConfigUrl"><i class="bi bi-files"></i></BButton>
+              </template>
+            </BInputGroup>
         </div>
       </div>
-    </b-container>
+    </BContainer>
   </div>
 
 </template>
@@ -87,7 +87,6 @@ import { mapState } from 'vuex'
 import Toast from '@/mixins/Toast'
 
 import jsyaml from 'js-yaml'
-import $ from 'jquery'
 
 import Cloud from '../js/cloud'
 
@@ -111,7 +110,8 @@ export default {
   data() {
     return {
       file:null,     //used for file upload
-      settings: null
+      settings: null,
+      configurl: ''  // cached async value
     };
   },
   async created() {
@@ -122,6 +122,8 @@ export default {
       this.settings = await json_url.decompress(this.$route.query.config)
       console.log(this.settings)
     }
+    // Initialize configurl
+    this.updateConfigUrl();
   },
   computed: {
     ...mapState({
@@ -130,11 +132,6 @@ export default {
     }),
     changed: function() {
       return !deepEqual(this.settings, this.store_settings)
-    }
-  },
-  asyncComputed: {
-    async configurl() {
-      return location.toString() + "?config=" + await json_url.compress(this.settings);
     }
   },
   mounted() { 
@@ -148,7 +145,7 @@ export default {
     this.updateQRCode();
 
     //init QRScanner
-    let videoElem = $('#qrcode_scan_video')[0]
+    let videoElem = document.querySelector('#qrcode_scan_video');
     this.qrScanner = new QrScanner(videoElem, result => { 
       try {
         let webdav_qr = JSON.parse(result); 
@@ -171,15 +168,19 @@ export default {
   watch: {
     settings :{
       deep: true,
-      //update qr code
+      //update qr code and configurl
       handler() {
         this.updateQRCode();
+        this.updateConfigUrl();
       }
     }
   },
   methods: {
+    async updateConfigUrl() {
+      this.configurl = location.toString() + "?config=" + await json_url.compress(this.settings);
+    },
     updateQRCode: function() {
-      let canvas = $('#qrcode_config')[0]
+      let canvas = document.querySelector('#qrcode_config');
       if(canvas && this.settings.webdav) {
         QRCode.toCanvas(canvas, JSON.stringify(this.settings.webdav), (error) => { if (error) console.error(error) });  
       }
@@ -255,7 +256,8 @@ export default {
       reader.readAsText(file);    
     },
     async saveWebDAVConfig () {
-      $("#loading-spinner").removeClass('d-none');
+      const spinner = document.querySelector('#loading-spinner');
+      if (spinner) spinner.classList.remove('d-none');
       Cloud.checkPath(this.settings)
         .then((fileExists) =>{ 
           if(fileExists) {
@@ -272,11 +274,14 @@ export default {
           this.toast('Zugriffsfehler!', 'danger');
           console.log(e);
         })
-        .finally(() => $("#loading-spinner").addClass('d-none'))
+        .finally(() => {
+          const spinner = document.querySelector('#loading-spinner');
+          if (spinner) spinner.classList.add('d-none');
+        })
     },
     scanQRConfig: function() {
       this.qrScanner.start();
-      let videoElem = $('#qrcode_scan_video')[0]
+      let videoElem = document.querySelector('#qrcode_scan_video');
       this.openFullscreen(videoElem)
       setTimeout(() => {
           this.qrScanner.stop()
@@ -308,7 +313,40 @@ export default {
       }
     },
     scrollto: function(element){
-      $('html, body').animate({ scrollTop: ($(element).offset().top)}, 'slow');
+      const el = document.querySelector(element);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    },
+    copyConfigUrl: function() {
+      const text = this.configurl;
+      
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text)
+          .then(() => {
+            this.toast('URL kopiert!', 'success');
+          })
+          .catch(() => {
+            this.fallbackCopy(text);
+          });
+      } else {
+        this.fallbackCopy(text);
+      }
+    },
+    fallbackCopy: function(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        this.toast('URL kopiert!', 'success');
+      } catch (err) {
+        this.toast('Kopieren fehlgeschlagen', 'danger');
+      }
+      document.body.removeChild(textarea);
     }
   }
 }

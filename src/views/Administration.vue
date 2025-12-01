@@ -2,29 +2,29 @@
   <div id="administration">
     <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="settings.read_only">
     </Navbar>
-    <b-container>
+    <BContainer>
         <h2>Verwaltung</h2>
         <div class="d-flex flex-wrap">
-          <b-button v-if="!settings.read_only" class="btn m-2" @click="syncWithWebDAV"><b-icon-arrow-repeat></b-icon-arrow-repeat><br/>Cloud-Abgleich</b-button>
-          <b-button class="btn m-2" @click="loadFromWebDAV"><b-icon-cloud-download></b-icon-cloud-download><br/>Cloud-Download</b-button>
-          <b-button class="btn m-2" @click="loadPictures"><b-icon-cloud-download></b-icon-cloud-download><br/>Bilder-Download</b-button>
-          <b-button v-if="!settings.read_only" class="btn m-2" @click="saveToWebDAV"><b-icon-cloud-upload></b-icon-cloud-upload><br/>Cloud-Upload</b-button>
+          <BButton v-if="!settings.read_only" class="btn m-2" @click="syncWithWebDAV"><i class="bi bi-arrow-repeat"></i><br/>Cloud-Abgleich</BButton>
+          <BButton class="btn m-2" @click="loadFromWebDAV"><i class="bi bi-cloud-download"></i><br/>Cloud-Download</BButton>
+          <BButton class="btn m-2" @click="loadPictures"><i class="bi bi-cloud-download"></i><br/>Bilder-Download</BButton>
+          <BButton v-if="!settings.read_only" class="btn m-2" @click="saveToWebDAV"><i class="bi bi-cloud-upload"></i><br/>Cloud-Upload</BButton>
         </div>
 
         <div class="d-flex flex-wrap">
-          <b-button v-if="!settings.read_only" class="btn m-2" @click="newRecipe"><b-icon-file-earmark-plus></b-icon-file-earmark-plus><br/>Neues Rezept</b-button>
-          <b-button v-if="!settings.read_only" class="btn m-2" @click="loadSample"><b-icon-file-earmark-text></b-icon-file-earmark-text><br/>Beispielrezept</b-button> 
+          <BButton v-if="!settings.read_only" class="btn m-2" @click="newRecipe"><i class="bi bi-file-earmark-plus"></i><br/>Neues Rezept</BButton>
+          <BButton v-if="!settings.read_only" class="btn m-2" @click="loadSample"><i class="bi bi-file-earmark-text"></i><br/>Beispielrezept</BButton> 
         </div>
 
-        <b-list-group flush v-for="(recipe, index) in recipes" :key="index">
-          <b-list-group-item>{{ recipe.recipe_name }}
-            <b-button v-if="!settings.read_only" class="btn-sm" @click="deleteRecipe(index)"><b-icon-x></b-icon-x></b-button>
-            <b-button v-if="!settings.read_only" class="btn-sm" @click="copyRecipe(index)"><b-icon-files></b-icon-files></b-button>
-          </b-list-group-item>
-        </b-list-group>
+        <BListGroup flush v-for="(recipe, index) in recipes" :key="index">
+          <BListGroupItem>{{ recipe.recipe_name }}
+            <BButton v-if="!settings.read_only" class="btn-sm" @click="deleteRecipe(index)"><i class="bi bi-x"></i></BButton>
+            <BButton v-if="!settings.read_only" class="btn-sm" @click="copyRecipe(index)"><i class="bi bi-files"></i></BButton>
+          </BListGroupItem>
+        </BListGroup>
 
-        <b-button class="btn mb-4" @click="saveToLocalStorage"><b-icon-archive-fill></b-icon-archive-fill> Speichern</b-button>
-    </b-container>
+        <BButton class="btn mb-4" @click="saveToLocalStorage"><i class="bi bi-archive-fill"></i> Speichern</BButton>
+    </BContainer>
   </div>
 </template>
   
@@ -39,7 +39,6 @@
   import Recipes from '../js/recipes'
   import Cloud from '../js/cloud'
   
-  import $ from 'jquery'
   import jsyaml from 'js-yaml'
 
   export default {
@@ -82,32 +81,45 @@
         this.$store.dispatch("appendRecipe", Recipes.loadSample())
       },
       saveToWebDAV: function() {
-        $("#loading-spinner").removeClass('d-none');
+        const spinner = document.querySelector('#loading-spinner');
+        if (spinner) spinner.classList.remove('d-none');
         Cloud.putRecipes(this.settings, this.recipes, this.recipe_pictures)
           .then(() => this.toast('Gespeichert.', 'success'))
           .catch(() => this.toast('Fehlgeschlagen.', 'danger'))
-          .finally(() => $("#loading-spinner").addClass('d-none'))
+          .finally(() => {
+            if (spinner) spinner.classList.add('d-none');
+          })
       },
       loadFromWebDAV: async function() {
-        $("#loading-spinner").removeClass('d-none');
+        const spinner = document.querySelector('#loading-spinner');
+        if (spinner) spinner.classList.remove('d-none');
         this.$store.dispatch('getRecipesFromCloud')
           .then(() => this.toast('Geladen.', 'success'))
           .catch(() => this.toast('Fehler.', 'danger'))
-          .finally(() => $("#loading-spinner").addClass('d-none'))
+          .finally(() => {
+            if (spinner) spinner.classList.add('d-none');
+          })
       },
       loadPictures: async function() {
-        $("#loading-spinner").removeClass('d-none');
+        const spinner = document.querySelector('#loading-spinner');
+        if (spinner) spinner.classList.remove('d-none');
         this.$store.dispatch('downloadRecipePictures')
           .then(() => this.toast('Geladen.', 'success'))
           .catch(() => this.toast('Fehler.', 'danger'))
-          .finally(() => $("#loading-spinner").addClass('d-none'))
+          .finally(() => {
+            const spinner = document.querySelector('#loading-spinner');
+            if (spinner) spinner.classList.add('d-none');
+          })
       },
       syncWithWebDAV: async function() {
-        $("#loading-spinner").removeClass('d-none');
+        const spinner = document.querySelector('#loading-spinner');
+        if (spinner) spinner.classList.remove('d-none');
         this.$store.dispatch('syncRecipesWithCloud')
           .then(() => this.toast('Synchronisiert.', 'success'))
           .catch(() => this.toast('Fehler.', 'danger'))
-          .finally(() => $("#loading-spinner").addClass('d-none'))
+          .finally(() => {
+            if (spinner) spinner.classList.add('d-none');
+          })
       },
       saveToLocalStorage: function () {
         this.$store.dispatch('saveRecipes')

@@ -3,11 +3,11 @@
     <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="settings.read_only">
     </Navbar>
     <div class="wrapper">
-      <div id="steps" class="card rounded-0">
+      <div id="steps" class="card rounded-0" :class="{ 'full': stepsFullWidth }">
         <div id="collapesebutton" class="ml-auto">
           <div class="fs-3 mb-3">
-            <button class="btn rounded-0 shadow-none" type="button" data-toggle="collapse" data-target="#ingredients" aria-expanded="false" aria-controls="ingredients">
-              <b-icon id="arrow-ing" icon="arrow-right-square-fill"  variant="dark" font-scale="1.5"></b-icon>
+            <button class="btn rounded-0 shadow-none" type="button" @click="toggleIngredients" aria-expanded="false" aria-controls="ingredients">
+              <i id="arrow-ing" class="bi bi-arrow-right-square-fill" :class="{ 'rotate180': !showIngredients }" style="font-size: 1.5rem;"></i>
             </button>
           </div>
         </div>
@@ -35,7 +35,7 @@
         </div>
         
       </div>
-      <div id="ingredients" class="w-25 collapse show width card rounded-0">
+      <div id="ingredients" class="w-25 width card rounded-0" v-show="showIngredients" :class="{ 'show': showIngredients }">
         <div class="card-header">  
           <h3 class="card-title">Zutaten</h3>
           <div class="card-subtitle">für {{yields_value | formatNumbers}} {{yields_unit}}</div>
@@ -52,7 +52,7 @@
               </div>  
             </div>
           </div>
-          <p>
+          
             <h5 class="card-title">Umrechnen</h5>
             <div class="input-group">
               <input type="number" min="0" v-model.number="yields_value" step=".1" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing">
@@ -77,8 +77,6 @@ import RecipeHelper from '@/mixins/RecipeHelper'
 import Navbar from '@/components/Navbar.vue'
 import { mapState } from 'vuex'
 
-import $ from 'jquery'
-
 export default {
   name: 'Recipe',
   mixins: [RecipeHelper],
@@ -88,29 +86,23 @@ export default {
   data () {
     return {  
       do_recalc: true,  //replace default value
+      showIngredients: true  // control ingredients panel visibility
     }
   },
   mounted () {
-    //add some extra layout magic on collapsing the ingredients sidebar
-    $('#ingredients').on('hide.bs.collapse', function () {
-      $("#arrow-ing").addClass("rotate180");
-      $("#steps").addClass("full");
-    });
-    $('#ingredients').on('show.bs.collapse', function () {
-      $("#arrow-ing").removeClass("rotate180");
-      $("#steps").removeClass("full");
-    });
-
     //hide ingredients sidebar on default in portrait mode
     let x = window.matchMedia("(max-width: 812px)")
     if (x.matches) {
-      $('#ingredients').collapse();
+      this.showIngredients = false;
     }
   },
   computed: {
     ...mapState([
       'settings',
-    ])
+    ]),
+    stepsFullWidth() {
+      return !this.showIngredients;
+    }
   },
   filters: {
     formatNumbers: function(value) {
@@ -124,14 +116,30 @@ export default {
     }
   },
   methods: {
+    toggleIngredients() {
+      this.showIngredients = !this.showIngredients;
+    },
     selectStep: function(ev) {
-      let doHighlight=!$(ev.target).hasClass("list-group-item-primary");
+      let doHighlight = !ev.target.classList.contains("list-group-item-primary");
 
-      $('#steps .list-group-item').removeClass("list-group-item-primary");
-      $(ev.target).toggleClass("list-group-item-primary", doHighlight);
+      // Remove highlight from all steps
+      document.querySelectorAll('#steps .list-group-item').forEach(el => {
+        el.classList.remove("list-group-item-primary");
+      });
+      ev.target.classList.toggle("list-group-item-primary", doHighlight);
 
-      $('#ingredients .ingredients-section').removeClass("highlighted list-group-item-primary border-primary");
-      $('#box-ing-'+ ev.target.dataset.section).toggleClass("highlighted list-group-item-primary border-primary", doHighlight);
+      // Remove highlight from all ingredient sections
+      document.querySelectorAll('#ingredients .ingredients-section').forEach(el => {
+        el.classList.remove("highlighted", "list-group-item-primary", "border-primary");
+      });
+      
+      const section = ev.target.dataset.section;
+      const ingredientBox = document.querySelector('#box-ing-' + section);
+      if (ingredientBox) {
+        ingredientBox.classList.toggle("highlighted", doHighlight);
+        ingredientBox.classList.toggle("list-group-item-primary", doHighlight);
+        ingredientBox.classList.toggle("border-primary", doHighlight);
+      }
     },
     toast: function(content,variant)  {
       this.$bvToast.toast(content, {

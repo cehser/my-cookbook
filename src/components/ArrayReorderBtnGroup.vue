@@ -1,7 +1,7 @@
 <template>
   <div class="btn-group-vertical">
-    <b-button class="btn-xs" @click="swapElements(array, index, index-1)" :disabled="index == 0"><b-icon icon="chevron-up"></b-icon></b-button>
-    <b-button class="btn-xs" @click="swapElements(array, index, index+1)" :disabled="index == array.length -1"><b-icon icon="chevron-down"></b-icon></b-button>
+    <BButton class="btn-xs" @click="swapElements(array, index, index-1)" :disabled="index == 0"><i class="bi bi-chevron-up"></i></BButton>
+    <BButton class="btn-xs" @click="swapElements(array, index, index+1)" :disabled="index == array.length -1"><i class="bi bi-chevron-down"></i></BButton>
   </div>
 </template>
 
