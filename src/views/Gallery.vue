@@ -82,6 +82,35 @@
         );
       }
     },
+    mounted() {
+      // Restore UI state
+      this.$store.dispatch('restoreUIState');
+      this.filter = this.$store.getters.galleryFilter;
+      this.selectedTags = [...this.$store.getters.gallerySelectedTags];
+      
+      // Restore scroll position
+      this.$nextTick(() => {
+        const scrollPos = this.$store.getters.galleryScrollPosition;
+        if (scrollPos > 0) {
+          window.scrollTo(0, scrollPos);
+        }
+      });
+    },
+    beforeUnmount() {
+      // Save scroll position before leaving
+      this.$store.dispatch('setGalleryScrollPosition', window.scrollY);
+    },
+    watch: {
+      filter(newFilter) {
+        this.$store.dispatch('setGalleryFilter', newFilter);
+      },
+      selectedTags: {
+        deep: true,
+        handler(newTags) {
+          this.$store.dispatch('setGallerySelectedTags', newTags);
+        }
+      }
+    },
     computed: {
       ...mapState([
         'settings'

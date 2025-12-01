@@ -2,6 +2,7 @@ import { createStore } from 'vuex'
 
 import actions from './actions'
 import mutations from './mutations'
+import uiState from './modules/uiState'
 
 const debug = import.meta.env.MODE !== 'production'
 
@@ -26,5 +27,8 @@ export default createStore({
     recipe_pictures: {}
   },
   actions,
-  mutations
+  mutations,
+  modules: {
+    uiState
+  }
 })

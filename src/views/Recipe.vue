@@ -2,8 +2,25 @@
   <div id="recipe">
     <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="settings.read_only">
       <li>
-        <form class="form-inline">
-          <BButton @click="exportRecipe" title="Als YAML exportieren"><i class="bi bi-download"></i></BButton>
+        <form class="form-inline d-flex gap-1">
+          <BButton @click="prevRecipe" :disabled="selected === 0" title="Vorheriges Rezept" size="sm">
+            <i class="bi bi-chevron-left"></i>
+          </BButton>
+          <BButton @click="nextRecipe" :disabled="selected >= recipes.length - 1" title="Nächstes Rezept" size="sm">
+            <i class="bi bi-chevron-right"></i>
+          </BButton>
+          <BButton v-if="!settings.read_only" @click="$router.push('/edit/' + selected)" title="Bearbeiten" variant="primary" size="sm">
+            <i class="bi bi-pencil"></i>
+          </BButton>
+          <BButton @click="exportRecipe" title="Als YAML exportieren" size="sm">
+            <i class="bi bi-download"></i>
+          </BButton>
+          <BButton v-if="!settings.read_only" @click="copyRecipe" title="Kopieren" size="sm">
+            <i class="bi bi-files"></i>
+          </BButton>
+          <BButton v-if="!settings.read_only" @click="deleteRecipe" title="Löschen" variant="danger" size="sm">
+            <i class="bi bi-trash"></i>
+          </BButton>
         </form>
       </li>
     </Navbar>
@@ -85,6 +102,8 @@ import RecipeHelper from '@/mixins/RecipeHelper'
 import Navbar from '@/components/Navbar.vue'
 import jsyaml from 'js-yaml'
 import { mapState } from 'vuex'
+import UUID from '../js/uuid'
+import DeepCopy from '../js/deepCopy'
 
 export default {
   name: 'Recipe',
@@ -99,10 +118,27 @@ export default {
     }
   },
   mounted () {
-    //hide ingredients sidebar on default in portrait mode
+    // Restore UI state
+    this.$store.dispatch('restoreUIState');
+    const savedShowIngredients = this.$store.getters.recipeShowIngredients;
+    
+    //hide ingredients sidebar on default in portrait mode (unless user has preference)
     let x = window.matchMedia("(max-width: 812px)")
-    if (x.matches) {
+    if (x.matches && savedShowIngredients === true) {
+      // Only hide on mobile if no saved preference
       this.showIngredients = false;
+    } else {
+      this.showIngredients = savedShowIngredients;
+    }
+  },
+  watch: {
+    selected(newSelected) {
+      // Reload recipe when selected prop changes (prev/next navigation)
+      if (this.recipes[newSelected]) {
+        this.loadRecipe(this.recipes[newSelected]);
+        // Scroll to top when changing recipes
+        window.scrollTo(0, 0);
+      }
     }
   },
   computed: {
@@ -135,6 +171,8 @@ export default {
     },
     toggleIngredients() {
       this.showIngredients = !this.showIngredients;
+      // Persist sidebar state
+      this.$store.dispatch('setRecipeShowIngredients', this.showIngredients);
     },
     exportRecipe() {
       const yaml = jsyaml.dump(this.current_recipe);
@@ -147,6 +185,35 @@ export default {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+    },
+    prevRecipe() {
+      if (this.selected > 0) {
+        this.$router.push('/recipe/' + (this.selected - 1));
+      }
+    },
+    nextRecipe() {
+      if (this.selected < this.recipes.length - 1) {
+        this.$router.push('/recipe/' + (this.selected + 1));
+      }
+    },
+    copyRecipe() {
+      // Deep copy current recipe
+      const recipe = DeepCopy.deepCopyYaml(this.current_recipe);
+      // Generate new UUID
+      recipe.recipe_uuid = UUID.generateUUID();
+      // Append to store
+      this.$store.dispatch("appendRecipe", recipe);
+      // Navigate to the new recipe (will be at the end of the list)
+      this.$nextTick(() => {
+        this.$router.push('/recipe/' + (this.recipes.length - 1));
+      });
+    },
+    deleteRecipe() {
+      if (confirm(`Rezept "${this.current_recipe.recipe_name}" wirklich löschen?`)) {
+        this.$store.dispatch("deleteRecipe", this.selected);
+        // Navigate to gallery after deletion
+        this.$router.push('/');
+      }
     },
     selectStep: function(ev) {
       let doHighlight = !ev.target.classList.contains("list-group-item-primary");
