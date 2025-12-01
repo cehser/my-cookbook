@@ -13,13 +13,16 @@
 
         <div class="d-flex flex-wrap">
           <BButton v-if="!settings.read_only" class="btn m-2" @click="newRecipe"><i class="bi bi-file-earmark-plus"></i><br/>Neues Rezept</BButton>
-          <BButton v-if="!settings.read_only" class="btn m-2" @click="loadSample"><i class="bi bi-file-earmark-text"></i><br/>Beispielrezept</BButton> 
+          <BButton v-if="!settings.read_only" class="btn m-2" @click="loadSample"><i class="bi bi-file-earmark-text"></i><br/>Beispielrezept</BButton>
+          <BButton v-if="!settings.read_only" class="btn m-2" @click="triggerImport"><i class="bi bi-upload"></i><br/>YAML Import</BButton>
+          <input ref="fileInput" type="file" accept=".yaml,.yml" @change="importRecipe" style="display: none" />
         </div>
 
         <BListGroup flush v-for="(recipe, index) in recipes" :key="index">
           <BListGroupItem>{{ recipe.recipe_name }}
             <BButton v-if="!settings.read_only" class="btn-sm" @click="deleteRecipe(index)"><i class="bi bi-x"></i></BButton>
             <BButton v-if="!settings.read_only" class="btn-sm" @click="copyRecipe(index)"><i class="bi bi-files"></i></BButton>
+            <BButton class="btn-sm" @click="exportRecipe(index)" title="Als YAML exportieren"><i class="bi bi-download"></i></BButton>
           </BListGroupItem>
         </BListGroup>
 
@@ -196,6 +199,39 @@
 
         reader.readAsText(file);    
       },
+      triggerImport: function() {
+        this.$refs.fileInput.click();
+      },
+      importRecipe: function(ev) {
+        const file = ev.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const recipe = jsyaml.load(e.target.result);
+            this.$store.dispatch("appendRecipe", recipe);
+            this.toast(`Rezept "${recipe.recipe_name}" importiert.`, 'success');
+            this.$refs.fileInput.value = '';
+          } catch (error) {
+            this.toast('Fehler beim Importieren: ' + error.message, 'danger');
+          }
+        };
+        reader.readAsText(file);
+      },
+      exportRecipe: function(index) {
+        const recipe = this.recipes[index];
+        const yaml = jsyaml.dump(recipe);
+        const blob = new Blob([yaml], { type: 'text/yaml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${recipe.recipe_name || 'recipe'}.yaml`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
     }
   }
 </script>

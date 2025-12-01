@@ -1,6 +1,11 @@
 <template>
   <div id="recipe">
     <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="settings.read_only">
+      <li>
+        <form class="form-inline">
+          <BButton @click="exportRecipe" title="Als YAML exportieren"><i class="bi bi-download"></i></BButton>
+        </form>
+      </li>
     </Navbar>
     <div class="wrapper">
       <div id="steps" class="card rounded-0" :class="{ 'full': stepsFullWidth }">
@@ -75,6 +80,7 @@
 // @ is an alias to /src
 import RecipeHelper from '@/mixins/RecipeHelper'
 import Navbar from '@/components/Navbar.vue'
+import jsyaml from 'js-yaml'
 import { mapState } from 'vuex'
 
 export default {
@@ -126,6 +132,18 @@ export default {
     },
     toggleIngredients() {
       this.showIngredients = !this.showIngredients;
+    },
+    exportRecipe() {
+      const yaml = jsyaml.dump(this.current_recipe);
+      const blob = new Blob([yaml], { type: 'text/yaml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${this.current_recipe.recipe_name || 'recipe'}.yaml`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     },
     selectStep: function(ev) {
       let doHighlight = !ev.target.classList.contains("list-group-item-primary");
