@@ -87,10 +87,14 @@
 </script>
 
 <style lang="scss">
+  @use 'sass:math';
+  @use 'sass:list';
+  @use 'sass:string';
+  
   @mixin fluid-aspect($ratio: 1 1, $selector: "> :first-child") {
-    $selector: unquote($selector);
+    $selector: string.unquote($selector);
 
-    padding-bottom: percentage(nth($ratio, 2) / nth($ratio, 1));
+    padding-bottom: math.percentage(math.div(list.nth($ratio, 2), list.nth($ratio, 1)));
     position: relative;
 
     #{$selector} {

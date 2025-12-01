@@ -24,13 +24,13 @@
         </div>
         <div class="card-body">
           <h3>Zubereitung</h3>
-          <div v-for="(section, index) in current_recipe.sections" :key="index">
+          <div v-for="(section, sectionIndex) in current_recipe.sections" :key="'section-' + sectionIndex">
             <h4>{{ section.section }}</h4>
-            <ol class="list-group list-group-numbered list-group-flush">
-              <li class="list-group-item" v-for="(step, index) in (current_recipe.steps.filter(x => x.section == section.section))" :key="index" :data-section="section.section" @click="selectStep">
+            <ul class="list-group list-group-numbered list-group-flush">
+              <li class="list-group-item" v-for="(step, stepIndex) in (current_recipe.steps.filter(x => x.section == section.section))" :key="'step-' + stepIndex" :data-section="section.section" :data-step-number="getStepNumber(section.section, stepIndex)" @click="selectStep">
                 {{step.step}} 
               </li>
-            </ol>
+            </ul>
           </div>
         </div>
         
@@ -38,14 +38,14 @@
       <div id="ingredients" class="w-25 width card rounded-0" v-show="showIngredients" :class="{ 'show': showIngredients }">
         <div class="card-header">  
           <h3 class="card-title">Zutaten</h3>
-          <div class="card-subtitle">für {{yields_value | formatNumbers}} {{yields_unit}}</div>
+          <div class="card-subtitle">für {{formatNumbers(yields_value)}} {{yields_unit}}</div>
         </div>
         <div class="card-body">
           <div v-for="(section, index) in current_recipe.sections" :id="'box-ing-' + section.section" class="ingredients-section" :key="index">
             <h4>{{ section.section }}</h4>
             <div class="row" v-for="(ingredient, index) in (current_recipe.ingredients.filter(x => x.section == section.section))" :key="index">
               <div class="col-4">
-                {{ingredient[Object.keys(ingredient)[0]].amounts[0].amount | formatNumbers}} {{ingredient[Object.keys(ingredient)[0]].amounts[0].unit}}
+                {{formatNumbers(ingredient[Object.keys(ingredient)[0]].amounts[0].amount)}} {{ingredient[Object.keys(ingredient)[0]].amounts[0].unit}}
               </div>  
               <div class="col-8">
                 {{Object.keys(ingredient)[0]}}
@@ -104,7 +104,7 @@ export default {
       return !this.showIngredients;
     }
   },
-  filters: {
+  methods: {
     formatNumbers: function(value) {
       if (typeof value !== "number") {
             return value;
@@ -113,9 +113,17 @@ export default {
           minimumFractionDigits: 0,
           maximumFractionDigits: 2
       });
-    }
-  },
-  methods: {
+    },
+    getStepNumber: function(sectionName, stepIndex) {
+      let count = 1;
+      for (let section of this.current_recipe.sections) {
+        if (section.section === sectionName) {
+          return count + stepIndex;
+        }
+        count += this.current_recipe.steps.filter(x => x.section === section.section).length;
+      }
+      return count;
+    },
     toggleIngredients() {
       this.showIngredients = !this.showIngredients;
     },
@@ -155,10 +163,9 @@ export default {
 </script>
 
 <style scoped>
-  .list-group-numbered { list-style: decimal inside; }
   .list-group-alpha { list-style: lower-alpha inside; }
   .list-group-roman { list-style: lower-roman inside; }
-  .list-group-alpha >li, .list-group-numbered >li { display: list-item }
+  .list-group-alpha >li { display: list-item }
 
 
   .collapsing.width {

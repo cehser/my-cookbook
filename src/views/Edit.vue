@@ -1,14 +1,16 @@
 <template>
   <div id="edit">
-    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="settings.read_only">
+    <Navbar @update:selected="localSelected=$event" :recipes_list="recipes_list" :selected="localSelected" :read_only="settings.read_only">
       <li>
         <form class="form-inline">
           <BButton @click="saveRecipe"><i class="bi bi-archive-fill"></i></BButton>
         </form>
       </li>
     </Navbar>
-    <BContainer> 
-      <BFormDatalist id="ingredient-units-list" :options="ingredient_units"></BFormDatalist>
+    <BContainer v-if="current_recipe"> 
+      <datalist id="ingredient-units-list">
+        <option v-for="unit in ingredient_units" :key="unit" :value="unit"></option>
+      </datalist>
       <h2>Rezept</h2>
 
       <BContainer fluid>
@@ -38,8 +40,8 @@
               <input type="checkbox" class="custom-control-input" id="recalc-switch" v-model="do_recalc">
               <label class="custom-control-label" for="recalc-switch">Umrechnen</label>
             </div>
-          </b-col>
-        </b-row>
+          </BCol>
+        </BRow>
         <BRow class="my-1">
           <BCol sm="2">
             <label for="input-yields">Ergibt Einheiten:</label>
@@ -153,8 +155,8 @@ import Toast from '@/mixins/Toast'
 
 import jsyaml from 'js-yaml'
 
-const jp = require('jsonpath')
-const deepEqual = require('deep-equal')
+import jp from 'jsonpath'
+import deepEqual from 'deep-equal'
 
 import { mapState } from 'vuex'
 
@@ -171,7 +173,8 @@ export default {
     return {
       file: null,
       do_recalc: false,  //replace default value
-      delete_image: false
+      delete_image: false,
+      localSelected: this.selected
     };
   },
   mounted() {  
@@ -222,7 +225,7 @@ export default {
     saveRecipe: function () {
       //only update if current_recipe is really different
       console.log(this.file)
-      if(!deepEqual(this.recipes[this.selected], this.current_recipe) || this.file || this.delete_image) {
+      if(!deepEqual(this.recipes[this.localSelected], this.current_recipe) || this.file || this.delete_image) {
         this.current_recipe.lastUpdated = new Date();
         console.log(this.current_recipe.lastUpdated)
     
@@ -239,7 +242,7 @@ export default {
             .catch(() => this.toast('Bildfehler.', 'danger'))
         }
         console.log(this.current_recipe.cloud_images)
-        this.$store.dispatch('setRecipe', { index: this.selected, recipe: this.current_recipe })
+        this.$store.dispatch('setRecipe', { index: this.localSelected, recipe: this.current_recipe })
           .then(() => this.toast('Gespeichert.', 'success'))
           .catch(() => this.toast('Fehler.', 'danger'))
       }
@@ -248,7 +251,7 @@ export default {
       }
     },
     updateCurrentRecipe: function() {
-      let replace_recipe = this.recipes[this.selected]
+      let replace_recipe = this.recipes[this.localSelected]
       if(replace_recipe) {
          document.title = "Kochbuch: " + replace_recipe.recipe_name;  
          this.current_recipe = this.deepCopyYaml(replace_recipe);

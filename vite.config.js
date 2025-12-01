@@ -2,10 +2,12 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    basicSsl(),
     vue(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -59,6 +61,15 @@ export default defineConfig({
   server: {
     port: 8080,
     host: true
+    // HTTPS disabled - causes SSL errors in Docker
+    // For Clipboard API, localhost with HTTP works in modern browsers
+  },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern-compiler'
+      }
+    }
   },
   build: {
     outDir: 'dist',

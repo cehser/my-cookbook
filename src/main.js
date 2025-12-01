@@ -15,6 +15,6 @@ const app = createApp(App)
 
 app.use(router)
 app.use(store)
-app.use(createBootstrap())
+app.use(createBootstrap({ components: true, directives: true }))
 
 app.mount('#app')

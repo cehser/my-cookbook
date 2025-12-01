@@ -16,9 +16,6 @@
 <script>
   export default {
     name: 'IngredientNotesFormRow',
-    model: {
-      prop: 'ingredient',
-    },
     props: ['ingredient', 'index'],
     methods: {
       addNote: function() {

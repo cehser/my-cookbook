@@ -1,7 +1,7 @@
 <template>
   <BRow>
-    <BCol align-self="center" sm="8"><BFormInput :id="'editStep'+index" placeholder="Neuer Schritt" v-model="step.step" size="sm"></BFormInput></BCol>
-    <BCol align-self="center" sm="2"><BFormSelect v-model="step.section" :options="sections" size="sm"></BFormSelect></BCol>
+    <BCol align-self="center" sm="8"><BFormInput :id="'editStep'+index" placeholder="Neuer Schritt" v-model="localStep.step" size="sm"></BFormInput></BCol>
+    <BCol align-self="center" sm="2"><BFormSelect v-model="localStep.section" :options="sections" size="sm"></BFormSelect></BCol>
     <BCol align-self="center" sm="1">
       <BButton @click="deleteStep" size="sm"><i class="bi bi-trash"></i></BButton>
       <array-reorder-btn-group :array="steps" :index="index"></array-reorder-btn-group>
@@ -14,15 +14,30 @@
 
   export default {
     name: 'StepEdit',
-    model: {
-      prop: 'step',
-    },
     components: {
       ArrayReorderBtnGroup
     },
-    props: ['step', 'steps', 'index', 'sections'],
+    props: {
+      modelValue: {
+        type: Object,
+        required: true
+      },
+      steps: Array,
+      index: Number,
+      sections: Array
+    },
+    computed: {
+      localStep: {
+        get() {
+          return this.modelValue;
+        },
+        set(value) {
+          this.$emit('update:modelValue', value);
+        }
+      }
+    },
     mounted() {
-      if (this.step.step === '') {
+      if (this.modelValue.step === '') {
         const input = document.querySelector('#editStep'+this.index);
         if (input) input.focus();
       }

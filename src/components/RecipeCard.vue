@@ -4,7 +4,7 @@
       <img class="" id="recipe_img" :src="picture_src" alt="Card image cap">
       <div class="card-body recipe_title">
         <h2 class="card-title d-flex flex-row flex-wrap justify-content-between">
-          <TextHighlight class="card-title-text" :queries="highlight" :caseSensitive="false">{{ recipe.recipe_name }}</TextHighlight>
+          <span class="card-title-text" v-html="highlightedName"></span>
         </h2>
         <router-link v-if="!read_only" class="editLink" :to="'/edit/' + index"><i class="bi bi-pencil"></i></router-link>
         <p class="card-text">{{recipe.subtitle}}</p>
@@ -15,20 +15,23 @@
 
 
 <script>
-  import TextHighlight from 'vue-text-highlight';
-
   export default {
     name: 'RecipeCard',
-    components: {TextHighlight},
     props: {
       recipe: Object,
-      picture_src: [Object, URL],
+      picture_src: String,
       index: Number,
       highlight: String,
       read_only: Boolean
     },
     computed: {
-      
+      highlightedName() {
+        if (!this.highlight || !this.recipe.recipe_name) {
+          return this.recipe.recipe_name;
+        }
+        const regex = new RegExp(`(${this.highlight})`, 'gi');
+        return this.recipe.recipe_name.replace(regex, '<mark>$1</mark>');
+      }
     }
   }
 </script>
@@ -79,7 +82,7 @@ a .recipe_card_container {
   line-height: 1.3;
 }
 
-.card-title >>> mark {
+.card-title :deep(mark) {
   padding: 0 !important;
   background-color: rgba(255, 204, 0, 0.5);
 }

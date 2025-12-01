@@ -94,10 +94,10 @@ export default {
         return URL.createObjectURL(picturesByName[filename])
       }
       else if(recipe.imageurl && recipe.imageurl.localeCompare("") != 0) {
-        return new URL(recipe.imageurl, location.toString())
+        return new URL(recipe.imageurl, location.toString()).href
       }
       else {
-        return new URL("/placeholder-image.png", location.toString())
+        return new URL("/placeholder-image.png", location.toString()).href
       }
 
     },

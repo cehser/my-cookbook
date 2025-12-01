@@ -1,5 +1,5 @@
 import { createClient } from 'webdav/web';
-const jsyaml = require('js-yaml');
+import jsyaml from 'js-yaml';
 
 export default {
   webdavClient(settings) {

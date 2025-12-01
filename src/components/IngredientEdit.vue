@@ -25,9 +25,9 @@
 </template>
 
 <script>
-  import IngredientModalDialogRename from '@/components/IngredientModalDialogRename'
-  import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup'
-  import IngredientNotesFormRow from '@/components/IngredientNotesFormRow'
+  import IngredientModalDialogRename from '@/components/IngredientModalDialogRename.vue'
+  import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup.vue'
+  import IngredientNotesFormRow from '@/components/IngredientNotesFormRow.vue'
 
 
   export default {
@@ -36,9 +36,6 @@
       IngredientModalDialogRename,
       IngredientNotesFormRow,
       ArrayReorderBtnGroup
-    },
-    model: {
-      prop: 'ingredient',
     },
     props: ['ingredient', 'ingredients', 'index', 'sections'],
     data() {

@@ -90,16 +90,16 @@ import jsyaml from 'js-yaml'
 
 import Cloud from '../js/cloud'
 
-const QRCode = require('qrcode')
+import QRCode from 'qrcode'
 
-const deepEqual = require('deep-equal')
+import deepEqual from 'deep-equal'
 
-const json_url = require('json-url')('lzma');
+import jsonUrl from 'json-url'
+const json_url = jsonUrl('lzma');
 
 //qr code scanning
 import QrScanner from 'qr-scanner';
-import QrScannerWorkerPath from '!!file-loader!../../node_modules/qr-scanner/qr-scanner-worker.min.js';
-QrScanner.WORKER_PATH = QrScannerWorkerPath;
+// QrScanner.WORKER_PATH is no longer needed in newer versions
 
 export default {
   name: 'Settings',

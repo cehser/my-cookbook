@@ -12,9 +12,6 @@
 <script>
   export default {
     name: 'IngredientModalDialogRename',
-    model: {
-      prop: 'ingredient',
-    },
     props: {
       ingredient: Object,
       index: Number,

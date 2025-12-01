@@ -15,9 +15,20 @@
     components: {
       IngredientEdit
     },
-    model: {
-      prop: 'ingredients',
+    props: {
+      modelValue: Array,
+      section: String,
+      sections: Array
     },
-    props: ['ingredients', 'section', 'sections']
+    computed: {
+      ingredients: {
+        get() {
+          return this.modelValue;
+        },
+        set(value) {
+          this.$emit('update:modelValue', value);
+        }
+      }
+    }
   }
 </script>

@@ -1,4 +1,4 @@
-const jsyaml = require('js-yaml');
+import jsyaml from 'js-yaml';
 import UUID from './uuid'
 
 export default {

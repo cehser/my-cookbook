@@ -61,7 +61,7 @@
     },
     watch: {
       data_selected: function(value){
-        this.$emit('input', value);
+        this.$emit('update:selected', value);
       }
     },
     created() {
