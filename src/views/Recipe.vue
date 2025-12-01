@@ -25,6 +25,9 @@
               </div>
             </h2>
             <p class="card-text">{{current_recipe.subtitle}}</p>
+            <div v-if="current_recipe.tags && current_recipe.tags.length" class="mt-2">
+              <span v-for="(tag, idx) in current_recipe.tags" :key="idx" class="badge bg-light text-dark me-1">{{ tag }}</span>
+            </div>
           </div>
         </div>
         <div class="card-body">

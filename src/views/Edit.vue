@@ -66,6 +66,23 @@
             <BFormInput id="input-name" size="sm" placeholder="https://..." v-model="current_recipe.imageurl"></BFormInput>
           </BCol>
         </BRow>
+        <BRow class="my-1">
+          <BCol sm="2">
+            <label for="input-tags">Tags:</label>
+          </BCol>
+          <BCol sm="10">
+            <div class="d-flex flex-wrap gap-2 mb-2">
+              <span v-for="(tag, index) in current_recipe.tags" :key="index" class="badge bg-primary">
+                {{ tag }}
+                <i class="bi bi-x-circle ms-1" @click="removeTag(index)" style="cursor: pointer;"></i>
+              </span>
+            </div>
+            <div class="input-group input-group-sm">
+              <BFormInput id="input-tags" size="sm" placeholder="Tag hinzufügen..." v-model="newTag" @keyup.enter="addTag"></BFormInput>
+              <BButton @click="addTag" size="sm"><i class="bi bi-plus"></i></BButton>
+            </div>
+          </BCol>
+        </BRow>
         <BRow class="my-1" v-if="recipe_pictures[current_recipe.recipe_uuid]">
           <BCol sm="2">
             <label for="input-name">Gespeichertes Foto:</label>
@@ -174,7 +191,8 @@ export default {
       file: null,
       do_recalc: false,  //replace default value
       delete_image: false,
-      localSelected: this.selected
+      localSelected: this.selected,
+      newTag: ''
     };
   },
   mounted() {  
@@ -210,6 +228,19 @@ export default {
     }
   },
   methods: {
+    addTag() {
+      if (!this.newTag.trim()) return;
+      if (!this.current_recipe.tags) {
+        this.current_recipe.tags = [];
+      }
+      if (!this.current_recipe.tags.includes(this.newTag.trim())) {
+        this.current_recipe.tags.push(this.newTag.trim());
+      }
+      this.newTag = '';
+    },
+    removeTag(index) {
+      this.current_recipe.tags.splice(index, 1);
+    },
     clearFile: function () {
       this.$refs['input-foto'].reset()
     },

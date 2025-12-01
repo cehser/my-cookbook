@@ -8,6 +8,9 @@
         </h2>
         <router-link v-if="!read_only" class="editLink" :to="'/edit/' + index"><i class="bi bi-pencil"></i></router-link>
         <p class="card-text">{{recipe.subtitle}}</p>
+        <div v-if="recipe.tags && recipe.tags.length" class="mt-2">
+          <span v-for="(tag, idx) in recipe.tags" :key="idx" class="badge bg-secondary me-1">{{ tag }}</span>
+        </div>
       </div>
     </div>
   </div>
