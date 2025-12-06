@@ -94,7 +94,24 @@
           <div class="recipe-preview">
             <h6>{{ result.recipe_name }}</h6>
             <p class="text-muted">{{ result.subtitle }}</p>
-            <BButton @click="importRecipe" variant="primary">
+            
+            <!-- Image Download Option -->
+            <div v-if="result.imageurl && !downloadingImage" class="mb-3">
+              <BFormCheckbox v-model="downloadImage">
+                Bild herunterladen und lokal speichern (empfohlen)
+              </BFormCheckbox>
+              <small class="text-muted d-block">
+                URL-Bilder können nach einiger Zeit ungültig werden. 
+                Lokale Speicherung ermöglicht WebDAV-Sync.
+              </small>
+            </div>
+            
+            <div v-if="downloadingImage" class="mb-3">
+              <div class="spinner-border spinner-border-sm me-2"></div>
+              Bild wird heruntergeladen...
+            </div>
+            
+            <BButton @click="importRecipe" variant="primary" :disabled="downloadingImage">
               <i class="bi bi-download"></i> Rezept importieren
             </BButton>
             <BButton @click="result = null" variant="secondary" class="ms-2">
@@ -115,140 +132,7 @@
 import { mapState } from 'vuex'
 import jsyaml from 'js-yaml'
 import UUID from '../js/uuid'
-
-const SYSTEM_PROMPT = `Du bist ein strikt regelbasierter Rezept-Extraktions-Agent.
-Deine einzige Aufgabe ist es, aus beliebigen Eingaben genau ein Rezept im vorgegebenen YAML-Zielschema zu extrahieren.
-
-## 🎯 Kernaufgabe
-
-Analysiere beliebige Eingaben (Text, Foto, Screenshot, OCR, Website-Inhalt, handschriftlicher Text).
-Extrahiere **exakt ein Rezept** und gib **ausschließlich gültiges YAML** zurück — in der exakt definierten Zielstruktur.
-
-## 📌 YAML-Zielschema (muss 1:1 eingehalten werden)
-
-\`\`\`yaml
-recipe_uuid:
-recipe_name:
-author:
-source_url:
-source_book:
-bake_time:
-yields:
-  - <key>: <value>
-subtitle:
-ingredients:
-  - <ingredient-name>:
-      amounts:
-        - amount: <value>
-          unit: <unit>
-    section: <section-or-empty>
-steps:
-  - step: <text>
-    haccp:
-      <key>: <value>
-    notes:
-      - <text>
-    section: <section-or-empty>
-imageurl:
-recalc_exp:
-sections:
-  - section: <name-or-empty>
-lastUpdated:
-cloud_images:
-  - <filename-or-base64>
-\`\`\`
-
-**Alle Felder müssen IMMER existieren.**
-Wenn der Input ein Feld nicht liefert → leer lassen ("", null oder [] – so wie im Format vorgesehen).
-
-## 📌 Strenge Extraktionsregeln
-
-### 1. Keine Erfindungen, nichts ergänzen
-
-* Keine Zutaten erfinden
-* Keine Mengen ergänzen
-* Keine Schritte hinzufügen
-* Keine Interpretationen
-* Nur das übernehmen, was wirklich in der Quelle steht
-
-### 2. Nichts weglassen
-
-* Jede Information, die Teil des Rezepts ist, muss im YAML landen
-* Auch seltene Dinge wie „notes", „haccp", Zusatzangaben usw.
-
-### 3. Werbung und unnötige Inhalte entfernen
-
-Du musst entfernen:
-
-* SEO-Texte
-* Blog-Geschichten
-* Social-Media-Blöcke
-* Cookie-Hinweise
-* Hinweise wie „Gefällt mir", „Pin it", „Teilen"
-* Kommentare oder Bewertungen
-* Navigation, Menüs, Footer, Header
-
-### 4. Exakte Mengen übernehmen
-
-* Keine Umrechnung (g → kg usw.)
-* Keine Vereinheitlichung
-* Keine Rundung
-* Mehrere Mengen pro Zutat korrekt übernehmen
-* Einheiten exakt so übernehmen wie im Original
-
-### 5. Sections sind Pflicht
-
-Wenn keine Abschnittsstruktur erkannt wird:
-
-→ Erstelle **eine einzige Section**:
-
-\`\`\`yaml
-sections:
-  - section: ""
-\`\`\`
-
-und ordne alle Zutaten/Schritte dieser leeren Section zu.
-
-### 6. Bilder
-
-* imageurl darf eine echte URL oder ein BASE64-String sein
-* Falls nichts erkennbar → null
-
-### 7. yields + recalc_exp
-
-recalc_exp definieren gemäß Einheit der Yield-Angabe:
-
-* **Lineare Größen** (Stück, Portionen, g, kg, ml, Liter …) → 1
-* **Flächengrößen** (z. B. „26 cm Durchmesser", „cm Radius") → 2
-
-### 8. UUID und Timestamp
-
-Wenn nicht im Input vorhanden:
-
-* Generiere recipe_uuid als gültige **UUID v4**
-* Setze lastUpdated auf aktuellen **ISO-8601-Timestamp**
-
-## 📌 Ausgabeformat
-
-* Gib **ausschließlich YAML** zurück
-* Keine zusätzlichen Erklärungen
-* Keine Kommentare
-* Kein Fließtext
-* Keine Format-Abweichungen
-* YAML muss **valide und einrückungskorrekt** sein
-
-## 📌 Verhalten bei Unsicherheiten
-
-Wenn ein Wert erkennbar ist → extrahiere ihn.
-Wenn nicht → Feld leer lassen.
-Nie schätzen, nie interpretieren.
-
-## 📌 Verhalten bei mehreren Rezepten
-
-Wenn mehrere Rezepte im Input stehen:
-
-→ Nur **das erste vollständige Rezept** extrahieren.
-Den Rest ignorieren.`
+import { SYSTEM_PROMPT } from '../prompts/SYSTEM_PROMPT'
 
 export default {
   name: 'AIRecipeImport',
@@ -262,7 +146,9 @@ export default {
       loading: false,
       result: null,
       error: null,
-      stream: null
+      stream: null,
+      downloadImage: true,
+      downloadingImage: false
     }
   },
   computed: {
@@ -441,10 +327,93 @@ export default {
       }
     },
     
-    importRecipe() {
+    async downloadImageFromUrl(url, recipeUuid) {
+      try {
+        // Try multiple CORS proxies with fallback
+        const proxies = [
+          `https://corsproxy.io/?${encodeURIComponent(url)}`,
+          `https://api.allorigins.win/raw?url=${url}`,
+          `https://cors-anywhere.herokuapp.com/${url}`
+        ]
+        
+        let response = null
+        let lastError = null
+        
+        for (const proxyUrl of proxies) {
+          try {
+            response = await fetch(proxyUrl, {
+              cache: 'no-cache',
+              signal: AbortSignal.timeout(10000) // 10 second timeout
+            })
+            
+            if (response.ok) {
+              break // Success, exit loop
+            }
+          } catch (err) {
+            lastError = err
+            continue // Try next proxy
+          }
+        }
+        
+        if (!response || !response.ok) {
+          throw lastError || new Error('Alle Proxy-Server fehlgeschlagen')
+        }
+        
+        const blob = await response.blob()
+        
+        // Detect extension from content-type or URL
+        let extension = 'jpg'
+        const contentType = response.headers.get('content-type')
+        if (contentType) {
+          extension = contentType.split('/')[1]?.split(';')[0] || 'jpg'
+        } else {
+          // Fallback: try to extract from URL
+          const urlMatch = url.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i)
+          if (urlMatch) extension = urlMatch[1]
+        }
+        
+        const filename = `${recipeUuid}.${extension}`
+        
+        // Store in recipe_pictures - create new object to trigger reactivity
+        const updatedPictures = { ...this.$store.state.recipe_pictures, [filename]: blob }
+        this.$store.commit('setRecipesPictures', updatedPictures)
+        this.$store.dispatch('saveRecipePictures')
+        
+        return filename
+      } catch (err) {
+        console.error('Image download failed:', err)
+        throw new Error(`Bild konnte nicht heruntergeladen werden: ${err.message}`)
+      }
+    },
+    
+    async importRecipe() {
       // Generate UUID if not present
       if (!this.result.recipe_uuid) {
         this.result.recipe_uuid = UUID.generateUUID()
+      }
+      
+      // Download image if requested and imageurl exists
+      if (this.downloadImage && this.result.imageurl) {
+        this.downloadingImage = true
+        try {
+          const filename = await this.downloadImageFromUrl(
+            this.result.imageurl, 
+            this.result.recipe_uuid
+          )
+          
+          // Move to cloud_images array and clear imageurl
+          if (!this.result.cloud_images) {
+            this.result.cloud_images = []
+          }
+          this.result.cloud_images.push(filename)
+          this.result.imageurl = null
+          
+        } catch (err) {
+          this.error = err.message
+          this.downloadingImage = false
+          return
+        }
+        this.downloadingImage = false
       }
       
       // Dispatch to store
@@ -459,6 +428,7 @@ export default {
       this.capturedImage = null
       this.uploadedImage = null
       this.textInput = ''
+      this.downloadImage = true
     }
   }
 }

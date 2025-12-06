@@ -115,6 +115,44 @@
           <button type="button" class="btn btn-primary" :disabled="!changed" @click="saveWebDAVConfig">Save changes</button>
         </div>
       </div>
+
+      <div class="mt-4">
+        <h5>Bild-Verwaltung</h5>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i>
+          URL-Bilder können nach einiger Zeit ungültig werden. Du kannst alle Rezeptbilder herunterladen und lokal speichern.
+        </div>
+        
+        <div class="mb-3">
+          <strong>Status:</strong> {{ imageUrlCount }} Rezept(e) mit URL-Bildern gefunden
+        </div>
+        
+        <BButton 
+          @click="downloadAllImages" 
+          variant="primary" 
+          :disabled="downloadingAllImages || imageUrlCount === 0">
+          <span v-if="downloadingAllImages" class="spinner-border spinner-border-sm me-2"></span>
+          <i v-else class="bi bi-download"></i>
+          Alle URL-Bilder herunterladen
+        </BButton>
+        
+        <div v-if="downloadProgress" class="mt-3">
+          <BProgress :value="downloadProgress.current" :max="downloadProgress.total" show-progress animated></BProgress>
+          <small class="text-muted">
+            {{ downloadProgress.current }} / {{ downloadProgress.total }} Bilder heruntergeladen
+            <span v-if="downloadProgress.failed > 0" class="text-danger">
+              ({{ downloadProgress.failed }} fehlgeschlagen)
+            </span>
+          </small>
+        </div>
+        
+        <div v-if="downloadResult" class="mt-3">
+          <div :class="['alert', downloadResult.success ? 'alert-success' : 'alert-warning']">
+            <i :class="downloadResult.success ? 'bi bi-check-circle' : 'bi bi-exclamation-triangle'"></i>
+            {{ downloadResult.message }}
+          </div>
+        </div>
+      </div>
     </BContainer>
   </div>
 
@@ -154,7 +192,10 @@ export default {
       file:null,     //used for file upload
       settings: null,
       configurl: '',  // cached async value
-      showApiKey: false  // toggle API key visibility
+      showApiKey: false,  // toggle API key visibility
+      downloadingAllImages: false,
+      downloadProgress: null,
+      downloadResult: null
     };
   },
   async created() {
@@ -180,10 +221,20 @@ export default {
   computed: {
     ...mapState({
       // passing the string value 'count' is same as `state => state.count`
-      store_settings: 'settings'
+      store_settings: 'settings',
+      recipes: 'recipes'
     }),
     changed: function() {
       return !deepEqual(this.settings, this.store_settings)
+    },
+    imageUrlCount() {
+      if (!this.recipes) return 0
+      return this.recipes.filter(recipe => {
+        const hasImageUrl = recipe.imageurl && recipe.imageurl.trim().length > 0
+        const hasCloudImages = recipe.cloud_images && recipe.cloud_images.length > 0
+        // Count only recipes with imageurl but no cloud_images yet
+        return hasImageUrl && !hasCloudImages
+      }).length
     }
   },
   mounted() { 
@@ -399,6 +450,126 @@ export default {
         this.toast('Kopieren fehlgeschlagen', 'danger');
       }
       document.body.removeChild(textarea);
+    },
+    async downloadAllImages() {
+      this.downloadingAllImages = true
+      this.downloadResult = null
+      this.downloadProgress = {
+        current: 0,
+        total: 0,
+        failed: 0
+      }
+      
+      // Find all recipes with imageurl but WITHOUT cloud_images
+      const recipesWithUrls = this.recipes.filter(recipe => {
+        const hasImageUrl = recipe.imageurl && recipe.imageurl.trim().length > 0
+        const hasCloudImages = recipe.cloud_images && recipe.cloud_images.length > 0
+        // Only download if has imageurl but no cloud_images yet
+        return hasImageUrl && !hasCloudImages
+      })
+      
+      this.downloadProgress.total = recipesWithUrls.length
+      
+      let successCount = 0
+      let failedCount = 0
+      
+      for (const recipe of recipesWithUrls) {
+        try {
+          // Try multiple CORS proxies with fallback
+          const proxies = [
+            `https://corsproxy.io/?${encodeURIComponent(recipe.imageurl)}`,
+            `https://api.allorigins.win/raw?url=${recipe.imageurl}`,
+            `https://cors-anywhere.herokuapp.com/${recipe.imageurl}`
+          ]
+          
+          let response = null
+          let lastError = null
+          
+          for (const proxyUrl of proxies) {
+            try {
+              response = await fetch(proxyUrl, {
+                cache: 'no-cache',
+                signal: AbortSignal.timeout(10000) // 10 second timeout
+              })
+              
+              if (response.ok) {
+                break // Success, exit loop
+              }
+            } catch (err) {
+              lastError = err
+              continue // Try next proxy
+            }
+          }
+          
+          if (!response || !response.ok) {
+            throw lastError || new Error('Alle Proxy-Server fehlgeschlagen')
+          }
+          
+          const blob = await response.blob()
+          
+          // Detect extension from content-type or URL
+          let extension = 'jpg'
+          const contentType = response.headers.get('content-type')
+          if (contentType) {
+            extension = contentType.split('/')[1]?.split(';')[0] || 'jpg'
+          } else {
+            // Fallback: try to extract from URL
+            const urlMatch = recipe.imageurl.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i)
+            if (urlMatch) extension = urlMatch[1]
+          }
+          
+          const filename = `${recipe.recipe_uuid}.${extension}`
+          
+          // Store in recipe_pictures - create new object to trigger reactivity
+          const updatedPictures = { ...this.$store.state.recipe_pictures, [filename]: blob }
+          this.$store.commit('setRecipesPictures', updatedPictures)
+          
+          // Update recipe: add to cloud_images, clear imageurl
+          const recipeIndex = this.recipes.findIndex(r => r.recipe_uuid === recipe.recipe_uuid)
+          if (recipeIndex !== -1) {
+            const currentRecipe = this.recipes[recipeIndex]
+            
+            // Create completely new recipe object with new cloud_images array
+            const updatedRecipe = {
+              ...currentRecipe,
+              cloud_images: [
+                ...(currentRecipe.cloud_images || []),
+                ...(currentRecipe.cloud_images?.includes(filename) ? [] : [filename])
+              ],
+              imageurl: null
+            }
+            
+            this.$store.dispatch('setRecipe', { index: recipeIndex, recipe: updatedRecipe })
+          }
+          
+          successCount++
+        } catch (err) {
+          console.error(`Failed to download image for ${recipe.recipe_name}:`, err)
+          failedCount++
+          this.downloadProgress.failed++
+        }
+        
+        this.downloadProgress.current++
+      }
+      
+      // Save all changes
+      this.$store.dispatch('saveRecipePictures')
+      this.$store.dispatch('saveRecipes')
+      
+      // Show result
+      this.downloadResult = {
+        success: failedCount === 0,
+        message: failedCount === 0
+          ? `Alle ${successCount} Bilder erfolgreich heruntergeladen!`
+          : `${successCount} Bilder heruntergeladen, ${failedCount} fehlgeschlagen.`
+      }
+      
+      this.downloadingAllImages = false
+      
+      // Reset progress after 5 seconds
+      setTimeout(() => {
+        this.downloadProgress = null
+      }, 5000)
     }
   }
 }

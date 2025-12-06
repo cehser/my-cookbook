@@ -57,12 +57,20 @@ export default {
           await webdavclient.createDirectory(rootpath + "pictures");
         }
         
-        recipes.forEach(async recipe => {
-          if(recipe_pictures[recipe.recipe_uuid] && recipe_pictures[recipe.recipe_uuid][0]) {
-            this.putImageFile(settings, recipe.recipe_uuid, recipe_pictures[recipe.recipe_uuid][0])
+        // Upload images for each recipe
+        for (const recipe of recipes) {
+          if (recipe.cloud_images && recipe.cloud_images.length > 0) {
+            for (const imageName of recipe.cloud_images) {
+              // Check if we have this image in recipe_pictures
+              if (recipe_pictures[imageName]) {
+                const blob = recipe_pictures[imageName]
+                // Convert Blob to File
+                const file = new File([blob], imageName, { type: blob.type })
+                await this.putImageFile(settings, recipe.recipe_uuid, file)
+              }
+            }
           }
-          //TODO: Delete superflous cloud images
-        });
+        }
       })
   },
   async putImageFile(settings, recipe_uuid, file) {
