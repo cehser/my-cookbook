@@ -16,6 +16,10 @@ const default_settings =  {
     },
     webdav_url: "https://webdav.server",
     filepath: "/cookbook.yaml"
+  },
+  ai: {
+    openai_api_key: "",
+    gpt_id: "g-692e0d9d69408191bf283eddfbd22e4a"
   }
 }
 

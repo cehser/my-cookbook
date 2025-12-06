@@ -4,6 +4,10 @@
     </Navbar>
     <BContainer>
         <h2>Verwaltung</h2>
+        
+        <!-- AI Import Section -->
+        <AIRecipeImport v-if="!settings.read_only" @imported="onAIImport" class="mb-4" />
+        
         <div class="d-flex flex-wrap">
           <BButton v-if="!settings.read_only" class="btn m-2" @click="syncWithWebDAV"><i class="bi bi-arrow-repeat"></i><br/>Cloud-Abgleich</BButton>
           <BButton class="btn m-2" @click="loadFromWebDAV"><i class="bi bi-cloud-download"></i><br/>Cloud-Download</BButton>
@@ -35,6 +39,7 @@
   import { mapState } from 'vuex'
   
   import Navbar from '@/components/Navbar.vue'
+  import AIRecipeImport from '@/components/AIRecipeImport.vue'
   import RecipeHelper from '@/mixins/RecipeHelper'
   import Toast from '@/mixins/Toast'
   import UUID from '../js/uuid'
@@ -48,7 +53,11 @@
     name: 'Administration',
     mixins: [RecipeHelper, Toast],
     components: {
-      Navbar
+      Navbar,
+      AIRecipeImport
+    },
+    data() {
+      return {}
     },
     computed: {
       // mix the getters into computed with object spread operator
@@ -231,6 +240,9 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+      },
+      onAIImport(recipe) {
+        this.toast(`Rezept "${recipe.recipe_name}" per AI importiert.`, 'success');
       }
     }
   }

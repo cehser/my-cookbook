@@ -73,6 +73,48 @@
             </BInputGroup>
         </div>
       </div>
+
+      <div class="mt-4">
+        <h5>AI-Integration (OpenAI)</h5>
+        <div class="form-group">
+          <label for="openai_api_key" class="col-form-label">OpenAI API Key</label>
+          <BInputGroup>
+            <BFormInput 
+              :type="showApiKey ? 'text' : 'password'" 
+              class="form-control" 
+              id="openai_api_key" 
+              v-model="settings.ai.openai_api_key" 
+              placeholder="sk-..." 
+              autocorrect="off">
+            </BFormInput>
+            <template #append>
+              <BButton @click="showApiKey = !showApiKey">
+                <i :class="showApiKey ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+              </BButton>
+            </template>
+          </BInputGroup>
+          <small class="form-text text-muted">
+            Wird für den AI-Rezept-Import aus Fotos/Text benötigt. 
+            <a href="https://platform.openai.com/api-keys" target="_blank">API-Key erstellen</a>
+          </small>
+        </div>
+        <div class="form-group">
+          <label for="gpt_id" class="col-form-label">GPT ID</label>
+          <BFormInput 
+            type="text" 
+            class="form-control" 
+            id="gpt_id" 
+            v-model="settings.ai.gpt_id" 
+            autocorrect="off">
+          </BFormInput>
+          <small class="form-text text-muted">
+            Custom ChatGPT IDs (starting with "g-...") are typically available only in the ChatGPT web UI and may return 404 when used with the OpenAI REST API. If you get a 404, try a supported model like <code>gpt-3.5-turbo</code> or <code>gpt-4o-mini</code>.
+          </small>
+        </div>
+        <div class="mt-2 mb-2">
+          <button type="button" class="btn btn-primary" :disabled="!changed" @click="saveWebDAVConfig">Save changes</button>
+        </div>
+      </div>
     </BContainer>
   </div>
 
@@ -111,12 +153,22 @@ export default {
     return {
       file:null,     //used for file upload
       settings: null,
-      configurl: ''  // cached async value
+      configurl: '',  // cached async value
+      showApiKey: false  // toggle API key visibility
     };
   },
   async created() {
     //local copy of store settings
     this.settings = JSON.parse(JSON.stringify(this.store_settings))
+    
+    // Initialize AI settings if not present
+    if (!this.settings.ai) {
+      this.settings.ai = {
+        openai_api_key: "",
+        gpt_id: "gpt-5.1"
+      }
+    }
+    
     if(this.$route.query.config) {
       console.log(this.$route.query.config)
       this.settings = await json_url.decompress(this.$route.query.config)
