@@ -2,9 +2,9 @@
   <div>
     <BRow align-v="center"> 
       <BCol sm="3" align-self="center">{{ ingredient_name }}</BCol>
-      <BCol sm="1" align-self="center"><BFormInput :id="'ingredient-amount-input-'+index"  placeholder="1" min="0.001" step="0.001" type="number" v-model.number="ingredient_data.amounts[0].amount" size="sm"></BFormInput></BCol>
-      <BCol sm="3" align-self="center"><BFormInput placeholder="Stück" list="ingredient-units-list" v-model="ingredient_data.amounts[0].unit" size="sm"></BFormInput></BCol>
-      <BCol sm="2" align-self="center"><BFormSelect v-model="ingredient.section" :options="sections" size="sm"></BFormSelect></BCol>
+      <BCol sm="1" align-self="center"><BFormInput :id="'ingredient-amount-input-'+index"  placeholder="1" min="0.001" step="0.001" type="number" :model-value="ingredient_data.amounts[0].amount" @update:model-value="updateAmount" size="sm"></BFormInput></BCol>
+      <BCol sm="3" align-self="center"><BFormInput placeholder="Stück" list="ingredient-units-list" :model-value="ingredient_data.amounts[0].unit" @update:model-value="updateUnit" size="sm"></BFormInput></BCol>
+      <BCol sm="2" align-self="center"><BFormSelect :model-value="ingredient.section" @update:model-value="updateSection" :options="sections" size="sm"></BFormSelect></BCol>
       <BCol sm="3" align-self="center"> 
 
           
@@ -48,9 +48,29 @@
         this.$emit('delete');
       },
       updateIngredient(ingredient) {
-        //use deep copy as wokaround to notice update of ingredient name
-        this.ingredient = JSON.parse(JSON.stringify(ingredient)); 
-        this.$emit('update', this.ingredient);
+        //use deep copy to avoid mutating props
+        const updatedIngredient = JSON.parse(JSON.stringify(ingredient));
+        this.$emit('update', updatedIngredient);
+      },
+      updateSection(newSection) {
+        // Create a deep copy and update the section
+        const updatedIngredient = JSON.parse(JSON.stringify(this.ingredient));
+        updatedIngredient.section = newSection;
+        this.$emit('update', updatedIngredient);
+      },
+      updateAmount(newAmount) {
+        // Create a deep copy and update the amount
+        const updatedIngredient = JSON.parse(JSON.stringify(this.ingredient));
+        const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
+        ingredientData.amounts[0].amount = Number(newAmount);
+        this.$emit('update', updatedIngredient);
+      },
+      updateUnit(newUnit) {
+        // Create a deep copy and update the unit
+        const updatedIngredient = JSON.parse(JSON.stringify(this.ingredient));
+        const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
+        ingredientData.amounts[0].unit = newUnit;
+        this.$emit('update', updatedIngredient);
       }
     },
     mounted() {

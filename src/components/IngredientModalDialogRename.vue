@@ -36,14 +36,13 @@
         
         var oldName = Object.keys(this.ingredient)[0];
 
+        // Create new ingredient object instead of mutating prop
         var ingredient = {};
         ingredient[this.newName] = this.ingredient[oldName];
         ingredient.section  = this.ingredient.section;
         
-        this.ingredient = ingredient;
-        
-        //Update component value
-        this.$emit('update', this.ingredient);
+        // Emit the new ingredient without mutating the prop
+        this.$emit('update', ingredient);
       }
     }
   }

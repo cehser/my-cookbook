@@ -1,8 +1,7 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import Gallery from '@/views/Gallery.vue'
 
-
-const routes = [
+const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'Gallery',
@@ -10,32 +9,36 @@ const routes = [
   },
   { 
     path: '/recipe/:selected', 
+    name: 'Recipe',
     component: () => import(/* webpackChunkName: "recipe" */ '../views/Recipe.vue'),
     props: (route) => {
-      const selected = Number.parseInt(route.params.selected, 10)
+      const selected = Number.parseInt(route.params.selected as string, 10)
       if (Number.isNaN(selected)) {
-        return 0
+        return { selected: 0 }
       }
       return { selected }
     }
   },
   { 
-    path: '/edit/:selected', 
+    path: '/edit/:selected',
+    name: 'Edit',
     component: () => import(/* webpackChunkName: "edit" */ '../views/Edit.vue'),
     props: (route) => {
-      const selected = Number.parseInt(route.params.selected, 10)
+      const selected = Number.parseInt(route.params.selected as string, 10)
       if (Number.isNaN(selected)) {
-        return 0
+        return { selected: 0 }
       }
       return { selected }
     }
   },
   { 
-    path: '/settings', 
+    path: '/settings',
+    name: 'Settings',
     component: () => import(/* webpackChunkName: "settings" */ '../views/Settings.vue'),
   },
   { 
-    path: '/administration', 
+    path: '/administration',
+    name: 'Administration',
     component: () => import(/* webpackChunkName: "settings" */ '../views/Administration.vue'),
   },
   //legacy paths for compatibility reasons

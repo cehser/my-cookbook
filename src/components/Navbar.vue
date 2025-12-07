@@ -96,7 +96,7 @@
     }
     
     /* Better touch targets for action buttons in navbar slot */
-    ::v-deep .btn {
+    :deep(.btn) {
       min-width: 44px;
       min-height: 44px;
     }

@@ -6,11 +6,20 @@
 </template>
 
 <script>
-  import RecipeHelper from '@/mixins/RecipeHelper'
+  import { useRecipeHelper } from '@/composables/useRecipeHelper'
+  import { ref } from 'vue'
+  
   export default {
     name: 'ArrayReorderBtnGroup',
-    mixins: [RecipeHelper],
-    props: ['array', 'index']
+    props: ['array', 'index'],
+    setup() {
+      const selectedRef = ref(0)
+      const { swapElements } = useRecipeHelper({ selected: selectedRef })
+      
+      return {
+        swapElements
+      }
+    }
 }
 </script>
 

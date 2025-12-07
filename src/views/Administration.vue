@@ -40,21 +40,37 @@
   
   import Navbar from '@/components/Navbar.vue'
   import AIRecipeImport from '@/components/AIRecipeImport.vue'
-  import RecipeHelper from '@/mixins/RecipeHelper'
-  import Toast from '@/mixins/Toast'
+  import { useRecipeHelper } from '@/composables/useRecipeHelper'
+  import { useToast } from '@/composables/useToast'
   import UUID from '../js/uuid'
-  import DeepCopy from '../js/deepCopy'
+  import { deepCopyYaml } from '../js/deepCopy'
   import Recipes from '../js/recipes'
   import Cloud from '../js/cloud'
   
   import jsyaml from 'js-yaml'
+  import { computed } from 'vue'
 
   export default {
     name: 'Administration',
-    mixins: [RecipeHelper, Toast],
+    props: {
+      selected: {
+        type: Number,
+        default: 0
+      }
+    },
     components: {
       Navbar,
       AIRecipeImport
+    },
+    setup(props) {
+      const selectedRef = computed(() => props.selected)
+      const recipeHelper = useRecipeHelper({ selected: selectedRef })
+      const { toast } = useToast()
+      
+      return {
+        ...recipeHelper,
+        toast
+      }
     },
     data() {
       return {}
@@ -62,7 +78,9 @@
     computed: {
       // mix the getters into computed with object spread operator
       ...mapState([
-        'settings'
+        'settings',
+        'recipes',
+        'recipe_pictures'
       ])
     },
     mounted() {  
@@ -80,7 +98,7 @@
       },
       copyRecipe: function (index) {
         //deep copy recipe
-        let recipe = DeepCopy.deepCopyYaml(this.recipes[index]);
+        let recipe = deepCopyYaml(this.recipes[index]);
         //new uuid
         recipe.recipe_uuid = UUID.generateUUID();
         //load

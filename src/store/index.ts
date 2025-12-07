@@ -1,0 +1,46 @@
+import { createStore } from 'vuex'
+
+import actions from './actions'
+import mutations from './mutations'
+import uiState from './modules/uiState'
+import type { Settings } from '../types/settings'
+import type { Recipe, RecipePictures } from '../types/recipe'
+
+const debug = import.meta.env.MODE !== 'production'
+
+const default_settings: Settings = {
+  read_only: true,
+  autosync: false,
+  webdav: {
+    webdav_creds: {
+      username: 'user',
+      password: 'pass'
+    },
+    webdav_url: 'https://webdav.server',
+    filepath: '/cookbook.yaml'
+  },
+  ai: {
+    openai_api_key: '',
+    gpt_id: 'g-692e0d9d69408191bf283eddfbd22e4a'
+  }
+}
+
+export interface RootState {
+  recipes: Recipe[]
+  settings: Settings
+  recipe_pictures: RecipePictures
+}
+
+export default createStore<RootState>({
+  strict: debug,
+  state: {
+    recipes: [],
+    settings: default_settings,
+    recipe_pictures: {}
+  },
+  actions,
+  mutations,
+  modules: {
+    uiState
+  }
+})

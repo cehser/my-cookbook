@@ -162,9 +162,9 @@
 // @ is an alias to /src
 import Navbar from '@/components/Navbar.vue'
 
-import RecipeHelper from '@/mixins/RecipeHelper'
+import { useRecipeHelper } from '@/composables/useRecipeHelper'
 import { mapState } from 'vuex'
-import Toast from '@/mixins/Toast'
+import { useToast } from '@/composables/useToast'
 
 import jsyaml from 'js-yaml'
 
@@ -180,12 +180,28 @@ const json_url = jsonUrl('lzma');
 //qr code scanning
 import QrScanner from 'qr-scanner';
 // QrScanner.WORKER_PATH is no longer needed in newer versions
+import { computed } from 'vue'
 
 export default {
   name: 'Settings',
-  mixins: [RecipeHelper,Toast],
+  props: {
+    selected: {
+      type: Number,
+      default: 0
+    }
+  },
   components: {
     Navbar
+  },
+  setup(props) {
+    const selectedRef = computed(() => props.selected)
+    const recipeHelper = useRecipeHelper({ selected: selectedRef })
+    const { toast } = useToast()
+    
+    return {
+      ...recipeHelper,
+      toast
+    }
   },
   data() {
     return {
@@ -222,7 +238,8 @@ export default {
     ...mapState({
       // passing the string value 'count' is same as `state => state.count`
       store_settings: 'settings',
-      recipes: 'recipes'
+      recipes: 'recipes',
+      recipe_pictures: 'recipe_pictures'
     }),
     changed: function() {
       return !deepEqual(this.settings, this.store_settings)

@@ -35,7 +35,7 @@
             <label for="input-yields-value">Ergibt Menge:</label>
           </BCol>
           <BCol sm="10">
-            <BFormInput id="input-yields-value" size="sm" type="number" min="0.001" step="0.001" placeholder="100.0" v-model.number="yields_value"></BFormInput>
+            <BFormInput id="input-yields-value" size="sm" type="number" min="0.001" step="0.001" placeholder="100.0" :model-value="yields_value" @update:model-value="setYieldsValue"></BFormInput>
             <div class="custom-control custom-switch">
               <input type="checkbox" class="custom-control-input" id="recalc-switch" v-model="do_recalc">
               <label class="custom-control-label" for="recalc-switch">Umrechnen</label>
@@ -47,7 +47,7 @@
             <label for="input-yields">Ergibt Einheiten:</label>
           </BCol>
           <BCol sm="10">
-            <BFormInput id="input-yields" size="sm" placeholder="Enter a name" v-model="yields_unit"></BFormInput>
+            <BFormInput id="input-yields" size="sm" placeholder="Enter a name" :model-value="yields_unit" @update:model-value="setYieldsUnit"></BFormInput>
           </BCol>
         </BRow>
         <BRow class="my-1">
@@ -167,8 +167,8 @@ import SectionIngredientsEdit from '@/components/SectionIngredientsEdit.vue'
 import ArrayReorderBtnGroup from '@/components/ArrayReorderBtnGroup.vue'
 import Navbar from '@/components/Navbar.vue'
 
-import RecipeHelper from '@/mixins/RecipeHelper'
-import Toast from '@/mixins/Toast'
+import { useRecipeHelper } from '@/composables/useRecipeHelper'
+import { useToast } from '@/composables/useToast'
 
 import jsyaml from 'js-yaml'
 
@@ -176,20 +176,38 @@ import jp from 'jsonpath'
 import deepEqual from 'deep-equal'
 
 import { mapState } from 'vuex'
+import { computed } from 'vue'
 
 export default {
   name: 'Edit',
-  mixins: [RecipeHelper,Toast],
+  props: {
+    selected: {
+      type: Number,
+      default: 0
+    }
+  },
   components: {
     StepEdit,
     SectionIngredientsEdit,
     ArrayReorderBtnGroup,
     Navbar
   },
+  setup(props) {
+    const selectedRef = computed(() => props.selected)
+    const recipeHelper = useRecipeHelper({ selected: selectedRef })
+    const { toast } = useToast()
+    
+    // Override do_recalc default
+    recipeHelper.do_recalc.value = false
+    
+    return {
+      ...recipeHelper,
+      toast
+    }
+  },
   data() {
     return {
       file: null,
-      do_recalc: false,  //replace default value
       delete_image: false,
       localSelected: this.selected,
       newTag: ''
@@ -218,8 +236,10 @@ export default {
       }
         return [...units].sort(); //convert to array
     },
-    ...mapState([
-        'settings'
+      ...mapState([
+        'settings',
+        'recipes',
+        'recipe_pictures'
       ])
   },
   watch: {

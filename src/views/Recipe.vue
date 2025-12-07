@@ -79,8 +79,8 @@
           <div v-if="!editMode" class="card-subtitle">für {{formatNumbers(yields_value)}} {{yields_unit}}</div>
           <div v-else class="d-flex gap-2 align-items-center mt-2">
             <span>für</span>
-            <BFormInput v-model.number="yields_value" type="number" size="sm" style="width: 80px" />
-            <BFormInput v-model="yields_unit" size="sm" style="width: 100px" />
+            <BFormInput :model-value="yields_value" @update:model-value="setYieldsValue" type="number" size="sm" style="width: 80px" />
+            <BFormInput :model-value="yields_unit" @update:model-value="setYieldsUnit" size="sm" style="width: 100px" />
           </div>
         </div>
         <div class="card-body">
@@ -106,7 +106,7 @@
           <div v-if="!editMode">
             <h5 class="card-title">Umrechnen</h5>
             <div class="input-group">
-              <input type="number" min="0" v-model.number="yields_value" step=".1" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing">
+              <input type="number" min="0" :value="yields_value" @input="setYieldsValue(Number($event.target.value))" step=".1" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing">
               <div class="input-group-append">
                 <span class="input-group-text" id="inputGroup-sizing">{{yields_unit}}</span>
                 
@@ -124,22 +124,35 @@
 
 <script>
 // @ is an alias to /src
-import RecipeHelper from '@/mixins/RecipeHelper'
+import { useRecipeHelper } from '@/composables/useRecipeHelper'
 import Navbar from '@/components/Navbar.vue'
 import jsyaml from 'js-yaml'
 import { mapState } from 'vuex'
+import { ref, computed } from 'vue'
 import UUID from '../js/uuid'
-import DeepCopy from '../js/deepCopy'
+import { deepCopyYaml } from '../js/deepCopy'
 
 export default {
   name: 'Recipe',
-  mixins: [RecipeHelper],
   components: {
     Navbar
   },
+  props: {
+    selected: {
+      type: Number,
+      default: 0
+    }
+  },
+  setup(props) {
+    const selectedRef = computed(() => props.selected)
+    const recipeHelper = useRecipeHelper({ selected: selectedRef })
+    
+    return {
+      ...recipeHelper
+    }
+  },
   data () {
     return {  
-      do_recalc: true,  //replace default value
       showIngredients: true,  // control ingredients panel visibility
       editMode: false,  // inline edit mode
       originalRecipe: null  // backup for cancel
@@ -172,6 +185,7 @@ export default {
   computed: {
     ...mapState([
       'settings',
+      'recipes'
     ]),
     stepsFullWidth() {
       return !this.showIngredients;
@@ -226,7 +240,7 @@ export default {
     },
     copyRecipe() {
       // Deep copy current recipe
-      const recipe = DeepCopy.deepCopyYaml(this.current_recipe);
+      const recipe = deepCopyYaml(this.current_recipe);
       // Generate new UUID
       recipe.recipe_uuid = UUID.generateUUID();
       // Append to store
@@ -247,7 +261,7 @@ export default {
       this.editMode = !this.editMode;
       if (this.editMode) {
         // Backup current recipe for cancel
-        this.originalRecipe = DeepCopy.deepCopyYaml(this.current_recipe);
+        this.originalRecipe = deepCopyYaml(this.current_recipe);
       }
     },
     saveRecipe() {
@@ -260,7 +274,7 @@ export default {
     cancelEdit() {
       // Restore original recipe
       if (this.originalRecipe) {
-        this.current_recipe = DeepCopy.deepCopyYaml(this.originalRecipe);
+        this.current_recipe = deepCopyYaml(this.originalRecipe);
       }
       this.editMode = false;
       this.originalRecipe = null;

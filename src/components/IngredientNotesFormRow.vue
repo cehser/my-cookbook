@@ -3,8 +3,8 @@
     <BCol offset="1" sm="1">Notizen</BCol>
     <BCol sm="10">
       <BRow v-for="(note, index) in ingredient_data.notes" :key="index">
-        <BCol sm="8"><BFormInput v-model="ingredient_data.notes[index]"></BFormInput></BCol>
-        <BCol sm="1"><BButton @click="ingredient_data.notes.splice(index, 1)"><i class="bi bi-trash"></i></BButton></BCol> 
+        <BCol sm="8"><BFormInput :model-value="note" @update:model-value="updateNote(index, $event)"></BFormInput></BCol>
+        <BCol sm="1"><BButton @click="deleteNote(index)"><i class="bi bi-trash"></i></BButton></BCol> 
       </BRow>
       <BRow>
         <BButton @click="addNote"><i class="bi bi-plus"></i></BButton>
@@ -19,9 +19,26 @@
     props: ['ingredient', 'index'],
     methods: {
       addNote: function() {
-        this.ingredient_data.notes = this.ingredient_data.notes || [];
-        this.ingredient_data.notes.push('Neue Notiz');
-        this.$emit('update', this.ingredient);
+        // Create a deep copy to avoid mutating props
+        const updatedIngredient = JSON.parse(JSON.stringify(this.ingredient));
+        const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
+        ingredientData.notes = ingredientData.notes || [];
+        ingredientData.notes.push('Neue Notiz');
+        this.$emit('update', updatedIngredient);
+      },
+      deleteNote: function(index) {
+        // Create a deep copy to avoid mutating props
+        const updatedIngredient = JSON.parse(JSON.stringify(this.ingredient));
+        const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
+        ingredientData.notes.splice(index, 1);
+        this.$emit('update', updatedIngredient);
+      },
+      updateNote: function(index, newValue) {
+        // Create a deep copy to avoid mutating props
+        const updatedIngredient = JSON.parse(JSON.stringify(this.ingredient));
+        const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
+        ingredientData.notes[index] = newValue;
+        this.$emit('update', updatedIngredient);
       }
     },
     computed: {

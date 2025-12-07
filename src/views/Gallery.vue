@@ -57,17 +57,31 @@
 
 <script>
   // @ is an alias to /src
-  import RecipeHelper from '@/mixins/RecipeHelper'
+  import { useRecipeHelper } from '@/composables/useRecipeHelper'
   import Navbar from '@/components/Navbar.vue'
   import RecipeCard from '@/components/RecipeCard.vue'
   import { mapState } from 'vuex'
+  import { computed } from 'vue'
 
   export default {
     name: 'Recipe',
-    mixins: [RecipeHelper],
+    props: {
+      selected: {
+        type: Number,
+        default: 0
+      }
+    },
     components: {
       Navbar,
       RecipeCard
+    },
+    setup(props) {
+      const selectedRef = computed(() => props.selected)
+      const recipeHelper = useRecipeHelper({ selected: selectedRef })
+      
+      return {
+        ...recipeHelper
+      }
     },
     data() {
       return {
@@ -135,7 +149,8 @@
     },
     computed: {
       ...mapState([
-        'settings'
+        'settings',
+        'recipes'
       ]),
       allTags() {
         const tags = new Set();

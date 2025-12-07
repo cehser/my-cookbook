@@ -1,5 +1,20 @@
 // UI State persistence for better navigation UX
-const state = {
+interface GalleryState {
+  filter: string
+  selectedTags: string[]
+  scrollPosition: number
+}
+
+interface RecipeViewState {
+  showIngredients: boolean
+}
+
+interface UIState {
+  gallery: GalleryState
+  recipe: RecipeViewState
+}
+
+const state: UIState = {
   gallery: {
     filter: '',
     selectedTags: [],
@@ -11,26 +26,26 @@ const state = {
 }
 
 const getters = {
-  galleryFilter: state => state.gallery.filter,
-  gallerySelectedTags: state => state.gallery.selectedTags,
-  galleryScrollPosition: state => state.gallery.scrollPosition,
-  recipeShowIngredients: state => state.recipe.showIngredients
+  galleryFilter: (state: UIState) => state.gallery.filter,
+  gallerySelectedTags: (state: UIState) => state.gallery.selectedTags,
+  galleryScrollPosition: (state: UIState) => state.gallery.scrollPosition,
+  recipeShowIngredients: (state: UIState) => state.recipe.showIngredients
 }
 
 const mutations = {
-  SET_GALLERY_FILTER(state, filter) {
+  SET_GALLERY_FILTER(state: UIState, filter: string) {
     state.gallery.filter = filter
   },
-  SET_GALLERY_SELECTED_TAGS(state, tags) {
+  SET_GALLERY_SELECTED_TAGS(state: UIState, tags: string[]) {
     state.gallery.selectedTags = tags
   },
-  SET_GALLERY_SCROLL_POSITION(state, position) {
+  SET_GALLERY_SCROLL_POSITION(state: UIState, position: number) {
     state.gallery.scrollPosition = position
   },
-  SET_RECIPE_SHOW_INGREDIENTS(state, show) {
+  SET_RECIPE_SHOW_INGREDIENTS(state: UIState, show: boolean) {
     state.recipe.showIngredients = show
   },
-  RESTORE_UI_STATE(state, savedState) {
+  RESTORE_UI_STATE(state: UIState, savedState: Partial<UIState>) {
     if (savedState) {
       state.gallery = { ...state.gallery, ...savedState.gallery }
       state.recipe = { ...state.recipe, ...savedState.recipe }
@@ -39,23 +54,23 @@ const mutations = {
 }
 
 const actions = {
-  setGalleryFilter({ commit, state }, filter) {
+  setGalleryFilter({ commit, state }: any, filter: string) {
     commit('SET_GALLERY_FILTER', filter)
     saveToLocalStorage(state)
   },
-  setGallerySelectedTags({ commit, state }, tags) {
+  setGallerySelectedTags({ commit, state }: any, tags: string[]) {
     commit('SET_GALLERY_SELECTED_TAGS', tags)
     saveToLocalStorage(state)
   },
-  setGalleryScrollPosition({ commit, state }, position) {
+  setGalleryScrollPosition({ commit, state }: any, position: number) {
     commit('SET_GALLERY_SCROLL_POSITION', position)
     saveToLocalStorage(state)
   },
-  setRecipeShowIngredients({ commit, state }, show) {
+  setRecipeShowIngredients({ commit, state }: any, show: boolean) {
     commit('SET_RECIPE_SHOW_INGREDIENTS', show)
     saveToLocalStorage(state)
   },
-  restoreUIState({ commit }) {
+  restoreUIState({ commit }: any) {
     const savedState = localStorage.getItem('my-cookbook-ui-state')
     if (savedState) {
       try {
@@ -67,7 +82,7 @@ const actions = {
   }
 }
 
-function saveToLocalStorage(state) {
+function saveToLocalStorage(state: UIState): void {
   try {
     localStorage.setItem('my-cookbook-ui-state', JSON.stringify(state))
   } catch (e) {
