@@ -3,6 +3,8 @@ import globals from "globals";
 import js from "@eslint/js";
 import pluginVue from "eslint-plugin-vue";
 import vueParser from "vue-eslint-parser";
+import tsParser from "@typescript-eslint/parser";
+import tsPlugin from "@typescript-eslint/eslint-plugin";
 import prettierConfig from "@vue/eslint-config-prettier";
 
 export default defineConfig([
@@ -19,6 +21,16 @@ export default defineConfig([
       ecmaVersion: "latest",
       sourceType: "module",
       parser: vueParser,
+      parserOptions: {
+        parser: tsParser,
+        extraFileExtensions: [".vue"],
+        ecmaVersion: "latest",
+        sourceType: "module",
+      },
+    },
+
+    plugins: {
+      "@typescript-eslint": tsPlugin,
     },
 
     rules: {

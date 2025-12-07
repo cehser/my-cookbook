@@ -18,28 +18,18 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import IngredientEdit from "@/components/IngredientEdit.vue";
 
-export default {
-  name: "SectionIngredientsEdit",
-  components: {
-    IngredientEdit,
-  },
-  props: {
-    modelValue: Array,
-    section: String,
-    sections: Array,
-  },
-  computed: {
-    ingredients: {
-      get() {
-        return this.modelValue;
-      },
-      set(value) {
-        this.$emit("update:modelValue", value);
-      },
-    },
-  },
-};
+interface Ingredient {
+  section?: string;
+  [key: string]: any;
+}
+
+defineProps<{
+  section: string;
+  sections: string[];
+}>();
+
+const ingredients = defineModel<Ingredient[]>({ required: true });
 </script>

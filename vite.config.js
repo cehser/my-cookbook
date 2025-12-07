@@ -70,6 +70,7 @@ export default defineConfig({
     // For Clipboard API, localhost with HTTP works in modern browsers
   },
   css: {
+    transformer: "lightningcss",
     preprocessorOptions: {
       scss: {
         api: "modern-compiler",

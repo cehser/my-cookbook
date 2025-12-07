@@ -72,68 +72,73 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, computed, onMounted } from "vue";
 import IngredientModalDialogRename from "@/components/IngredientModalDialogRename.vue";
 import ArrayReorderBtnGroup from "@/components/ArrayReorderBtnGroup.vue";
 import IngredientNotesFormRow from "@/components/IngredientNotesFormRow.vue";
 
-export default {
-  name: "IngredientEdit",
-  components: {
-    IngredientModalDialogRename,
-    IngredientNotesFormRow,
-    ArrayReorderBtnGroup,
-  },
-  props: ["ingredient", "ingredients", "index", "sections"],
-  data() {
-    return {
-      showModal: false,
-    };
-  },
-  methods: {
-    deleteIngredient() {
-      this.$emit("delete");
-    },
-    updateIngredient(ingredient) {
-      //use deep copy to avoid mutating props
-      const updatedIngredient = JSON.parse(JSON.stringify(ingredient));
-      this.$emit("update", updatedIngredient);
-    },
-    updateSection(newSection) {
-      // Create a deep copy and update the section
-      const updatedIngredient = JSON.parse(JSON.stringify(this.ingredient));
-      updatedIngredient.section = newSection;
-      this.$emit("update", updatedIngredient);
-    },
-    updateAmount(newAmount) {
-      // Create a deep copy and update the amount
-      const updatedIngredient = JSON.parse(JSON.stringify(this.ingredient));
-      const ingredientData =
-        updatedIngredient[Object.keys(updatedIngredient)[0]];
-      ingredientData.amounts[0].amount = Number(newAmount);
-      this.$emit("update", updatedIngredient);
-    },
-    updateUnit(newUnit) {
-      // Create a deep copy and update the unit
-      const updatedIngredient = JSON.parse(JSON.stringify(this.ingredient));
-      const ingredientData =
-        updatedIngredient[Object.keys(updatedIngredient)[0]];
-      ingredientData.amounts[0].unit = newUnit;
-      this.$emit("update", updatedIngredient);
-    },
-  },
-  mounted() {
-    if (this.ingredient_name === "Neue Zutat") {
-      this.showModal = true;
-    }
-  },
-  computed: {
-    ingredient_data: function () {
-      return this.ingredient[Object.keys(this.ingredient)[0]];
-    },
-    ingredient_name: function () {
-      return Object.keys(this.ingredient)[0];
-    },
-  },
+interface Ingredient {
+  [key: string]: any;
+  section?: string;
+}
+
+const props = defineProps<{
+  ingredient: Ingredient;
+  ingredients: Ingredient[];
+  index: number;
+  sections: string[];
+}>();
+
+const emit = defineEmits<{
+  delete: [];
+  update: [value: Ingredient];
+}>();
+
+const showModal = ref(false);
+
+const ingredient_data = computed(() => {
+  return props.ingredient[Object.keys(props.ingredient)[0]];
+});
+
+const ingredient_name = computed(() => {
+  return Object.keys(props.ingredient)[0];
+});
+
+const deleteIngredient = () => emit("delete");
+
+const updateIngredient = (ingredient: Ingredient) => {
+  //use deep copy to avoid mutating props
+  const updatedIngredient = JSON.parse(JSON.stringify(ingredient));
+  emit("update", updatedIngredient);
 };
+
+const updateSection = (newSection: string) => {
+  // Create a deep copy and update the section
+  const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
+  updatedIngredient.section = newSection;
+  emit("update", updatedIngredient);
+};
+
+const updateAmount = (newAmount: number) => {
+  // Create a deep copy and update the amount
+  const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
+  const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
+  ingredientData.amounts[0].amount = Number(newAmount);
+  emit("update", updatedIngredient);
+};
+
+const updateUnit = (newUnit: string) => {
+  // Create a deep copy and update the unit
+  const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
+  const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
+  ingredientData.amounts[0].unit = newUnit;
+  emit("update", updatedIngredient);
+};
+
+onMounted(() => {
+  if (ingredient_name.value === "Neue Zutat") {
+    showModal.value = true;
+  }
+});
 </script>

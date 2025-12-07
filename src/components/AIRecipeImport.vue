@@ -180,323 +180,335 @@
   </div>
 </template>
 
-<script>
-import { mapState } from "vuex";
+<script setup lang="ts">
+import { ref, computed, onBeforeUnmount } from "vue";
+import { useStore } from "vuex";
 import jsyaml from "js-yaml";
 import UUID from "../js/uuid";
 import { SYSTEM_PROMPT } from "../prompts/SYSTEM_PROMPT";
 
-export default {
-  name: "AIRecipeImport",
-  data() {
-    return {
-      cameraActive: false,
-      capturedImage: null,
-      uploadedFile: null,
-      uploadedImage: null,
-      textInput: "",
-      loading: false,
-      result: null,
-      error: null,
-      stream: null,
-      downloadImage: true,
-      downloadingImage: false,
-    };
-  },
-  computed: {
-    ...mapState(["settings"]),
-    hasApiKey() {
-      return (
-        this.settings?.ai?.openai_api_key &&
-        this.settings.ai.openai_api_key.length > 0
-      );
-    },
-  },
-  beforeUnmount() {
-    this.stopCamera();
-  },
-  methods: {
-    async startCamera() {
-      try {
-        this.stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-        });
-        this.$refs.cameraVideo.srcObject = this.stream;
-        this.cameraActive = true;
-        this.capturedImage = null;
-      } catch (err) {
-        this.error = "Kamera-Zugriff fehlgeschlagen: " + err.message;
-      }
-    },
+interface Recipe {
+  recipe_uuid?: string;
+  recipe_name?: string;
+  imageurl?: string | null;
+  cloud_images?: string[];
+  [key: string]: any;
+}
 
-    stopCamera() {
-      if (this.stream) {
-        this.stream.getTracks().forEach((track) => track.stop());
-        this.stream = null;
-        this.cameraActive = false;
-      }
-    },
+const emit = defineEmits<{
+  imported: [recipe: Recipe];
+}>();
 
-    capturePhoto() {
-      const video = this.$refs.cameraVideo;
-      const canvas = this.$refs.cameraCanvas;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext("2d").drawImage(video, 0, 0);
-      this.capturedImage = canvas.toDataURL("image/jpeg");
-      this.stopCamera();
-    },
+const store = useStore();
 
-    handleFileUpload(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          this.uploadedImage = e.target.result;
-          this.capturedImage = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
-    },
+// Template refs
+const cameraVideo = ref<HTMLVideoElement>();
+const cameraCanvas = ref<HTMLCanvasElement>();
 
-    async analyzeImage() {
-      if (!this.capturedImage) return;
+// State
+const cameraActive = ref(false);
+const capturedImage = ref<string | null>(null);
+const uploadedFile = ref<File | null>(null);
+const uploadedImage = ref<string | null>(null);
+const textInput = ref("");
+const loading = ref(false);
+const result = ref<Recipe | null>(null);
+const error = ref<string | null>(null);
+const stream = ref<MediaStream | null>(null);
+const downloadImage = ref(true);
+const downloadingImage = ref(false);
 
-      this.loading = true;
-      this.error = null;
-      this.result = null;
+// Computed
+const settings = computed(() => store.state.settings);
+const hasApiKey = computed(() => {
+  return (
+    settings.value?.ai?.openai_api_key &&
+    settings.value.ai.openai_api_key.length > 0
+  );
+});
 
-      try {
-        const modelId = this.settings.ai.gpt_id || "gpt-4o";
-
-        const response = await fetch(
-          "https://api.openai.com/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${this.settings.ai.openai_api_key}`,
-            },
-            body: JSON.stringify({
-              model: modelId,
-              messages: [
-                {
-                  role: "system",
-                  content: SYSTEM_PROMPT,
-                },
-                {
-                  role: "user",
-                  content: [
-                    {
-                      type: "text",
-                      text: "Bitte extrahiere das Rezept aus diesem Bild.",
-                    },
-                    {
-                      type: "image_url",
-                      image_url: {
-                        url: this.capturedImage,
-                      },
-                    },
-                  ],
-                },
-              ],
-              max_completion_tokens: 4000,
-            }),
-          },
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          const errorMsg =
-            errorData.error?.message || `HTTP ${response.status}`;
-          throw new Error(`API-Fehler: ${errorMsg}`);
-        }
-
-        const data = await response.json();
-        const yamlText = data.choices[0].message.content;
-
-        // Extract YAML from markdown code blocks if present
-        let cleanYaml = yamlText;
-        const yamlMatch = yamlText.match(/```ya?ml\n([\s\S]*?)\n```/);
-        if (yamlMatch) {
-          cleanYaml = yamlMatch[1];
-        }
-
-        this.result = jsyaml.load(cleanYaml);
-      } catch (err) {
-        this.error = "Fehler bei der Analyse: " + err.message;
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    async analyzeText() {
-      this.loading = true;
-      this.error = null;
-      this.result = null;
-
-      try {
-        const modelId = this.settings.ai.gpt_id || "gpt-4o";
-
-        const response = await fetch(
-          "https://api.openai.com/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${this.settings.ai.openai_api_key}`,
-            },
-            body: JSON.stringify({
-              model: modelId,
-              messages: [
-                {
-                  role: "system",
-                  content: SYSTEM_PROMPT,
-                },
-                {
-                  role: "user",
-                  content: this.textInput,
-                },
-              ],
-              max_completion_tokens: 4000,
-            }),
-          },
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          const errorMsg =
-            errorData.error?.message || `HTTP ${response.status}`;
-          throw new Error(`API-Fehler: ${errorMsg}`);
-        }
-
-        const data = await response.json();
-        const yamlText = data.choices[0].message.content;
-
-        // Extract YAML from markdown code blocks if present
-        let cleanYaml = yamlText;
-        const yamlMatch = yamlText.match(/```ya?ml\n([\s\S]*?)\n```/);
-        if (yamlMatch) {
-          cleanYaml = yamlMatch[1];
-        }
-
-        this.result = jsyaml.load(cleanYaml);
-      } catch (err) {
-        this.error = "Fehler bei der Analyse: " + err.message;
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    async downloadImageFromUrl(url, recipeUuid) {
-      try {
-        // Try multiple CORS proxies with fallback
-        const proxies = [
-          `https://corsproxy.io/?${encodeURIComponent(url)}`,
-          `https://api.allorigins.win/raw?url=${url}`,
-          `https://cors-anywhere.herokuapp.com/${url}`,
-        ];
-
-        let response = null;
-        let lastError = null;
-
-        for (const proxyUrl of proxies) {
-          try {
-            response = await fetch(proxyUrl, {
-              cache: "no-cache",
-              signal: AbortSignal.timeout(10000), // 10 second timeout
-            });
-
-            if (response.ok) {
-              break; // Success, exit loop
-            }
-          } catch (err) {
-            lastError = err;
-            continue; // Try next proxy
-          }
-        }
-
-        if (!response || !response.ok) {
-          throw lastError || new Error("Alle Proxy-Server fehlgeschlagen");
-        }
-
-        const blob = await response.blob();
-
-        // Detect extension from content-type or URL
-        let extension = "jpg";
-        const contentType = response.headers.get("content-type");
-        if (contentType) {
-          extension = contentType.split("/")[1]?.split(";")[0] || "jpg";
-        } else {
-          // Fallback: try to extract from URL
-          const urlMatch = url.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i);
-          if (urlMatch) extension = urlMatch[1];
-        }
-
-        const filename = `${recipeUuid}.${extension}`;
-
-        // Store in recipe_pictures - create new object to trigger reactivity
-        const updatedPictures = {
-          ...this.$store.state.recipe_pictures,
-          [filename]: blob,
-        };
-        this.$store.commit("setRecipesPictures", updatedPictures);
-        this.$store.dispatch("saveRecipePictures");
-
-        return filename;
-      } catch (err) {
-        console.error("Image download failed:", err);
-        throw new Error(
-          `Bild konnte nicht heruntergeladen werden: ${err.message}`,
-        );
-      }
-    },
-
-    async importRecipe() {
-      // Generate UUID if not present
-      if (!this.result.recipe_uuid) {
-        this.result.recipe_uuid = UUID.generateUUID();
-      }
-
-      // Download image if requested and imageurl exists
-      if (this.downloadImage && this.result.imageurl) {
-        this.downloadingImage = true;
-        try {
-          const filename = await this.downloadImageFromUrl(
-            this.result.imageurl,
-            this.result.recipe_uuid,
-          );
-
-          // Move to cloud_images array and clear imageurl
-          if (!this.result.cloud_images) {
-            this.result.cloud_images = [];
-          }
-          this.result.cloud_images.push(filename);
-          this.result.imageurl = null;
-        } catch (err) {
-          this.error = err.message;
-          this.downloadingImage = false;
-          return;
-        }
-        this.downloadingImage = false;
-      }
-
-      // Dispatch to store
-      this.$store.dispatch("appendRecipe", this.result);
-      this.$store.dispatch("saveToLocalStorage");
-
-      // Emit success
-      this.$emit("imported", this.result);
-
-      // Reset
-      this.result = null;
-      this.capturedImage = null;
-      this.uploadedImage = null;
-      this.textInput = "";
-      this.downloadImage = true;
-    },
-  },
+// Methods
+const startCamera = async () => {
+  try {
+    stream.value = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+    });
+    if (cameraVideo.value) {
+      cameraVideo.value.srcObject = stream.value;
+    }
+    cameraActive.value = true;
+    capturedImage.value = null;
+  } catch (err: any) {
+    error.value = "Kamera-Zugriff fehlgeschlagen: " + err.message;
+  }
 };
+
+const stopCamera = () => {
+  if (stream.value) {
+    stream.value.getTracks().forEach((track) => track.stop());
+    stream.value = null;
+    cameraActive.value = false;
+  }
+};
+
+const capturePhoto = () => {
+  const video = cameraVideo.value;
+  const canvas = cameraCanvas.value;
+  if (!video || !canvas) return;
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d")?.drawImage(video, 0, 0);
+  capturedImage.value = canvas.toDataURL("image/jpeg");
+  stopCamera();
+};
+
+const handleFileUpload = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImage.value = e.target?.result as string;
+      capturedImage.value = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const analyzeImage = async () => {
+  if (!capturedImage.value) return;
+
+  loading.value = true;
+  error.value = null;
+  result.value = null;
+
+  try {
+    const modelId = settings.value.ai.gpt_id || "gpt-4o";
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${settings.value.ai.openai_api_key}`,
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: [
+          {
+            role: "system",
+            content: SYSTEM_PROMPT,
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Bitte extrahiere das Rezept aus diesem Bild.",
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: capturedImage.value,
+                },
+              },
+            ],
+          },
+        ],
+        max_completion_tokens: 4000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMsg = errorData.error?.message || `HTTP ${response.status}`;
+      throw new Error(`API-Fehler: ${errorMsg}`);
+    }
+
+    const data = await response.json();
+    const yamlText = data.choices[0].message.content;
+
+    // Extract YAML from markdown code blocks if present
+    let cleanYaml = yamlText;
+    const yamlMatch = yamlText.match(/```ya?ml\n([\s\S]*?)\n```/);
+    if (yamlMatch) {
+      cleanYaml = yamlMatch[1];
+    }
+
+    result.value = jsyaml.load(cleanYaml) as Recipe;
+  } catch (err: any) {
+    error.value = "Fehler bei der Analyse: " + err.message;
+  } finally {
+    loading.value = false;
+  }
+};
+
+const analyzeText = async () => {
+  loading.value = true;
+  error.value = null;
+  result.value = null;
+
+  try {
+    const modelId = settings.value.ai.gpt_id || "gpt-4o";
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${settings.value.ai.openai_api_key}`,
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: [
+          {
+            role: "system",
+            content: SYSTEM_PROMPT,
+          },
+          {
+            role: "user",
+            content: textInput.value,
+          },
+        ],
+        max_completion_tokens: 4000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMsg = errorData.error?.message || `HTTP ${response.status}`;
+      throw new Error(`API-Fehler: ${errorMsg}`);
+    }
+
+    const data = await response.json();
+    const yamlText = data.choices[0].message.content;
+
+    // Extract YAML from markdown code blocks if present
+    let cleanYaml = yamlText;
+    const yamlMatch = yamlText.match(/```ya?ml\n([\s\S]*?)\n```/);
+    if (yamlMatch) {
+      cleanYaml = yamlMatch[1];
+    }
+
+    result.value = jsyaml.load(cleanYaml) as Recipe;
+  } catch (err: any) {
+    error.value = "Fehler bei der Analyse: " + err.message;
+  } finally {
+    loading.value = false;
+  }
+};
+
+const downloadImageFromUrl = async (url: string, recipeUuid: string) => {
+  try {
+    // Try multiple CORS proxies with fallback
+    const proxies = [
+      `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      `https://api.allorigins.win/raw?url=${url}`,
+      `https://cors-anywhere.herokuapp.com/${url}`,
+    ];
+
+    let response: Response | null = null;
+    let lastError: Error | null = null;
+
+    for (const proxyUrl of proxies) {
+      try {
+        response = await fetch(proxyUrl, {
+          cache: "no-cache",
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        });
+
+        if (response.ok) {
+          break; // Success, exit loop
+        }
+      } catch (err) {
+        lastError = err as Error;
+        continue; // Try next proxy
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw lastError || new Error("Alle Proxy-Server fehlgeschlagen");
+    }
+
+    const blob = await response.blob();
+
+    // Detect extension from content-type or URL
+    let extension = "jpg";
+    const contentType = response.headers.get("content-type");
+    if (contentType) {
+      extension = contentType.split("/")[1]?.split(";")[0] || "jpg";
+    } else {
+      // Fallback: try to extract from URL
+      const urlMatch = url.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i);
+      if (urlMatch) extension = urlMatch[1];
+    }
+
+    const filename = `${recipeUuid}.${extension}`;
+
+    // Store in recipe_pictures - create new object to trigger reactivity
+    const updatedPictures = {
+      ...store.state.recipe_pictures,
+      [filename]: blob,
+    };
+    store.commit("setRecipesPictures", updatedPictures);
+    store.dispatch("saveRecipePictures");
+
+    return filename;
+  } catch (err: any) {
+    console.error("Image download failed:", err);
+    throw new Error(`Bild konnte nicht heruntergeladen werden: ${err.message}`);
+  }
+};
+
+const importRecipe = async () => {
+  if (!result.value) return;
+
+  // Generate UUID if not present
+  if (!result.value.recipe_uuid) {
+    result.value.recipe_uuid = UUID.generateUUID();
+  }
+
+  // Download image if requested and imageurl exists
+  if (downloadImage.value && result.value.imageurl) {
+    downloadingImage.value = true;
+    try {
+      const filename = await downloadImageFromUrl(
+        result.value.imageurl,
+        result.value.recipe_uuid,
+      );
+
+      // Move to cloud_images array and clear imageurl
+      if (!result.value.cloud_images) {
+        result.value.cloud_images = [];
+      }
+      result.value.cloud_images.push(filename);
+      result.value.imageurl = null;
+    } catch (err: any) {
+      error.value = err.message;
+      downloadingImage.value = false;
+      return;
+    }
+    downloadingImage.value = false;
+  }
+
+  // Dispatch to store
+  store.dispatch("appendRecipe", result.value);
+  store.dispatch("saveToLocalStorage");
+
+  // Emit success
+  emit("imported", result.value);
+
+  // Reset
+  result.value = null;
+  capturedImage.value = null;
+  uploadedImage.value = null;
+  textInput.value = "";
+  downloadImage.value = true;
+};
+
+// Lifecycle
+onBeforeUnmount(() => {
+  stopCamera();
+});
 </script>
 
 <style scoped>

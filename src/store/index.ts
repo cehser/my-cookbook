@@ -8,7 +8,7 @@ import type { Recipe, RecipePictures } from '../types/recipe'
 
 const debug = import.meta.env.MODE !== 'production'
 
-const default_settings: Settings = {
+const default_settings = {
   read_only: true,
   autosync: false,
   webdav: {
@@ -23,7 +23,7 @@ const default_settings: Settings = {
     openai_api_key: '',
     gpt_id: 'g-692e0d9d69408191bf283eddfbd22e4a'
   }
-}
+} satisfies Settings
 
 export interface RootState {
   recipes: Recipe[]

@@ -55,44 +55,54 @@
   </nav>
 </template>
 
-<script>
-export default {
-  name: "Navbar",
-  props: {
-    selected: {
-      type: Number,
-      default: 0,
-    },
-    read_only: {
-      type: Boolean,
-      default: true,
-    },
-    recipes_list: Array,
+<script setup lang="ts">
+import { ref, watch, onMounted } from "vue";
+import { useRoute } from "vue-router";
+
+interface Recipe {
+  recipe_name: string;
+  [key: string]: any;
+}
+
+const props = withDefaults(
+  defineProps<{
+    selected?: number;
+    read_only?: boolean;
+    recipes_list?: Recipe[];
+  }>(),
+  {
+    selected: 0,
+    read_only: true,
   },
-  data() {
-    return {
-      data_selected: 0,
-      isMenuOpen: false,
-    };
-  },
-  watch: {
-    data_selected: function (value) {
-      this.$emit("update:selected", value);
-    },
-    $route() {
-      // Close mobile menu when route changes
-      this.isMenuOpen = false;
-    },
-  },
-  created() {
-    this.data_selected = this.selected;
-  },
-  methods: {
-    toggleMenu() {
-      this.isMenuOpen = !this.isMenuOpen;
-    },
-  },
+);
+
+const emit = defineEmits<{
+  "update:selected": [value: number];
+}>();
+
+const route = useRoute();
+const data_selected = ref(0);
+const isMenuOpen = ref(false);
+
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value;
 };
+
+watch(data_selected, (value) => {
+  emit("update:selected", value);
+});
+
+watch(
+  () => route.path,
+  () => {
+    // Close mobile menu when route changes
+    isMenuOpen.value = false;
+  },
+);
+
+onMounted(() => {
+  data_selected.value = props.selected;
+});
 </script>
 
 <style scoped>

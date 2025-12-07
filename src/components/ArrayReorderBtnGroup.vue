@@ -15,22 +15,17 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { ref } from "vue";
 
-export default {
-  name: "ArrayReorderBtnGroup",
-  props: ["array", "index"],
-  setup() {
-    const selectedRef = ref(0);
-    const { swapElements } = useRecipeHelper({ selected: selectedRef });
+defineProps<{
+  array: any[];
+  index: number;
+}>();
 
-    return {
-      swapElements,
-    };
-  },
-};
+const selectedRef = ref(0);
+const { swapElements } = useRecipeHelper({ selected: selectedRef });
 </script>
 
 <style scoped>

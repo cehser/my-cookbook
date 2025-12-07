@@ -27,45 +27,37 @@
   </BRow>
 </template>
 
-<script>
+<script setup lang="ts">
+import { onMounted } from "vue";
 import ArrayReorderBtnGroup from "@/components/ArrayReorderBtnGroup.vue";
 
-export default {
-  name: "StepEdit",
-  components: {
-    ArrayReorderBtnGroup,
-  },
-  props: {
-    modelValue: {
-      type: Object,
-      required: true,
-    },
-    steps: Array,
-    index: Number,
-    sections: Array,
-  },
-  computed: {
-    localStep: {
-      get() {
-        return this.modelValue;
-      },
-      set(value) {
-        this.$emit("update:modelValue", value);
-      },
-    },
-  },
-  mounted() {
-    if (this.modelValue.step === "") {
-      const input = document.querySelector("#editStep" + this.index);
-      if (input) input.focus();
-    }
-  },
-  methods: {
-    deleteStep() {
-      this.$emit("delete");
-    },
-  },
-};
+interface Step {
+  step: string;
+  section: string;
+}
+
+const props = defineProps<{
+  steps: Step[];
+  index: number;
+  sections: string[];
+}>();
+
+const emit = defineEmits<{
+  delete: [];
+}>();
+
+const localStep = defineModel<Step>({ required: true });
+
+const deleteStep = () => emit("delete");
+
+onMounted(() => {
+  if (localStep.value.step === "") {
+    const input = document.querySelector(
+      `#editStep${props.index}`,
+    ) as HTMLInputElement;
+    input?.focus();
+  }
+});
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

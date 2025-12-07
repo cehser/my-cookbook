@@ -18,43 +18,47 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "IngredientModalDialogRename",
-  props: {
-    ingredient: Object,
-    index: Number,
-    sections: Array,
-  },
-  data() {
-    return {
-      newName: "",
-    };
-  },
-  mounted() {
-    // Set focus when component mounts
-    this.$nextTick(() => {
-      if (this.$refs.inputField) {
-        this.$refs.inputField.focus();
-      }
-    });
-  },
-  methods: {
-    renameIngredient: function () {
-      if (!this.newName.trim()) return;
+<script setup lang="ts">
+import { ref, onMounted, nextTick } from "vue";
 
-      var oldName = Object.keys(this.ingredient)[0];
+interface Ingredient {
+  [key: string]: any;
+  section?: string;
+}
 
-      // Create new ingredient object instead of mutating prop
-      var ingredient = {};
-      ingredient[this.newName] = this.ingredient[oldName];
-      ingredient.section = this.ingredient.section;
+const props = defineProps<{
+  ingredient: Ingredient;
+  index: number;
+  sections: string[];
+}>();
 
-      // Emit the new ingredient without mutating the prop
-      this.$emit("update", ingredient);
-    },
-  },
+const emit = defineEmits<{
+  update: [value: Ingredient];
+}>();
+
+const newName = ref("");
+const inputField = ref<HTMLInputElement>();
+
+const renameIngredient = () => {
+  if (!newName.value.trim()) return;
+
+  const oldName = Object.keys(props.ingredient)[0];
+
+  // Create new ingredient object instead of mutating prop
+  const ingredient: Ingredient = {};
+  ingredient[newName.value] = props.ingredient[oldName];
+  ingredient.section = props.ingredient.section;
+
+  // Emit the new ingredient without mutating the prop
+  emit("update", ingredient);
 };
+
+onMounted(() => {
+  // Set focus when component mounts
+  nextTick(() => {
+    inputField.value?.focus();
+  });
+});
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

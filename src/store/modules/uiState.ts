@@ -14,7 +14,7 @@ interface UIState {
   recipe: RecipeViewState
 }
 
-const state: UIState = {
+const state = {
   gallery: {
     filter: '',
     selectedTags: [],
@@ -23,7 +23,7 @@ const state: UIState = {
   recipe: {
     showIngredients: true
   }
-}
+} satisfies UIState
 
 const getters = {
   galleryFilter: (state: UIState) => state.gallery.filter,

@@ -25,26 +25,30 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "RecipeCard",
-  props: {
-    recipe: Object,
-    picture_src: String,
-    index: Number,
-    highlight: String,
-    read_only: Boolean,
-  },
-  computed: {
-    highlightedName() {
-      if (!this.highlight || !this.recipe.recipe_name) {
-        return this.recipe.recipe_name;
-      }
-      const regex = new RegExp(`(${this.highlight})`, "gi");
-      return this.recipe.recipe_name.replace(regex, "<mark>$1</mark>");
-    },
-  },
-};
+<script setup lang="ts">
+import { computed } from "vue";
+
+interface Recipe {
+  recipe_name: string;
+  subtitle?: string;
+  tags?: string[];
+}
+
+const props = defineProps<{
+  recipe: Recipe;
+  picture_src: string;
+  index: number;
+  highlight?: string;
+  read_only: boolean;
+}>();
+
+const highlightedName = computed(() => {
+  if (!props.highlight || !props.recipe.recipe_name) {
+    return props.recipe.recipe_name;
+  }
+  const regex = new RegExp(`(${props.highlight})`, "gi");
+  return props.recipe.recipe_name.replace(regex, "<mark>$1</mark>");
+});
 </script>
 
 <style scoped>
@@ -73,6 +77,7 @@ a .recipe_card_container {
 
 .recipe_title p {
   -webkit-line-clamp: 1;
+  line-clamp: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;

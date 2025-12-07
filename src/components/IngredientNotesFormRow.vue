@@ -21,41 +21,47 @@
   </BRow>
 </template>
 
-<script>
-export default {
-  name: "IngredientNotesFormRow",
-  props: ["ingredient", "index"],
-  methods: {
-    addNote: function () {
-      // Create a deep copy to avoid mutating props
-      const updatedIngredient = JSON.parse(JSON.stringify(this.ingredient));
-      const ingredientData =
-        updatedIngredient[Object.keys(updatedIngredient)[0]];
-      ingredientData.notes = ingredientData.notes || [];
-      ingredientData.notes.push("Neue Notiz");
-      this.$emit("update", updatedIngredient);
-    },
-    deleteNote: function (index) {
-      // Create a deep copy to avoid mutating props
-      const updatedIngredient = JSON.parse(JSON.stringify(this.ingredient));
-      const ingredientData =
-        updatedIngredient[Object.keys(updatedIngredient)[0]];
-      ingredientData.notes.splice(index, 1);
-      this.$emit("update", updatedIngredient);
-    },
-    updateNote: function (index, newValue) {
-      // Create a deep copy to avoid mutating props
-      const updatedIngredient = JSON.parse(JSON.stringify(this.ingredient));
-      const ingredientData =
-        updatedIngredient[Object.keys(updatedIngredient)[0]];
-      ingredientData.notes[index] = newValue;
-      this.$emit("update", updatedIngredient);
-    },
-  },
-  computed: {
-    ingredient_data: function () {
-      return this.ingredient[Object.keys(this.ingredient)[0]];
-    },
-  },
+<script setup lang="ts">
+import { computed } from "vue";
+
+interface Ingredient {
+  [key: string]: {
+    notes?: string[];
+  };
+}
+
+const props = defineProps<{
+  ingredient: Ingredient;
+  index: number;
+}>();
+
+const emit = defineEmits<{
+  update: [value: Ingredient];
+}>();
+
+const ingredient_data = computed(() => {
+  return props.ingredient[Object.keys(props.ingredient)[0]];
+});
+
+const addNote = () => {
+  const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
+  const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
+  ingredientData.notes = ingredientData.notes || [];
+  ingredientData.notes.push("Neue Notiz");
+  emit("update", updatedIngredient);
+};
+
+const deleteNote = (index: number) => {
+  const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
+  const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
+  ingredientData.notes.splice(index, 1);
+  emit("update", updatedIngredient);
+};
+
+const updateNote = (index: number, newValue: string) => {
+  const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
+  const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
+  ingredientData.notes[index] = newValue;
+  emit("update", updatedIngredient);
 };
 </script>
