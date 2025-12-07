@@ -17,6 +17,7 @@
 - WebDAV Cloud-Synchronisation
 - Offline-fähig (PWA)
 - AI-Rezept-Import
+- **Portionen skalieren/umrechnen** (vorhanden, muss erhalten bleiben!)
 
 ---
 
@@ -211,9 +212,13 @@ Dropdown-Menü (⚙️):
 - [ ] Tablet: Umschaltbar zwischen Split-View & Tabs
 - [ ] Mobile: Sticky Zutaten-Header oder Slide-In-Panel
 - [ ] Abschnitts-Navigation: Springe zu Abschnitt → zeige nur relevante Zutaten
+- [ ] **Portionen-Skalierung:** Neuer prominenter Platz (z.B. neben Portionen-Anzeige im Header)
+  - Aktuell: Funktionalität vorhanden
+  - Neu: Besser sichtbar platzieren (± Buttons oder Slider)
+  - Position: Recipe-Header, direkt bei "🍽️ 4 Portionen [− 4 +]"
 
 **Betroffene Dateien:**
-- `src/views/Recipe.vue` (Hauptansicht)
+- `src/views/Recipe.vue` (Hauptansicht + Portionen-UI)
 - Neue Komponente: `RecipeViewerSplit.vue`?
 
 #### 1.2 Inline-Editing im Koch-Modus
@@ -386,7 +391,161 @@ Dropdown-Menü (⚙️):
 
 ---
 
-#### 3.2 Koch-Notizen mit Spracheingabe
+#### 3.3 Einkaufsliste-Export
+**Priorität:** 🟢 Nice-to-have | **Aufwand:** S
+**Problem:** Zutaten für Einkauf notieren ohne manuelles Abtippen
+
+**Lösungskonzept:**
+```
+Rezeptansicht Header:
+[📋 Einkaufsliste] Button
+
+Klick → Action Sheet / Modal:
+┌─────────────────────────────┐
+│ Einkaufsliste: Apfelkuchen  │
+│                             │
+│ Teig:                       │
+│ • 300g Mehl                 │
+│ • 200g Butter               │
+│ • 100g Zucker               │
+│                             │
+│ Füllung:                    │
+│ • 4 Äpfel                   │
+│ • 2 EL Zimt                 │
+│                             │
+│ [📋 In Zwischenablage]      │ ← Kopiert als Plain Text
+│ [📤 Teilen]                 │ ← Native Share API
+└─────────────────────────────┘
+```
+
+**Features:**
+- [ ] **Button in Recipe.vue:** "📋 Einkaufsliste" im Header (neben Portionen)
+- [ ] **Modal/Sheet:** Zeigt alle Zutaten gruppiert nach Abschnitten
+- [ ] **Clipboard API:** Kopiert als formatierter Text
+  ```
+  Einkaufsliste: Apfelkuchen
+  
+  Teig:
+  • 300g Mehl
+  • 200g Butter
+  • 100g Zucker
+  
+  Füllung:
+  • 4 Äpfel
+  • 2 EL Zimt
+  ```
+- [ ] **Native Share API:** Teilen per iOS Notizen, WhatsApp, E-Mail
+- [ ] **Optional:** Mehrere Rezepte kombinieren (später)
+- [ ] **Kein Abhaken:** Bewusst nicht implementiert (simple Lösung)
+
+**Technische Umsetzung:**
+- Navigator Clipboard API: `navigator.clipboard.writeText()`
+- Web Share API: `navigator.share()` (Mobile)
+- Fallback: Textarea mit "Strg+C" Hinweis
+
+**Betroffene Dateien:**
+- `src/views/Recipe.vue` (Button + Modal)
+- `src/components/ShoppingListModal.vue` (neu)
+- `src/composables/useClipboard.ts` (neu - Clipboard + Share API)
+
+---
+
+#### 3.4 Galerie: Suche & Filter
+**Priorität:** 🟡 Wichtig | **Aufwand:** M
+**Problem:** Bei vielen Rezepten schnell das richtige finden
+
+**Lösungskonzept:**
+```
+┌─────────────────────────────────────────────────────┐
+│ 🍳 Galerie                            [+ Neu] [⋮]   │
+├─────────────────────────────────────────────────────┤
+│ [🔍 Rezept suchen...] [🏷️ Alle Tags ▼] [↕️ A-Z ▼] │ ← Suche + Filter
+├─────────────────────────────────────────────────────┤
+│ ┌──────┐  ┌──────┐  ┌──────┐                       │
+│ │ Bild │  │ Bild │  │ Bild │  Rezept-Karten        │
+│ └──────┘  └──────┘  └──────┘                       │
+└─────────────────────────────────────────────────────┘
+```
+
+**Features:**
+- [ ] **Suchfeld:** Filtert nach Rezept-Titel (Live-Suche)
+  - Input-Event → filtert Liste in Echtzeit
+  - Keine Backend-Suche (alles client-side)
+  - Clear-Button (✗) zum Zurücksetzen
+  
+- [ ] **Tag-Filter:** Dropdown mit allen vorhandenen Tags
+  - Multi-Select: Mehrere Tags gleichzeitig
+  - "Alle Tags" = kein Filter aktiv
+  - Zeigt Anzahl: "Desserts (12)"
+  
+- [ ] **Sortierung:** Dropdown
+  - A-Z (Standard)
+  - Z-A
+  - Zuletzt bearbeitet
+  - Favoriten zuerst
+  
+- [ ] **Erweiterung später (nicht jetzt):**
+  - Zutaten-Suche ("Alle mit Äpfeln")
+  - Volltext-Suche (auch in Schritten)
+  - Zeit-Filter ("< 30 Min")
+  - Portionen-Filter
+
+**Technische Umsetzung:**
+- Computed Property für gefilterte Rezepte
+- Tags aus allen Rezepten extrahieren (Set)
+- LocalStorage: Letzte Suche/Filter speichern
+
+**Betroffene Dateien:**
+- `src/views/Gallery.vue` (Suche + Filter UI)
+- `src/components/RecipeSearchBar.vue` (neu)
+- `src/components/TagFilter.vue` (neu)
+- Store: Getter für gefilterte Rezepte
+
+---
+
+### Phase 4: Koch-Workflow-Features
+> **Status:** 🔵 In Planung  
+> **Ziel:** Praktische Features für den Koch-Alltag
+
+#### 4.1 Tabbed Recipe Interface (Multi-Rezept)
+**Priorität:** 🟡 Wichtig | **Aufwand:** M
+**Problem:** Während des Kochens in anderem Rezept nachsehen → Navigation verliert Position
+
+**Lösungskonzept:**
+```
+┌────────────────────────────────────────────────┐
+│ [🏠 Galerie] [📖 Apfelkuchen *] [📖 Vanillesauce] [+] │ ← Tabs
+├────────────────────────────────────────────────┤
+│ Rezeptansicht (Split-View wie Sprint 1)       │
+│                                                │
+│ [Zutaten...]  |  [Schritte...]                │
+└────────────────────────────────────────────────┘
+```
+
+**Features:**
+- [ ] **Tab-System:** Mehrere Rezepte gleichzeitig offen
+- [ ] **Position merken:** Scroll-Position pro Tab gespeichert
+- [ ] **Stern-Markierung:** Aktives Rezept (beim Kochen) mit *
+- [ ] **Galerie-Tab:** Immer erster Tab, zum schnellen Suchen
+- [ ] **Tab-Limit:** Max. 5 offene Rezepte (Memory-Schonung)
+- [ ] **Close-Button:** Rezept schließen (außer Galerie)
+- [ ] **Swipe-Geste:** Zwischen Tabs wischen (Mobile)
+- [ ] **LocalStorage:** Offene Tabs überleben Browser-Reload
+
+**Technische Umsetzung:**
+- Vue Router mit Query-Params: `?tabs=recipe-1,recipe-2,recipe-3`
+- Store: Array mit offenen Rezept-IDs + Scroll-Positionen
+- Component: `<RecipeTabBar>` in `App.vue` oder Layout
+
+**Betroffene Dateien:**
+- `src/App.vue` (Tab-Bar hinzufügen)
+- `src/components/RecipeTabBar.vue` (neu)
+- `src/router/index.ts` (Multi-Tab Routing)
+- Store: `modules/recipeTabs.ts` (neu)
+
+---
+
+#### 4.2 Koch-Notizen mit Spracheingabe
 **Priorität:** 🟢 Nice-to-have | **Aufwand:** M
 **Problem:** Beim Kochen Ideen für Verbesserungen festhalten, ohne Hände zu benutzen
 
@@ -710,6 +869,64 @@ Klick auf FAB → Slide-In von unten (70% Höhe):
 
 ---
 
+### Sprint 7: Einkaufsliste-Export (1-2 Tage)
+**Ziel:** Zutaten für Einkauf ohne Abtippen
+**Status:** 🔵 Optional - Quick Win
+
+**Tasks:**
+1. [ ] Button in Recipe Header
+   - "📋 Einkaufsliste" neben Portionen
+   
+2. [ ] Modal/Sheet mit Zutatenliste
+   - Gruppiert nach Abschnitten
+   - Formatiert als Plain Text
+   
+3. [ ] Clipboard API Integration
+   - "In Zwischenablage" Button
+   - Formatierter Text (• Bullets, Gruppen)
+   
+4. [ ] Native Share API
+   - "Teilen" Button (Mobile)
+   - iOS Notizen, WhatsApp, E-Mail
+
+**Betroffene Dateien:**
+- `src/views/Recipe.vue` (Button)
+- `src/components/ShoppingListModal.vue` (neu)
+- `src/composables/useClipboard.ts` (neu)
+
+---
+
+### Sprint 8: Galerie Suche & Filter (2-3 Tage)
+**Ziel:** Schnelles Finden von Rezepten
+**Status:** 🔵 Nach Sprint 0
+
+**Tasks:**
+1. [ ] Suchfeld implementieren
+   - Live-Suche nach Titel
+   - Clear-Button
+   - LocalStorage für letzte Suche
+   
+2. [ ] Tag-Filter
+   - Dropdown mit allen Tags
+   - Multi-Select möglich
+   - Zeigt Anzahl pro Tag
+   
+3. [ ] Sortierung
+   - A-Z, Z-A
+   - Zuletzt bearbeitet
+   - Favoriten zuerst
+   
+4. [ ] Computed Properties
+   - Gefilterte Rezeptliste
+   - Tag-Extraktion aus allen Rezepten
+
+**Betroffene Dateien:**
+- `src/views/Gallery.vue`
+- `src/components/RecipeSearchBar.vue` (neu)
+- `src/components/TagFilter.vue` (neu)
+
+---
+
 ## 📝 Design-Mockups & Ideen
 
 ### Skizze: Split-View Rezeptansicht (Desktop/Tablet)
@@ -753,9 +970,11 @@ Zutat nach Klick:  • [200]g Mehl  [✓][✗]
    - Galerie = Verwaltung fusioniert
    - Metadaten in Rezeptansicht + Editor
    - Experten-Modus für YAML Import/Export
+   - **Bonus:** Sprint 8 parallel → Suche & Filter in Galerie
 
 **Phase A: Koch-Ansicht optimieren (Höchste Priorität - KRITISCH)**
 1. ✅ Sprint 1: Split-View Desktop/Tablet (3-5 Tage)
+   - **Inkl.:** Portionen-Skalierung prominent platzieren
 2. ✅ Sprint 2: Mobile FAB + Slide-In (2-3 Tage)
 3. ✅ Sprint 3: Inline-Editing (3-4 Tage)
 
@@ -765,40 +984,77 @@ Zutat nach Klick:  • [200]g Mehl  [✓][✗]
 
 **Phase C: Koch-Workflow-Features (Optional - NICE-TO-HAVE)**
 6. 🟢 Sprint 6: Tabbed Recipe Interface (3-4 Tage) - *Multi-Rezept Navigation*
-7. 🟢 Sprint 7: Koch-Notizen + Spracheingabe (4-5 Tage) - *Hands-free Notizen*
+7. 🟢 Sprint 7: Einkaufsliste-Export (1-2 Tage) - *Clipboard + Share API* ⚡ Quick Win
+8. 🟢 Sprint 8: Koch-Notizen + Spracheingabe (4-5 Tage) - *Hands-free Notizen*
 
 **Phase D: Design-Modernisierung (Parallel zu Phase B)**
-8. 🔵 Sprint 8: Design-System & Visual Polish
+9. 🔵 Sprint 9: Design-System & Visual Polish
 
 ---
 
-### 🚀 BEREIT ZUM START!
+### 🚀 ROADMAP KOMPLETT!
 
 **Alle Planungsfragen beantwortet ✓**  
 **Technische Spezifikation komplett ✓**  
 **Mockups erstellt ✓**  
 **Neue Features dokumentiert ✓**
 **Navigation-Konzept definiert ✓**
+**Portionen-Skalierung: Position geplant ✓**
+**Einkaufsliste: Clipboard-Export ✓**
+**Suche & Filter: Titel + Tags ✓**
 
-**WICHTIGE ÄNDERUNG - Start mit Phase 0!**
+---
 
-Die Navbar-Probleme sind fundamental und betreffen alle weiteren Features. Daher:
+## 📊 Feature-Übersicht
 
-**Neue Empfehlung:**
-1. 🔴 **Zuerst:** Sprint 0 (Navbar + Metadaten) - schafft Foundation
-2. 🔴 **Dann:** Sprint 1-3 (Koch-Ansicht optimieren) - löst größten Pain Point
-3. 🔴 **Dann:** Sprint 4-5 (Wizard + Editor) - löst zweitgrößten Pain Point
-4. 🟢 **Optional:** Sprint 6-7 (Tabs, Notizen) - Quality of Life
+### ✅ Muss erhalten bleiben:
+- Portionen skalieren/umrechnen (vorhanden, neu platzieren in Recipe Header)
 
-**Vorteil von Sprint 0 zuerst:**
-- Edit-Button verschwindet aus Navbar → kein Konflikt mit FAB in Sprint 1
-- Metadaten-Support → Wizard in Sprint 4 kann darauf aufbauen
-- Galerie/Verwaltung fusioniert → klare Struktur für alle Features
-- Experten-Modus → YAML-Features versteckt, App wirkt einfacher
+### ✅ Neue Features - Phase 0:
+- Navbar-Neugestaltung (Koch-fokussiert)
+- Galerie/Verwaltung-Fusion
+- Metadaten vollständig (Autor, Quelle, Zeiten, Notizen)
+- Experten-Modus (YAML versteckt)
+- Suche & Filter (Titel + Tags)
 
-**Nächster Schritt:** Sprint 0 - Navbar-Neugestaltung + Metadaten
+### ✅ Neue Features - Phase A:
+- Split-View (Desktop/Tablet)
+- Mobile Koch-Ansicht (FAB + Slide-In, orientierungsabhängig)
+- Inline-Editing (Mengen, Text, Auto-Save)
 
-Soll ich mit Sprint 0 beginnen oder lieber doch mit Sprint 1? 🚀
+### ✅ Neue Features - Phase B:
+- Rezept-Erstellungs-Wizard (4 Schritte, guided)
+- Editor-Neugestaltung (Card-Layout, Touch, Drag & Drop fix)
+
+### ✅ Neue Features - Phase C (Optional):
+- Tabbed Interface (Multi-Rezept, Position merken)
+- Einkaufsliste-Export (Clipboard + Native Share)
+- Koch-Notizen (Text + Spracheingabe)
+
+---
+
+## 🎯 Empfohlener Start
+
+**Option 1 (Empfohlen): Foundation first**
+→ **Sprint 0** (Navbar + Metadaten + Suche/Filter)
+- Schafft solide Basis
+- Galerie wird zum Herzstück
+- Metadaten funktionieren für Wizard später
+- Suche/Filter macht App sofort professioneller
+
+**Option 2: Quick Impact first**
+→ **Sprint 1** (Split-View)
+- Löst größten Pain Point sofort
+- Navbar-Probleme bleiben erstmal
+- Portionen-Button muss trotzdem neu platziert werden
+
+**Meine Empfehlung: Start mit Sprint 0!**
+- 3-4 Tage Aufwand
+- Bessere Foundation für alle weiteren Sprints
+- Navigation wird professionell
+- Suche/Filter = sofortiger Mehrwert
+
+**Nächster Schritt:** Sprint 0 - Los geht's! 🚀
 
 ---
 
