@@ -1,28 +1,34 @@
-import { useToast as useBvnToast } from 'bootstrap-vue-next'
+import { useToast as useBootstrapToast } from 'bootstrap-vue-next'
+import type { ColorVariant } from 'bootstrap-vue-next'
 
 /**
  * Composable for showing toast notifications using bootstrap-vue-next
  */
 export function useToast() {
-  const bvnToast = useBvnToast()
+  const { show } = useBootstrapToast()
 
   /**
    * Show a toast notification
-   * @param content - The message to display
+   * @param title - The title to display
+   * @param message - The message to display
    * @param variant - Bootstrap alert variant (info, success, warning, danger)
    */
-  const toast = (content: string, variant: string = 'info'): void => {
-    bvnToast?.show({
+  const showToast = (
+    title: string,
+    message: string,
+    variant: ColorVariant = 'primary'
+  ): void => {
+    show?.({
       props: {
-        body: content,
-        variant: variant,
-        pos: 'bottom-start',
-        value: true,
+        title,
+        body: message,
+        variant,
+        solid: true,
       },
     })
   }
 
   return {
-    toast,
+    showToast,
   }
 }
