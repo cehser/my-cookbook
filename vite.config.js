@@ -46,13 +46,52 @@ export default defineConfig({
         icons: [
           {
             src: "/img/favicon.svg",
-            sizes: "942x942",
+            sizes: "any",
             type: "image/svg+xml",
+            purpose: "any maskable",
           },
           {
-            src: "/img/favicon180x180.png",
+            src: "/img/icon-48x48.png",
+            sizes: "48x48",
+            type: "image/png",
+          },
+          {
+            src: "/img/icon-64x64.png",
+            sizes: "64x64",
+            type: "image/png",
+          },
+          {
+            src: "/img/icon-96x96.png",
+            sizes: "96x96",
+            type: "image/png",
+          },
+          {
+            src: "/img/icon-128x128.png",
+            sizes: "128x128",
+            type: "image/png",
+          },
+          {
+            src: "/img/icon-180x180.png",
             sizes: "180x180",
             type: "image/png",
+            purpose: "apple-touch-icon",
+          },
+          {
+            src: "/img/icon-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any maskable",
+          },
+          {
+            src: "/img/icon-256x256.png",
+            sizes: "256x256",
+            type: "image/png",
+          },
+          {
+            src: "/img/icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
           },
         ],
       },
