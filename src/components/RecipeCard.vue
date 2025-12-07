@@ -1,68 +1,76 @@
 <template>
   <div class="card recipe_card_container">
     <div class="recipe_card_container">
-      <img class="" id="recipe_img" :src="picture_src" alt="Card image cap">
+      <img class="" id="recipe_img" :src="picture_src" alt="Card image cap" />
       <div class="card-body recipe_title">
-        <h2 class="card-title d-flex flex-row flex-wrap justify-content-between">
+        <h2
+          class="card-title d-flex flex-row flex-wrap justify-content-between"
+        >
           <span class="card-title-text" v-html="highlightedName"></span>
         </h2>
-        <router-link v-if="!read_only" class="editLink" :to="'/edit/' + index"><i class="bi bi-pencil"></i></router-link>
-        <p class="card-text">{{recipe.subtitle}}</p>
+        <router-link v-if="!read_only" class="editLink" :to="'/edit/' + index"
+          ><i class="bi bi-pencil"></i
+        ></router-link>
+        <p class="card-text">{{ recipe.subtitle }}</p>
         <div v-if="recipe.tags && recipe.tags.length" class="mt-2">
-          <span v-for="(tag, idx) in recipe.tags" :key="idx" class="badge bg-secondary me-1">{{ tag }}</span>
+          <span
+            v-for="(tag, idx) in recipe.tags"
+            :key="idx"
+            class="badge bg-secondary me-1"
+            >{{ tag }}</span
+          >
         </div>
       </div>
     </div>
   </div>
 </template>
 
-
 <script>
-  export default {
-    name: 'RecipeCard',
-    props: {
-      recipe: Object,
-      picture_src: String,
-      index: Number,
-      highlight: String,
-      read_only: Boolean
-    },
-    computed: {
-      highlightedName() {
-        if (!this.highlight || !this.recipe.recipe_name) {
-          return this.recipe.recipe_name;
-        }
-        const regex = new RegExp(`(${this.highlight})`, 'gi');
-        return this.recipe.recipe_name.replace(regex, '<mark>$1</mark>');
+export default {
+  name: "RecipeCard",
+  props: {
+    recipe: Object,
+    picture_src: String,
+    index: Number,
+    highlight: String,
+    read_only: Boolean,
+  },
+  computed: {
+    highlightedName() {
+      if (!this.highlight || !this.recipe.recipe_name) {
+        return this.recipe.recipe_name;
       }
-    }
-  }
+      const regex = new RegExp(`(${this.highlight})`, "gi");
+      return this.recipe.recipe_name.replace(regex, "<mark>$1</mark>");
+    },
+  },
+};
 </script>
 
 <style scoped>
 .recipe_card_container img {
   position: absolute;
   border-radius: calc(0.25rem - 1px);
-  
+
   object-fit: cover; /* Do not scale the image */
   object-position: center; /* Center the image within the element */
   width: 100%;
   height: 100%;
-  margin:auto;
+  margin: auto;
 }
 
 .recipe_title {
-  width:100%;
+  width: 100%;
   position: absolute;
   bottom: 0;
-  background-color: rgba(230, 230, 230,0.6);
+  background-color: rgba(230, 230, 230, 0.6);
   /*color: black;*/
 }
 
 a .recipe_card_container {
-    color: initial;
+  color: initial;
 }
- 
+
 .recipe_title p {
   -webkit-line-clamp: 1;
   overflow: hidden;

@@ -1,34 +1,45 @@
 <template>
   <div>
     <h3>{{ section }}</h3>
-    <div v-for="(ingredient, index) in ingredients" :key="'ingredient-edit-'+section + '-' +index">
-      <ingredient-edit v-if="section === ingredient.section" :ingredients="ingredients" :ingredient="ingredient" :index="index" :sections="sections" @update="ingredients.splice(index,1,$event)" @delete="ingredients.splice(index, 1)"></ingredient-edit>
+    <div
+      v-for="(ingredient, index) in ingredients"
+      :key="'ingredient-edit-' + section + '-' + index"
+    >
+      <ingredient-edit
+        v-if="section === ingredient.section"
+        :ingredients="ingredients"
+        :ingredient="ingredient"
+        :index="index"
+        :sections="sections"
+        @update="ingredients.splice(index, 1, $event)"
+        @delete="ingredients.splice(index, 1)"
+      ></ingredient-edit>
     </div>
   </div>
 </template>
 
 <script>
-  import IngredientEdit from '@/components/IngredientEdit.vue'
+import IngredientEdit from "@/components/IngredientEdit.vue";
 
-  export default {
-    name: 'SectionIngredientsEdit',
-    components: {
-      IngredientEdit
+export default {
+  name: "SectionIngredientsEdit",
+  components: {
+    IngredientEdit,
+  },
+  props: {
+    modelValue: Array,
+    section: String,
+    sections: Array,
+  },
+  computed: {
+    ingredients: {
+      get() {
+        return this.modelValue;
+      },
+      set(value) {
+        this.$emit("update:modelValue", value);
+      },
     },
-    props: {
-      modelValue: Array,
-      section: String,
-      sections: Array
-    },
-    computed: {
-      ingredients: {
-        get() {
-          return this.modelValue;
-        },
-        set(value) {
-          this.$emit('update:modelValue', value);
-        }
-      }
-    }
-  }
+  },
+};
 </script>

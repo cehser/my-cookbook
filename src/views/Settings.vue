@@ -1,6 +1,11 @@
 <template>
   <div id="settings">
-    <Navbar @input="selected=$event" :recipes_list="recipes_list" :selected="selected" :read_only="store_settings.read_only">
+    <Navbar
+      @input="selected = $event"
+      :recipes_list="recipes_list"
+      :selected="selected"
+      :read_only="store_settings.read_only"
+    >
       <!-- <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" role="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         Organisation
@@ -18,18 +23,26 @@
         </div> 
       </li>-->
     </Navbar>
-    <BContainer> 
+    <BContainer>
       <h2>Einstellungen</h2>
-      
+
       <BCollapse id="collapse-file-upload">
-        <BFormFile hidden="hidden" id="fileUploadButton" @change="loadFromFile" v-model="file" placeholder="Choose a file or drop it here..." drop-placeholder="Drop file here..." accept=".yaml"></BFormFile>
+        <BFormFile
+          hidden="hidden"
+          id="fileUploadButton"
+          @change="loadFromFile"
+          v-model="file"
+          placeholder="Choose a file or drop it here..."
+          drop-placeholder="Drop file here..."
+          accept=".yaml"
+        ></BFormFile>
       </BCollapse>
 
       <BFormCheckbox v-model="settings.read_only" name="check-button" switch>
-        Nur lesen 
+        Nur lesen
       </BFormCheckbox>
       <BFormCheckbox v-model="settings.autosync" name="check-button" switch>
-        Auto-Sync 
+        Auto-Sync
       </BFormCheckbox>
 
       <div id="settings">
@@ -38,54 +51,109 @@
           <form>
             <div class="form-group">
               <label for="webdav_url" class="col-form-label">URL</label>
-              <input type="text" class="form-control" id="webdav_url" v-model="settings.webdav.webdav_url" autocorrect="off">
+              <input
+                type="text"
+                class="form-control"
+                id="webdav_url"
+                v-model="settings.webdav.webdav_url"
+                autocorrect="off"
+              />
             </div>
             <div class="form-group">
               <label for="webdav_username" class="col-form-label">User</label>
-              <input type="text" class="form-control" id="webdav_username" v-model="settings.webdav.webdav_creds.username" autocorrect="off"> 
+              <input
+                type="text"
+                class="form-control"
+                id="webdav_username"
+                v-model="settings.webdav.webdav_creds.username"
+                autocorrect="off"
+              />
             </div>
             <div class="form-group">
-              <label for="webdav_password" class="col-form-label">Passwort</label>
-              <input type="text" class="form-control" id="webdav_password" v-model="settings.webdav.webdav_creds.password" autocorrect="off">
+              <label for="webdav_password" class="col-form-label"
+                >Passwort</label
+              >
+              <input
+                type="text"
+                class="form-control"
+                id="webdav_password"
+                v-model="settings.webdav.webdav_creds.password"
+                autocorrect="off"
+              />
             </div>
             <div class="form-group">
               <label for="webdav_filepath" class="col-form-label">Pfad</label>
-              <input type="text" class="form-control" id="webdav_filepath" v-model="settings.webdav.filepath" autocorrect="off">
+              <input
+                type="text"
+                class="form-control"
+                id="webdav_filepath"
+                v-model="settings.webdav.filepath"
+                autocorrect="off"
+              />
             </div>
           </form>
-          
-          <div class="d-flex flex-row flex-wrap justify-content-around align-items-center">
+
+          <div
+            class="d-flex flex-row flex-wrap justify-content-around align-items-center"
+          >
             <canvas id="qrcode_config" width="100" height="100"></canvas>
-            <video id="qrcode_scan_video" height="200"> </video>
-          </div> 
-          <button type="button" class="btn btn-secondary mt-2" @click="scanQRConfig">QR-Code scannen</button>
+            <video id="qrcode_scan_video" height="200"></video>
+          </div>
+          <button
+            type="button"
+            class="btn btn-secondary mt-2"
+            @click="scanQRConfig"
+          >
+            QR-Code scannen
+          </button>
         </div>
         <div class="mt-2 mb-2">
-          <button type="button" class="btn btn-primary" :disabled="!changed" @click="saveWebDAVConfig">Save changes</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="!changed"
+            @click="saveWebDAVConfig"
+          >
+            Save changes
+          </button>
         </div>
         <div class="form-group">
-            <label for="configurl" class="col-form-label">Konfiguration teilen</label>
-            <BInputGroup>
-              <BFormInput  type="text" class="form-control" id="configurl" v-model="configurl" autocorrect="off" disabled></BFormInput>
-              <template #append>
-                <BButton @click="copyConfigUrl"><i class="bi bi-files"></i></BButton>
-              </template>
-            </BInputGroup>
+          <label for="configurl" class="col-form-label"
+            >Konfiguration teilen</label
+          >
+          <BInputGroup>
+            <BFormInput
+              type="text"
+              class="form-control"
+              id="configurl"
+              v-model="configurl"
+              autocorrect="off"
+              disabled
+            ></BFormInput>
+            <template #append>
+              <BButton @click="copyConfigUrl"
+                ><i class="bi bi-files"></i
+              ></BButton>
+            </template>
+          </BInputGroup>
         </div>
       </div>
 
       <div class="mt-4">
         <h5>AI-Integration (OpenAI)</h5>
         <div class="form-group">
-          <label for="openai_api_key" class="col-form-label">OpenAI API Key</label>
+          <label for="openai_api_key" class="col-form-label"
+            >OpenAI API Key</label
+          >
           <BInputGroup>
-            <BFormInput 
-              :type="showApiKey ? 'text' : 'password'" 
-              class="form-control" 
-              id="openai_api_key" 
-              v-model="settings.ai.openai_api_key" 
-              placeholder="sk-..." 
-              autocorrect="off">
+            <BFormInput
+              :type="showApiKey ? 'text' : 'password'"
+              class="form-control"
+              id="openai_api_key"
+              v-model="settings.ai.openai_api_key"
+              placeholder="sk-..."
+              autocorrect="off"
+            >
             </BFormInput>
             <template #append>
               <BButton @click="showApiKey = !showApiKey">
@@ -94,25 +162,38 @@
             </template>
           </BInputGroup>
           <small class="form-text text-muted">
-            Wird für den AI-Rezept-Import aus Fotos/Text benötigt. 
-            <a href="https://platform.openai.com/api-keys" target="_blank">API-Key erstellen</a>
+            Wird für den AI-Rezept-Import aus Fotos/Text benötigt.
+            <a href="https://platform.openai.com/api-keys" target="_blank"
+              >API-Key erstellen</a
+            >
           </small>
         </div>
         <div class="form-group">
           <label for="gpt_id" class="col-form-label">GPT ID</label>
-          <BFormInput 
-            type="text" 
-            class="form-control" 
-            id="gpt_id" 
-            v-model="settings.ai.gpt_id" 
-            autocorrect="off">
+          <BFormInput
+            type="text"
+            class="form-control"
+            id="gpt_id"
+            v-model="settings.ai.gpt_id"
+            autocorrect="off"
+          >
           </BFormInput>
           <small class="form-text text-muted">
-            Custom ChatGPT IDs (starting with "g-...") are typically available only in the ChatGPT web UI and may return 404 when used with the OpenAI REST API. If you get a 404, try a supported model like <code>gpt-3.5-turbo</code> or <code>gpt-4o-mini</code>.
+            Custom ChatGPT IDs (starting with "g-...") are typically available
+            only in the ChatGPT web UI and may return 404 when used with the
+            OpenAI REST API. If you get a 404, try a supported model like
+            <code>gpt-3.5-turbo</code> or <code>gpt-4o-mini</code>.
           </small>
         </div>
         <div class="mt-2 mb-2">
-          <button type="button" class="btn btn-primary" :disabled="!changed" @click="saveWebDAVConfig">Save changes</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="!changed"
+            @click="saveWebDAVConfig"
+          >
+            Save changes
+          </button>
         </div>
       </div>
 
@@ -120,116 +201,138 @@
         <h5>Bild-Verwaltung</h5>
         <div class="alert alert-info">
           <i class="bi bi-info-circle"></i>
-          URL-Bilder können nach einiger Zeit ungültig werden. Du kannst alle Rezeptbilder herunterladen und lokal speichern.
+          URL-Bilder können nach einiger Zeit ungültig werden. Du kannst alle
+          Rezeptbilder herunterladen und lokal speichern.
         </div>
-        
+
         <div class="mb-3">
-          <strong>Status:</strong> {{ imageUrlCount }} Rezept(e) mit URL-Bildern gefunden
+          <strong>Status:</strong> {{ imageUrlCount }} Rezept(e) mit URL-Bildern
+          gefunden
         </div>
-        
-        <BButton 
-          @click="downloadAllImages" 
-          variant="primary" 
-          :disabled="downloadingAllImages || imageUrlCount === 0">
-          <span v-if="downloadingAllImages" class="spinner-border spinner-border-sm me-2"></span>
+
+        <BButton
+          @click="downloadAllImages"
+          variant="primary"
+          :disabled="downloadingAllImages || imageUrlCount === 0"
+        >
+          <span
+            v-if="downloadingAllImages"
+            class="spinner-border spinner-border-sm me-2"
+          ></span>
           <i v-else class="bi bi-download"></i>
           Alle URL-Bilder herunterladen
         </BButton>
-        
+
         <div v-if="downloadProgress" class="mt-3">
-          <BProgress :value="downloadProgress.current" :max="downloadProgress.total" show-progress animated></BProgress>
+          <BProgress
+            :value="downloadProgress.current"
+            :max="downloadProgress.total"
+            show-progress
+            animated
+          ></BProgress>
           <small class="text-muted">
-            {{ downloadProgress.current }} / {{ downloadProgress.total }} Bilder heruntergeladen
+            {{ downloadProgress.current }} / {{ downloadProgress.total }} Bilder
+            heruntergeladen
             <span v-if="downloadProgress.failed > 0" class="text-danger">
               ({{ downloadProgress.failed }} fehlgeschlagen)
             </span>
           </small>
         </div>
-        
+
         <div v-if="downloadResult" class="mt-3">
-          <div :class="['alert', downloadResult.success ? 'alert-success' : 'alert-warning']">
-            <i :class="downloadResult.success ? 'bi bi-check-circle' : 'bi bi-exclamation-triangle'"></i>
+          <div
+            :class="[
+              'alert',
+              downloadResult.success ? 'alert-success' : 'alert-warning',
+            ]"
+          >
+            <i
+              :class="
+                downloadResult.success
+                  ? 'bi bi-check-circle'
+                  : 'bi bi-exclamation-triangle'
+              "
+            ></i>
             {{ downloadResult.message }}
           </div>
         </div>
       </div>
     </BContainer>
   </div>
-
 </template>
 
 <script>
 // @ is an alias to /src
-import Navbar from '@/components/Navbar.vue'
+import Navbar from "@/components/Navbar.vue";
 
-import { useRecipeHelper } from '@/composables/useRecipeHelper'
-import { mapState } from 'vuex'
-import { useToast } from '@/composables/useToast'
+import { useRecipeHelper } from "@/composables/useRecipeHelper";
+import { mapState } from "vuex";
+import { useToast } from "@/composables/useToast";
 
-import jsyaml from 'js-yaml'
+import jsyaml from "js-yaml";
 
-import Cloud from '../js/cloud'
+import Cloud from "../js/cloud";
 
-import QRCode from 'qrcode'
+import QRCode from "qrcode";
 
-import deepEqual from 'deep-equal'
+import deepEqual from "deep-equal";
 
-import jsonUrl from 'json-url'
-const json_url = jsonUrl('lzma');
+import jsonUrl from "json-url";
+const json_url = jsonUrl("lzma");
 
 //qr code scanning
-import QrScanner from 'qr-scanner';
+import QrScanner from "qr-scanner";
 // QrScanner.WORKER_PATH is no longer needed in newer versions
-import { computed } from 'vue'
+import { computed } from "vue";
 
 export default {
-  name: 'Settings',
+  name: "Settings",
   props: {
     selected: {
       type: Number,
-      default: 0
-    }
+      default: 0,
+    },
   },
   components: {
-    Navbar
+    Navbar,
   },
   setup(props) {
-    const selectedRef = computed(() => props.selected)
-    const recipeHelper = useRecipeHelper({ selected: selectedRef })
-    const { toast } = useToast()
-    
+    const selectedRef = computed(() => props.selected);
+    const recipeHelper = useRecipeHelper({ selected: selectedRef });
+    const { toast } = useToast();
+
     return {
       ...recipeHelper,
-      toast
-    }
+      toast,
+    };
   },
   data() {
     return {
-      file:null,     //used for file upload
+      file: null, //used for file upload
       settings: null,
-      configurl: '',  // cached async value
-      showApiKey: false,  // toggle API key visibility
+      configurl: "", // cached async value
+      showApiKey: false, // toggle API key visibility
       downloadingAllImages: false,
       downloadProgress: null,
-      downloadResult: null
+      downloadResult: null,
     };
   },
   async created() {
     //local copy of store settings
-    this.settings = JSON.parse(JSON.stringify(this.store_settings))
-    
+    this.settings = JSON.parse(JSON.stringify(this.store_settings));
+
     // Initialize AI settings if not present
     if (!this.settings.ai) {
       this.settings.ai = {
         openai_api_key: "",
-        gpt_id: "gpt-5.1"
-      }
+        gpt_id: "gpt-5.1",
+      };
     }
-    
-    if(this.$route.query.config) {
-      console.log(this.$route.query.config)
-      this.settings = await json_url.decompress(this.$route.query.config)
-      console.log(this.settings)
+
+    if (this.$route.query.config) {
+      console.log(this.$route.query.config);
+      this.settings = await json_url.decompress(this.$route.query.config);
+      console.log(this.settings);
     }
     // Initialize configurl
     this.updateConfigUrl();
@@ -237,88 +340,97 @@ export default {
   computed: {
     ...mapState({
       // passing the string value 'count' is same as `state => state.count`
-      store_settings: 'settings',
-      recipes: 'recipes',
-      recipe_pictures: 'recipe_pictures'
+      store_settings: "settings",
+      recipes: "recipes",
+      recipe_pictures: "recipe_pictures",
     }),
-    changed: function() {
-      return !deepEqual(this.settings, this.store_settings)
+    changed: function () {
+      return !deepEqual(this.settings, this.store_settings);
     },
     imageUrlCount() {
-      if (!this.recipes) return 0
-      return this.recipes.filter(recipe => {
-        const hasImageUrl = recipe.imageurl && recipe.imageurl.trim().length > 0
-        const hasCloudImages = recipe.cloud_images && recipe.cloud_images.length > 0
+      if (!this.recipes) return 0;
+      return this.recipes.filter((recipe) => {
+        const hasImageUrl =
+          recipe.imageurl && recipe.imageurl.trim().length > 0;
+        const hasCloudImages =
+          recipe.cloud_images && recipe.cloud_images.length > 0;
         // Count only recipes with imageurl but no cloud_images yet
-        return hasImageUrl && !hasCloudImages
-      }).length
-    }
+        return hasImageUrl && !hasCloudImages;
+      }).length;
+    },
   },
-  mounted() { 
+  mounted() {
     document.onkeydown = (event) => {
       //ctrl + s
-      if(event.ctrlKey && event.which === 83){ 
+      if (event.ctrlKey && event.which === 83) {
         event.preventDefault(); //do not show browser dialog
-         this.saveWebDAVConfig();
+        this.saveWebDAVConfig();
       }
-    }
+    };
     this.updateQRCode();
 
     //init QRScanner
-    let videoElem = document.querySelector('#qrcode_scan_video');
-    this.qrScanner = new QrScanner(videoElem, result => { 
+    let videoElem = document.querySelector("#qrcode_scan_video");
+    this.qrScanner = new QrScanner(videoElem, (result) => {
       try {
-        let webdav_qr = JSON.parse(result); 
+        let webdav_qr = JSON.parse(result);
         this.settings.webdav.webdav_url = webdav_qr.webdav_url;
-        this.settings.webdav.filepath   = webdav_qr.filepath;
-        this.settings.webdav.webdav_creds.username = webdav_qr.webdav_creds.username;
-        this.settings.webdav.webdav_creds.password = webdav_qr.webdav_creds.password;
-        this.scrollto('#settings')
-      }
-      catch(e) {
+        this.settings.webdav.filepath = webdav_qr.filepath;
+        this.settings.webdav.webdav_creds.username =
+          webdav_qr.webdav_creds.username;
+        this.settings.webdav.webdav_creds.password =
+          webdav_qr.webdav_creds.password;
+        this.scrollto("#settings");
+      } catch (e) {
         console.log(e);
-      } 
-      finally {
+      } finally {
         this.qrScanner.stop();
-        this.closeFullscreen();   
+        this.closeFullscreen();
       }
     });
-
   },
   watch: {
-    settings :{
+    settings: {
       deep: true,
       //update qr code and configurl
       handler() {
         this.updateQRCode();
         this.updateConfigUrl();
-      }
-    }
+      },
+    },
   },
   methods: {
     async updateConfigUrl() {
-      this.configurl = location.toString() + "?config=" + await json_url.compress(this.settings);
+      this.configurl =
+        location.toString() +
+        "?config=" +
+        (await json_url.compress(this.settings));
     },
-    updateQRCode: function() {
-      let canvas = document.querySelector('#qrcode_config');
-      if(canvas && this.settings.webdav) {
-        QRCode.toCanvas(canvas, JSON.stringify(this.settings.webdav), (error) => { if (error) console.error(error) });  
+    updateQRCode: function () {
+      let canvas = document.querySelector("#qrcode_config");
+      if (canvas && this.settings.webdav) {
+        QRCode.toCanvas(
+          canvas,
+          JSON.stringify(this.settings.webdav),
+          (error) => {
+            if (error) console.error(error);
+          },
+        );
       }
     },
     saveRecipeAsFile: function () {
-      let fileNameToSaveAs = "recipe.yaml"
-      let textFileAsBlob = new Blob([jsyaml.dump(this.current_recipe)], {type:'text/plain'}); 
+      let fileNameToSaveAs = "recipe.yaml";
+      let textFileAsBlob = new Blob([jsyaml.dump(this.current_recipe)], {
+        type: "text/plain",
+      });
       let downloadLink = document.createElement("a");
       downloadLink.download = fileNameToSaveAs;
       downloadLink.innerHTML = "Download File";
-      if (window.webkitURL != null)
-      {
+      if (window.webkitURL != null) {
         // Chrome allows the link to be clicked
         // without actually adding it to the DOM.
         downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
-      }
-      else
-      {
+      } else {
         // Firefox requires the link to be added to the DOM
         // before it can be clicked.
         downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
@@ -326,22 +438,26 @@ export default {
         downloadLink.style.display = "none";
         document.body.appendChild(downloadLink);
       }
-    
+
       downloadLink.click();
     },
     saveCookbookAsFile: function () {
-      let fileNameToSaveAs = "cookbook.yaml"
-      let blob = new Blob([jsyaml.dump(this.recipes)], {type:'application/octet-stream'}); 
+      let fileNameToSaveAs = "cookbook.yaml";
+      let blob = new Blob([jsyaml.dump(this.recipes)], {
+        type: "application/octet-stream",
+      });
       let url = window.URL.createObjectURL(blob);
       window.URL = window.URL || window.webkitURL;
-      
 
       window.location.href = url;
 
-        if (navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) { //Safari & Opera iOS
-          window.location.href = url;
-      }
-      else {
+      if (
+        navigator.userAgent.match(/iPad/i) ||
+        navigator.userAgent.match(/iPhone/i)
+      ) {
+        //Safari & Opera iOS
+        window.location.href = url;
+      } else {
         let downloadLink = document.createElement("a");
         downloadLink.download = fileNameToSaveAs;
         downloadLink.innerHTML = "Download File";
@@ -349,8 +465,8 @@ export default {
         downloadLink.onclick = this.destroyClickedElement;
         downloadLink.style.display = "none";
         document.body.appendChild(downloadLink);
-        downloadLink.click();  
-      }     
+        downloadLink.click();
+      }
     },
     loadFromFile: function (ev) {
       const file = ev.target.files[0];
@@ -358,63 +474,61 @@ export default {
 
       reader.onload = (e) => {
         let content = jsyaml.load(e.target.result);
-        let recipes=[];
+        let recipes = [];
 
-        if(!Array.isArray(content)) {
+        if (!Array.isArray(content)) {
           recipes = [content];
-        }
-        else {
+        } else {
           recipes = content;
         }
 
-        recipes.forEach( (recipe) => {
+        recipes.forEach((recipe) => {
           this.appendRecipe(recipe);
         });
       };
       //reader.onload = e => console.log(e.target.result);
 
-      reader.readAsText(file);    
+      reader.readAsText(file);
     },
-    async saveWebDAVConfig () {
-      const spinner = document.querySelector('#loading-spinner');
-      if (spinner) spinner.classList.remove('d-none');
+    async saveWebDAVConfig() {
+      const spinner = document.querySelector("#loading-spinner");
+      if (spinner) spinner.classList.remove("d-none");
       Cloud.checkPath(this.settings)
-        .then((fileExists) =>{ 
-          if(fileExists) {
-            this.$store.dispatch("saveSettings", this.settings)
-              .then(() => {
-                this.toast('Gespeichert.', 'success')
-              })
-          }
-          else {
-            this.toast('Datei nicht gefunden.', 'danger')
+        .then((fileExists) => {
+          if (fileExists) {
+            this.$store.dispatch("saveSettings", this.settings).then(() => {
+              this.toast("Gespeichert.", "success");
+            });
+          } else {
+            this.toast("Datei nicht gefunden.", "danger");
           }
         })
         .catch((e) => {
-          this.toast('Zugriffsfehler!', 'danger');
+          this.toast("Zugriffsfehler!", "danger");
           console.log(e);
         })
         .finally(() => {
-          const spinner = document.querySelector('#loading-spinner');
-          if (spinner) spinner.classList.add('d-none');
-        })
+          const spinner = document.querySelector("#loading-spinner");
+          if (spinner) spinner.classList.add("d-none");
+        });
     },
-    scanQRConfig: function() {
+    scanQRConfig: function () {
       this.qrScanner.start();
-      let videoElem = document.querySelector('#qrcode_scan_video');
-      this.openFullscreen(videoElem)
+      let videoElem = document.querySelector("#qrcode_scan_video");
+      this.openFullscreen(videoElem);
       setTimeout(() => {
-          this.qrScanner.stop()
-          this.closeFullscreen()
-        }
-        , 10000);
+        this.qrScanner.stop();
+        this.closeFullscreen();
+      }, 10000);
     },
     openFullscreen: function (elem) {
       if (elem.requestFullscreen) {
         elem.requestFullscreen();
-      } else if (elem.webkitRequestFullscreen) { /* Safari */
+      } else if (elem.webkitRequestFullscreen) {
+        /* Safari */
         elem.webkitRequestFullscreen();
-      } else if (elem.msRequestFullscreen) { /* IE11 */
+      } else if (elem.msRequestFullscreen) {
+        /* IE11 */
         elem.msRequestFullscreen();
       }
     },
@@ -423,28 +537,31 @@ export default {
     closeFullscreen: function () {
       if (document.exitFullscreen) {
         document.exitFullscreen();
-      } else if (document.mozCancelFullScreen) { /* Firefox */
+      } else if (document.mozCancelFullScreen) {
+        /* Firefox */
         document.mozCancelFullScreen();
-      } 
-      else if (document.webkitExitFullscreen) { /* Safari */
+      } else if (document.webkitExitFullscreen) {
+        /* Safari */
         document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) { /* IE11 */
+      } else if (document.msExitFullscreen) {
+        /* IE11 */
         document.msExitFullscreen();
       }
     },
-    scrollto: function(element){
+    scrollto: function (element) {
       const el = document.querySelector(element);
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     },
-    copyConfigUrl: function() {
+    copyConfigUrl: function () {
       const text = this.configurl;
-      
+
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(text)
+        navigator.clipboard
+          .writeText(text)
           .then(() => {
-            this.toast('URL kopiert!', 'success');
+            this.toast("URL kopiert!", "success");
           })
           .catch(() => {
             this.fallbackCopy(text);
@@ -453,141 +570,159 @@ export default {
         this.fallbackCopy(text);
       }
     },
-    fallbackCopy: function(text) {
-      const textarea = document.createElement('textarea');
+    fallbackCopy: function (text) {
+      const textarea = document.createElement("textarea");
       textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
       document.body.appendChild(textarea);
       textarea.select();
       try {
-        document.execCommand('copy');
-        this.toast('URL kopiert!', 'success');
-      } catch (err) {
-        this.toast('Kopieren fehlgeschlagen', 'danger');
+        document.execCommand("copy");
+        this.toast("URL kopiert!", "success");
+      } catch {
+        this.toast("Kopieren fehlgeschlagen", "danger");
       }
       document.body.removeChild(textarea);
     },
     async downloadAllImages() {
-      this.downloadingAllImages = true
-      this.downloadResult = null
+      this.downloadingAllImages = true;
+      this.downloadResult = null;
       this.downloadProgress = {
         current: 0,
         total: 0,
-        failed: 0
-      }
-      
+        failed: 0,
+      };
+
       // Find all recipes with imageurl but WITHOUT cloud_images
-      const recipesWithUrls = this.recipes.filter(recipe => {
-        const hasImageUrl = recipe.imageurl && recipe.imageurl.trim().length > 0
-        const hasCloudImages = recipe.cloud_images && recipe.cloud_images.length > 0
+      const recipesWithUrls = this.recipes.filter((recipe) => {
+        const hasImageUrl =
+          recipe.imageurl && recipe.imageurl.trim().length > 0;
+        const hasCloudImages =
+          recipe.cloud_images && recipe.cloud_images.length > 0;
         // Only download if has imageurl but no cloud_images yet
-        return hasImageUrl && !hasCloudImages
-      })
-      
-      this.downloadProgress.total = recipesWithUrls.length
-      
-      let successCount = 0
-      let failedCount = 0
-      
+        return hasImageUrl && !hasCloudImages;
+      });
+
+      this.downloadProgress.total = recipesWithUrls.length;
+
+      let successCount = 0;
+      let failedCount = 0;
+
       for (const recipe of recipesWithUrls) {
         try {
           // Try multiple CORS proxies with fallback
           const proxies = [
             `https://corsproxy.io/?${encodeURIComponent(recipe.imageurl)}`,
             `https://api.allorigins.win/raw?url=${recipe.imageurl}`,
-            `https://cors-anywhere.herokuapp.com/${recipe.imageurl}`
-          ]
-          
-          let response = null
-          let lastError = null
-          
+            `https://cors-anywhere.herokuapp.com/${recipe.imageurl}`,
+          ];
+
+          let response = null;
+          let lastError = null;
+
           for (const proxyUrl of proxies) {
             try {
               response = await fetch(proxyUrl, {
-                cache: 'no-cache',
-                signal: AbortSignal.timeout(10000) // 10 second timeout
-              })
-              
+                cache: "no-cache",
+                signal: AbortSignal.timeout(10000), // 10 second timeout
+              });
+
               if (response.ok) {
-                break // Success, exit loop
+                break; // Success, exit loop
               }
             } catch (err) {
-              lastError = err
-              continue // Try next proxy
+              lastError = err;
+              continue; // Try next proxy
             }
           }
-          
+
           if (!response || !response.ok) {
-            throw lastError || new Error('Alle Proxy-Server fehlgeschlagen')
+            throw lastError || new Error("Alle Proxy-Server fehlgeschlagen");
           }
-          
-          const blob = await response.blob()
-          
+
+          const blob = await response.blob();
+
           // Detect extension from content-type or URL
-          let extension = 'jpg'
-          const contentType = response.headers.get('content-type')
+          let extension = "jpg";
+          const contentType = response.headers.get("content-type");
           if (contentType) {
-            extension = contentType.split('/')[1]?.split(';')[0] || 'jpg'
+            extension = contentType.split("/")[1]?.split(";")[0] || "jpg";
           } else {
             // Fallback: try to extract from URL
-            const urlMatch = recipe.imageurl.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i)
-            if (urlMatch) extension = urlMatch[1]
+            const urlMatch = recipe.imageurl.match(
+              /\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i,
+            );
+            if (urlMatch) extension = urlMatch[1];
           }
-          
-          const filename = `${recipe.recipe_uuid}.${extension}`
-          
+
+          const filename = `${recipe.recipe_uuid}.${extension}`;
+
           // Store in recipe_pictures - create new object to trigger reactivity
-          const updatedPictures = { ...this.$store.state.recipe_pictures, [filename]: blob }
-          this.$store.commit('setRecipesPictures', updatedPictures)
-          
+          const updatedPictures = {
+            ...this.$store.state.recipe_pictures,
+            [filename]: blob,
+          };
+          this.$store.commit("setRecipesPictures", updatedPictures);
+
           // Update recipe: add to cloud_images, clear imageurl
-          const recipeIndex = this.recipes.findIndex(r => r.recipe_uuid === recipe.recipe_uuid)
+          const recipeIndex = this.recipes.findIndex(
+            (r) => r.recipe_uuid === recipe.recipe_uuid,
+          );
           if (recipeIndex !== -1) {
-            const currentRecipe = this.recipes[recipeIndex]
-            
+            const currentRecipe = this.recipes[recipeIndex];
+
             // Create completely new recipe object with new cloud_images array
             const updatedRecipe = {
               ...currentRecipe,
               cloud_images: [
                 ...(currentRecipe.cloud_images || []),
-                ...(currentRecipe.cloud_images?.includes(filename) ? [] : [filename])
+                ...(currentRecipe.cloud_images?.includes(filename)
+                  ? []
+                  : [filename]),
               ],
-              imageurl: null
-            }
-            
-            this.$store.dispatch('setRecipe', { index: recipeIndex, recipe: updatedRecipe })
+              imageurl: null,
+            };
+
+            this.$store.dispatch("setRecipe", {
+              index: recipeIndex,
+              recipe: updatedRecipe,
+            });
           }
-          
-          successCount++
+
+          successCount++;
         } catch (err) {
-          console.error(`Failed to download image for ${recipe.recipe_name}:`, err)
-          failedCount++
-          this.downloadProgress.failed++
+          console.error(
+            `Failed to download image for ${recipe.recipe_name}:`,
+            err,
+          );
+          failedCount++;
+          this.downloadProgress.failed++;
         }
-        
-        this.downloadProgress.current++
+
+        this.downloadProgress.current++;
       }
-      
+
       // Save all changes
-      this.$store.dispatch('saveRecipePictures')
-      this.$store.dispatch('saveRecipes')
-      
+      this.$store.dispatch("saveRecipePictures");
+      this.$store.dispatch("saveRecipes");
+
       // Show result
       this.downloadResult = {
         success: failedCount === 0,
-        message: failedCount === 0
-          ? `Alle ${successCount} Bilder erfolgreich heruntergeladen!`
-          : `${successCount} Bilder heruntergeladen, ${failedCount} fehlgeschlagen.`
-      }
-      
-      this.downloadingAllImages = false
-      
+        message:
+          failedCount === 0
+            ? `Alle ${successCount} Bilder erfolgreich heruntergeladen!`
+            : `${successCount} Bilder heruntergeladen, ${failedCount} fehlgeschlagen.`,
+      };
+
+      this.downloadingAllImages = false;
+
       // Reset progress after 5 seconds
       setTimeout(() => {
-        this.downloadProgress = null
-      }, 5000)
-    }
-  }
-}
+        this.downloadProgress = null;
+      }, 5000);
+    },
+  },
+};
 </script>
