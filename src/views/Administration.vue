@@ -46,7 +46,7 @@
           ><i class="bi bi-file-earmark-text"></i><br />Beispielrezept</BButton
         >
         <BButton
-          v-if="!settings.read_only"
+          v-if="!settings.read_only && settings.expert_mode"
           class="btn m-2"
           @click="triggerImport"
           ><i class="bi bi-upload"></i><br />YAML Import</BButton
@@ -76,6 +76,7 @@
             ><i class="bi bi-files"></i
           ></BButton>
           <BButton
+            v-if="settings.expert_mode"
             class="btn-sm"
             @click="exportRecipe(index)"
             title="Als YAML exportieren"

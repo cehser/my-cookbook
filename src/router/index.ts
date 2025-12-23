@@ -7,6 +7,16 @@ const routes: RouteRecordRaw[] = [
     name: 'Gallery',
     component: Gallery
   },
+  {
+    path: '/favorites',
+    name: 'Favorites',
+    component: Gallery // Temporär: Nutzt Gallery-Komponente, später eigene View oder Query-Parameter
+  },
+  {
+    path: '/search',
+    name: 'Search',
+    component: Gallery // Temporär: Nutzt Gallery-Komponente mit Fokus auf Suchleiste
+  },
   { 
     path: '/recipe/:selected', 
     name: 'Recipe',

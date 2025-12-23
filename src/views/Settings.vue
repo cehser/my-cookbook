@@ -44,6 +44,29 @@
       <BFormCheckbox v-model="settings.autosync" name="check-button" switch>
         Auto-Sync
       </BFormCheckbox>
+      <BFormCheckbox v-model="settings.expert_mode" name="check-button" switch>
+        Experten-Modus
+      </BFormCheckbox>
+      
+      <!-- Experten-Modus Info -->
+      <BAlert
+        v-if="settings.expert_mode"
+        variant="info"
+        :model-value="true"
+        class="mt-2"
+      >
+        <h6 class="alert-heading">
+          <i class="bi bi-info-circle-fill"></i> Experten-Modus aktiv
+        </h6>
+        <p class="mb-0">Folgende erweiterte Funktionen sind jetzt verfügbar:</p>
+        <ul class="mb-0 mt-2">
+          <li><strong>Galerie:</strong> YAML-Import von Rezepten</li>
+          <li><strong>Rezeptansicht:</strong> YAML-Export einzelner Rezepte</li>
+          <li>
+            <strong>Verwaltung:</strong> YAML Import/Export für alle Rezepte
+          </li>
+        </ul>
+      </BAlert>
 
       <div id="settings">
         <h5>Cloud-Konfiguration (WebDAV)</h5>

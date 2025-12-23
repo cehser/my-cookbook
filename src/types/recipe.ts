@@ -31,7 +31,13 @@ export interface Recipe {
   author?: string
   source_url?: string | null
   source_book?: string | null
+  prep_time?: string
+  cook_time?: string
+  total_time?: string
   bake_time?: string
+  servings?: string
+  difficulty?: 'easy' | 'medium' | 'hard'
+  notes?: string
   yields?: Yield[]
   subtitle?: string
   ingredients: Ingredient[]

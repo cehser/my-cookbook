@@ -1,7 +1,7 @@
 # UI-Roadmap - my-cookbook
 
 > **Planungsnotizen:** Siehe `PLANNING-NOTES.md` für den Entstehungsprozess  
-> **Letzte Aktualisierung:** 7. Dezember 2025
+> **Letzte Aktualisierung:** 23. Dezember 2025
 
 ---
 
@@ -13,44 +13,79 @@
 
 ---
 
+## 🐛 Known Issues
+
+### Tag-Editor in Galerie (RecipeCard)
+**Status:** 🔴 Bug | **Priorität:** Mittel
+
+**Problem:**
+- ESC-Taste und Toggle-Button zum Schließen des Tag-Editors funktionieren nicht zuverlässig
+- Nur der X-Button schließt den Editor konsistent
+- Vermutlich Focus-Management und Event-Propagation Issues
+
+**Betroffene Datei:** `src/components/RecipeCard.vue`
+
+**Technische Details:**
+- Event-Listener auf window-Ebene für ESC
+- Toggle-Button mit @click.prevent.stop
+- Focus-Management nach Öffnen des Editors
+
+### Metadaten-Anzeige UI-Qualität
+**Status:** 🟡 Verbesserungsbedarf | **Priorität:** Hoch
+
+**Problem:**
+- Metadaten-Toggle-Button zu prominent (hat Rahmen, nicht dezent)
+- Metadaten-Overlay wirkt "zusammenhanglos" (schlechte visuelle Integration)
+- Keine Bearbeitungsmöglichkeit im Editor
+
+**Betroffene Dateien:** `src/views/Recipe.vue`, `src/views/Edit.vue`
+
+---
+
 ## 🎯 Implementierungsplan
 
 ### Phase 0: Navigation & Informationsarchitektur (Foundation)
-**Sprint 0:** Navbar + Metadaten + Suche/Filter (3-4 Tage)
+**Sprint 0:** Navbar + Metadaten + Suche/Filter ✅ **Abgeschlossen (23.12.2025)**
 
-**Ziele:**
-- Koch-fokussierte Navbar (Galerie, Favoriten, Suche prominent)
-- Admin-Features im Dropdown (Einstellungen, Verwaltung, Cloud-Sync)
-- Experten-Modus für YAML Import/Export (Toggle, Standard: AUS)
-- Galerie & Verwaltung fusioniert (eine Ansicht)
-- Vollständige Metadaten-Unterstützung (Autor, Quelle, Zeiten, Notizen, Tags)
-- Suche & Filter (Titel + Tags, Multi-Select)
-- Edit-Button aus Navbar → FAB im Rezept-Kontext
-- Quick Actions auf Recipe Cards (✏️ ⭐ 🗑️)
+**Implementierte Features:**
+- ✅ Koch-fokussierte Navbar (Galerie, Favoriten, Suche prominent)
+- ✅ Admin-Features im Dropdown (Einstellungen, Verwaltung, Cloud-Sync)
+- ✅ Experten-Modus für YAML Import/Export (Toggle, Standard: AUS)
+- ✅ Galerie & Verwaltung fusioniert (eine Ansicht)
+- ✅ Suche & Filter (Suche, Autor, Schwierigkeit, Tags)
+- ✅ Sortierung (5 Optionen: Name A-Z, Name Z-A, Neueste, Älteste, Favoriten)
+- ✅ Edit-Button aus Navbar → FAB im Rezept-Kontext
+- ✅ Quick Actions auf Recipe Cards (Tags, Edit, Delete)
+- ✅ Favoriten mit IndexedDB Persistenz
+- ✅ AI-Import als Modal
+- ✅ Tag-Editor in RecipeCard (⚠️ mit Known Issue, siehe oben)
+- 🟡 Metadaten-Anzeige implementiert, aber UI-Qualität unzureichend → Sprint 1
 
-**Neue Navbar-Struktur:**
+**Implementierte Navbar-Struktur:**
 ```
 🍳 Kochbuch                     [⚙️▼]
 [🏠 Galerie] [⭐ Favoriten] [🔍 Suche]
 ```
 
 **Betroffene Dateien:**
-- `src/components/Navbar.vue`
-- `src/views/Gallery.vue` (Suche/Filter, Quick Actions)
-- `src/views/Recipe.vue` (Metadaten-Anzeige, FAB)
-- `src/views/Edit.vue` (Metadaten-Felder)
-- `src/components/RecipeSearchBar.vue` (neu)
-- `src/components/TagFilter.vue` (neu)
-- `src/components/RecipeMetadata.vue` (neu)
-- `src/types/recipe.ts` (Interfaces erweitern)
-- Settings Store (`expertMode`)
+- `src/components/Navbar.vue` (komplette Neugestaltung)
+- `src/views/Gallery.vue` (Suche/Filter, Sorting, Quick Actions, AI-Import Modal)
+- `src/views/Recipe.vue` (Metadaten-Anzeige mit Toggle, FAB)
+- `src/components/RecipeCard.vue` (Quick Actions + Tag-Editor)
+- `src/types/recipe.ts` (Interfaces erweitert)
+- `src/store/modules/settings.ts` (expert_mode)
+- `src/store/modules/uiState.ts` (Sortierung persistent)
+- `src/store/actions.ts` (Favoriten-Persistenz)
 
 ---
 
 ### Phase A: Koch-Ansicht optimieren (Kritisch)
 
-#### Sprint 1: Split-View Desktop/Tablet (3-5 Tage)
-**Ziel:** Parallele Ansicht Zutaten + Schritte, kein Hin-und-Her mehr
+#### Sprint 1: Split-View Desktop/Tablet + Metadaten-Verbesserungen (4-6 Tage)
+**Ziel:** Parallele Ansicht Zutaten + Schritte + Metadaten-Feature finalisieren
+
+**Teil 1: Split-View für Rezeptansicht**
+**Priorität:** 🔴 Kritisch | **Aufwand:** M-L
 
 **Features:**
 - Desktop: 35% Zutaten (sticky) | 65% Schritte
@@ -60,8 +95,29 @@
 - **Portionen-Skalierung:** Prominent im Header `[− 4 +]`
 - Optional: Resizable Splitter
 
+**Teil 2: Metadaten-UX Verbesserungen**
+**Priorität:** 🔴 Hoch | **Aufwand:** M
+
+**Probleme aus Sprint 0 (siehe Known Issues):**
+- Metadaten-Toggle-Button zu prominent
+- Metadaten-Overlay wirkt zusammenhanglos
+- Keine Bearbeitungsmöglichkeit im Editor
+
+**Geplante Verbesserungen:**
+- [ ] **Button-Redesign:** Icon-only, transparent, dezent positioniert (z.B. rechts oben auf Rezeptbild)
+- [ ] **Overlay-Redesign:** Modal-Design mit Backdrop-Blur, zentriert, bessere visuelle Hierarchie
+- [ ] **Editor-Integration:** Metadaten-Section im Edit.vue
+  - Autor (Textfeld)
+  - Quelle (URL oder Buchname)
+  - Zeiten (Vorbereitung, Backen/Kochen, Gesamt)
+  - Portionen (Anzahl + Einheit)
+  - Schwierigkeit (easy/medium/hard Dropdown)
+  - Notizen (Textarea)
+- [ ] **Responsive Design:** Touch-optimiert für Tablet/Mobile
+
 **Betroffene Dateien:**
-- `src/views/Recipe.vue`
+- `src/views/Recipe.vue` (Split-View + Metadaten-Anzeige Redesign)
+- `src/views/Edit.vue` (Metadaten-Felder hinzufügen)
 - CSS: Split-View Styles
 
 ---
@@ -267,22 +323,23 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 
 ## 📋 Sprint-Übersicht (Reihenfolge)
 
-| Sprint | Phase | Thema | Aufwand | Priorität |
-|--------|-------|-------|---------|-----------|
-| 0 | Foundation | Navbar + Metadaten + Suche | 3-4 Tage | 🔴 Kritisch |
-| 1 | Koch-Ansicht | Split-View + Portionen | 3-5 Tage | 🔴 Kritisch |
-| 2 | Koch-Ansicht | Mobile FAB + Slide-In | 2-3 Tage | 🔴 Kritisch |
-| 3 | Koch-Ansicht | Inline-Editing | 3-4 Tage | 🔴 Kritisch |
-| 4 | Editor | Rezept-Wizard | 1 Woche | 🔴 Kritisch |
-| 5 | Editor | Editor-Neugestaltung | 2-3 Wochen | 🔴 Kritisch |
-| 6 | Workflow | Tabbed Interface | 3-4 Tage | 🟢 Optional |
-| 7 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional |
-| 8 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional |
-| 9 | Workflow | URL-Rezept-Sharing | 1-2 Tage | 🟢 Optional |
-| 10 | Design | Design-System | variabel | 🔵 Parallel |
+| Sprint | Phase | Thema | Aufwand | Priorität | Status |
+|--------|-------|-------|---------|-----------|--------|
+| 0 | Foundation | Navbar + Metadaten + Suche | 3-4 Tage | 🔴 Kritisch | ✅ Abgeschlossen |
+| 1 | Koch-Ansicht | Split-View + Metadaten-UX | 4-6 Tage | 🔴 Kritisch | 📋 Geplant |
+| 2 | Koch-Ansicht | Mobile FAB + Slide-In | 2-3 Tage | 🔴 Kritisch | 📋 Geplant |
+| 3 | Koch-Ansicht | Inline-Editing | 3-4 Tage | 🔴 Kritisch | 📋 Geplant |
+| 4 | Editor | Rezept-Wizard | 1 Woche | 🔴 Kritisch | 📋 Geplant |
+| 5 | Editor | Editor-Neugestaltung | 2-3 Wochen | 🔴 Kritisch | 📋 Geplant |
+| 6 | Workflow | Tabbed Interface | 3-4 Tage | 🟢 Optional | 📋 Geplant |
+| 7 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional | 📋 Geplant |
+| 8 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional | 📋 Geplant |
+| 9 | Workflow | URL-Rezept-Sharing | 1-2 Tage | 🟢 Optional | 📋 Geplant |
+| 10 | Design | Design-System | variabel | 🔵 Parallel | 📋 Geplant |
 
 **Geschätzte Gesamtdauer:**
-- **Kritische Sprints (0-5):** 6-8 Wochen
+- **Sprint 0 (Abgeschlossen):** ✅ 4 Tage (19.-23.12.2025)
+- **Kritische Sprints (1-5):** 6-8 Wochen
 - **Optionale Sprints (6-9):** +2-3 Wochen
 - **Design-Polish (10):** Parallel zu Sprint 5
 
@@ -293,17 +350,27 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 ### Muss erhalten bleiben:
 - [x] Portionen skalieren/umrechnen → neu platzieren in Recipe Header
 
-### Neue Features - Phase 0 (Foundation):
-- [ ] Navbar-Neugestaltung (Koch-fokussiert)
-- [ ] Galerie/Verwaltung-Fusion
-- [ ] Metadaten vollständig (Autor, Quelle, Zeiten, Notizen)
-- [ ] Experten-Modus (YAML versteckt)
-- [ ] Suche & Filter (Titel + Tags)
-- [ ] Edit-Button → FAB im Rezept
-- [ ] Quick Actions auf Cards
+### Neue Features - Phase 0 (Foundation): ✅ Sprint 0 Abgeschlossen
+- [x] Navbar-Neugestaltung (Koch-fokussiert)
+- [x] Galerie/Verwaltung-Fusion
+- [x] Suche & Filter (Suche, Autor, Schwierigkeit, Tags)
+- [x] Sortierung (5 Optionen, persistent)
+- [x] Experten-Modus (YAML versteckt)
+- [x] Edit-Button → FAB im Rezept
+- [x] Quick Actions auf Cards (Tags, Edit, Delete)
+- [x] Favoriten mit Persistenz
+- [x] AI-Import als Modal
+- [x] Tag-Editor in RecipeCard
+- [x] Metadaten-Typen definiert und Grundanzeige (⚠️ UI-Qualität → Sprint 1)
+
+### Neue Features - Sprint 1 (Split-View + Metadaten):
+- [ ] Split-View (Desktop/Tablet, sticky Zutaten)
+- [ ] Portionen-Skalierung prominent im Header
+- [ ] Metadaten-Button dezent (icon-only)
+- [ ] Metadaten-Overlay visuell integriert
+- [ ] Metadaten-Editor in Edit.vue
 
 ### Neue Features - Phase A (Koch-Ansicht):
-- [ ] Split-View (Desktop/Tablet, sticky Zutaten)
 - [ ] Mobile Koch-Ansicht (FAB + Slide-In, orientierungsabhängig)
 - [ ] Inline-Editing (Mengen, Text, Auto-Save)
 - [ ] Portionen-Skalierung prominent
@@ -326,19 +393,26 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 
 ---
 
-## 🚀 Start-Empfehlung
+## 🚀 Aktueller Stand & Nächste Schritte
 
-**Empfohlener Einstieg: Sprint 0 (Foundation first)**
+**Sprint 0 Status:** ✅ Abgeschlossen (23.12.2025)
 
-**Warum?**
-- Schafft solide Basis für alle weiteren Features
-- Navbar-Probleme sind fundamental
-- Galerie wird zum professionellen Herzstück
-- Metadaten funktionieren → Wizard kann darauf aufbauen
-- Suche/Filter = sofortiger Mehrwert
-- Edit-Button-Konflikt mit FAB wird vermieden
+**Was funktioniert:**
+- Koch-fokussierte Navbar mit Galerie/Favoriten/Suche
+- Vollständige Filter- und Sortier-Funktionen
+- Admin-Features im Dropdown (Einstellungen, Verwaltung, Cloud-Sync, Experten-Modus)
+- Quick Actions in RecipeCards (Tags, Edit, Delete)
+- FAB in Rezeptansicht
+- Favoriten mit IndexedDB-Persistenz
+- AI-Import als Modal
 
-**Nächster Schritt:** Sprint 0 implementieren
+**Was noch verbessert werden muss:**
+- Metadaten-Button Design (zu prominent) → Sprint 1
+- Metadaten-Overlay visuelle Integration → Sprint 1
+- Tag-Editor Close-Funktionalität (ESC, Toggle) → siehe Known Issues
+- Metadaten-Bearbeitung im Editor → Sprint 1
+
+**Nächster Schritt:** Sprint 1 (Split-View + Metadaten-UX) - Geschätzt 4-6 Tage
 
 ---
 

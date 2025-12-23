@@ -51,6 +51,157 @@
             ></BFormInput>
           </BCol>
         </BRow>
+
+        <!-- Metadaten-Sektion -->
+        <h3 class="mt-4 mb-3">Metadaten</h3>
+
+        <BRow class="my-1">
+          <BCol sm="2">
+            <label for="input-author">Autor:</label>
+          </BCol>
+          <BCol sm="10">
+            <BFormInput
+              id="input-author"
+              size="sm"
+              placeholder="Autor eingeben"
+              v-model="current_recipe.author"
+            ></BFormInput>
+          </BCol>
+        </BRow>
+
+        <BRow class="my-1">
+          <BCol sm="2">
+            <label for="input-source-url">Quelle (URL):</label>
+          </BCol>
+          <BCol sm="10">
+            <BFormInput
+              id="input-source-url"
+              size="sm"
+              placeholder="https://..."
+              v-model="current_recipe.source_url"
+            ></BFormInput>
+          </BCol>
+        </BRow>
+
+        <BRow class="my-1">
+          <BCol sm="2">
+            <label for="input-source-book">Quelle (Buch):</label>
+          </BCol>
+          <BCol sm="10">
+            <BFormInput
+              id="input-source-book"
+              size="sm"
+              placeholder="Buchtitel, Seite"
+              v-model="current_recipe.source_book"
+            ></BFormInput>
+          </BCol>
+        </BRow>
+
+        <BRow class="my-1">
+          <BCol sm="2">
+            <label for="input-servings">Portionen:</label>
+          </BCol>
+          <BCol sm="10">
+            <BFormInput
+              id="input-servings"
+              size="sm"
+              placeholder="z.B. 4 Personen"
+              v-model="current_recipe.servings"
+            ></BFormInput>
+          </BCol>
+        </BRow>
+
+        <BRow class="my-1">
+          <BCol sm="2">
+            <label for="input-prep-time">Vorbereitungszeit:</label>
+          </BCol>
+          <BCol sm="10">
+            <BFormInput
+              id="input-prep-time"
+              size="sm"
+              placeholder="z.B. 15 Minuten"
+              v-model="current_recipe.prep_time"
+            ></BFormInput>
+          </BCol>
+        </BRow>
+
+        <BRow class="my-1">
+          <BCol sm="2">
+            <label for="input-cook-time">Koch-/Bratzeit:</label>
+          </BCol>
+          <BCol sm="10">
+            <BFormInput
+              id="input-cook-time"
+              size="sm"
+              placeholder="z.B. 30 Minuten"
+              v-model="current_recipe.cook_time"
+            ></BFormInput>
+          </BCol>
+        </BRow>
+
+        <BRow class="my-1">
+          <BCol sm="2">
+            <label for="input-bake-time">Backzeit:</label>
+          </BCol>
+          <BCol sm="10">
+            <BFormInput
+              id="input-bake-time"
+              size="sm"
+              placeholder="z.B. 45 Minuten"
+              v-model="current_recipe.bake_time"
+            ></BFormInput>
+          </BCol>
+        </BRow>
+
+        <BRow class="my-1">
+          <BCol sm="2">
+            <label for="input-total-time">Gesamtzeit:</label>
+          </BCol>
+          <BCol sm="10">
+            <BFormInput
+              id="input-total-time"
+              size="sm"
+              placeholder="z.B. 1 Stunde 30 Minuten"
+              v-model="current_recipe.total_time"
+            ></BFormInput>
+          </BCol>
+        </BRow>
+
+        <BRow class="my-1">
+          <BCol sm="2">
+            <label for="input-difficulty">Schwierigkeit:</label>
+          </BCol>
+          <BCol sm="10">
+            <BFormSelect
+              id="input-difficulty"
+              size="sm"
+              v-model="current_recipe.difficulty"
+            >
+              <option :value="undefined">-- Bitte wählen --</option>
+              <option value="easy">Einfach</option>
+              <option value="medium">Mittel</option>
+              <option value="hard">Schwer</option>
+            </BFormSelect>
+          </BCol>
+        </BRow>
+
+        <BRow class="my-1">
+          <BCol sm="2">
+            <label for="input-notes">Notizen:</label>
+          </BCol>
+          <BCol sm="10">
+            <BFormTextarea
+              id="input-notes"
+              size="sm"
+              rows="3"
+              placeholder="Zusätzliche Notizen zum Rezept..."
+              v-model="current_recipe.notes"
+            ></BFormTextarea>
+          </BCol>
+        </BRow>
+
+        <h3 class="mt-4 mb-3">Zutaten & Portionen</h3>
+
         <BRow class="my-1">
           <BCol sm="2">
             <label for="input-yields-value">Ergibt Menge:</label>

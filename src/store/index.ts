@@ -11,6 +11,7 @@ const debug = import.meta.env.MODE !== 'production'
 const default_settings = {
   read_only: true,
   autosync: false,
+  expert_mode: false,
   webdav: {
     webdav_creds: {
       username: 'user',
@@ -29,6 +30,7 @@ export interface RootState {
   recipes: Recipe[]
   settings: Settings
   recipe_pictures: RecipePictures
+  favorites: string[]
 }
 
 export default createStore<RootState>({
@@ -36,7 +38,8 @@ export default createStore<RootState>({
   state: {
     recipes: [],
     settings: default_settings,
-    recipe_pictures: {}
+    recipe_pictures: {},
+    favorites: []
   },
   actions,
   mutations,

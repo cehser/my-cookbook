@@ -52,15 +52,11 @@
             <i class="bi bi-x-lg"></i>
           </BButton>
           <BButton
-            v-if="!settings.read_only && !editMode"
-            @click="$router.push('/edit/' + selected)"
-            title="Vollständig bearbeiten"
-            variant="outline-primary"
+            v-if="settings.expert_mode"
+            @click="exportRecipe"
+            title="Als YAML exportieren"
             size="sm"
           >
-            <i class="bi bi-pencil-square"></i>
-          </BButton>
-          <BButton @click="exportRecipe" title="Als YAML exportieren" size="sm">
             <i class="bi bi-download"></i>
           </BButton>
           <BButton
@@ -132,6 +128,118 @@
               v-model="current_recipe.subtitle"
               placeholder="Untertitel"
             />
+            
+            <!-- Metadaten-Toggle-Icon (dezent) -->
+            <div
+              v-if="hasMetadata"
+              class="metadata-toggle"
+              @click="showMetadata = !showMetadata"
+              :title="showMetadata ? 'Metadaten ausblenden' : 'Metadaten anzeigen'"
+            >
+              <i class="bi bi-info-circle"></i>
+            </div>
+            
+            <!-- Metadaten-Sektion als Overlay -->
+            <div
+              v-if="showMetadata && hasMetadata"
+              class="recipe-metadata-overlay"
+              @click.self="showMetadata = false"
+            >
+              <div class="recipe-metadata">
+                <div class="metadata-header">
+                  <h6 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>Rezeptinformationen
+                  </h6>
+                  <button
+                    class="btn-close btn-close-white"
+                    @click="showMetadata = false"
+                    aria-label="Schließen"
+                  ></button>
+                </div>
+                
+                <div v-if="current_recipe.author" class="metadata-row">
+                  <i class="bi bi-person-fill text-muted me-2"></i>
+                  <strong>Autor:</strong> {{ current_recipe.author }}
+                </div>
+                
+                <div
+                  v-if="current_recipe.source_url || current_recipe.source_book"
+                  class="metadata-row"
+                >
+                  <i class="bi bi-link-45deg text-muted me-2"></i>
+                  <strong>Quelle:</strong>
+                  <a
+                    v-if="current_recipe.source_url"
+                    :href="current_recipe.source_url"
+                    target="_blank"
+                    class="ms-1"
+                  >
+                    {{ current_recipe.source_url }}
+                  </a>
+                  <span v-if="current_recipe.source_book" class="ms-1">
+                    {{ current_recipe.source_book }}
+                  </span>
+                </div>
+                
+                <div v-if="current_recipe.servings" class="metadata-row">
+                  <i class="bi bi-people-fill text-muted me-2"></i>
+                  <strong>Portionen:</strong> {{ current_recipe.servings }}
+                </div>
+                
+                <div
+                  v-if="
+                    current_recipe.prep_time ||
+                    current_recipe.cook_time ||
+                    current_recipe.total_time ||
+                    current_recipe.bake_time
+                  "
+                  class="metadata-row"
+                >
+                  <i class="bi bi-clock-fill text-muted me-2"></i>
+                  <strong>Zeit:</strong>
+                  <span v-if="current_recipe.prep_time" class="ms-1">
+                    Vorbereitung: {{ current_recipe.prep_time }}
+                  </span>
+                  <span v-if="current_recipe.cook_time" class="ms-1">
+                    | Koch-Zeit: {{ current_recipe.cook_time }}
+                  </span>
+                  <span v-if="current_recipe.bake_time" class="ms-1">
+                    | Back-Zeit: {{ current_recipe.bake_time }}
+                  </span>
+                  <span v-if="current_recipe.total_time" class="ms-1">
+                    | Gesamt: {{ current_recipe.total_time }}
+                  </span>
+                </div>
+                
+                <div v-if="current_recipe.difficulty" class="metadata-row">
+                  <i class="bi bi-bar-chart-fill text-muted me-2"></i>
+                  <strong>Schwierigkeit:</strong>
+                  <span
+                    class="badge ms-1"
+                    :class="{
+                      'bg-success': current_recipe.difficulty === 'easy',
+                      'bg-warning': current_recipe.difficulty === 'medium',
+                      'bg-danger': current_recipe.difficulty === 'hard',
+                    }"
+                  >
+                    {{
+                      current_recipe.difficulty === "easy"
+                        ? "Einfach"
+                        : current_recipe.difficulty === "medium"
+                          ? "Mittel"
+                          : "Schwer"
+                    }}
+                  </span>
+                </div>
+                
+                <div v-if="current_recipe.notes" class="metadata-row">
+                  <i class="bi bi-journal-text text-muted me-2"></i>
+                  <strong>Notizen:</strong>
+                  <p class="mb-0 ms-4">{{ current_recipe.notes }}</p>
+                </div>
+              </div>
+            </div>
+            
             <div
               v-if="current_recipe.tags && current_recipe.tags.length"
               class="mt-2"
@@ -281,6 +389,17 @@
         <div class="card-body"></div>
       </div>
     </div>
+
+    <!-- Floating Action Button (FAB) für Edit-Modus -->
+    <BButton
+      v-if="!settings.read_only && !editMode"
+      @click="$router.push('/edit/' + selected)"
+      class="fab-edit-button"
+      variant="primary"
+      title="Vollständig bearbeiten"
+    >
+      <i class="bi bi-pencil-square"></i>
+    </BButton>
   </div>
 </template>
 
@@ -318,6 +437,8 @@ export default {
       showIngredients: true, // control ingredients panel visibility
       editMode: false, // inline edit mode
       originalRecipe: null, // backup for cancel
+      showMetadata: false, // toggle metadata visibility
+      isLandscape: false, // detect landscape orientation
     };
   },
   mounted() {
@@ -333,6 +454,13 @@ export default {
     } else {
       this.showIngredients = savedShowIngredients;
     }
+    
+    // Detect landscape orientation
+    this.updateOrientation();
+    window.addEventListener("resize", this.updateOrientation);
+  },
+  beforeUnmount() {
+    window.removeEventListener("resize", this.updateOrientation);
   },
   watch: {
     selected(newSelected) {
@@ -349,8 +477,28 @@ export default {
     stepsFullWidth() {
       return !this.showIngredients;
     },
+    hasMetadata() {
+      if (!this.current_recipe) return false;
+      return !!(
+        this.current_recipe.author ||
+        this.current_recipe.source_url ||
+        this.current_recipe.source_book ||
+        this.current_recipe.servings ||
+        this.current_recipe.prep_time ||
+        this.current_recipe.cook_time ||
+        this.current_recipe.bake_time ||
+        this.current_recipe.total_time ||
+        this.current_recipe.difficulty ||
+        this.current_recipe.notes
+      );
+    },
   },
   methods: {
+    updateOrientation() {
+      this.isLandscape = window.matchMedia(
+        "(min-width: 768px) and (orientation: landscape)",
+      ).matches;
+    },
     formatNumbers: function (value) {
       if (typeof value !== "number") {
         return value;
@@ -581,6 +729,97 @@ svg.rotate180 {
   background-color: rgba(230, 230, 230, 0.6);
 }
 
+.recipe-metadata {
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.9rem;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.recipe-metadata.metadata-sidebar {
+  position: fixed;
+  right: 1rem;
+  top: 80px;
+  max-width: 320px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.metadata-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.metadata-header h6 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.metadata-close {
+  padding: 0.25rem 0.5rem;
+  color: #6c757d;
+  text-decoration: none;
+}
+
+.metadata-close:hover {
+  color: #000;
+}
+
+.metadata-row {
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: flex-start;
+}
+
+.metadata-row:last-child {
+  margin-bottom: 0;
+}
+
+.metadata-row i {
+  flex-shrink: 0;
+}
+
+.metadata-row strong {
+  margin-right: 0.25rem;
+}
+
+/* Mobile: Metadata unten statt sidebar */
+@media (max-width: 767px) {
+  .recipe-metadata.metadata-sidebar {
+    position: static;
+    max-width: 100%;
+    max-height: none;
+  }
+}
+
+.fab-edit-button {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.fab-edit-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
 .my-toast {
   position: fixed;
   bottom: 2em;
@@ -650,5 +889,135 @@ h5,
   .form-inline.d-flex {
     flex-wrap: wrap;
   }
+}
+
+/* Metadata Toggle Icon - dezent */
+.metadata-toggle {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+  font-size: 1.25rem;
+  color: #6c757d;
+  backdrop-filter: blur(4px);
+}
+
+.metadata-toggle:hover {
+  background: rgba(255, 255, 255, 0.95);
+  color: #0d6efd;
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Metadata Overlay - Clean Modal-Like Display */
+.recipe-metadata-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.recipe-metadata {
+  background: #212529;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.3s ease;
+  color: #f8f9fa;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.recipe-metadata .metadata-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.recipe-metadata .metadata-header h6 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f8f9fa;
+  display: flex;
+  align-items: center;
+}
+
+.recipe-metadata .metadata-row {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  display: flex;
+  align-items: start;
+  line-height: 1.6;
+}
+
+.recipe-metadata .metadata-row i {
+  font-size: 1.1rem;
+  min-width: 24px;
+}
+
+.recipe-metadata .metadata-row strong {
+  min-width: 140px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.recipe-metadata .metadata-row a {
+  color: #6ea8fe;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.recipe-metadata .metadata-row a:hover {
+  text-decoration: underline;
+}
+
+.recipe-metadata .metadata-row .badge {
+  font-size: 0.875rem;
+  padding: 0.35em 0.65em;
 }
 </style>

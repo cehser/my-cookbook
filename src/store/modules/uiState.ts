@@ -3,6 +3,7 @@ interface GalleryState {
   filter: string
   selectedTags: string[]
   scrollPosition: number
+  sortBy: string
 }
 
 interface RecipeViewState {
@@ -18,7 +19,8 @@ const state = {
   gallery: {
     filter: '',
     selectedTags: [],
-    scrollPosition: 0
+    scrollPosition: 0,
+    sortBy: 'name-asc'
   },
   recipe: {
     showIngredients: true
@@ -29,6 +31,7 @@ const getters = {
   galleryFilter: (state: UIState) => state.gallery.filter,
   gallerySelectedTags: (state: UIState) => state.gallery.selectedTags,
   galleryScrollPosition: (state: UIState) => state.gallery.scrollPosition,
+  gallerySortBy: (state: UIState) => state.gallery.sortBy,
   recipeShowIngredients: (state: UIState) => state.recipe.showIngredients
 }
 
@@ -41,6 +44,9 @@ const mutations = {
   },
   SET_GALLERY_SCROLL_POSITION(state: UIState, position: number) {
     state.gallery.scrollPosition = position
+  },
+  SET_GALLERY_SORT_BY(state: UIState, sortBy: string) {
+    state.gallery.sortBy = sortBy
   },
   SET_RECIPE_SHOW_INGREDIENTS(state: UIState, show: boolean) {
     state.recipe.showIngredients = show
@@ -64,6 +70,10 @@ const actions = {
   },
   setGalleryScrollPosition({ commit, state }: any, position: number) {
     commit('SET_GALLERY_SCROLL_POSITION', position)
+    saveToLocalStorage(state)
+  },
+  setGallerySortBy({ commit, state }: any, sortBy: string) {
+    commit('SET_GALLERY_SORT_BY', sortBy)
     saveToLocalStorage(state)
   },
   setRecipeShowIngredients({ commit, state }: any, show: boolean) {

@@ -16,6 +16,7 @@ export default {
     this.$store.dispatch("loadSettings");
     this.$store.dispatch("loadRecipes");
     this.$store.dispatch("loadRecipePictures");
+    this.$store.dispatch("loadFavorites");
 
     //time in ms
     const interval = 60000;

@@ -7,6 +7,9 @@ import {
   SET_RECIPE_PICTURES,
   SET_RECIPES_PICTURES,
   SET_SETTINGS,
+  ADD_FAVORITE,
+  REMOVE_FAVORITE,
+  SET_FAVORITES,
   type StoreState,
   type SetRecipePayload,
   type SetRecipePicturesPayload
@@ -85,6 +88,30 @@ export default {
         commit(SET_RECIPES_PICTURES, pictures)
       }
     })
+  },
+
+  loadFavorites({ commit }: ActionContext) {
+    console.log('Read favorites from idb')
+    get('favorites').then((val: string[] | undefined) => {
+      if (val) {
+        commit(SET_FAVORITES, val)
+      }
+    })
+  },
+
+  saveFavorites({ commit, state }: ActionContext) {
+    const favorites = [...state.favorites]
+    set('favorites', favorites).then(() => commit(SET_FAVORITES, state.favorites))
+  },
+
+  addFavorite({ commit, dispatch }: ActionContext, uuid: string) {
+    commit(ADD_FAVORITE, uuid)
+    dispatch('saveFavorites')
+  },
+
+  removeFavorite({ commit, dispatch }: ActionContext, uuid: string) {
+    commit(REMOVE_FAVORITE, uuid)
+    dispatch('saveFavorites')
   },
 
   saveRecipes({ commit, state }: ActionContext) {
