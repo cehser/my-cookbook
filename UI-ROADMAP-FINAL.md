@@ -217,9 +217,42 @@
 
 ---
 
+#### Sprint 9: URL-Rezept-Sharing (1-2 Tage) ⚡ Quick Win
+**Ziel:** Rezepte via Link teilen, ohne WebDAV-Zugriff
+
+**Features:**
+- Rezept komprimieren via `json-url` (lzma codec)
+- URL-Parameter: `https://my-cookbook.app/?r=XQA...`
+- Share-Button in Recipe.vue (Native Share API)
+- Deep Link Handler: URL → Parse → LocalStorage → Anzeige
+- Fallback: Clipboard Copy
+- Bild-URL statt Base64 (Größenlimit)
+- Toast: "Rezept aus Link importiert" ✓
+
+**Technische Details:**
+- Kompression: ~60-80% Reduktion (5KB → 1-2KB)
+- Browser-Limit: ~2000 Zeichen (IE), 8000+ (modern)
+- Keine Bilder inline (URL-Referenz oder weglassen)
+
+**Flow:**
+```
+[Teilen] → Rezept → JSON → compress → URL
+         → navigator.share() oder clipboard.writeText()
+
+Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
+```
+
+**Betroffene Dateien:**
+- `src/views/Recipe.vue` (Share-Button)
+- `src/composables/useRecipeShare.ts` (neu)
+- `src/router/index.ts` (Deep Link Handler)
+- `src/App.vue` (URL-Parameter beim Start prüfen)
+
+---
+
 ### Phase D: Design-Modernisierung
 
-#### Sprint 9: Design-System & Visual Polish
+#### Sprint 10: Design-System & Visual Polish
 **Ziel:** Konsistentes, professionelles Erscheinungsbild
 
 **Themen:**
@@ -245,12 +278,13 @@
 | 6 | Workflow | Tabbed Interface | 3-4 Tage | 🟢 Optional |
 | 7 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional |
 | 8 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional |
-| 9 | Design | Design-System | variabel | 🔵 Parallel |
+| 9 | Workflow | URL-Rezept-Sharing | 1-2 Tage | 🟢 Optional |
+| 10 | Design | Design-System | variabel | 🔵 Parallel |
 
 **Geschätzte Gesamtdauer:**
 - **Kritische Sprints (0-5):** 6-8 Wochen
-- **Optionale Sprints (6-8):** +2-3 Wochen
-- **Design-Polish (9):** Parallel zu Sprint 5
+- **Optionale Sprints (6-9):** +2-3 Wochen
+- **Design-Polish (10):** Parallel zu Sprint 5
 
 ---
 
@@ -283,6 +317,7 @@
 - [ ] Tabbed Interface (Multi-Rezept, Position merken)
 - [ ] Einkaufsliste-Export (Clipboard + Native Share)
 - [ ] Koch-Notizen (Text + Spracheingabe)
+- [ ] URL-Rezept-Sharing (Link-basiert, ohne WebDAV)
 
 ### Neue Features - Phase D (Design):
 - [ ] Design-System
