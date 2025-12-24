@@ -214,8 +214,10 @@
 
 ### Phase C: Koch-Workflow-Features (Optional)
 
-#### Sprint 6: Tabbed Recipe Interface (3-4 Tage)
-**Ziel:** Multi-Rezept Navigation ohne Positionsverlust
+#### Sprint 6: Tabbed Recipe Interface + Session Restore (3-4 Tage)
+**Ziel:** Multi-Rezept Navigation ohne Positionsverlust + PWA Session Restoration
+
+**Teil 1: Tabbed Interface**
 
 **Features:**
 - Browser-Style Tabs für mehrere Rezepte
@@ -225,11 +227,36 @@
 - Swipe-Gesten (Mobile)
 - LocalStorage Persistence
 
+**Teil 2: Session State Restoration (iOS PWA Fix)**
+
+**Problem:**
+- iOS beendet PWA bei Speicherdruck/Inaktivität komplett
+- User landet wieder in Galerie statt im zuletzt geöffneten Rezept
+- Besonders nervig beim Kochen (Wechsel zu Kamera/Einkaufsliste)
+
+**Lösung:**
+- Route + Scroll-Position automatisch speichern
+- Bei App-Start: Letzte Route wiederherstellen (wenn < 30 Min alt)
+- Integration in Tabbed Interface State
+- Edge Cases abfangen:
+  - Rezept wurde gelöscht → Fallback zur Galerie
+  - Edit-Modus → nur Lesemodus wiederherstellen
+  - Lange Inaktivität (> 30 Min) → normale Startseite
+
+**Features:**
+- [ ] Navigation State Persistence (Route, Scroll-Position, Timestamp)
+- [ ] Auto-Restore beim App-Start (< 30 Min Expiration)
+- [ ] Multiple Tabs mit jeweils eigenem State
+- [ ] Aktiver Tab wird gespeichert
+- [ ] Router Guards für automatisches Speichern
+- [ ] Validation (Rezept existiert noch, kein Edit-Modus)
+
 **Betroffene Dateien:**
-- `src/App.vue`
+- `src/App.vue` (Session Restore beim Mount)
 - `src/components/RecipeTabBar.vue` (neu)
-- `src/store/modules/recipeTabs.ts` (neu)
-- `src/router/index.ts`
+- `src/store/modules/navigation.ts` (neu - Tab + Session State)
+- `src/router/index.ts` (Guards für Auto-Save, Validation)
+- `src/types/navigation.ts` (neu - Interfaces)
 
 ---
 
@@ -331,7 +358,7 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 | 3 | Koch-Ansicht | Inline-Editing | 3-4 Tage | 🔴 Kritisch | 📋 Geplant |
 | 4 | Editor | Rezept-Wizard | 1 Woche | 🔴 Kritisch | 📋 Geplant |
 | 5 | Editor | Editor-Neugestaltung | 2-3 Wochen | 🔴 Kritisch | 📋 Geplant |
-| 6 | Workflow | Tabbed Interface | 3-4 Tage | 🟢 Optional | 📋 Geplant |
+| 6 | Workflow | Tabbed Interface + Session Restore | 3-4 Tage | 🟢 Optional | 📋 Geplant |
 | 7 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional | 📋 Geplant |
 | 8 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional | 📋 Geplant |
 | 9 | Workflow | URL-Rezept-Sharing | 1-2 Tage | 🟢 Optional | 📋 Geplant |
@@ -382,6 +409,7 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 
 ### Neue Features - Phase C (Workflow, Optional):
 - [ ] Tabbed Interface (Multi-Rezept, Position merken)
+- [ ] Session State Restoration (iOS PWA Fix - letzte Route wiederherstellen)
 - [ ] Einkaufsliste-Export (Clipboard + Native Share)
 - [ ] Koch-Notizen (Text + Spracheingabe)
 - [ ] URL-Rezept-Sharing (Link-basiert, ohne WebDAV)
