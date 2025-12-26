@@ -9,11 +9,12 @@
 ## 🎯 Sprint-Ziele
 
 1. **Split-View** für Desktop/Tablet (Zutaten sticky links, Schritte rechts)
-2. **Abschnitts-Synchronisation** (Scroll → Highlight aktiver Abschnitt)
-3. **Portionen-Skalierung** prominent im Header platzieren
-4. **Metadaten-Button** dezent gestalten (icon-only, rechts oben auf Bild)
-5. **Metadaten-Overlay** als seitliche Spalte über Bild (Desktop) / Bottom Sheet (Mobile)
-6. **Metadaten-Editor** in Edit.vue integrieren
+2. **Mobile Bottom Bar** für Zutaten (sticky, expandable, auto-filtered)
+3. **Abschnitts-Synchronisation** (Scroll → Highlight aktiver Abschnitt)
+4. **Portionen-Skalierung** prominent im Header platzieren
+5. **Metadaten-Button** dezent gestalten (icon-only, rechts oben auf Bild)
+6. **Metadaten-Overlay** als seitliche Spalte über Bild (Desktop) / Bottom Sheet (Mobile)
+7. **Metadaten-Editor** in Edit.vue integrieren
 
 ---
 
@@ -28,11 +29,12 @@
 **Schritte:**
 - [ ] `Recipe.vue` analysieren: Bestehende Single-Column-Struktur
 - [ ] Media Queries definieren:
-  - Mobile (< 768px): Bestehender Slide-In Mechanismus bleibt
+  - Mobile (< 768px): Sticky Bottom Bar für Zutaten (NEU!)
   - Tablet (768px - 1024px): 40% / 60% Split
   - Desktop (> 1024px): 35% / 65% Split
 - [ ] CSS Grid oder Flexbox Layout erstellen
 - [ ] Zutaten-Bereich als `sticky` positionieren (top: var(--navbar-height))
+- [ ] Mobile Bottom Bar Struktur erstellen (collapsed + expanded states)
 
 **Geplante Struktur:**
 ```vue
@@ -71,9 +73,96 @@
       </main>
     </div>
     
-    <!-- Mobile: Bestehender Slide-In bleibt -->
+    <!-- Mobile: Smart Bottom Bar -->
     <div v-else class="mobile-layout">
-      <!-- Existing implementation -->
+      <!-- Rezept-Header & Schritte (normale Ansicht) -->
+      <div class="recipe-content">
+        <!-- Bild, Titel, Portionen, Schritte -->
+      </div>
+      
+      <!-- Sticky Bottom Bar -->
+      <div 
+        class="ingredients-bottom-bar"
+        :class="{ expanded: ingredientsExpanded }"
+      >
+        <!-- Collapsed State (immer sichtbar) -->
+        <div 
+          v-if="!ingredientsExpanded"
+          class="bottom-bar-collapsed"
+          @click="openIngredientsBar"
+        >
+          <i class="bi bi-list-ul"></i>
+          <span class="bar-title">Zutaten</span>
+          <span v-if="activeSection" class="active-section-chip">
+            • {{ activeSection }}
+          </span>
+          <i class="bi bi-chevron-up"></i>
+        </div>
+        
+        <!-- Expanded State -->
+        <div v-else class="bottom-bar-expanded">
+          <div class="bar-header">
+            <h6><i class="bi bi-list-ul me-2"></i>Zutaten</h6>
+            <button class="btn-close-custom" @click="closeIngredientsBar">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          
+          <!-- Filter Toggle -->
+          <div class="filter-toggle">
+            <BButton
+              size="sm"
+              :variant="showOnlyCurrentSection ? 'primary' : 'outline-secondary'"
+              @click="showOnlyCurrentSection = true"
+            >
+              Nur aktuell
+            </BButton>
+            <BButton
+              size="sm"
+              :variant="!showOnlyCurrentSection ? 'primary' : 'outline-secondary'"
+              @click="showOnlyCurrentSection = false"
+            >
+              Alle
+            </BButton>
+          </div>
+          
+          <!-- Ingredients Content -->
+          <div class="ingredients-content">
+            <div 
+              v-for="section in visibleIngredientSections" 
+              :key="section.section"
+              class="ingredient-section"
+              :class="{ active: section.section === activeSection }"
+              :data-section="section.section"
+            >
+              <h6>{{ section.section }}</h6>
+              <div v-for="ingredient in getIngredients(section.section)" :key="ingredient.id">
+                <input type="checkbox" /> {{ ingredient.amount }} {{ ingredient.unit }} {{ ingredient.name }}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Section Quick-Jump Chips (wenn "Alle" aktiv) -->
+          <div v-if="!showOnlyCurrentSection && current_recipe.sections.length > 1" class="section-chips">
+            <BButton
+              v-for="section in current_recipe.sections"
+              :key="section.section"
+              size="sm"
+              :variant="section.section === activeSection ? 'primary' : 'outline-secondary'"
+              @click="scrollToIngredientSection(section.section)"
+            >
+              {{ section.section }}
+            </BButton>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Backdrop (wenn expanded) -->
+      <div 
+        v-if="ingredientsExpanded" 
+        class="bottom-bar-backdrop"
+        @click="closeIngredientsBar"
+      ></div>
     </div>
     
   </div>
@@ -114,6 +203,160 @@
 
 .steps-column {
   min-height: 100vh;
+}
+
+/* Mobile: Sticky Bottom Bar */
+@media (max-width: 767px) {
+  .mobile-layout {
+    position: relative;
+    padding-bottom: 80px; /* Platz für collapsed bar */
+  }
+  
+  .ingredients-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: white;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.15);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Collapsed State */
+  .bottom-bar-collapsed {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--bs-primary);
+  }
+  
+  .bottom-bar-collapsed .bar-title {
+    flex: 1;
+  }
+  
+  .bottom-bar-collapsed .active-section-chip {
+    font-size: 0.85rem;
+    color: var(--bs-secondary);
+    font-weight: 400;
+  }
+  
+  /* Expanded State */
+  .ingredients-bottom-bar.expanded {
+    height: 70vh;
+    max-height: 70vh;
+  }
+  
+  .bottom-bar-expanded {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1rem;
+  }
+  
+  .bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+  
+  .bar-header h6 {
+    margin: 0;
+    font-weight: 600;
+  }
+  
+  .btn-close-custom {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: var(--bs-secondary);
+  }
+  
+  /* Filter Toggle */
+  .filter-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+  
+  .filter-toggle .btn {
+    flex: 1;
+  }
+  
+  /* Ingredients Content */
+  .ingredients-content {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0.5rem 0;
+  }
+  
+  .ingredient-section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    background: var(--bs-light);
+    transition: all 0.3s ease;
+  }
+  
+  .ingredient-section.active {
+    background: rgba(var(--bs-primary-rgb), 0.1);
+    border-left: 4px solid var(--bs-primary);
+    padding-left: calc(1rem - 4px);
+  }
+  
+  .ingredient-section h6 {
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  
+  .ingredient-section.active h6 {
+    color: var(--bs-primary);
+  }
+  
+  /* Section Chips */
+  .section-chips {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 0;
+    overflow-x: auto;
+    border-top: 1px solid var(--bs-border-color);
+  }
+  
+  .section-chips .btn {
+    white-space: nowrap;
+  }
+  
+  /* Backdrop */
+  .bottom-bar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 99;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  /* Body Scroll Lock wenn expanded */
+  body.bottom-bar-open {
+    overflow: hidden;
+  }
 }
 ```
 
@@ -198,17 +441,25 @@ const { isMobile, isTablet, isDesktop, isDesktopOrTablet } = useViewport()
 **Ziel:** Toggle zwischen "Alle Zutaten" und "Nur aktueller Abschnitt"
 
 **Schritte:**
-- [ ] Toggle-Button in Zutaten-Header erstellen
-- [ ] Reactive State `showAllIngredients` (default: true)
-- [ ] Button-Text dynamisch
+- [ ] Toggle-Button in Zutaten-Header erstellen (Desktop/Tablet)
+- [ ] Toggle-Buttons in Mobile Bottom Bar erstellen
+- [ ] Reactive State `showAllIngredients` (Desktop default: true)
+- [ ] Reactive State `showOnlyCurrentSection` (Mobile default: true) 🆕
 - [ ] State in UIState Store persistent machen (optional)
 
 **Code:**
 ```typescript
 // In Recipe.vue <script setup>
+
+// Desktop/Tablet: Default "Alle anzeigen"
 const showAllIngredients = ref(true)
+
+// Mobile: Default "Nur aktueller Abschnitt" (optimiert für Kochen)
+const showOnlyCurrentSection = ref(true)
+
 const activeSection = ref<string | null>(null)
 
+// Desktop/Tablet: Sections filtern
 const visibleSections = computed(() => {
   if (showAllIngredients.value) {
     return current_recipe.value.sections
@@ -218,10 +469,50 @@ const visibleSections = computed(() => {
   )
 })
 
+// Mobile: Sections filtern (andere Logic wegen Default)
+const visibleIngredientSections = computed(() => {
+  if (showOnlyCurrentSection.value && activeSection.value) {
+    return current_recipe.value.sections.filter(
+      section => section.section === activeSection.value
+    )
+  }
+  return current_recipe.value.sections
+})
+
 const getIngredients = (sectionName: string) => {
   return current_recipe.value.ingredients.filter(
     ing => ing.section === sectionName
   )
+}
+
+// Mobile Bottom Bar Controls
+const ingredientsExpanded = ref(false)
+
+const openIngredientsBar = () => {
+  ingredientsExpanded.value = true
+  document.body.classList.add('bottom-bar-open')
+  
+  // Smart scroll zu aktiver Section (wenn "Alle" aktiv)
+  if (!showOnlyCurrentSection.value && activeSection.value) {
+    nextTick(() => {
+      const sectionEl = document.querySelector(
+        `.ingredient-section[data-section="${activeSection.value}"]`
+      )
+      sectionEl?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+}
+
+const closeIngredientsBar = () => {
+  ingredientsExpanded.value = false
+  document.body.classList.remove('bottom-bar-open')
+}
+
+const scrollToIngredientSection = (sectionName: string) => {
+  const sectionEl = document.querySelector(
+    `.ingredient-section[data-section="${sectionName}"]`
+  )
+  sectionEl?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 ```
 
