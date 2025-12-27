@@ -16,29 +16,61 @@
             <div class="card rounded-0">
               <div class="card-header">
                 <h3 class="card-title mb-0">Zutaten</h3>
-                <div v-if="!editMode" class="card-subtitle mt-2">
-                  für {{ formatNumbers(yields_value) }} {{ yields_unit }}
-                </div>
                 
-                <!-- Filter Toggle (Desktop) -->
-                <div v-if="!editMode && current_recipe.sections.length > 1" class="filter-controls mt-2">
+                <!-- Portionen-Kontrolle (Desktop) -->
+                <div v-if="!editMode" class="portions-control-desktop mt-3">
                   <BButton
-                    size="sm"
-                    :variant="showAllIngredients ? 'primary' : 'outline-secondary'"
-                    @click="showAllIngredients = true"
-                  >
-                    Alle Zutaten
-                  </BButton>
-                  <BButton
-                    v-if="activeSection"
-                    size="sm"
-                    :variant="!showAllIngredients ? 'primary' : 'outline-secondary'"
-                    @click="showAllIngredients = false"
-                  >
-                    Nur aktuell
-                  </BButton>
+                  @click="decreaseYields"
+                  variant="primary"
+                  size="sm"
+                  class="portion-btn"
+                  :disabled="yields_value <= 1"
+                >
+                  <i class="bi bi-dash-lg"></i>
+                </BButton>
+
+                <div class="portions-display">
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    step="1"
+                    :value="yields_value"
+                    @input="setYieldsValue(Number($event.target.value))"
+                    class="portions-input-desktop"
+                  />
+                  <span class="unit">{{ yields_unit }}</span>
                 </div>
+
+                <BButton
+                  @click="increaseYields"
+                  variant="primary"
+                  size="sm"
+                  class="portion-btn"
+                >
+                  <i class="bi bi-plus-lg"></i>
+                </BButton>
               </div>
+              
+              <!-- Filter Toggle (Desktop) -->
+              <div v-if="!editMode && current_recipe.sections.length > 1" class="filter-controls mt-3">
+                <BButton
+                  size="sm"
+                  :variant="showAllIngredients ? 'primary' : 'outline-secondary'"
+                  @click="showAllIngredients = true"
+                >
+                  Alle Zutaten
+                </BButton>
+                <BButton
+                  v-if="activeSection"
+                  size="sm"
+                  :variant="!showAllIngredients ? 'primary' : 'outline-secondary'"
+                  @click="showAllIngredients = false"
+                >
+                  Nur aktuell
+                </BButton>
+              </div>
+            </div>
               <div class="card-body">
                 <div
                   v-for="(section, index) in visibleDesktopSections"
@@ -64,23 +96,6 @@
                     </div>
                     <div class="col-8">
                       {{ Object.keys(ingredient)[0] }}
-                    </div>
-                  </div>
-                </div>
-
-                <div v-if="!editMode" class="mt-3">
-                  <h5 class="card-title">Umrechnen</h5>
-                  <div class="input-group">
-                    <input
-                      type="number"
-                      min="0"
-                      :value="yields_value"
-                      @input="setYieldsValue(Number($event.target.value))"
-                      step=".1"
-                      class="form-control"
-                    />
-                    <div class="input-group-append">
-                      <span class="input-group-text">{{ yields_unit }}</span>
                     </div>
                   </div>
                 </div>
@@ -525,11 +540,42 @@
           class="bottom-bar-collapsed"
           @click="openIngredientsBar"
         >
+          <!-- Portionen-Kontrolle (Mobile Collapsed) -->
+          <div class="portions-control-mobile" @click.stop>
+            <BButton
+              @click="decreaseYields"
+              variant="primary"
+              size="sm"
+              class="portion-btn-mobile"
+              :disabled="yields_value <= 1"
+            >
+              <i class="bi bi-dash"></i>
+            </BButton>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              step="1"
+              :value="yields_value"
+              @input="setYieldsValue(Number($event.target.value))"
+              @click.stop
+              class="portions-input-mobile"
+            />
+            <span class="portions-unit-mobile">{{ yields_unit }}</span>
+            <BButton
+              @click="increaseYields"
+              variant="primary"
+              size="sm"
+              class="portion-btn-mobile"
+            >
+              <i class="bi bi-plus"></i>
+            </BButton>
+          </div>
+
+          <div class="divider-vertical"></div>
+
           <i class="bi bi-list-ul"></i>
           <span class="bar-title">Zutaten</span>
-          <span v-if="activeSection" class="active-section-chip">
-            • {{ activeSection }}
-          </span>
           <i class="bi bi-chevron-up"></i>
         </div>
 
@@ -540,6 +586,41 @@
             <button class="btn-close-custom" @click="closeIngredientsBar">
               <i class="bi bi-x-lg"></i>
             </button>
+          </div>
+
+          <!-- Portionen-Kontrolle (Mobile Expanded) -->
+          <div class="portions-control-mobile-expanded">
+            <BButton
+              @click="decreaseYields"
+              variant="primary"
+              size="sm"
+              class="portion-btn"
+              :disabled="yields_value <= 1"
+            >
+              <i class="bi bi-dash-lg"></i>
+            </BButton>
+
+            <div class="portions-display-expanded">
+              <input
+                type="number"
+                min="1"
+                max="100"
+                step="1"
+                :value="yields_value"
+                @input="setYieldsValue(Number($event.target.value))"
+                class="portions-input-expanded"
+              />
+              <span class="unit">{{ yields_unit }}</span>
+            </div>
+
+            <BButton
+              @click="increaseYields"
+              variant="primary"
+              size="sm"
+              class="portion-btn"
+            >
+              <i class="bi bi-plus-lg"></i>
+            </BButton>
           </div>
 
           <!-- Filter Toggle -->
@@ -916,6 +997,16 @@ export default {
         this.$store.dispatch("addFavorite", this.current_recipe.recipe_uuid);
       }
     },
+    increaseYields() {
+      if (this.yields_value < 100) {
+        this.setYieldsValue(this.yields_value + 1);
+      }
+    },
+    decreaseYields() {
+      if (this.yields_value > 1) {
+        this.setYieldsValue(this.yields_value - 1);
+      }
+    },
     goToEdit() {
       this.$router.push(`/edit/${this.selected}`);
     },
@@ -1155,6 +1246,81 @@ export default {
     font-size: 0.875rem;
   }
 
+  /* Portionen-Kontrolle Desktop */
+  .portions-control-desktop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--bs-light);
+    border-radius: 50px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  .portion-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .portions-display {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    min-width: 90px;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .portions-input-desktop {
+    width: 60px;
+    height: 32px;
+    border: none;
+    background: white;
+    border-radius: 6px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+    text-align: center;
+    padding: 0.15rem;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  .portions-input-desktop::-webkit-outer-spin-button,
+  .portions-input-desktop::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .portions-input-desktop:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  .portions-display .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+    flex-shrink: 0;
+  }
+
+  .portions-display .unit {
+    font-size: 0.95rem;
+    color: var(--bs-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100px;
+  }
+
   /* Desktop Ingredients Section Highlighting */
   .ingredients-column .ingredients-section {
     padding: 1rem;
@@ -1224,6 +1390,74 @@ export default {
     font-weight: 400;
   }
 
+  /* Portionen-Kontrolle Mobile Collapsed */
+  .portions-control-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.5rem;
+    background: var(--bs-light);
+    border-radius: 30px;
+    flex-shrink: 0;
+  }
+
+  .portion-btn-mobile {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .portions-input-mobile {
+    width: 40px;
+    height: 26px;
+    border: none;
+    background: transparent;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--bs-primary);
+    text-align: center;
+    padding: 0;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  .portions-input-mobile::-webkit-outer-spin-button,
+  .portions-input-mobile::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .portions-input-mobile:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+  }
+
+  .portions-unit-mobile {
+    font-size: 0.85rem;
+    color: var(--bs-secondary);
+    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 0.5em;
+  }
+
+  .divider-vertical {
+    width: 1px;
+    height: 28px;
+    background: var(--bs-border-color);
+    flex-shrink: 0;
+  }
+
   /* Expanded State */
   .ingredients-bottom-bar.expanded {
     max-height: 60vh;
@@ -1257,6 +1491,72 @@ export default {
     cursor: pointer;
     padding: 0.25rem;
     color: var(--bs-secondary);
+  }
+
+  /* Portionen-Kontrolle Mobile Expanded */
+  .portions-control-mobile-expanded {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--bs-light);
+    border-radius: 50px;
+    margin: 1rem 0 0.5rem;
+  }
+
+  .portions-control-mobile-expanded .portion-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .portions-display-expanded {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-width: 120px;
+    justify-content: center;
+  }
+
+  .portions-input-expanded {
+    width: 70px;
+    height: 36px;
+    border: none;
+    background: white;
+    border-radius: 8px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+    text-align: center;
+    padding: 0.25rem;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  .portions-input-expanded::-webkit-outer-spin-button,
+  .portions-input-expanded::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .portions-input-expanded:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  .portions-display-expanded .unit {
+    font-size: 0.95rem;
+    color: var(--bs-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Filter Toggle */
