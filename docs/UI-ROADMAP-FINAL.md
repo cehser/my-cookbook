@@ -180,23 +180,26 @@
 
 ---
 
-#### Sprint 2: Mobile FAB + Slide-In (2-3 Tage)
-**Ziel:** Orientierungsabhängige Koch-Ansicht für Smartphones
+#### Sprint 2: ~~Mobile FAB + Slide-In~~ ⏭️ **ÜBERSPRUNGEN**
+**Original-Ziel:** Orientierungsabhängige Koch-Ansicht für Smartphones
 
-**Features:**
-- **Portrait:** FAB rechts unten → Slide-In Panel (70% Höhe), beide Bereiche scrollbar
-- **Landscape:** Automatisch Split-View (40/60)
-- Swipe-Down zum Schließen
-- Abschnitts-Synchronisation
+**Begründung für Skip:**
+- ✅ MobileIngredientsBar (Sprint 1) erfüllt bereits 80% der Anforderungen:
+  - Bottom Bar mit Expand/Collapse ✓
+  - 70vh Höhe beim Öffnen ✓
+  - Backdrop ✓
+  - Portionen-Skalierung ✓
+  - Abschnitts-Synchronisation ✓
+- 🟡 Landscape-Modus: Nice-to-have, kein Must-have (seltener Use Case)
+- 🟡 FAB statt Bar-Click: Aktueller Click auf Bar funktioniert gut
+- 🟡 Swipe-Down Geste: Close-Button reicht aus
+- 🎯 **Höhere Priorität:** Inline-Editing hat größeren Business Value
 
-**Betroffene Dateien:**
-- `src/views/Recipe.vue`
-- `src/components/IngredientsPanelMobile.vue` (neu)
-- CSS: FAB, Slide-In Animation, Landscape Media Queries
+**Status:** Feature-Set ausreichend, Fokus auf Editor-Verbesserungen
 
 ---
 
-#### Sprint 3: Inline-Editing (3-4 Tage)
+#### Sprint 2: Inline-Editing (3-4 Tage) - ⚡ NEU PRIORISIERT
 **Ziel:** Kleine Anpassungen ohne Editor-Wechsel
 
 **Features:**
@@ -215,7 +218,7 @@
 
 ### Phase B: Editor-Neugestaltung (Kritisch)
 
-#### Sprint 4: Rezept-Erstellungs-Wizard (1 Woche)
+#### Sprint 3: Rezept-Erstellungs-Wizard (1 Woche)
 **Ziel:** Guided Recipe Creation statt leerer Editor
 
 **4-Schritte-Assistent:**
@@ -230,7 +233,7 @@
 
 ---
 
-#### Sprint 5: Editor-Überarbeitung (2-3 Wochen)
+#### Sprint 4: Editor-Überarbeitung (2-3 Wochen)
 **Ziel:** Intuitive Bearbeitung auf allen Geräten + Metadaten-Integration
 
 **Lösungen:**
@@ -276,7 +279,7 @@
 
 ### Phase C: Koch-Workflow-Features (Optional)
 
-#### Sprint 6: Tabbed Recipe Interface + Session Restore (3-4 Tage)
+#### Sprint 5: Tabbed Recipe Interface + Session Restore (3-4 Tage)
 **Ziel:** Multi-Rezept Navigation ohne Positionsverlust + PWA Session Restoration
 
 **Teil 1: Tabbed Interface**
@@ -322,7 +325,7 @@
 
 ---
 
-#### Sprint 7: Einkaufsliste-Export (1-2 Tage) ⚡ Quick Win
+#### Sprint 6: Einkaufsliste-Export (1-2 Tage) ⚡ Quick Win
 **Ziel:** Zutaten für Einkauf ohne Abtippen
 
 **Features:**
@@ -339,7 +342,7 @@
 
 ---
 
-#### Sprint 8: Koch-Notizen + Spracheingabe (4-5 Tage)
+#### Sprint 7: Koch-Notizen + Spracheingabe (4-5 Tage)
 **Ziel:** Hands-free Notizen während des Kochens
 
 **Features:**
@@ -362,7 +365,7 @@
 
 ---
 
-#### Sprint 9: URL-Rezept-Sharing (1-2 Tage) ⚡ Quick Win
+#### Sprint 8: URL-Rezept-Sharing (1-2 Tage) ⚡ Quick Win
 **Ziel:** Rezepte via Link teilen, ohne WebDAV-Zugriff
 
 **Features:**
@@ -397,7 +400,7 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 
 ### Phase D: Design-Modernisierung
 
-#### Sprint 10: Design-System & Visual Polish
+#### Sprint 9: Design-System & Visual Polish
 **Ziel:** Konsistentes, professionelles Erscheinungsbild
 
 **Themen:**
@@ -416,22 +419,22 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 |--------|-------|-------|---------|-----------|--------|
 | 0 | Foundation | Navbar + Metadaten + Suche | 3-4 Tage | 🔴 Kritisch | ✅ Abgeschlossen (23.12.) |
 | 1 | Koch-Ansicht | Split-View + Metadaten-UX | 4-6 Tage | 🔴 Kritisch | ✅ Abgeschlossen (27.12.) |
-| 2 | Koch-Ansicht | Mobile FAB + Slide-In | 2-3 Tage | 🔴 Kritisch | 📋 Geplant |
-| 3 | Koch-Ansicht | Inline-Editing | 3-4 Tage | 🔴 Kritisch | 📋 Geplant |
-| 4 | Editor | Rezept-Wizard | 1 Woche | 🔴 Kritisch | 📋 Geplant |
-| 5 | Editor | Editor-Neugestaltung | 2-3 Wochen | 🔴 Kritisch | 📋 Geplant |
-| 6 | Workflow | Tabbed Interface + Session Restore | 3-4 Tage | 🟢 Optional | 📋 Geplant |
-| 7 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional | 📋 Geplant |
-| 8 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional | 📋 Geplant |
-| 9 | Workflow | URL-Rezept-Sharing | 1-2 Tage | 🟢 Optional | 📋 Geplant |
-| 10 | Design | Design-System | variabel | 🔵 Parallel | 📋 Geplant |
+| ~~2~~ | ~~Koch-Ansicht~~ | ~~Mobile FAB + Slide-In~~ | ~~2-3 Tage~~ | ⏭️ Übersprungen | ✅ Feature-Set ausreichend |
+| 2 | Koch-Ansicht | Inline-Editing | 3-4 Tage | 🔴 Kritisch | 📋 Geplant (neu priorisiert) |
+| 3 | Editor | Rezept-Wizard | 1 Woche | 🔴 Kritisch | 📋 Geplant |
+| 4 | Editor | Editor-Neugestaltung | 2-3 Wochen | 🔴 Kritisch | 📋 Geplant |
+| 5 | Workflow | Tabbed Interface + Session Restore | 3-4 Tage | 🟢 Optional | 📋 Geplant |
+| 6 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional | 📋 Geplant |
+| 7 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional | 📋 Geplant |
+| 8 | Workflow | URL-Rezept-Sharing | 1-2 Tage | 🟢 Optional | 📋 Geplant |
+| 9 | Design | Design-System | variabel | 🔵 Parallel | 📋 Geplant |
 
 **Geschätzte Gesamtdauer:**
 - **Sprint 0 (Abgeschlossen):** ✅ 4 Tage (19.-23.12.2025)
 - **Sprint 1 (Abgeschlossen):** ✅ 4 Tage (24.-27.12.2025)
-- **Kritische Sprints (2-5):** 6-8 Wochen
-- **Optionale Sprints (6-9):** +2-3 Wochen
-- **Design-Polish (10):** Parallel zu Sprint 5
+- **Kritische Sprints (2-4):** 5-7 Wochen (Sprint 2 übersprungen, Fokus auf Editor)
+- **Optionale Sprints (5-8):** +2-3 Wochen
+- **Design-Polish (9):** Parallel zu Sprint 4
 
 ---
 
@@ -461,14 +464,17 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 - [ ] Metadaten-Editor → verschoben zu Sprint 5 (Editor-Überarbeitung)
 
 ### Neue Features - Phase A (Koch-Ansicht):
-- [ ] Mobile Koch-Ansicht (FAB + Slide-In, orientierungsabhängig)
-- [ ] Inline-Editing (Mengen, Text, Auto-Save)
-- [ ] Portionen-Skalierung prominent
+- [x] Split-View Desktop/Tablet (Sprint 1)
+- [x] Mobile Bottom Bar (Sprint 1)
+- [x] Portionen-Skalierung prominent (Sprint 1)
+- [x] Abschnitts-Synchronisation (Sprint 1)
+- [ ] ~~Mobile FAB + Landscape-Modus~~ (Sprint 2 übersprungen - Feature-Set ausreichend)
+- [ ] Inline-Editing (Mengen, Text, Auto-Save) → Sprint 2
 
 ### Neue Features - Phase B (Editor):
-- [ ] Rezept-Erstellungs-Wizard (4 Schritte, guided)
-- [ ] Editor-Neugestaltung (Card-Layout, Touch, Drag & Drop)
-- [ ] Metadaten-Editor (vollständig)
+- [ ] Rezept-Erstellungs-Wizard (4 Schritte, guided) → Sprint 3
+- [ ] Editor-Neugestaltung (Card-Layout, Touch, Drag & Drop) → Sprint 4
+- [ ] Metadaten-Editor (vollständig) → Sprint 4
 
 ### Neue Features - Phase C (Workflow, Optional):
 - [ ] Tabbed Interface (Multi-Rezept, Position merken)
@@ -517,9 +523,10 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 
 **Was noch verbessert werden muss:**
 - Tag-Editor Close-Funktionalität (ESC, Toggle) → siehe Known Issues
-- Metadaten-Bearbeitung im Editor → Sprint 5 (Editor-Überarbeitung)
+- Metadaten-Bearbeitung im Editor → Sprint 4 (Editor-Überarbeitung)
 
-**Nächster Schritt:** Sprint 2 (Mobile FAB + Slide-In) - Geschätzt 2-3 Tage
+**Nächster Schritt:** Sprint 2 (Inline-Editing) - Geschätzt 3-4 Tage  
+**Entscheidung:** Sprint 2 (Mobile FAB + Landscape) übersprungen - MobileIngredientsBar erfüllt Anforderungen
 
 ---
 
