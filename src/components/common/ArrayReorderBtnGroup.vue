@@ -15,12 +15,12 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T">
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { ref } from "vue";
 
 defineProps<{
-  array: any[];
+  array: T[];
   index: number;
 }>();
 

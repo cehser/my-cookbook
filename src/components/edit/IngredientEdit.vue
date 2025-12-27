@@ -74,9 +74,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import IngredientModalDialogRename from "@/components/IngredientModalDialogRename.vue";
-import ArrayReorderBtnGroup from "@/components/ArrayReorderBtnGroup.vue";
-import IngredientNotesFormRow from "@/components/IngredientNotesFormRow.vue";
+import IngredientModalDialogRename from "@/components/edit/IngredientModalDialogRename.vue";
+import ArrayReorderBtnGroup from "@/components/common/ArrayReorderBtnGroup.vue";
+import IngredientNotesFormRow from "@/components/edit/IngredientNotesFormRow.vue";
 
 interface Ingredient {
   [key: string]: any;

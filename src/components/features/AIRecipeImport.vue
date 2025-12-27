@@ -184,16 +184,9 @@
 import { ref, computed, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 import jsyaml from "js-yaml";
-import UUID from "../js/uuid";
-import { SYSTEM_PROMPT } from "../prompts/SYSTEM_PROMPT";
-
-interface Recipe {
-  recipe_uuid?: string;
-  recipe_name?: string;
-  imageurl?: string | null;
-  cloud_images?: string[];
-  [key: string]: any;
-}
+import UUID from "@/js/uuid";
+import { SYSTEM_PROMPT } from "@/prompts/SYSTEM_PROMPT";
+import type { Recipe } from "@/types/recipe";
 
 const emit = defineEmits<{
   imported: [recipe: Recipe];

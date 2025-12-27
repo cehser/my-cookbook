@@ -39,7 +39,7 @@ export default defineConfig([
   },
   {
     // Views can use single-word component names
-    files: ["**/views/**/*.vue", "**/components/Navbar.vue"],
+    files: ["**/views/**/*.vue"],
     rules: {
       "vue/multi-word-component-names": "off",
     },

@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import IngredientEdit from "@/components/IngredientEdit.vue";
+import IngredientEdit from "@/components/edit/IngredientEdit.vue";
 
 interface Ingredient {
   section?: string;

@@ -24,13 +24,16 @@
             "
           ></i>
         </div>
-        
+
         <!-- FAB mit Menü (rechts unten in der Karte) -->
         <div v-if="!read_only" class="card-fab-container" @click.stop>
           <transition name="fab-items">
             <div v-if="fabMenuOpen" class="card-fab-menu">
               <BButton
-                @click.prevent.stop="showTagEditor = !showTagEditor; fabMenuOpen = false"
+                @click.prevent.stop="
+                  showTagEditor = !showTagEditor;
+                  fabMenuOpen = false;
+                "
                 variant="light"
                 size="sm"
                 class="card-fab-menu-item"
@@ -41,7 +44,10 @@
                 <span>Tags</span>
               </BButton>
               <BButton
-                @click.prevent="editRecipe(); fabMenuOpen = false"
+                @click.prevent="
+                  editRecipe();
+                  fabMenuOpen = false;
+                "
                 variant="light"
                 size="sm"
                 class="card-fab-menu-item"
@@ -51,7 +57,10 @@
                 <span>Bearbeiten</span>
               </BButton>
               <BButton
-                @click.prevent="deleteRecipe(); fabMenuOpen = false"
+                @click.prevent="
+                  deleteRecipe();
+                  fabMenuOpen = false;
+                "
                 variant="danger"
                 size="sm"
                 class="card-fab-menu-item"
@@ -70,16 +79,26 @@
             :class="{ 'fab-open': fabMenuOpen }"
             title="Aktionen"
           >
-            <i class="bi" :class="fabMenuOpen ? 'bi-x-lg' : 'bi-three-dots-vertical'"></i>
+            <i
+              class="bi"
+              :class="fabMenuOpen ? 'bi-x-lg' : 'bi-three-dots-vertical'"
+            ></i>
           </BButton>
         </div>
       </div>
 
       <div class="card-body recipe_title">
         <h2
-            class="card-title d-flex flex-row flex-wrap justify-content-between"
-          >
-            <span class="card-title-text" v-html="highlightedName"></span>
+          class="card-title d-flex flex-row flex-wrap justify-content-between"
+        >
+          <span class="card-title-text">
+            <template v-for="(part, idx) in highlightedNameParts" :key="idx">
+              <mark v-if="part.highlight" class="search-highlight">{{
+                part.text
+              }}</mark>
+              <span v-else>{{ part.text }}</span>
+            </template>
+          </span>
         </h2>
         <p class="card-text">{{ recipe.subtitle }}</p>
         <div v-if="recipe.tags && recipe.tags.length" class="mt-2">
@@ -92,7 +111,7 @@
         </div>
       </div>
     </router-link>
-    
+
     <!-- Tag-Editor außerhalb des Links -->
     <div
       v-if="!read_only && showTagEditor"
@@ -112,7 +131,7 @@
       >
         <i class="bi bi-x-lg"></i>
       </BButton>
-      
+
       <!-- Neue Tags hinzufügen -->
       <div class="d-flex gap-1 mb-2">
         <BFormInput
@@ -127,7 +146,7 @@
           <i class="bi bi-plus-lg"></i>
         </BButton>
       </div>
-      
+
       <!-- Aktuelle Tags -->
       <div v-if="recipe.tags && recipe.tags.length" class="mb-2">
         <small class="text-muted d-block mb-1">Aktuelle Tags:</small>
@@ -143,7 +162,7 @@
           </span>
         </div>
       </div>
-      
+
       <!-- Verfügbare Tags -->
       <div v-if="availableTags.length" class="mt-2">
         <small class="text-muted d-block mb-1">Verfügbare Tags:</small>
@@ -167,13 +186,7 @@
 import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
-
-interface Recipe {
-  recipe_uuid: string;
-  recipe_name: string;
-  subtitle?: string;
-  tags?: string[];
-}
+import type { Recipe } from "@/types/recipe";
 
 const props = defineProps<{
   recipe: Recipe;
@@ -234,12 +247,38 @@ const availableTags = computed(() => {
   return allTags.value.filter((tag) => !props.recipe.tags?.includes(tag));
 });
 
-const highlightedName = computed(() => {
+// Safe search highlighting without v-html (XSS protection)
+const highlightedNameParts = computed(() => {
   if (!props.highlight || !props.recipe.recipe_name) {
-    return props.recipe.recipe_name;
+    return [{ text: props.recipe.recipe_name, highlight: false }];
   }
+
+  const parts: Array<{ text: string; highlight: boolean }> = [];
   const regex = new RegExp(`(${props.highlight})`, "gi");
-  return props.recipe.recipe_name.replace(regex, "<mark>$1</mark>");
+  let lastIndex = 0;
+  let match;
+
+  const text = props.recipe.recipe_name;
+
+  while ((match = regex.exec(text)) !== null) {
+    // Add text before match
+    if (match.index > lastIndex) {
+      parts.push({
+        text: text.substring(lastIndex, match.index),
+        highlight: false,
+      });
+    }
+    // Add highlighted match
+    parts.push({ text: match[0], highlight: true });
+    lastIndex = regex.lastIndex;
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push({ text: text.substring(lastIndex), highlight: false });
+  }
+
+  return parts.length > 0 ? parts : [{ text: text, highlight: false }];
 });
 
 const toggleFavorite = () => {
@@ -266,16 +305,16 @@ const deleteRecipe = () => {
 
 const addTag = () => {
   if (!newTag.value.trim()) return;
-  
+
   if (!props.recipe.tags) {
     props.recipe.tags = [];
   }
-  
+
   if (!props.recipe.tags.includes(newTag.value.trim())) {
     props.recipe.tags.push(newTag.value.trim());
     store.dispatch("setRecipe", { index: props.index, recipe: props.recipe });
   }
-  
+
   newTag.value = "";
 };
 
@@ -290,7 +329,7 @@ const addExistingTag = (tag: string) => {
   if (!props.recipe.tags) {
     props.recipe.tags = [];
   }
-  
+
   if (!props.recipe.tags.includes(tag)) {
     props.recipe.tags.push(tag);
     store.dispatch("setRecipe", { index: props.index, recipe: props.recipe });
@@ -382,9 +421,9 @@ const addExistingTag = (tag: string) => {
 }
 
 .card-fab-button {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: var(--fab-size-small);
+  height: var(--fab-size-small);
+  border-radius: var(--radius-circle);
   padding: 0;
   display: flex;
   align-items: center;
@@ -392,7 +431,9 @@ const addExistingTag = (tag: string) => {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  transition: transform 0.3s ease, background-color 0.2s ease;
+  transition:
+    var(--transition-all-normal),
+    background-color var(--transition-fast);
   color: white;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
 }
@@ -413,7 +454,7 @@ const addExistingTag = (tag: string) => {
 /* FAB Animation */
 .fab-items-enter-active,
 .fab-items-leave-active {
-  transition: all 0.3s ease;
+  transition: var(--transition-all-normal);
 }
 
 .fab-items-enter-from,
@@ -481,13 +522,13 @@ const addExistingTag = (tag: string) => {
 }
 
 .action-btn {
-  width: 36px;
-  height: 36px;
+  width: var(--action-btn-size-small);
+  height: var(--action-btn-size-small);
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 .action-btn i {
@@ -513,8 +554,10 @@ const addExistingTag = (tag: string) => {
   line-height: 1.3;
 }
 
-.card-title :deep(mark) {
+/* Search highlighting without v-html (XSS-safe) */
+.search-highlight {
   padding: 0 !important;
   background-color: rgba(255, 204, 0, 0.5);
+  border-radius: 2px;
 }
 </style>

@@ -31,14 +31,14 @@
 - Focus-Management nach Öffnen des Editors
 
 ### Metadaten-Anzeige UI-Qualität
-**Status:** 🟡 Verbesserungsbedarf | **Priorität:** Hoch
+**Status:** ✅ Behoben in Sprint 1 | **Priorität:** Hoch
 
-**Problem:**
-- Metadaten-Toggle-Button zu prominent (hat Rahmen, nicht dezent)
-- Metadaten-Overlay wirkt "zusammenhanglos" (schlechte visuelle Integration)
-- Keine Bearbeitungsmöglichkeit im Editor
+**Ursprüngliche Probleme:**
+- ~~Metadaten-Toggle-Button zu prominent~~ → Icon-only Button auf Rezeptbild
+- ~~Metadaten-Overlay zusammenhanglos~~ → Desktop: Sidebar, Mobile: Bottom Sheet
+- Keine Bearbeitungsmöglichkeit → wird in Sprint 5 (Editor-Überarbeitung) implementiert
 
-**Betroffene Dateien:** `src/views/Recipe.vue`, `src/views/Edit.vue`
+**Betroffene Dateien:** `src/views/Recipe.vue` ✅, `src/views/Edit.vue` (Sprint 5)
 
 ---
 
@@ -81,44 +81,41 @@
 
 ### Phase A: Koch-Ansicht optimieren (Kritisch)
 
-#### Sprint 1: Split-View Desktop/Tablet + Metadaten-Verbesserungen (4-6 Tage)
+#### Sprint 1: Split-View Desktop/Tablet + Metadaten-Verbesserungen ✅ **Abgeschlossen (27.12.2025)**
 **Ziel:** Parallele Ansicht Zutaten + Schritte + Metadaten-Feature finalisieren
 
 **Teil 1: Split-View für Rezeptansicht**
-**Priorität:** 🔴 Kritisch | **Aufwand:** M-L
+**Priorität:** 🔴 Kritisch | **Aufwand:** M-L | **Status:** ✅ Fertig
 
-**Features:**
-- Desktop: 35% Zutaten (sticky) | 65% Schritte
-- Tablet: 40% Zutaten (sticky) | 60% Schritte
-- Filter-Toggle: "Alle Zutaten" / "Nur aktueller Abschnitt"
-- Abschnitts-Synchronisation (Scroll → Highlight)
-- **Portionen-Skalierung:** Prominent im Header `[− 4 +]`
-- Optional: Resizable Splitter
+**Implementierte Features:**
+- ✅ Desktop: 35% Zutaten (sticky) | 65% Schritte
+- ✅ Tablet: 40% Zutaten (sticky) | 60% Schritte  
+- ✅ Mobile: Bottom Bar (collapsed/expanded) mit Backdrop
+- ✅ Filter-Toggle: "Alle Zutaten" / "Nur aktueller Abschnitt" (Desktop + Mobile)
+- ✅ Abschnitts-Synchronisation (Intersection Observer mit Debounce)
+- ✅ **Portionen-Skalierung:** Prominent in Zutaten-Header (Desktop), Bottom Bar (Mobile)
+- ✅ Manual Input + Button Controls auf allen Viewports
 
 **Teil 2: Metadaten-UX Verbesserungen**
-**Priorität:** 🔴 Hoch | **Aufwand:** M
+**Priorität:** 🔴 Hoch | **Aufwand:** M | **Status:** ✅ Fertig
 
-**Probleme aus Sprint 0 (siehe Known Issues):**
-- Metadaten-Toggle-Button zu prominent
-- Metadaten-Overlay wirkt zusammenhanglos
-- Keine Bearbeitungsmöglichkeit im Editor
+**Implementierte Verbesserungen:**
+- ✅ **Button-Redesign:** Icon-only (`bi-info-circle`), transparent weiß, dezent rechts oben auf Rezeptbild
+- ✅ **Desktop-Overlay:** Sidebar rechts (350px/40% Breite), dark background, backdrop-filter, slide-in-right Animation
+- ✅ **Mobile-Overlay:** Bottom Sheet (75vh), dark background, backdrop-filter, slide-up Animation, Drag Handle
+- ✅ **Content:** Author, Source, Menge (Yields), Zeiten, Schwierigkeit (Badge), Notizen
+- ✅ **Computed Properties:** hasTimeInfo, difficultyLabel, difficultyClass
+- ✅ **Responsive Design:** 44px Touch-Targets auf Mobile, separate Layouts für Desktop/Mobile
 
-**Geplante Verbesserungen:**
-- [ ] **Button-Redesign:** Icon-only, transparent, dezent positioniert (z.B. rechts oben auf Rezeptbild)
-- [ ] **Overlay-Redesign:** Modal-Design mit Backdrop-Blur, zentriert, bessere visuelle Hierarchie
-- [ ] **Editor-Integration:** Metadaten-Section im Edit.vue
-  - Autor (Textfeld)
-  - Quelle (URL oder Buchname)
-  - Zeiten (Vorbereitung, Backen/Kochen, Gesamt)
-  - Portionen (Anzahl + Einheit)
-  - Schwierigkeit (easy/medium/hard Dropdown)
-  - Notizen (Textarea)
-- [ ] **Responsive Design:** Touch-optimiert für Tablet/Mobile
+**Editor-Integration verschoben:**
+- Metadaten-Bearbeitung wird in **Sprint 5** (Editor-Überarbeitung) implementiert
+- Grund: Passt besser zur kompletten Editor-Neugestaltung
 
 **Betroffene Dateien:**
-- `src/views/Recipe.vue` (Split-View + Metadaten-Anzeige Redesign)
-- `src/views/Edit.vue` (Metadaten-Felder hinzufügen)
-- CSS: Split-View Styles
+- `src/views/Recipe.vue` ✅ (Split-View + Metadaten-Anzeige komplett)
+- `src/composables/useViewport.ts` ✅ (bereits vorhanden)
+- `src/composables/useRecipeHelper.ts` ✅ (Yields-Logik)
+- CSS: Split-View + Portionen + Metadaten-Overlay Styles ✅
 
 ---
 
@@ -173,7 +170,7 @@
 ---
 
 #### Sprint 5: Editor-Überarbeitung (2-3 Wochen)
-**Ziel:** Intuitive Bearbeitung auf allen Geräten
+**Ziel:** Intuitive Bearbeitung auf allen Geräten + Metadaten-Integration
 
 **Lösungen:**
 - **Card-Layout:** Ein Abschnitt = Karte (Zutaten + Schritte zusammen)
@@ -183,6 +180,10 @@
 - **Keyboard-Shortcuts** (Enter, Tab, Shift+↑↓)
 - **Drag & Drop reparieren** (Touch-Support, visuelles Feedback)
 - **Inline-Buttons:** +/− direkt bei Zutat/Schritt
+- **Metadaten-Section:** Einklappbare Card mit Autor, Quellen, Zeiten, Schwierigkeit, Notizen
+  - Auto-Berechnung Gesamtzeit (prep + cook + bake)
+  - URL-Validierung (Warnings, keine Blocker)
+  - Touch-optimierte Formular-Felder
 - **Optional:** Live-Preview, Collapse/Expand Abschnitte
 
 **Mock-up:**
@@ -352,8 +353,8 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 
 | Sprint | Phase | Thema | Aufwand | Priorität | Status |
 |--------|-------|-------|---------|-----------|--------|
-| 0 | Foundation | Navbar + Metadaten + Suche | 3-4 Tage | 🔴 Kritisch | ✅ Abgeschlossen |
-| 1 | Koch-Ansicht | Split-View + Metadaten-UX | 4-6 Tage | 🔴 Kritisch | 📋 Geplant |
+| 0 | Foundation | Navbar + Metadaten + Suche | 3-4 Tage | 🔴 Kritisch | ✅ Abgeschlossen (23.12.) |
+| 1 | Koch-Ansicht | Split-View + Metadaten-UX | 4-6 Tage | 🔴 Kritisch | ✅ Abgeschlossen (27.12.) |
 | 2 | Koch-Ansicht | Mobile FAB + Slide-In | 2-3 Tage | 🔴 Kritisch | 📋 Geplant |
 | 3 | Koch-Ansicht | Inline-Editing | 3-4 Tage | 🔴 Kritisch | 📋 Geplant |
 | 4 | Editor | Rezept-Wizard | 1 Woche | 🔴 Kritisch | 📋 Geplant |
@@ -366,7 +367,8 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 
 **Geschätzte Gesamtdauer:**
 - **Sprint 0 (Abgeschlossen):** ✅ 4 Tage (19.-23.12.2025)
-- **Kritische Sprints (1-5):** 6-8 Wochen
+- **Sprint 1 (Abgeschlossen):** ✅ 4 Tage (24.-27.12.2025)
+- **Kritische Sprints (2-5):** 6-8 Wochen
 - **Optionale Sprints (6-9):** +2-3 Wochen
 - **Design-Polish (10):** Parallel zu Sprint 5
 
@@ -390,12 +392,12 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 - [x] Tag-Editor in RecipeCard
 - [x] Metadaten-Typen definiert und Grundanzeige (⚠️ UI-Qualität → Sprint 1)
 
-### Neue Features - Sprint 1 (Split-View + Metadaten):
-- [ ] Split-View (Desktop/Tablet, sticky Zutaten)
-- [ ] Portionen-Skalierung prominent im Header
-- [ ] Metadaten-Button dezent (icon-only)
-- [ ] Metadaten-Overlay visuell integriert
-- [ ] Metadaten-Editor in Edit.vue
+### Neue Features - Sprint 1 (Split-View + Metadaten): ✅ Abgeschlossen
+- [x] Split-View (Desktop/Tablet, sticky Zutaten + Mobile Bottom Bar)
+- [x] Portionen-Skalierung prominent (Zutaten-Header/Bottom Bar)
+- [x] Metadaten-Button dezent (icon-only, auf Rezeptbild)
+- [x] Metadaten-Overlay visuell integriert (Desktop Sidebar, Mobile Bottom Sheet)
+- [ ] Metadaten-Editor → verschoben zu Sprint 5 (Editor-Überarbeitung)
 
 ### Neue Features - Phase A (Koch-Ansicht):
 - [ ] Mobile Koch-Ansicht (FAB + Slide-In, orientierungsabhängig)
@@ -423,24 +425,27 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 
 ## 🚀 Aktueller Stand & Nächste Schritte
 
-**Sprint 0 Status:** ✅ Abgeschlossen (23.12.2025)
+**Sprint 1 Status:** ✅ Abgeschlossen (27.12.2025)
 
 **Was funktioniert:**
-- Koch-fokussierte Navbar mit Galerie/Favoriten/Suche
-- Vollständige Filter- und Sortier-Funktionen
-- Admin-Features im Dropdown (Einstellungen, Verwaltung, Cloud-Sync, Experten-Modus)
-- Quick Actions in RecipeCards (Tags, Edit, Delete)
-- FAB in Rezeptansicht
-- Favoriten mit IndexedDB-Persistenz
-- AI-Import als Modal
+- ✅ Koch-fokussierte Navbar mit Galerie/Favoriten/Suche (Sprint 0)
+- ✅ Vollständige Filter- und Sortier-Funktionen (Sprint 0)
+- ✅ Admin-Features im Dropdown (Sprint 0)
+- ✅ Quick Actions in RecipeCards (Sprint 0)
+- ✅ FAB in Rezeptansicht (Sprint 0)
+- ✅ Favoriten mit IndexedDB-Persistenz (Sprint 0)
+- ✅ AI-Import als Modal (Sprint 0)
+- ✅ **Split-View Desktop/Tablet** (Sprint 1)
+- ✅ **Mobile Bottom Bar** mit Zutaten (Sprint 1)
+- ✅ **Intersection Observer** für Abschnitts-Synchronisation (Sprint 1)
+- ✅ **Portionen-Skalierung** prominent mit Manual Input (Sprint 1)
+- ✅ **Metadaten-Overlay** dezent und visuell integriert (Sprint 1)
 
 **Was noch verbessert werden muss:**
-- Metadaten-Button Design (zu prominent) → Sprint 1
-- Metadaten-Overlay visuelle Integration → Sprint 1
 - Tag-Editor Close-Funktionalität (ESC, Toggle) → siehe Known Issues
-- Metadaten-Bearbeitung im Editor → Sprint 1
+- Metadaten-Bearbeitung im Editor → Sprint 5 (Editor-Überarbeitung)
 
-**Nächster Schritt:** Sprint 1 (Split-View + Metadaten-UX) - Geschätzt 4-6 Tage
+**Nächster Schritt:** Sprint 2 (Mobile FAB + Slide-In) - Geschätzt 2-3 Tage
 
 ---
 

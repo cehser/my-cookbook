@@ -1,7 +1,7 @@
 import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
 import { useStore } from 'vuex'
-import { deepCopyYaml } from '../js/deepCopy'
-import type { Recipe, RecipePictures } from '../types/recipe'
+import { deepCopyYaml } from '@/js/deepCopy'
+import type { Recipe, RecipePictures } from '@/types/recipe'
 
 interface RecipeHelperOptions {
   selected: Ref<number>

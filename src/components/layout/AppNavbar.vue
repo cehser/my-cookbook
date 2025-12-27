@@ -101,11 +101,7 @@
 import { ref, watch, onMounted, computed } from "vue";
 import { useRoute } from "vue-router";
 import { useStore } from "vuex";
-
-interface Recipe {
-  recipe_name: string;
-  [key: string]: any;
-}
+import type { Recipe } from "@/types/recipe";
 
 const props = withDefaults(
   defineProps<{
@@ -212,7 +208,7 @@ onMounted(() => {
     min-width: 44px;
     min-height: 44px;
   }
-  
+
   .dropdown-menu {
     position: static !important;
     transform: none !important;

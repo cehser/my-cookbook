@@ -1,7 +1,7 @@
 import { createClient, WebDAVClient } from 'webdav'
 import jsyaml from 'js-yaml'
-import type { Settings } from '../types/settings'
-import type { Recipe, RecipePictures, RecipeImages } from '../types/recipe'
+import type { Settings } from '@/types/settings'
+import type { Recipe, RecipePictures, RecipeImages } from '@/types/recipe'
 
 class CloudService {
   /**

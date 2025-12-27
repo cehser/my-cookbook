@@ -1,12 +1,12 @@
 <template>
   <div id="recipe">
-    <Navbar
+    <AppNavbar
       @input="selected = $event"
       :recipes_list="recipes_list"
       :selected="selected"
       :read_only="settings.read_only"
     />
-    
+
     <!-- Desktop/Tablet: Split-View Layout -->
     <div v-if="isDesktopOrTablet" class="recipe-container split-view">
       <div class="split-layout">
@@ -16,89 +16,50 @@
             <div class="card rounded-0">
               <div class="card-header">
                 <h3 class="card-title mb-0">Zutaten</h3>
-                
+
                 <!-- Portionen-Kontrolle (Desktop) -->
-                <div v-if="!editMode" class="portions-control-desktop mt-3">
-                  <BButton
-                  @click="decreaseYields"
-                  variant="primary"
-                  size="sm"
-                  class="portion-btn"
-                  :disabled="yields_value <= 1"
-                >
-                  <i class="bi bi-dash-lg"></i>
-                </BButton>
+                <PortionControl
+                  v-if="!editMode"
+                  :yields-value="yields_value"
+                  :yields-unit="yields_unit"
+                  variant="desktop"
+                  @update:yields="setYieldsValue"
+                />
 
-                <div class="portions-display">
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    step="1"
-                    :value="yields_value"
-                    @input="setYieldsValue(Number($event.target.value))"
-                    class="portions-input-desktop"
-                  />
-                  <span class="unit">{{ yields_unit }}</span>
-                </div>
-
-                <BButton
-                  @click="increaseYields"
-                  variant="primary"
-                  size="sm"
-                  class="portion-btn"
-                >
-                  <i class="bi bi-plus-lg"></i>
-                </BButton>
-              </div>
-              
-              <!-- Filter Toggle (Desktop) -->
-              <div v-if="!editMode && current_recipe.sections.length > 1" class="filter-controls mt-3">
-                <BButton
-                  size="sm"
-                  :variant="showAllIngredients ? 'primary' : 'outline-secondary'"
-                  @click="showAllIngredients = true"
-                >
-                  Alle Zutaten
-                </BButton>
-                <BButton
-                  v-if="activeSection"
-                  size="sm"
-                  :variant="!showAllIngredients ? 'primary' : 'outline-secondary'"
-                  @click="showAllIngredients = false"
-                >
-                  Nur aktuell
-                </BButton>
-              </div>
-            </div>
-              <div class="card-body">
+                <!-- Filter Toggle (Desktop) -->
                 <div
-                  v-for="(section, index) in visibleDesktopSections"
-                  :key="'desktop-ing-' + index"
-                  class="ingredients-section"
-                  :class="{ active: section.section === activeSection }"
-                  :data-section="section.section"
+                  v-if="!editMode && current_recipe.sections.length > 1"
+                  class="filter-controls mt-3"
                 >
-                  <h5>{{ section.section }}</h5>
-                  <div
-                    class="row mb-2"
-                    v-for="(ingredient, idx) in getIngredients(section.section)"
-                    :key="'ing-' + idx"
+                  <BButton
+                    size="sm"
+                    :variant="
+                      showAllIngredients ? 'primary' : 'outline-secondary'
+                    "
+                    @click="showAllIngredients = true"
                   >
-                    <div class="col-4">
-                      {{
-                        formatNumbers(
-                          ingredient[Object.keys(ingredient)[0]].amounts[0]
-                            .amount,
-                        )
-                      }}
-                      {{ ingredient[Object.keys(ingredient)[0]].amounts[0].unit }}
-                    </div>
-                    <div class="col-8">
-                      {{ Object.keys(ingredient)[0] }}
-                    </div>
-                  </div>
+                    Alle Zutaten
+                  </BButton>
+                  <BButton
+                    v-if="activeSection"
+                    size="sm"
+                    :variant="
+                      !showAllIngredients ? 'primary' : 'outline-secondary'
+                    "
+                    @click="showAllIngredients = false"
+                  >
+                    Nur aktuell
+                  </BButton>
                 </div>
+              </div>
+              <div class="card-body">
+                <!-- Zutaten-Sections (Desktop) -->
+                <IngredientsSection
+                  :sections="visibleDesktopSections"
+                  :active-section="activeSection"
+                  :ingredients="current_recipe.ingredients"
+                  :yields-value="yields_value"
+                />
               </div>
             </div>
           </div>
@@ -123,13 +84,35 @@
                 <i
                   class="bi"
                   :class="
-                    isFavorite ? 'bi-star-fill text-warning' : 'bi-star text-white'
+                    isFavorite
+                      ? 'bi-star-fill text-warning'
+                      : 'bi-star text-white'
                   "
                   :title="
-                    isFavorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'
+                    isFavorite
+                      ? 'Aus Favoriten entfernen'
+                      : 'Zu Favoriten hinzufügen'
                   "
                 ></i>
               </div>
+              <!-- Metadaten-Button (rechts oben) -->
+              <div
+                class="metadata-toggle-icon"
+                @click.prevent.stop="showMetadata = !showMetadata"
+              >
+                <i class="bi bi-info-circle" title="Metadaten anzeigen"></i>
+              </div>
+
+              <!-- Metadaten-Sidebar-Overlay (Desktop/Tablet) -->
+              <MetadataOverlay
+                :show="showMetadata && !isMobile"
+                :is-mobile="false"
+                :recipe="current_recipe"
+                :yields-value="yields_value"
+                :yields-unit="yields_unit"
+                @close="showMetadata = false"
+              />
+
               <div class="card-body" id="recipe_title">
                 <h2 class="card-title">
                   <div v-if="!editMode">
@@ -142,7 +125,10 @@
                     class="fw-bold"
                   />
                 </h2>
-                <p v-if="!editMode && current_recipe.subtitle" class="card-text">
+                <p
+                  v-if="!editMode && current_recipe.subtitle"
+                  class="card-text"
+                >
                   {{ current_recipe.subtitle }}
                 </p>
                 <BFormInput
@@ -150,122 +136,6 @@
                   v-model="current_recipe.subtitle"
                   placeholder="Untertitel"
                 />
-
-                <!-- Metadaten-Toggle-Icon (dezent) -->
-                <div
-                  v-if="hasMetadata"
-                  class="metadata-toggle"
-                  @click="showMetadata = !showMetadata"
-                  :title="
-                    showMetadata ? 'Metadaten ausblenden' : 'Metadaten anzeigen'
-                  "
-                >
-                  <i class="bi bi-info-circle"></i>
-                </div>
-
-                <!-- Metadaten-Sektion als Overlay -->
-                <div
-                  v-if="showMetadata && hasMetadata"
-                  class="recipe-metadata-overlay"
-                  @click.self="showMetadata = false"
-                >
-                  <div class="recipe-metadata">
-                    <div class="metadata-header">
-                      <h6 class="mb-0">
-                        <i class="bi bi-info-circle me-2"></i
-                        >Rezeptinformationen
-                      </h6>
-                      <button
-                        class="btn-close btn-close-white"
-                        @click="showMetadata = false"
-                        aria-label="Schließen"
-                      ></button>
-                    </div>
-
-                    <div v-if="current_recipe.author" class="metadata-row">
-                      <i class="bi bi-person-fill text-muted me-2"></i>
-                      <strong>Autor:</strong> {{ current_recipe.author }}
-                    </div>
-
-                    <div
-                      v-if="
-                        current_recipe.source_url || current_recipe.source_book
-                      "
-                      class="metadata-row"
-                    >
-                      <i class="bi bi-link-45deg text-muted me-2"></i>
-                      <strong>Quelle:</strong>
-                      <a
-                        v-if="current_recipe.source_url"
-                        :href="current_recipe.source_url"
-                        target="_blank"
-                        class="ms-1"
-                      >
-                        {{ current_recipe.source_url }}
-                      </a>
-                      <span v-if="current_recipe.source_book" class="ms-1">
-                        {{ current_recipe.source_book }}
-                      </span>
-                    </div>
-
-                    <div v-if="current_recipe.servings" class="metadata-row">
-                      <i class="bi bi-people-fill text-muted me-2"></i>
-                      <strong>Portionen:</strong> {{ current_recipe.servings }}
-                    </div>
-
-                    <div
-                      v-if="
-                        current_recipe.prep_time ||
-                        current_recipe.cook_time ||
-                        current_recipe.total_time ||
-                        current_recipe.bake_time
-                      "
-                      class="metadata-row"
-                    >
-                      <i class="bi bi-clock-fill text-muted me-2"></i>
-                      <strong>Zeit:</strong>
-                      <span v-if="current_recipe.prep_time" class="ms-1">
-                        Vorbereitung: {{ current_recipe.prep_time }}
-                      </span>
-                      <span v-if="current_recipe.cook_time" class="ms-1">
-                        | Koch-Zeit: {{ current_recipe.cook_time }}
-                      </span>
-                      <span v-if="current_recipe.bake_time" class="ms-1">
-                        | Back-Zeit: {{ current_recipe.bake_time }}
-                      </span>
-                      <span v-if="current_recipe.total_time" class="ms-1">
-                        | Gesamt: {{ current_recipe.total_time }}
-                      </span>
-                    </div>
-
-                    <div v-if="current_recipe.difficulty" class="metadata-row">
-                      <i class="bi bi-bar-chart-fill text-muted me-2"></i>
-                      <strong>Schwierigkeit:</strong>
-                      <span
-                        class="badge ms-1"
-                        :class="{
-                          'bg-success': current_recipe.difficulty === 'easy',
-                          'bg-warning': current_recipe.difficulty === 'medium',
-                          'bg-danger': current_recipe.difficulty === 'hard',
-                        }"
-                      >
-                        {{
-                          current_recipe.difficulty === "easy"
-                            ? "Einfach"
-                            : current_recipe.difficulty === "medium"
-                              ? "Mittel"
-                              : "Schwer"
-                        }}
-                      </span>
-                    </div>
-
-                    <div v-if="current_recipe.notes" class="metadata-row">
-                      <i class="bi bi-journal-text text-muted me-2"></i>
-                      <strong>Notizen:</strong>
-                      <p class="mb-0 ms-4">{{ current_recipe.notes }}</p>
-                    </div>
-                  </div>
-                </div>
 
                 <div
                   v-if="current_recipe.tags && current_recipe.tags.length"
@@ -283,35 +153,13 @@
 
             <div class="card-body">
               <h3>Zubereitung</h3>
-              <div
-                v-for="(section, sectionIndex) in current_recipe.sections"
-                :key="'section-' + sectionIndex"
-                :data-step-section="section.section"
-                class="step-section"
-              >
-                <h4 v-if="!editMode">{{ section.section }}</h4>
-                <BFormInput
-                  v-else
-                  v-model="section.section"
-                  class="mb-2 fw-bold"
-                  placeholder="Abschnittsname"
-                />
-                <ul class="list-group list-group-numbered list-group-flush">
-                  <li
-                    class="list-group-item"
-                    v-for="(step, stepIndex) in current_recipe.steps.filter(
-                      (x) => x.section == section.section,
-                    )"
-                    :key="'step-' + stepIndex"
-                    :data-section="section.section"
-                    :data-step-number="getStepNumber(section.section, stepIndex)"
-                    @click="!editMode && selectStep($event)"
-                  >
-                    <span v-if="!editMode">{{ step.step }}</span>
-                    <BFormTextarea v-else v-model="step.step" rows="3" />
-                  </li>
-                </ul>
-              </div>
+              <StepSection
+                :sections="current_recipe.sections"
+                :steps="current_recipe.steps"
+                :edit-mode="editMode"
+                key-prefix="desktop-"
+                @select-step="selectStep"
+              />
             </div>
           </div>
         </main>
@@ -329,7 +177,7 @@
               :src="picture_src"
               alt="Rezeptbild"
             />
-            
+
             <!-- Favoriten-Stern (immer sichtbar, links oben) -->
             <div
               v-if="!settings.read_only"
@@ -339,12 +187,24 @@
               <i
                 class="bi"
                 :class="
-                  isFavorite ? 'bi-star-fill text-warning' : 'bi-star text-white'
+                  isFavorite
+                    ? 'bi-star-fill text-warning'
+                    : 'bi-star text-white'
                 "
                 :title="
-                  isFavorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'
+                  isFavorite
+                    ? 'Aus Favoriten entfernen'
+                    : 'Zu Favoriten hinzufügen'
                 "
               ></i>
+            </div>
+
+            <!-- Metadaten-Button (rechts oben) -->
+            <div
+              class="metadata-toggle-icon"
+              @click.prevent.stop="showMetadata = !showMetadata"
+            >
+              <i class="bi bi-info-circle" title="Metadaten anzeigen"></i>
             </div>
             <div class="card-body" id="recipe_title">
               <h2 class="card-title">
@@ -367,119 +227,6 @@
                 placeholder="Untertitel"
               />
 
-              <!-- Metadaten-Toggle-Icon -->
-              <div
-                v-if="hasMetadata"
-                class="metadata-toggle"
-                @click="showMetadata = !showMetadata"
-                :title="
-                  showMetadata ? 'Metadaten ausblenden' : 'Metadaten anzeigen'
-                "
-              >
-                <i class="bi bi-info-circle"></i>
-              </div>
-
-              <!-- Metadaten Mobile (Same as Desktop for now) -->
-              <div
-                v-if="showMetadata && hasMetadata"
-                class="recipe-metadata-overlay"
-                @click.self="showMetadata = false"
-              >
-                <div class="recipe-metadata">
-                  <div class="metadata-header">
-                    <h6 class="mb-0">
-                      <i class="bi bi-info-circle me-2"></i>Rezeptinformationen
-                    </h6>
-                    <button
-                      class="btn-close btn-close-white"
-                      @click="showMetadata = false"
-                      aria-label="Schließen"
-                    ></button>
-                  </div>
-
-                  <div v-if="current_recipe.author" class="metadata-row">
-                    <i class="bi bi-person-fill text-muted me-2"></i>
-                    <strong>Autor:</strong> {{ current_recipe.author }}
-                  </div>
-
-                  <div
-                    v-if="current_recipe.source_url || current_recipe.source_book"
-                    class="metadata-row"
-                  >
-                    <i class="bi bi-link-45deg text-muted me-2"></i>
-                    <strong>Quelle:</strong>
-                    <a
-                      v-if="current_recipe.source_url"
-                      :href="current_recipe.source_url"
-                      target="_blank"
-                      class="ms-1"
-                    >
-                      {{ current_recipe.source_url }}
-                    </a>
-                    <span v-if="current_recipe.source_book" class="ms-1">
-                      {{ current_recipe.source_book }}
-                    </span>
-                  </div>
-
-                  <div v-if="current_recipe.servings" class="metadata-row">
-                    <i class="bi bi-people-fill text-muted me-2"></i>
-                    <strong>Portionen:</strong> {{ current_recipe.servings }}
-                  </div>
-
-                  <div
-                    v-if="
-                      current_recipe.prep_time ||
-                      current_recipe.cook_time ||
-                      current_recipe.total_time ||
-                      current_recipe.bake_time
-                    "
-                    class="metadata-row"
-                  >
-                    <i class="bi bi-clock-fill text-muted me-2"></i>
-                    <strong>Zeit:</strong>
-                    <span v-if="current_recipe.prep_time" class="ms-1">
-                      Vorbereitung: {{ current_recipe.prep_time }}
-                    </span>
-                    <span v-if="current_recipe.cook_time" class="ms-1">
-                      | Koch-Zeit: {{ current_recipe.cook_time }}
-                    </span>
-                    <span v-if="current_recipe.bake_time" class="ms-1">
-                      | Back-Zeit: {{ current_recipe.bake_time }}
-                    </span>
-                    <span v-if="current_recipe.total_time" class="ms-1">
-                      | Gesamt: {{ current_recipe.total_time }}
-                    </span>
-                  </div>
-
-                  <div v-if="current_recipe.difficulty" class="metadata-row">
-                    <i class="bi bi-bar-chart-fill text-muted me-2"></i>
-                    <strong>Schwierigkeit:</strong>
-                    <span
-                      class="badge ms-1"
-                      :class="{
-                        'bg-success': current_recipe.difficulty === 'easy',
-                        'bg-warning': current_recipe.difficulty === 'medium',
-                        'bg-danger': current_recipe.difficulty === 'hard',
-                      }"
-                    >
-                      {{
-                        current_recipe.difficulty === "easy"
-                          ? "Einfach"
-                          : current_recipe.difficulty === "medium"
-                            ? "Mittel"
-                            : "Schwer"
-                      }}
-                    </span>
-                  </div>
-
-                  <div v-if="current_recipe.notes" class="metadata-row">
-                    <i class="bi bi-journal-text text-muted me-2"></i>
-                    <strong>Notizen:</strong>
-                    <p class="mb-0 ms-4">{{ current_recipe.notes }}</p>
-                  </div>
-                </div>
-              </div>
-
               <div
                 v-if="current_recipe.tags && current_recipe.tags.length"
                 class="mt-2"
@@ -496,275 +243,58 @@
 
           <div class="card-body">
             <h3>Zubereitung</h3>
-            <div
-              v-for="(section, sectionIndex) in current_recipe.sections"
-              :key="'mobile-section-' + sectionIndex"
-              :data-step-section="section.section"
-              class="step-section"
-            >
-              <h4 v-if="!editMode">{{ section.section }}</h4>
-              <BFormInput
-                v-else
-                v-model="section.section"
-                class="mb-2 fw-bold"
-                placeholder="Abschnittsname"
-              />
-              <ul class="list-group list-group-numbered list-group-flush">
-                <li
-                  class="list-group-item"
-                  v-for="(step, stepIndex) in current_recipe.steps.filter(
-                    (x) => x.section == section.section,
-                  )"
-                  :key="'mobile-step-' + stepIndex"
-                  :data-section="section.section"
-                  :data-step-number="getStepNumber(section.section, stepIndex)"
-                  @click="!editMode && selectStep($event)"
-                >
-                  <span v-if="!editMode">{{ step.step }}</span>
-                  <BFormTextarea v-else v-model="step.step" rows="3" />
-                </li>
-              </ul>
-            </div>
+            <StepSection
+              :sections="current_recipe.sections"
+              :steps="current_recipe.steps"
+              :edit-mode="editMode"
+              key-prefix="mobile-"
+              @select-step="selectStep"
+            />
           </div>
         </div>
       </div>
 
       <!-- Mobile Bottom Bar -->
-      <div
-        class="ingredients-bottom-bar"
-        :class="{ expanded: ingredientsExpanded }"
-      >
-        <!-- Collapsed State -->
-        <div
-          v-if="!ingredientsExpanded"
-          class="bottom-bar-collapsed"
-          @click="openIngredientsBar"
-        >
-          <!-- Portionen-Kontrolle (Mobile Collapsed) -->
-          <div class="portions-control-mobile" @click.stop>
-            <BButton
-              @click="decreaseYields"
-              variant="primary"
-              size="sm"
-              class="portion-btn-mobile"
-              :disabled="yields_value <= 1"
-            >
-              <i class="bi bi-dash"></i>
-            </BButton>
-            <input
-              type="number"
-              min="1"
-              max="100"
-              step="1"
-              :value="yields_value"
-              @input="setYieldsValue(Number($event.target.value))"
-              @click.stop
-              class="portions-input-mobile"
-            />
-            <span class="portions-unit-mobile">{{ yields_unit }}</span>
-            <BButton
-              @click="increaseYields"
-              variant="primary"
-              size="sm"
-              class="portion-btn-mobile"
-            >
-              <i class="bi bi-plus"></i>
-            </BButton>
-          </div>
-
-          <div class="divider-vertical"></div>
-
-          <i class="bi bi-list-ul"></i>
-          <span class="bar-title">Zutaten</span>
-          <i class="bi bi-chevron-up"></i>
-        </div>
-
-        <!-- Expanded State -->
-        <div v-else class="bottom-bar-expanded">
-          <div class="bar-header">
-            <h6><i class="bi bi-list-ul me-2"></i>Zutaten</h6>
-            <button class="btn-close-custom" @click="closeIngredientsBar">
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </div>
-
-          <!-- Portionen-Kontrolle (Mobile Expanded) -->
-          <div class="portions-control-mobile-expanded">
-            <BButton
-              @click="decreaseYields"
-              variant="primary"
-              size="sm"
-              class="portion-btn"
-              :disabled="yields_value <= 1"
-            >
-              <i class="bi bi-dash-lg"></i>
-            </BButton>
-
-            <div class="portions-display-expanded">
-              <input
-                type="number"
-                min="1"
-                max="100"
-                step="1"
-                :value="yields_value"
-                @input="setYieldsValue(Number($event.target.value))"
-                class="portions-input-expanded"
-              />
-              <span class="unit">{{ yields_unit }}</span>
-            </div>
-
-            <BButton
-              @click="increaseYields"
-              variant="primary"
-              size="sm"
-              class="portion-btn"
-            >
-              <i class="bi bi-plus-lg"></i>
-            </BButton>
-          </div>
-
-          <!-- Filter Toggle -->
-          <div class="filter-toggle">
-            <BButton
-              size="sm"
-              :variant="showOnlyCurrentSection ? 'primary' : 'outline-secondary'"
-              @click="showOnlyCurrentSection = true"
-            >
-              Nur aktuell
-            </BButton>
-            <BButton
-              size="sm"
-              :variant="!showOnlyCurrentSection ? 'primary' : 'outline-secondary'"
-              @click="showOnlyCurrentSection = false"
-            >
-              Alle
-            </BButton>
-          </div>
-
-          <!-- Ingredients Content -->
-          <div class="ingredients-content">
-            <div
-              v-for="(section, index) in visibleIngredientSections"
-              :key="'mobile-ing-section-' + index"
-              class="ingredient-section"
-              :class="{ active: section.section === activeSection }"
-              :data-section="section.section"
-            >
-              <h6>{{ section.section }}</h6>
-              <div
-                v-for="(ingredient, idx) in getIngredients(section.section)"
-                :key="'mobile-ing-' + idx"
-                class="ingredient-item"
-              >
-                <input type="checkbox" class="me-2" />
-                {{
-                  formatNumbers(
-                    ingredient[Object.keys(ingredient)[0]].amounts[0].amount,
-                  )
-                }}
-                {{ ingredient[Object.keys(ingredient)[0]].amounts[0].unit }}
-                {{ Object.keys(ingredient)[0] }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Section Quick-Jump Chips -->
-          <div
-            v-if="
-              !showOnlyCurrentSection && current_recipe.sections.length > 1
-            "
-            class="section-chips"
-          >
-            <BButton
-              v-for="section in current_recipe.sections"
-              :key="'chip-' + section.section"
-              size="sm"
-              :variant="
-                section.section === activeSection
-                  ? 'primary'
-                  : 'outline-secondary'
-              "
-              @click="scrollToIngredientSection(section.section)"
-            >
-              {{ section.section }}
-            </BButton>
-          </div>
-        </div>
-      </div>
+      <MobileIngredientsBar
+        :is-expanded="ingredientsExpanded"
+        :yields-value="yields_value"
+        :yields-unit="yields_unit"
+        :show-only-current-section="showOnlyCurrentSection"
+        :visible-sections="visibleIngredientSections"
+        :sections="current_recipe.sections"
+        :active-section="activeSection"
+        :ingredients="current_recipe.ingredients"
+        @open="openIngredientsBar"
+        @close="closeIngredientsBar"
+        @update:yields="setYieldsValue"
+        @update:show-only-current-section="showOnlyCurrentSection = $event"
+        @scroll-to-section="scrollToIngredientSection"
+      />
     </div>
 
     <!-- Floating Action Button (FAB) mit Menü -->
-    <div v-if="!editMode" class="fab-container" :class="{ 'read-only': settings.read_only }">
-      <transition name="fab-items">
-        <div v-if="fabMenuOpen" class="fab-menu">
-          <!-- Actions (nur wenn nicht read-only) -->
-          <template v-if="!settings.read_only">
-            <BButton
-              @click="toggleEditMode(); fabMenuOpen = false"
-              class="fab-menu-item"
-              variant="light"
-              size="sm"
-              title="Inline bearbeiten"
-            >
-              <i class="bi bi-pencil"></i>
-              <span>Inline-Edit</span>
-            </BButton>
-            <BButton
-              @click="goToEdit(); fabMenuOpen = false"
-              class="fab-menu-item"
-              variant="light"
-              size="sm"
-              title="Vollständig bearbeiten"
-            >
-              <i class="bi bi-pencil-square"></i>
-              <span>Bearbeiten</span>
-            </BButton>
-            <BButton
-              @click="copyRecipe(); fabMenuOpen = false"
-              class="fab-menu-item"
-              variant="light"
-              size="sm"
-              title="Duplizieren"
-            >
-              <i class="bi bi-files"></i>
-              <span>Duplizieren</span>
-            </BButton>
-            <BButton
-              @click="deleteRecipe(); fabMenuOpen = false"
-              class="fab-menu-item"
-              variant="danger"
-              size="sm"
-              title="Löschen"
-            >
-              <i class="bi bi-trash"></i>
-              <span>Löschen</span>
-            </BButton>
-          </template>
-          
-          <!-- Export (nur im Expert-Modus) -->
-          <BButton
-            v-if="settings.expert_mode"
-            @click="exportRecipe(); fabMenuOpen = false"
-            class="fab-menu-item"
-            variant="light"
-            size="sm"
-            title="Als YAML exportieren"
-          >
-            <i class="bi bi-download"></i>
-            <span>YAML Export</span>
-          </BButton>
-        </div>
-      </transition>
-      <BButton
-        @click="fabMenuOpen = !fabMenuOpen"
-        class="fab-edit-button fab-main"
-        variant="primary"
-        :class="{ 'fab-open': fabMenuOpen }"
-        title="Menü"
-      >
-        <i class="bi" :class="fabMenuOpen ? 'bi-x-lg' : 'bi-three-dots-vertical'"></i>
-      </BButton>
-    </div>
+    <RecipeFabMenu
+      :edit-mode="editMode"
+      :read-only="settings.read_only"
+      :expert-mode="settings.expert_mode"
+      :menu-open="fabMenuOpen"
+      @toggle-menu="fabMenuOpen = !fabMenuOpen"
+      @inline-edit="toggleEditMode"
+      @edit="goToEdit"
+      @copy="copyRecipe"
+      @delete="deleteRecipe"
+      @export="exportRecipe"
+    />
+
+    <!-- Mobile: Metadaten Bottom Sheet -->
+    <MetadataOverlay
+      :show="isMobile && showMetadata"
+      :is-mobile="true"
+      :recipe="current_recipe"
+      :yields-value="yields_value"
+      :yields-unit="yields_unit"
+      @close="showMetadata = false"
+    />
   </div>
 </template>
 
@@ -772,17 +302,29 @@
 // @ is an alias to /src
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useViewport } from "@/composables/useViewport";
-import Navbar from "@/components/Navbar.vue";
+import AppNavbar from "@/components/layout/AppNavbar.vue";
+import MetadataOverlay from "@/components/recipe/display/MetadataOverlay.vue";
+import PortionControl from "@/components/recipe/display/PortionControl.vue";
+import IngredientsSection from "@/components/recipe/display/IngredientsSection.vue";
+import MobileIngredientsBar from "@/components/recipe/display/MobileIngredientsBar.vue";
+import RecipeFabMenu from "@/components/recipe/ui/RecipeFabMenu.vue";
+import StepSection from "@/components/recipe/display/StepSection.vue";
 import jsyaml from "js-yaml";
 import { mapState } from "vuex";
 import { computed, ref, nextTick } from "vue";
-import UUID from "../js/uuid";
-import { deepCopyYaml } from "../js/deepCopy";
+import UUID from "@/js/uuid";
+import { deepCopyYaml } from "@/js/deepCopy";
 
 export default {
   name: "Recipe",
   components: {
-    Navbar,
+    AppNavbar,
+    MetadataOverlay,
+    PortionControl,
+    IngredientsSection,
+    MobileIngredientsBar,
+    RecipeFabMenu,
+    StepSection,
   },
   props: {
     selected: {
@@ -794,15 +336,15 @@ export default {
     const selectedRef = computed(() => props.selected);
     const recipeHelper = useRecipeHelper({ selected: selectedRef });
     const viewport = useViewport();
-    
+
     // Mobile Bottom Bar State
     const ingredientsExpanded = ref(false);
     const showOnlyCurrentSection = ref(true); // Mobile: Default only current section
     const activeSection = ref(null);
-    
+
     // Desktop Filter State
     const showAllIngredients = ref(true); // Desktop: Default show all
-    
+
     // FAB Menu State (Mobile)
     const fabMenuOpen = ref(false);
 
@@ -839,7 +381,7 @@ export default {
     } else {
       this.showIngredients = savedShowIngredients;
     }
-    
+
     // Setup Intersection Observer
     this.$nextTick(() => {
       this.observeStepSections();
@@ -967,24 +509,44 @@ export default {
       }
     },
     copyRecipe() {
-      // Deep copy current recipe
-      const recipe = deepCopyYaml(this.current_recipe);
-      // Generate new UUID
-      recipe.recipe_uuid = UUID.generateUUID();
-      // Append to store
-      this.$store.dispatch("appendRecipe", recipe);
-      // Navigate to the new recipe (will be at the end of the list)
-      this.$nextTick(() => {
-        this.$router.push("/recipe/" + (this.recipes.length - 1));
-      });
+      if (!this.current_recipe) {
+        this.toast("Rezept konnte nicht dupliziert werden", "danger");
+        return;
+      }
+
+      try {
+        // Deep copy current recipe
+        const recipe = deepCopyYaml(this.current_recipe);
+        // Generate new UUID
+        recipe.recipe_uuid = UUID.generateUUID();
+        // Append to store
+        this.$store.dispatch("appendRecipe", recipe);
+        // Navigate to the new recipe (will be at the end of the list)
+        this.$nextTick(() => {
+          this.$router.push("/recipe/" + (this.recipes.length - 1));
+        });
+      } catch (error) {
+        console.error("Error copying recipe:", error);
+        this.toast("Fehler beim Duplizieren des Rezepts", "danger");
+      }
     },
     deleteRecipe() {
+      if (!this.current_recipe) {
+        this.toast("Rezept konnte nicht gelöscht werden", "danger");
+        return;
+      }
+
       if (
         confirm(`Rezept "${this.current_recipe.recipe_name}" wirklich löschen?`)
       ) {
-        this.$store.dispatch("deleteRecipe", this.selected);
-        // Navigate to gallery after deletion
-        this.$router.push("/");
+        try {
+          this.$store.dispatch("deleteRecipe", this.selected);
+          // Navigate to gallery after deletion
+          this.$router.push("/");
+        } catch (error) {
+          console.error("Error deleting recipe:", error);
+          this.toast("Fehler beim Löschen des Rezepts", "danger");
+        }
       }
     },
     toggleFavorite() {
@@ -997,20 +559,15 @@ export default {
         this.$store.dispatch("addFavorite", this.current_recipe.recipe_uuid);
       }
     },
-    increaseYields() {
-      if (this.yields_value < 100) {
-        this.setYieldsValue(this.yields_value + 1);
-      }
-    },
-    decreaseYields() {
-      if (this.yields_value > 1) {
-        this.setYieldsValue(this.yields_value - 1);
-      }
-    },
     goToEdit() {
       this.$router.push(`/edit/${this.selected}`);
     },
     toggleEditMode() {
+      if (!this.current_recipe) {
+        this.toast("Rezept konnte nicht bearbeitet werden", "danger");
+        return;
+      }
+
       this.editMode = !this.editMode;
       if (this.editMode) {
         // Backup current recipe for cancel
@@ -1018,14 +575,25 @@ export default {
       }
     },
     saveRecipe() {
-      // Save changes to store
-      this.$store.dispatch("updateRecipe", {
-        index: this.selected,
-        recipe: this.current_recipe,
-      });
-      this.$store.dispatch("saveToLocalStorage");
-      this.editMode = false;
-      this.originalRecipe = null;
+      if (!this.current_recipe) {
+        this.toast("Rezept konnte nicht gespeichert werden", "danger");
+        return;
+      }
+
+      try {
+        // Save changes to store
+        this.$store.dispatch("updateRecipe", {
+          index: this.selected,
+          recipe: this.current_recipe,
+        });
+        this.$store.dispatch("saveToLocalStorage");
+        this.editMode = false;
+        this.originalRecipe = null;
+        this.toast("Rezept gespeichert", "success");
+      } catch (error) {
+        console.error("Error saving recipe:", error);
+        this.toast("Fehler beim Speichern des Rezepts", "danger");
+      }
     },
     cancelEdit() {
       // Restore original recipe
@@ -1135,21 +703,25 @@ export default {
           // Debounce section updates to prevent flickering
           this.sectionUpdateTimeout = setTimeout(() => {
             // Query all sections to find the most visible one
-            const allSections = document.querySelectorAll("[data-step-section]");
+            const allSections = document.querySelectorAll(
+              "[data-step-section]",
+            );
             let maxVisibility = 0;
             let mostVisibleSection = null;
 
             allSections.forEach((section) => {
               const rect = section.getBoundingClientRect();
               const viewportHeight = window.innerHeight;
-              
+
               // Calculate how much of the section is visible
               const visibleTop = Math.max(0, rect.top);
               const visibleBottom = Math.min(viewportHeight, rect.bottom);
               const visibleHeight = Math.max(0, visibleBottom - visibleTop);
-              
+
               // Prioritize sections in the upper half of viewport
-              const centerOffset = Math.abs((rect.top + rect.height / 2) - viewportHeight / 3);
+              const centerOffset = Math.abs(
+                rect.top + rect.height / 2 - viewportHeight / 3,
+              );
               const visibility = visibleHeight - centerOffset * 0.5;
 
               if (visibility > maxVisibility && visibleHeight > 50) {
@@ -1158,7 +730,10 @@ export default {
               }
             });
 
-            if (mostVisibleSection && mostVisibleSection !== this.activeSection) {
+            if (
+              mostVisibleSection &&
+              mostVisibleSection !== this.activeSection
+            ) {
               this.activeSection = mostVisibleSection;
             }
           }, 150); // 150ms debounce
@@ -1182,9 +757,8 @@ export default {
 
       if (scrollPosition >= documentHeight - 100) {
         // Set last section as active
-        const lastSection = this.current_recipe.sections[
-          this.current_recipe.sections.length - 1
-        ];
+        const lastSection =
+          this.current_recipe.sections[this.current_recipe.sections.length - 1];
         if (lastSection) {
           this.activeSection = lastSection.section;
         }
@@ -1246,81 +820,6 @@ export default {
     font-size: 0.875rem;
   }
 
-  /* Portionen-Kontrolle Desktop */
-  .portions-control-desktop {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: var(--bs-light);
-    border-radius: 50px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  }
-
-  .portion-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    flex-shrink: 0;
-  }
-
-  .portions-display {
-    display: flex;
-    align-items: baseline;
-    gap: 0.35rem;
-    min-width: 90px;
-    justify-content: center;
-    overflow: hidden;
-  }
-
-  .portions-input-desktop {
-    width: 60px;
-    height: 32px;
-    border: none;
-    background: white;
-    border-radius: 6px;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--bs-primary);
-    text-align: center;
-    padding: 0.15rem;
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
-
-  .portions-input-desktop::-webkit-outer-spin-button,
-  .portions-input-desktop::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  .portions-input-desktop:focus {
-    outline: none;
-    background: rgba(255, 255, 255, 0.8);
-  }
-
-  .portions-display .value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--bs-primary);
-    flex-shrink: 0;
-  }
-
-  .portions-display .unit {
-    font-size: 0.95rem;
-    color: var(--bs-secondary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100px;
-  }
-
   /* Desktop Ingredients Section Highlighting */
   .ingredients-column .ingredients-section {
     padding: 1rem;
@@ -1354,269 +853,6 @@ export default {
   .recipe-container.mobile-view {
     position: relative;
     padding-bottom: 80px;
-  }
-
-  .ingredients-bottom-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 100;
-    background: white;
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Collapsed State */
-  .bottom-bar-collapsed {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 1.5rem;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 1rem;
-    color: var(--bs-primary);
-  }
-
-  .bottom-bar-collapsed .bar-title {
-    flex: 1;
-  }
-
-  .bottom-bar-collapsed .active-section-chip {
-    font-size: 0.85rem;
-    color: var(--bs-secondary);
-    font-weight: 400;
-  }
-
-  /* Portionen-Kontrolle Mobile Collapsed */
-  .portions-control-mobile {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.2rem 0.5rem;
-    background: var(--bs-light);
-    border-radius: 30px;
-    flex-shrink: 0;
-  }
-
-  .portion-btn-mobile {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    flex-shrink: 0;
-  }
-
-  .portions-input-mobile {
-    width: 40px;
-    height: 26px;
-    border: none;
-    background: transparent;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--bs-primary);
-    text-align: center;
-    padding: 0;
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
-
-  .portions-input-mobile::-webkit-outer-spin-button,
-  .portions-input-mobile::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  .portions-input-mobile:focus {
-    outline: none;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 4px;
-  }
-
-  .portions-unit-mobile {
-    font-size: 0.85rem;
-    color: var(--bs-secondary);
-    font-weight: 500;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    margin-right: 0.5em;
-  }
-
-  .divider-vertical {
-    width: 1px;
-    height: 28px;
-    background: var(--bs-border-color);
-    flex-shrink: 0;
-  }
-
-  /* Expanded State */
-  .ingredients-bottom-bar.expanded {
-    max-height: 60vh;
-    height: auto;
-  }
-
-  .bottom-bar-expanded {
-    display: flex;
-    flex-direction: column;
-    max-height: 60vh;
-    padding: 1rem;
-  }
-
-  .bar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--bs-border-color);
-  }
-
-  .bar-header h6 {
-    margin: 0;
-    font-weight: 600;
-  }
-
-  .btn-close-custom {
-    background: none;
-    border: none;
-    font-size: 1.25rem;
-    cursor: pointer;
-    padding: 0.25rem;
-    color: var(--bs-secondary);
-  }
-
-  /* Portionen-Kontrolle Mobile Expanded */
-  .portions-control-mobile-expanded {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: var(--bs-light);
-    border-radius: 50px;
-    margin: 1rem 0 0.5rem;
-  }
-
-  .portions-control-mobile-expanded .portion-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    flex-shrink: 0;
-  }
-
-  .portions-display-expanded {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-    min-width: 120px;
-    justify-content: center;
-  }
-
-  .portions-input-expanded {
-    width: 70px;
-    height: 36px;
-    border: none;
-    background: white;
-    border-radius: 8px;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--bs-primary);
-    text-align: center;
-    padding: 0.25rem;
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
-
-  .portions-input-expanded::-webkit-outer-spin-button,
-  .portions-input-expanded::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  .portions-input-expanded:focus {
-    outline: none;
-    background: rgba(255, 255, 255, 0.8);
-  }
-
-  .portions-display-expanded .unit {
-    font-size: 0.95rem;
-    color: var(--bs-secondary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  /* Filter Toggle */
-  .filter-toggle {
-    display: flex;
-    gap: 0.5rem;
-    margin: 1rem 0;
-  }
-
-  .filter-toggle .btn {
-    flex: 1;
-  }
-
-  /* Ingredients Content */
-  .ingredients-content {
-    overflow-y: auto;
-    max-height: calc(60vh - 180px);
-    margin: 0.5rem 0;
-  }
-
-  .ingredient-section {
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 8px;
-    background: var(--bs-light);
-    transition: all 0.3s ease;
-  }
-
-  .ingredient-section.active {
-    background: rgba(var(--bs-primary-rgb), 0.1);
-    border-left: 4px solid var(--bs-primary);
-    padding-left: calc(1rem - 4px);
-  }
-
-  .ingredient-section h6 {
-    margin-bottom: 0.75rem;
-    font-size: 1rem;
-    font-weight: 600;
-  }
-
-  .ingredient-section.active h6 {
-    color: var(--bs-primary);
-  }
-
-  .ingredient-item {
-    margin-bottom: 0.5rem;
-    line-height: 1.5;
-  }
-
-  /* Section Chips */
-  .section-chips {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.75rem 0;
-    overflow-x: auto;
-    border-top: 1px solid var(--bs-border-color);
-  }
-
-  .section-chips .btn {
-    white-space: nowrap;
   }
 }
 
@@ -1664,145 +900,6 @@ export default {
   margin-bottom: 0.75rem;
 }
 
-/* Metadata Toggle Icon */
-.metadata-toggle {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 10;
-  font-size: 1.25rem;
-  color: #6c757d;
-  backdrop-filter: blur(4px);
-}
-
-.metadata-toggle:hover {
-  background: rgba(255, 255, 255, 0.95);
-  color: #0d6efd;
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* Metadata Overlay */
-.recipe-metadata-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1050;
-  padding: 1rem;
-  animation: fadeIn 0.2s ease;
-}
-
-.recipe-metadata {
-  background: #212529;
-  border-radius: 12px;
-  padding: 1.5rem;
-  max-width: 600px;
-  width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  animation: slideUp 0.3s ease;
-  color: #f8f9fa;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.recipe-metadata .metadata-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.recipe-metadata .metadata-header h6 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #f8f9fa;
-  display: flex;
-  align-items: center;
-}
-
-.recipe-metadata .metadata-row {
-  margin-bottom: 1rem;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  display: flex;
-  align-items: start;
-  line-height: 1.6;
-}
-
-.recipe-metadata .metadata-row i {
-  font-size: 1.1rem;
-  min-width: 24px;
-}
-
-.recipe-metadata .metadata-row strong {
-  min-width: 140px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.recipe-metadata .metadata-row a {
-  color: #6ea8fe;
-  text-decoration: none;
-  word-break: break-all;
-}
-
-.recipe-metadata .metadata-row a:hover {
-  text-decoration: underline;
-}
-
-.recipe-metadata .metadata-row .badge {
-  font-size: 0.875rem;
-  padding: 0.35em 0.65em;
-}
-
-/* FAB Edit Button */
-.fab-edit-button {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  transition: all 0.3s ease;
-}
-
-.fab-edit-button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-}
-
 /* List Styles */
 .list-group-alpha {
   list-style: lower-alpha inside;
@@ -1842,15 +939,15 @@ export default {
 }
 
 .quick-actions .action-btn {
-  width: 40px;
-  height: 40px;
+  width: var(--action-btn-size);
+  height: var(--action-btn-size);
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
   border: none;
-  transition: all 0.2s ease;
+  transition: var(--transition-all-fast);
 }
 
 .quick-actions .action-btn i {
@@ -1859,7 +956,7 @@ export default {
 
 .quick-actions .action-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-lg);
 }
 
 .quick-actions .action-btn.btn-warning {
@@ -1880,100 +977,56 @@ export default {
   position: absolute;
   top: 0.5rem;
   left: 0.5rem;
-  z-index: 10;
+  z-index: var(--z-actions);
   cursor: pointer;
   font-size: 1.8rem;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  transition: transform 0.2s ease;
+  transition: var(--transition-transform);
 }
 
 .favorite-star:hover {
   transform: scale(1.15);
 }
 
-/* FAB Container and Menu */
-.fab-container {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column; /* Menü ÜBER Button */
-  align-items: flex-end;
-}
-
-.fab-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem; /* Abstand zum FAB-Button */
-  align-items: flex-end;
-}
-
-.fab-menu-item {
+/* Metadata Toggle Icon (right side of image) */
+.metadata-toggle-icon {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: var(--z-actions);
+  cursor: pointer;
+  width: var(--action-btn-size);
+  height: var(--action-btn-size);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  border-radius: 24px;
-  white-space: nowrap;
-  min-width: 140px;
-  justify-content: flex-start;
+  justify-content: center;
+  border-radius: var(--radius-circle);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  transition:
+    var(--transition-transform),
+    box-shadow var(--transition-fast);
+  box-shadow: var(--shadow-sm);
 }
 
-.fab-menu-item i {
-  font-size: 1.1rem;
+.metadata-toggle-icon i {
+  font-size: 1.3rem;
+  color: #495057;
 }
 
-.fab-menu-item span {
-  font-weight: 500;
+.metadata-toggle-icon:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-md);
 }
 
-.fab-main {
-  transition: transform 0.3s ease;
-}
-
-.fab-main.fab-open {
-  transform: rotate(90deg);
-}
-
-.fab-items-enter-active,
-.fab-items-leave-active {
-  transition: all 0.3s ease;
-}
-
-.fab-items-enter-from,
-.fab-items-leave-to {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-.fab-items-enter-to,
-.fab-items-leave-from {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Responsive adjustments */
 @media (max-width: 767px) {
-  /* Mobile: FAB deutlich höher positionieren wegen Bottom-Bar */
-  .fab-container {
-    bottom: 7rem; /* Über der Bottom-Bar */
+  .metadata-toggle-icon {
+    width: var(--fab-size-small);
+    height: var(--fab-size-small);
   }
 
-  .list-group-item {
-    padding: 1rem;
-    font-size: 1.05rem;
-    line-height: 1.5;
-  }
-}
-
-@media (min-width: 768px) {
-  /* Desktop/Tablet: Normale FAB Position */
-  .fab-container {
-    bottom: 2rem;
-    right: 2rem;
+  .metadata-toggle-icon i {
+    font-size: 1.4rem;
   }
 }
 </style>

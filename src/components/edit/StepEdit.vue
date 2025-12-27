@@ -29,7 +29,7 @@
 
 <script setup lang="ts">
 import { onMounted } from "vue";
-import ArrayReorderBtnGroup from "@/components/ArrayReorderBtnGroup.vue";
+import ArrayReorderBtnGroup from "@/components/common/ArrayReorderBtnGroup.vue";
 
 interface Step {
   step: string;

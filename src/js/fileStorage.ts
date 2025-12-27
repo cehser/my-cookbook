@@ -1,4 +1,4 @@
-import type { RecipePictures } from '../types/recipe'
+import type { RecipePictures } from '@/types/recipe'
 
 /**
  * Structure for storing File objects in IndexedDB

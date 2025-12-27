@@ -1,6 +1,6 @@
 import yaml from 'js-yaml'
 import UUID from './uuid'
-import type { Recipe } from '../types/recipe'
+import type { Recipe } from '@/types/recipe'
 
 const new_recipe_de = `
 ingredients: []

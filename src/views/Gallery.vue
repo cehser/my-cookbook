@@ -1,6 +1,6 @@
 <template>
   <div id="recipe">
-    <Navbar
+    <AppNavbar
       @input="selected = $event"
       :recipes_list="recipes_list"
       :selected="selected"
@@ -9,7 +9,7 @@
       <BButton v-if="updateExists" @click="refreshApp">
         New version available! Click to update
       </BButton>
-    </Navbar>
+    </AppNavbar>
     <BContainer fluid>
       <!-- AI Import Modal -->
       <BModal
@@ -18,12 +18,9 @@
         size="xl"
         hide-footer
       >
-        <AIRecipeImport
-          v-if="!settings.read_only"
-          @imported="onAIImport"
-        />
+        <AIRecipeImport v-if="!settings.read_only" @imported="onAIImport" />
       </BModal>
-      
+
       <div class="d-flex justify-content-between align-items-center mt-2 mb-3">
         <h2 class="mb-0">Galerie</h2>
         <div class="d-flex gap-2 align-items-center">
@@ -31,11 +28,7 @@
             {{ filteredRecipes.length }} / {{ recipes.length }} Rezept(e)
           </span>
           <!-- Sortierung -->
-          <BFormSelect
-            v-model="sortBy"
-            size="sm"
-            style="width: auto"
-          >
+          <BFormSelect v-model="sortBy" size="sm" style="width: auto">
             <option value="name-asc">Name (A-Z)</option>
             <option value="name-desc">Name (Z-A)</option>
             <option value="date-new">Neueste zuerst</option>
@@ -209,9 +202,9 @@
 // @ is an alias to /src
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useToast } from "@/composables/useToast";
-import Navbar from "@/components/Navbar.vue";
-import RecipeCard from "@/components/RecipeCard.vue";
-import AIRecipeImport from "@/components/AIRecipeImport.vue";
+import AppNavbar from "@/components/layout/AppNavbar.vue";
+import RecipeCard from "@/components/recipe/ui/RecipeCard.vue";
+import AIRecipeImport from "@/components/features/AIRecipeImport.vue";
 import { mapState } from "vuex";
 import { computed } from "vue";
 import Recipes from "@/js/recipes";
@@ -227,7 +220,7 @@ export default {
     },
   },
   components: {
-    Navbar,
+    AppNavbar,
     RecipeCard,
     AIRecipeImport,
   },
@@ -393,12 +386,13 @@ export default {
             return new Date(b.lastUpdated) - new Date(a.lastUpdated);
           case "date-old":
             return new Date(a.lastUpdated) - new Date(b.lastUpdated);
-          case "favorites":
+          case "favorites": {
             const aIsFav = favorites.includes(a.recipe_uuid);
             const bIsFav = favorites.includes(b.recipe_uuid);
             if (aIsFav && !bIsFav) return -1;
             if (!aIsFav && bIsFav) return 1;
             return a.recipe_name.localeCompare(b.recipe_name);
+          }
           default:
             return 0;
         }

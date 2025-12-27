@@ -10,8 +10,8 @@ export const ADD_FAVORITE = 'addFavorite'
 export const REMOVE_FAVORITE = 'removeFavorite'
 export const SET_FAVORITES = 'setFavorites'
 
-import type { Recipe, RecipePictures } from '../types/recipe'
-import type { Settings } from '../types/settings'
+import type { Recipe, RecipePictures } from '@/types/recipe'
+import type { Settings } from '@/types/settings'
 
 export interface StoreState {
   recipes: Recipe[]

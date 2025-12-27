@@ -1,6 +1,6 @@
 <template>
   <div id="edit">
-    <Navbar
+    <AppNavbar
       @update:selected="localSelected = $event"
       :recipes_list="recipes_list"
       :selected="localSelected"
@@ -13,7 +13,7 @@
           ></BButton>
         </form>
       </li>
-    </Navbar>
+    </AppNavbar>
     <BContainer v-if="current_recipe">
       <datalist id="ingredient-units-list">
         <option
@@ -437,10 +437,10 @@
 
 <script>
 // @ is an alias to /src
-import StepEdit from "@/components/StepEdit.vue";
-import SectionIngredientsEdit from "@/components/SectionIngredientsEdit.vue";
-import ArrayReorderBtnGroup from "@/components/ArrayReorderBtnGroup.vue";
-import Navbar from "@/components/Navbar.vue";
+import StepEdit from "@/components/edit/StepEdit.vue";
+import SectionIngredientsEdit from "@/components/edit/SectionIngredientsEdit.vue";
+import ArrayReorderBtnGroup from "@/components/common/ArrayReorderBtnGroup.vue";
+import AppNavbar from "@/components/layout/AppNavbar.vue";
 
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useToast } from "@/composables/useToast";
@@ -465,7 +465,7 @@ export default {
     StepEdit,
     SectionIngredientsEdit,
     ArrayReorderBtnGroup,
-    Navbar,
+    AppNavbar,
   },
   setup(props) {
     const selectedRef = computed(() => props.selected);

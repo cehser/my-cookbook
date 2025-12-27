@@ -1,6 +1,6 @@
 <template>
   <div id="settings">
-    <Navbar
+    <AppNavbar
       @input="selected = $event"
       :recipes_list="recipes_list"
       :selected="selected"
@@ -22,7 +22,7 @@
           <a class="dropdown-item" href="#" @click="fileUploadButton.click()"><b-icon-journal-arrow-up></b-icon-journal-arrow-up> Kochbuch importieren</a>
         </div> 
       </li>-->
-    </Navbar>
+    </AppNavbar>
     <BContainer>
       <h2>Einstellungen</h2>
 
@@ -47,7 +47,7 @@
       <BFormCheckbox v-model="settings.expert_mode" name="check-button" switch>
         Experten-Modus
       </BFormCheckbox>
-      
+
       <!-- Experten-Modus Info -->
       <BAlert
         v-if="settings.expert_mode"
@@ -286,7 +286,7 @@
 
 <script>
 // @ is an alias to /src
-import Navbar from "@/components/Navbar.vue";
+import AppNavbar from "@/components/layout/AppNavbar.vue";
 
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { mapState } from "vuex";
@@ -294,7 +294,7 @@ import { useToast } from "@/composables/useToast";
 
 import jsyaml from "js-yaml";
 
-import Cloud from "../js/cloud";
+import Cloud from "@/js/cloud";
 
 import QRCode from "qrcode";
 
@@ -317,7 +317,7 @@ export default {
     },
   },
   components: {
-    Navbar,
+    AppNavbar,
   },
   setup(props) {
     const selectedRef = computed(() => props.selected);

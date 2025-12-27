@@ -1,12 +1,12 @@
 <template>
   <div id="administration">
-    <Navbar
+    <AppNavbar
       @input="selected = $event"
       :recipes_list="recipes_list"
       :selected="selected"
       :read_only="settings.read_only"
     >
-    </Navbar>
+    </AppNavbar>
     <BContainer>
       <h2>Verwaltung</h2>
 
@@ -95,14 +95,14 @@
 <script>
 import { mapState } from "vuex";
 
-import Navbar from "@/components/Navbar.vue";
-import AIRecipeImport from "@/components/AIRecipeImport.vue";
+import AppNavbar from "@/components/layout/AppNavbar.vue";
+import AIRecipeImport from "@/components/features/AIRecipeImport.vue";
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useToast } from "@/composables/useToast";
-import UUID from "../js/uuid";
-import { deepCopyYaml } from "../js/deepCopy";
-import Recipes from "../js/recipes";
-import Cloud from "../js/cloud";
+import UUID from "@/js/uuid";
+import { deepCopyYaml } from "@/js/deepCopy";
+import Recipes from "@/js/recipes";
+import Cloud from "@/js/cloud";
 
 import jsyaml from "js-yaml";
 import { computed } from "vue";
@@ -116,7 +116,7 @@ export default {
     },
   },
   components: {
-    Navbar,
+    AppNavbar,
     AIRecipeImport,
   },
   setup(props) {

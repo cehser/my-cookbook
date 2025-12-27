@@ -14,12 +14,12 @@ import {
   type SetRecipePayload,
   type SetRecipePicturesPayload
 } from './mutations'
-import { loadYamlCookbook, loadSample, mergeCookbooks } from '../js/recipes'
-import { deepCopyJSON, deepCopyYaml } from '../js/deepCopy'
-import { serializeRecipePictures, deserializeRecipePictures } from '../js/fileStorage'
-import Cloud from '../js/cloud'
-import type { Recipe, RecipePictures } from '../types/recipe'
-import type { Settings } from '../types/settings'
+import { loadYamlCookbook, loadSample, mergeCookbooks } from '@/js/recipes'
+import { deepCopyJSON, deepCopyYaml } from '@/js/deepCopy'
+import { serializeRecipePictures, deserializeRecipePictures } from '@/js/fileStorage'
+import Cloud from '@/js/cloud'
+import type { Recipe, RecipePictures } from '@/types/recipe'
+import type { Settings } from '@/types/settings'
 
 interface ActionContext {
   commit: (type: string, payload?: any) => void
