@@ -8,38 +8,6 @@
       <div class="recipe_card_container">
         <img class="" id="recipe_img" :src="picture_src" alt="Card image cap" />
 
-        <!-- Quick Actions Overlay -->
-        <div v-if="!read_only" class="quick-actions" @click.stop>
-          <BButton
-            @click.prevent.stop="showTagEditor = !showTagEditor"
-            variant="info"
-            size="sm"
-            class="action-btn"
-            :class="{ active: showTagEditor }"
-            title="Tags bearbeiten"
-          >
-            <i class="bi bi-tags"></i>
-          </BButton>
-          <BButton
-            @click.prevent="editRecipe"
-            variant="light"
-            size="sm"
-            class="action-btn"
-            title="Bearbeiten"
-          >
-            <i class="bi bi-pencil"></i>
-          </BButton>
-          <BButton
-            @click.prevent="deleteRecipe"
-            variant="danger"
-            size="sm"
-            class="action-btn"
-            title="Löschen"
-          >
-            <i class="bi bi-trash"></i>
-          </BButton>
-        </div>
-
         <!-- Favoriten-Stern (immer sichtbar, linke obere Ecke) -->
         <div
           v-if="!read_only"
@@ -56,22 +24,71 @@
             "
           ></i>
         </div>
+        
+        <!-- FAB mit Menü (rechts unten in der Karte) -->
+        <div v-if="!read_only" class="card-fab-container" @click.stop>
+          <transition name="fab-items">
+            <div v-if="fabMenuOpen" class="card-fab-menu">
+              <BButton
+                @click.prevent.stop="showTagEditor = !showTagEditor; fabMenuOpen = false"
+                variant="light"
+                size="sm"
+                class="card-fab-menu-item"
+                :class="{ active: showTagEditor }"
+                title="Tags bearbeiten"
+              >
+                <i class="bi bi-tags"></i>
+                <span>Tags</span>
+              </BButton>
+              <BButton
+                @click.prevent="editRecipe(); fabMenuOpen = false"
+                variant="light"
+                size="sm"
+                class="card-fab-menu-item"
+                title="Bearbeiten"
+              >
+                <i class="bi bi-pencil"></i>
+                <span>Bearbeiten</span>
+              </BButton>
+              <BButton
+                @click.prevent="deleteRecipe(); fabMenuOpen = false"
+                variant="danger"
+                size="sm"
+                class="card-fab-menu-item"
+                title="Löschen"
+              >
+                <i class="bi bi-trash"></i>
+                <span>Löschen</span>
+              </BButton>
+            </div>
+          </transition>
+          <BButton
+            @click.prevent.stop="fabMenuOpen = !fabMenuOpen"
+            class="card-fab-button"
+            variant="primary"
+            size="sm"
+            :class="{ 'fab-open': fabMenuOpen }"
+            title="Aktionen"
+          >
+            <i class="bi" :class="fabMenuOpen ? 'bi-x-lg' : 'bi-three-dots-vertical'"></i>
+          </BButton>
+        </div>
+      </div>
 
-        <div class="card-body recipe_title">
-          <h2
+      <div class="card-body recipe_title">
+        <h2
             class="card-title d-flex flex-row flex-wrap justify-content-between"
           >
             <span class="card-title-text" v-html="highlightedName"></span>
-          </h2>
-          <p class="card-text">{{ recipe.subtitle }}</p>
-          <div v-if="recipe.tags && recipe.tags.length" class="mt-2">
-            <span
-              v-for="(tag, idx) in recipe.tags"
-              :key="idx"
-              class="badge bg-secondary me-1"
-              >{{ tag }}</span
-            >
-          </div>
+        </h2>
+        <p class="card-text">{{ recipe.subtitle }}</p>
+        <div v-if="recipe.tags && recipe.tags.length" class="mt-2">
+          <span
+            v-for="(tag, idx) in recipe.tags"
+            :key="idx"
+            class="badge bg-secondary me-1"
+            >{{ tag }}</span
+          >
         </div>
       </div>
     </router-link>
@@ -175,6 +192,7 @@ const store = useStore();
 const router = useRouter();
 const newTag = ref("");
 const showTagEditor = ref(false);
+const fabMenuOpen = ref(false);
 
 // Global ESC handler for tag editor
 const handleEscapeKey = (event: KeyboardEvent) => {
@@ -328,6 +346,86 @@ const addExistingTag = (tag: string) => {
 
 .recipe_card_container:hover .quick-actions .action-btn {
   opacity: 1;
+}
+
+/* FAB Container in der Karte (rechts oben) */
+.card-fab-container {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+}
+
+.card-fab-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  align-items: flex-end;
+}
+
+.card-fab-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  min-width: 120px;
+  justify-content: flex-start;
+}
+
+.card-fab-menu-item i {
+  font-size: 1rem;
+}
+
+.card-fab-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  transition: transform 0.3s ease, background-color 0.2s ease;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.card-fab-button:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.card-fab-button.fab-open {
+  transform: rotate(90deg);
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.card-fab-button i {
+  font-size: 1.2rem;
+}
+
+/* FAB Animation */
+.fab-items-enter-active,
+.fab-items-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fab-items-enter-from,
+.fab-items-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.fab-items-enter-to,
+.fab-items-leave-from {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* Favoriten-Stern in der oberen linken Ecke */
