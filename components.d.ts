@@ -12,12 +12,15 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AIRecipeImport: typeof import('./src/components/features/AIRecipeImport.vue')['default']
+    AppNavbar: typeof import('./src/components/layout/AppNavbar.vue')['default']
     ArrayReorderBtnGroup: typeof import('./src/components/common/ArrayReorderBtnGroup.vue')['default']
     BApp: typeof import('bootstrap-vue-next/components/BApp')['BApp']
     BButton: typeof import('bootstrap-vue-next/components/BButton')['BButton']
     BCard: typeof import('bootstrap-vue-next/components/BCard')['BCard']
     BCardBody: typeof import('bootstrap-vue-next/components/BCard')['BCardBody']
     BCardHeader: typeof import('bootstrap-vue-next/components/BCard')['BCardHeader']
+    BCol: typeof import('bootstrap-vue-next/components/BContainer')['BCol']
+    BCollapse: typeof import('bootstrap-vue-next/components/BCollapse')['BCollapse']
     BContainer: typeof import('bootstrap-vue-next/components/BContainer')['BContainer']
     BDropdown: typeof import('bootstrap-vue-next/components/BDropdown')['BDropdown']
     BDropdownDivider: typeof import('bootstrap-vue-next/components/BDropdown')['BDropdownDivider']
@@ -30,13 +33,17 @@ declare module 'vue' {
     BInputGroup: typeof import('bootstrap-vue-next/components/BInputGroup')['BInputGroup']
     BInputGroupText: typeof import('bootstrap-vue-next/components/BInputGroup')['BInputGroupText']
     BModal: typeof import('bootstrap-vue-next/components/BModal')['BModal']
+    BRow: typeof import('bootstrap-vue-next/components/BContainer')['BRow']
+    BSpinner: typeof import('bootstrap-vue-next/components/BSpinner')['BSpinner']
     BTab: typeof import('bootstrap-vue-next/components/BTabs')['BTab']
     BTabs: typeof import('bootstrap-vue-next/components/BTabs')['BTabs']
     CloseButton: typeof import('./src/components/common/CloseButton.vue')['default']
     IngredientEdit: typeof import('./src/components/edit/IngredientEdit.vue')['default']
+    IngredientInlineEdit: typeof import('./src/components/recipe/display/IngredientInlineEdit.vue')['default']
     IngredientModalDialogRename: typeof import('./src/components/edit/IngredientModalDialogRename.vue')['default']
     IngredientNotesFormRow: typeof import('./src/components/edit/IngredientNotesFormRow.vue')['default']
     IngredientsSection: typeof import('./src/components/recipe/display/IngredientsSection.vue')['default']
+    InlineEditActionBar: typeof import('./src/components/recipe/ui/InlineEditActionBar.vue')['default']
     MetadataOverlay: typeof import('./src/components/recipe/display/MetadataOverlay.vue')['default']
     MobileIngredientsBar: typeof import('./src/components/recipe/display/MobileIngredientsBar.vue')['default']
     Navbar: typeof import('./src/components/layout/Navbar.vue')['default']
@@ -47,6 +54,10 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SectionIngredientsEdit: typeof import('./src/components/edit/SectionIngredientsEdit.vue')['default']
     StepEdit: typeof import('./src/components/edit/StepEdit.vue')['default']
+    StepInlineEdit: typeof import('./src/components/recipe/display/StepInlineEdit.vue')['default']
     StepSection: typeof import('./src/components/recipe/display/StepSection.vue')['default']
+  }
+  export interface GlobalDirectives {
+    vBToggle: typeof import('bootstrap-vue-next/directives/BToggle')['vBToggle']
   }
 }

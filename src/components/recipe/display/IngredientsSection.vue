@@ -8,26 +8,59 @@
       :data-section="section.section"
     >
       <h5>{{ section.section }}</h5>
-      <div
-        class="row mb-2 ingredient-row"
-        v-for="(ingredient, idx) in getSectionIngredients(section.section)"
-        :key="'ing-' + idx"
-      >
-        <div class="col-4 ingredient-amount">
-          {{ formatAmount(ingredient) }}
-          {{ getUnit(ingredient) }}
+
+      <!-- Inline-Editable Ingredients -->
+      <template v-if="inlineEditable">
+        <IngredientInlineEdit
+          v-for="(ingredient, idx) in getSectionIngredients(section.section)"
+          :key="'ing-edit-' + idx"
+          :ingredient="ingredient"
+          :yields-value="yieldsValue"
+          :is-dirty="
+            dirtyItems.has(
+              `ingredient:${section.section}:${getIngredientName(ingredient)}`,
+            )
+          "
+          :is-editing-other="
+            currentEditingKey !== null &&
+            currentEditingKey !==
+              `ingredient:${section.section}:${getIngredientName(ingredient)}`
+          "
+          @changed="$emit('changed', $event)"
+          @unchanged="$emit('unchanged', $event)"
+          @start-edit="handleStartEdit"
+          @end-edit="handleEndEdit"
+        />
+      </template>
+
+      <!-- Read-Only Display -->
+      <template v-else>
+        <div
+          class="row mb-2 ingredient-row"
+          v-for="(ingredient, idx) in getSectionIngredients(section.section)"
+          :key="'ing-' + idx"
+        >
+          <div class="col-4 ingredient-amount">
+            {{ formatAmount(ingredient) }}
+            {{ getUnit(ingredient) }}
+          </div>
+          <div class="col-8 ingredient-name">
+            {{ getIngredientName(ingredient) }}
+          </div>
         </div>
-        <div class="col-8 ingredient-name">
-          {{ getIngredientName(ingredient) }}
-        </div>
-      </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script>
+import IngredientInlineEdit from "./IngredientInlineEdit.vue";
+
 export default {
   name: "IngredientsSection",
+  components: {
+    IngredientInlineEdit,
+  },
   props: {
     sections: {
       type: Array,
@@ -45,13 +78,35 @@ export default {
       type: Number,
       required: true,
     },
+    inlineEditable: {
+      type: Boolean,
+      default: false,
+    },
+    dirtyItems: {
+      type: Set,
+      default: () => new Set(),
+    },
+  },
+  emits: ["changed", "unchanged"],
+  data() {
+    return {
+      currentEditingKey: null,
+    };
   },
   methods: {
+    handleStartEdit(ingredientKey) {
+      this.currentEditingKey = ingredientKey;
+    },
+    handleEndEdit() {
+      this.currentEditingKey = null;
+    },
     getSectionIngredients(sectionName) {
       return this.ingredients.filter((x) => x.section === sectionName);
     },
     getIngredientName(ingredient) {
-      return Object.keys(ingredient)[0];
+      // Filter out 'section' property
+      const keys = Object.keys(ingredient).filter((key) => key !== "section");
+      return keys[0];
     },
     getUnit(ingredient) {
       const name = this.getIngredientName(ingredient);

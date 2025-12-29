@@ -199,20 +199,28 @@
 
 ---
 
-#### Sprint 2: Inline-Editing (3-4 Tage) - ⚡ NEU PRIORISIERT
+#### Sprint 2: Inline-Editing (3-4 Tage) - ✅ **Abgeschlossen (29.12.2025)**
 **Ziel:** Kleine Anpassungen ohne Editor-Wechsel
 
-**Features:**
-- Klick auf Zutat → Menge bearbeiten (größere Input-Felder)
-- Doppelklick auf Schritt → Text bearbeiten
-- Auto-Save nach 1 Sekunde Inaktivität
-- Visuelles Feedback (✓ Gespeichert)
-- Optional: Undo-Funktion (10 Sek)
+**Implementierte Features:**
+- ✅ Click auf Zutat → Alle Felder bearbeiten (Menge, Einheit, Name)
+- ✅ Click auf Schritt → Text bearbeiten (kein double-click mehr)
+- ✅ **Manual Save:** Sticky Action Bar mit [Speichern] [Abbrechen] Buttons
+- ✅ **Dirty Tracking:** Gelber Border + 🟡 Badge für geänderte Items
+- ✅ **Click-Outside:** Beendet Edit-Modus (wie ESC)
+- ✅ **Nur eine Zeile gleichzeitig:** Parent-koordinierte Edit-Kontrolle
+- ✅ **Keyboard Shortcuts:** ESC = Abbrechen, Enter = Fertig (Ingredients), Ctrl+Enter (Steps)
+- ✅ **Änderungszähler:** Action Bar zeigt Anzahl geänderter Items
+- ✅ **FAB Integration:** "Inline-Edit" Button aktiviert den Modus
 
 **Betroffene Dateien:**
-- `src/views/Recipe.vue`
-- `src/components/IngredientInlineEdit.vue` (neu)
-- `src/components/StepInlineEdit.vue` (neu)
+- `src/views/Recipe.vue` (inlineEditMode State, dirtyItems tracking)
+- `src/components/recipe/ui/InlineEditActionBar.vue` (neu)
+- `src/components/recipe/display/IngredientInlineEdit.vue` (refactored)
+- `src/components/recipe/display/StepInlineEdit.vue` (refactored)
+- `src/components/recipe/display/IngredientsSection.vue` (Koordination)
+- `src/components/recipe/display/StepSection.vue` (Koordination)
+- `src/components/recipe/display/MobileIngredientsBar.vue` (Event-Weiterleitung)
 
 ---
 
@@ -420,7 +428,7 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 | 0 | Foundation | Navbar + Metadaten + Suche | 3-4 Tage | 🔴 Kritisch | ✅ Abgeschlossen (23.12.) |
 | 1 | Koch-Ansicht | Split-View + Metadaten-UX | 4-6 Tage | 🔴 Kritisch | ✅ Abgeschlossen (27.12.) |
 | ~~2~~ | ~~Koch-Ansicht~~ | ~~Mobile FAB + Slide-In~~ | ~~2-3 Tage~~ | ⏭️ Übersprungen | ✅ Feature-Set ausreichend |
-| 2 | Koch-Ansicht | Inline-Editing | 3-4 Tage | 🔴 Kritisch | 📋 Geplant (neu priorisiert) |
+| 2 | Koch-Ansicht | Inline-Editing | 3-4 Tage | 🔴 Kritisch | ✅ Abgeschlossen (29.12.) |
 | 3 | Editor | Rezept-Wizard | 1 Woche | 🔴 Kritisch | 📋 Geplant |
 | 4 | Editor | Editor-Neugestaltung | 2-3 Wochen | 🔴 Kritisch | 📋 Geplant |
 | 5 | Workflow | Tabbed Interface + Session Restore | 3-4 Tage | 🟢 Optional | 📋 Geplant |
@@ -432,7 +440,8 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 **Geschätzte Gesamtdauer:**
 - **Sprint 0 (Abgeschlossen):** ✅ 4 Tage (19.-23.12.2025)
 - **Sprint 1 (Abgeschlossen):** ✅ 4 Tage (24.-27.12.2025)
-- **Kritische Sprints (2-4):** 5-7 Wochen (Sprint 2 übersprungen, Fokus auf Editor)
+- **Sprint 2 (Abgeschlossen):** ✅ 2 Tage (28.-29.12.2025)
+- **Kritische Sprints (3-4):** 3-4 Wochen (Rezept-Wizard + Editor-Neugestaltung)
 - **Optionale Sprints (5-8):** +2-3 Wochen
 - **Design-Polish (9):** Parallel zu Sprint 4
 
@@ -469,7 +478,7 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 - [x] Portionen-Skalierung prominent (Sprint 1)
 - [x] Abschnitts-Synchronisation (Sprint 1)
 - [ ] ~~Mobile FAB + Landscape-Modus~~ (Sprint 2 übersprungen - Feature-Set ausreichend)
-- [ ] Inline-Editing (Mengen, Text, Auto-Save) → Sprint 2
+- [x] Inline-Editing (Manual Save, Dirty Tracking, Click-Outside) → Sprint 2
 
 ### Neue Features - Phase B (Editor):
 - [ ] Rezept-Erstellungs-Wizard (4 Schritte, guided) → Sprint 3
@@ -492,7 +501,7 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 
 ## 🚀 Aktueller Stand & Nächste Schritte
 
-**Sprint 1 Status:** ✅ Abgeschlossen (27.12.2025)  
+**Sprint 2 Status:** ✅ Abgeschlossen (29.12.2025)  
 **Code Quality Session:** ✅ Abgeschlossen (27.-28.12.2025)
 
 **Was funktioniert:**
@@ -513,20 +522,23 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 - ✅ **Type Safety & Error Handling** verbessert (Post-Sprint 1)
 - ✅ **Security** XSS-Schwachstelle behoben (Post-Sprint 1)
 - ✅ **Code Quality** Full ESLint/Prettier Compliance (Post-Sprint 1)
+- ✅ **Inline-Editing** mit Manual Save und Dirty Tracking (Sprint 2)
 
 **Codebase Status:**
 - 🟢 Production-ready: Keine ESLint-Fehler, keine Warnungen
 - 🟢 Security: XSS-Schwachstelle in RecipeCard gefixt
-- 🟢 Maintainability: 51% weniger Code in Recipe.vue, 9 reusable components
+- 🟢 Maintainability: 51% weniger Code in Recipe.vue, 9+ reusable components
 - 🟢 Type Safety: Generic types, zentralisierte interfaces
 - 🟢 Design System: 42 CSS Custom Properties für Konsistenz
+- 🟢 UX: Inline-Editing mit präziser Kontrolle (Manual Save, nur eine Zeile gleichzeitig, Click-Outside)
 
 **Was noch verbessert werden muss:**
 - Tag-Editor Close-Funktionalität (ESC, Toggle) → siehe Known Issues
 - Metadaten-Bearbeitung im Editor → Sprint 4 (Editor-Überarbeitung)
+- Optional: [+ Zutat] / [+ Schritt] Buttons im Inline-Edit Modus
 
-**Nächster Schritt:** Sprint 2 (Inline-Editing) - Geschätzt 3-4 Tage  
-**Entscheidung:** Sprint 2 (Mobile FAB + Landscape) übersprungen - MobileIngredientsBar erfüllt Anforderungen
+**Nächster Schritt:** Sprint 3 (Rezept-Wizard) - Geschätzt 1 Woche  
+**Focus:** Guided Recipe Creation für bessere User Experience beim Rezept-Anlegen
 
 ---
 

@@ -1,10 +1,18 @@
 <template>
-  <div id="recipe">
+  <div id="recipe" :class="{ 'inline-edit-active': inlineEditMode }">
     <AppNavbar
       @input="selected = $event"
       :recipes_list="recipes_list"
       :selected="selected"
       :read_only="settings.read_only"
+    />
+
+    <!-- Inline-Edit Action Bar -->
+    <InlineEditActionBar
+      :show="inlineEditMode"
+      :changed-items-count="dirtyItems.size"
+      @save="saveInlineChanges"
+      @cancel="cancelInlineEdit"
     />
 
     <!-- Desktop/Tablet: Split-View Layout -->
@@ -59,6 +67,10 @@
                   :active-section="activeSection"
                   :ingredients="current_recipe.ingredients"
                   :yields-value="yields_value"
+                  :inline-editable="inlineEditMode"
+                  :dirty-items="dirtyItems"
+                  @changed="handleIngredientChanged"
+                  @unchanged="handleIngredientUnchanged"
                 />
               </div>
             </div>
@@ -157,8 +169,12 @@
                 :sections="current_recipe.sections"
                 :steps="current_recipe.steps"
                 :edit-mode="editMode"
+                :inline-editable="inlineEditMode"
+                :dirty-items="dirtyItems"
                 key-prefix="desktop-"
                 @select-step="selectStep"
+                @changed="handleStepChanged"
+                @unchanged="handleStepUnchanged"
               />
             </div>
           </div>
@@ -247,8 +263,12 @@
               :sections="current_recipe.sections"
               :steps="current_recipe.steps"
               :edit-mode="editMode"
+              :inline-editable="inlineEditMode"
+              :dirty-items="dirtyItems"
               key-prefix="mobile-"
               @select-step="selectStep"
+              @changed="handleStepChanged"
+              @unchanged="handleStepUnchanged"
             />
           </div>
         </div>
@@ -264,11 +284,15 @@
         :sections="current_recipe.sections"
         :active-section="activeSection"
         :ingredients="current_recipe.ingredients"
+        :inline-editable="inlineEditMode"
+        :dirty-items="dirtyItems"
         @open="openIngredientsBar"
         @close="closeIngredientsBar"
         @update:yields="setYieldsValue"
         @update:show-only-current-section="showOnlyCurrentSection = $event"
         @scroll-to-section="scrollToIngredientSection"
+        @changed="handleIngredientChanged"
+        @unchanged="handleIngredientUnchanged"
       />
     </div>
 
@@ -308,10 +332,12 @@ import PortionControl from "@/components/recipe/display/PortionControl.vue";
 import IngredientsSection from "@/components/recipe/display/IngredientsSection.vue";
 import MobileIngredientsBar from "@/components/recipe/display/MobileIngredientsBar.vue";
 import RecipeFabMenu from "@/components/recipe/ui/RecipeFabMenu.vue";
+import InlineEditActionBar from "@/components/recipe/ui/InlineEditActionBar.vue";
 import StepSection from "@/components/recipe/display/StepSection.vue";
 import jsyaml from "js-yaml";
 import { mapState } from "vuex";
 import { computed, ref, nextTick } from "vue";
+import { useToast } from "bootstrap-vue-next";
 import UUID from "@/js/uuid";
 import { deepCopyYaml } from "@/js/deepCopy";
 
@@ -324,6 +350,7 @@ export default {
     IngredientsSection,
     MobileIngredientsBar,
     RecipeFabMenu,
+    InlineEditActionBar,
     StepSection,
   },
   props: {
@@ -348,6 +375,11 @@ export default {
     // FAB Menu State (Mobile)
     const fabMenuOpen = ref(false);
 
+    // Inline Edit Mode State
+    const inlineEditMode = ref(false);
+    const dirtyItems = ref(new Set());
+    const toast = useToast();
+
     return {
       ...recipeHelper,
       ...viewport,
@@ -356,6 +388,9 @@ export default {
       showAllIngredients,
       activeSection,
       fabMenuOpen,
+      inlineEditMode,
+      dirtyItems,
+      toast,
     };
   },
   data() {
@@ -568,10 +603,17 @@ export default {
         return;
       }
 
-      this.editMode = !this.editMode;
-      if (this.editMode) {
+      // Toggle inline edit mode instead of full edit mode
+      this.inlineEditMode = !this.inlineEditMode;
+      if (this.inlineEditMode) {
         // Backup current recipe for cancel
         this.originalRecipe = deepCopyYaml(this.current_recipe);
+        this.dirtyItems.clear();
+      } else {
+        // Exiting inline edit mode - clear backup if not saving
+        if (this.dirtyItems.size === 0) {
+          this.originalRecipe = null;
+        }
       }
     },
     saveRecipe() {
@@ -594,6 +636,74 @@ export default {
         console.error("Error saving recipe:", error);
         this.toast("Fehler beim Speichern des Rezepts", "danger");
       }
+    },
+    handleInlineSave() {
+      // Deprecated - kept for backward compatibility
+      // Now using handleIngredientChanged instead
+      if (!this.current_recipe) {
+        return;
+      }
+
+      try {
+        this.$store.dispatch("updateRecipe", {
+          index: this.selected,
+          recipe: this.current_recipe,
+        });
+        this.$store.dispatch("saveToLocalStorage");
+        this.toast("Änderung gespeichert", "success");
+      } catch (error) {
+        console.error("Error saving inline changes:", error);
+        this.toast("Fehler beim Speichern", "danger");
+      }
+    },
+    handleIngredientChanged(ingredientKey) {
+      // Track which ingredient was changed (key already includes "ingredient:" prefix)
+      this.dirtyItems.add(ingredientKey);
+    },
+    handleIngredientUnchanged(ingredientKey) {
+      // Remove ingredient from dirty items (key already includes "ingredient:" prefix)
+      this.dirtyItems.delete(ingredientKey);
+    },
+    handleStepChanged(stepIndex) {
+      // Track which step was changed
+      this.dirtyItems.add(`step:${stepIndex}`);
+    },
+    handleStepUnchanged(stepIndex) {
+      // Remove step from dirty items (undo)
+      this.dirtyItems.delete(`step:${stepIndex}`);
+    },
+    saveInlineChanges() {
+      // Save all inline changes and exit inline edit mode
+      if (!this.current_recipe) {
+        this.toast("Rezept konnte nicht gespeichert werden", "danger");
+        return;
+      }
+
+      try {
+        // Save changes to store
+        this.$store.dispatch("updateRecipe", {
+          index: this.selected,
+          recipe: this.current_recipe,
+        });
+        this.$store.dispatch("saveToLocalStorage");
+        this.inlineEditMode = false;
+        this.originalRecipe = null;
+        this.dirtyItems.clear();
+        this.showToast("Änderungen gespeichert", "success");
+      } catch (error) {
+        console.error("Error saving inline changes:", error);
+        this.showToast("Fehler beim Speichern der Änderungen", "danger");
+      }
+    },
+    cancelInlineEdit() {
+      // Restore original recipe and exit inline edit mode
+      if (this.originalRecipe) {
+        this.current_recipe = deepCopyYaml(this.originalRecipe);
+      }
+      this.inlineEditMode = false;
+      this.originalRecipe = null;
+      this.dirtyItems.clear();
+      this.showToast("Änderungen verworfen", "info");
     },
     cancelEdit() {
       // Restore original recipe
@@ -641,14 +751,16 @@ export default {
         ingredientBox.classList.toggle("border-primary", doHighlight);
       }
     },
-    toast: function (content, variant) {
-      this.$bvToast.toast(content, {
-        toaster: "b-toaster-bottom-left",
-        // solid: true,
-        appendToast: true,
-        noCloseButton: true,
-        variant: variant,
-      });
+    showToast(content, variant = "info") {
+      if (this.toast) {
+        this.toast.create({
+          props: {
+            body: content,
+            variant: variant,
+            pos: "bottom-left",
+          },
+        });
+      }
     },
     // Mobile Bottom Bar Controls
     openIngredientsBar() {
@@ -769,6 +881,25 @@ export default {
 </script>
 
 <style scoped>
+/* ============================================
+   INLINE EDIT MODE ADJUSTMENTS
+   ============================================ */
+/* Add padding when action bar is visible */
+#recipe {
+  padding-top: 0;
+  transition: padding-top 0.3s ease;
+}
+
+#recipe.inline-edit-active {
+  padding-top: 60px;
+}
+
+@media (max-width: 767px) {
+  #recipe.inline-edit-active {
+    padding-top: 80px;
+  }
+}
+
 /* ============================================
    DESKTOP/TABLET: SPLIT-VIEW LAYOUT
    ============================================ */

@@ -12,7 +12,35 @@
       class="mb-2 fw-bold"
       placeholder="Abschnittsname"
     />
-    <ul class="list-group list-group-numbered list-group-flush">
+
+    <!-- Inline-Editable Steps -->
+    <template v-if="inlineEditable">
+      <div class="steps-inline-list">
+        <StepInlineEdit
+          v-for="(step, stepIndex) in getFilteredSteps(section.section)"
+          :key="keyPrefix + 'step-inline-' + stepIndex"
+          :step="step"
+          :step-number="getStepNumber(section.section, stepIndex)"
+          :is-dirty="
+            dirtyItems.has(
+              `step:${getStepNumber(section.section, stepIndex) - 1}`,
+            )
+          "
+          :is-editing-other="
+            currentEditingIndex !== null &&
+            currentEditingIndex !==
+              getStepNumber(section.section, stepIndex) - 1
+          "
+          @changed="$emit('changed', $event)"
+          @unchanged="$emit('unchanged', $event)"
+          @start-edit="handleStartEdit"
+          @end-edit="handleEndEdit"
+        />
+      </div>
+    </template>
+
+    <!-- Original Edit Mode or Read-Only -->
+    <ul v-else class="list-group list-group-numbered list-group-flush">
       <li
         class="list-group-item"
         v-for="(step, stepIndex) in getFilteredSteps(section.section)"
@@ -30,12 +58,14 @@
 
 <script>
 import { BFormInput, BFormTextarea } from "bootstrap-vue-next";
+import StepInlineEdit from "./StepInlineEdit.vue";
 
 export default {
   name: "StepSection",
   components: {
     BFormInput,
     BFormTextarea,
+    StepInlineEdit,
   },
   props: {
     sections: {
@@ -50,13 +80,32 @@ export default {
       type: Boolean,
       default: false,
     },
+    inlineEditable: {
+      type: Boolean,
+      default: false,
+    },
     keyPrefix: {
       type: String,
       default: "",
     },
+    dirtyItems: {
+      type: Set,
+      default: () => new Set(),
+    },
   },
-  emits: ["select-step"],
+  emits: ["select-step", "changed", "unchanged"],
+  data() {
+    return {
+      currentEditingIndex: null,
+    };
+  },
   methods: {
+    handleStartEdit(stepIndex) {
+      this.currentEditingIndex = stepIndex;
+    },
+    handleEndEdit() {
+      this.currentEditingIndex = null;
+    },
     getFilteredSteps(sectionName) {
       return this.steps.filter((x) => x.section === sectionName);
     },
@@ -89,6 +138,12 @@ export default {
   color: var(--bs-dark);
 }
 
+.steps-inline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .list-group-item {
   padding: 1rem;
   font-size: 1.05rem;
@@ -98,8 +153,7 @@ export default {
 @media (max-width: 767px) {
   .list-group-item {
     padding: 1rem;
-    font-size: 1.05rem;
-    line-height: 1.5;
+    font-size: 1.1rem;
   }
 }
 </style>

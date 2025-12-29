@@ -58,6 +58,10 @@
           :active-section="activeSection"
           :ingredients="ingredients"
           :yields-value="yieldsValue"
+          :inline-editable="inlineEditable"
+          :dirty-items="dirtyItems"
+          @changed="$emit('changed', $event)"
+          @unchanged="$emit('unchanged', $event)"
         />
       </div>
 
@@ -85,6 +89,7 @@
 <script>
 import PortionControl from "./PortionControl.vue";
 import IngredientsSection from "./IngredientsSection.vue";
+import CloseButton from "@/components/common/CloseButton.vue";
 import { BButton } from "bootstrap-vue-next";
 
 export default {
@@ -92,6 +97,7 @@ export default {
   components: {
     PortionControl,
     IngredientsSection,
+    CloseButton,
     BButton,
   },
   props: {
@@ -127,6 +133,14 @@ export default {
       type: Object,
       required: true,
     },
+    inlineEditable: {
+      type: Boolean,
+      default: false,
+    },
+    dirtyItems: {
+      type: Set,
+      default: () => new Set(),
+    },
   },
   emits: [
     "open",
@@ -134,6 +148,8 @@ export default {
     "update:yields",
     "update:showOnlyCurrentSection",
     "scroll-to-section",
+    "changed",
+    "unchanged",
   ],
 };
 </script>
