@@ -1,11 +1,56 @@
 version: '3.8'
 
 services:
-  app:
+  frontend:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY:-https://auth.cehser.de/realms/cehser}
+        VITE_OIDC_CLIENT_ID: ${VITE_OIDC_CLIENT_ID:-cookbook.cehser.de}
     ports:
       - "8080:80"
-    container_name: my-cookbook
+    container_name: my-cookbook-frontend
+    depends_on:
+      - backend
     restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: my-cookbook-backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://cookbook:${DB_PASSWORD:-changeme}@db:5432/cookbook
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-https://auth.cehser.de/realms/cehser}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE:-cookbook.cehser.de}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - UPLOAD_DIR=/app/uploads
+      - MAX_UPLOAD_SIZE_MB=5
+      - CORS_ORIGINS=["http://localhost:8080"]
+    volumes:
+      - recipe_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: my-cookbook-db
+    environment:
+      - POSTGRES_DB=cookbook
+      - POSTGRES_USER=cookbook
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cookbook"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  recipe_uploads:

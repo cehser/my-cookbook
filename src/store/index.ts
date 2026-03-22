@@ -10,20 +10,9 @@ const debug = import.meta.env.MODE !== 'production'
 
 const default_settings = {
   read_only: true,
-  autosync: false,
   expert_mode: false,
-  webdav: {
-    webdav_creds: {
-      username: 'user',
-      password: 'pass'
-    },
-    webdav_url: 'https://webdav.server',
-    filepath: '/cookbook.yaml'
-  },
-  ai: {
-    openai_api_key: '',
-    gpt_id: 'g-692e0d9d69408191bf283eddfbd22e4a'
-  }
+  gpt_model: 'gpt-4o-mini',
+  role: 'readonly',
 } satisfies Settings
 
 export interface RootState {

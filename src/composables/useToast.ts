@@ -30,5 +30,6 @@ export function useToast() {
 
   return {
     showToast,
+    toast: showToast,
   }
 }

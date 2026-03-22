@@ -1,12 +1,20 @@
 <template>
   <div id="recipe" :class="{ 'inline-edit-active': inlineEditMode }">
     <AppNavbar
-      @input="selected = $event"
+      @update:selected="navSelected"
       :recipes_list="recipes_list"
-      :selected="selected"
+      :selected="id"
       :read_only="settings.read_only"
     />
 
+    <!-- Loading state -->
+    <div v-if="!current_recipe" class="text-center mt-5">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Laden...</span>
+      </div>
+    </div>
+
+    <template v-else>
     <!-- Inline-Edit Action Bar -->
     <InlineEditActionBar
       :show="inlineEditMode"
@@ -296,6 +304,8 @@
       />
     </div>
 
+    </template>
+
     <!-- Floating Action Button (FAB) mit Menü -->
     <RecipeFabMenu
       :edit-mode="editMode"
@@ -340,6 +350,7 @@ import { computed, ref, nextTick } from "vue";
 import { useToast } from "bootstrap-vue-next";
 import UUID from "@/js/uuid";
 import { deepCopyYaml } from "@/js/deepCopy";
+import { recipeUrl, editUrl } from "@/js/slug";
 
 export default {
   name: "Recipe",
@@ -354,14 +365,14 @@ export default {
     StepSection,
   },
   props: {
-    selected: {
-      type: Number,
-      default: 0,
+    id: {
+      type: String,
+      required: true,
     },
   },
   setup(props) {
-    const selectedRef = computed(() => props.selected);
-    const recipeHelper = useRecipeHelper({ selected: selectedRef });
+    const idRef = computed(() => props.id);
+    const recipeHelper = useRecipeHelper({ recipeId: idRef });
     const viewport = useViewport();
 
     // Mobile Bottom Bar State
@@ -434,17 +445,12 @@ export default {
     }
   },
   watch: {
-    selected(newSelected) {
-      // Reload recipe when selected prop changes (prev/next navigation)
-      if (this.recipes[newSelected]) {
-        this.loadRecipe(this.recipes[newSelected]);
-        // Scroll to top when changing recipes
-        window.scrollTo(0, 0);
-        // Re-observe step sections
-        this.$nextTick(() => {
-          this.observeStepSections();
-        });
-      }
+    id() {
+      // Scroll to top when changing recipes via route
+      window.scrollTo(0, 0);
+      this.$nextTick(() => {
+        this.observeStepSections();
+      });
     },
   },
   computed: {
@@ -454,6 +460,7 @@ export default {
     },
     hasMetadata() {
       if (!this.current_recipe) return false;
+
       return !!(
         this.current_recipe.author ||
         this.current_recipe.source_url ||
@@ -469,6 +476,7 @@ export default {
     },
     // Mobile: Filtered sections for bottom bar
     visibleIngredientSections() {
+      if (!this.current_recipe) return [];
       if (this.showOnlyCurrentSection && this.activeSection) {
         return this.current_recipe.sections.filter(
           (section) => section.section === this.activeSection,
@@ -478,6 +486,7 @@ export default {
     },
     // Desktop: Filtered sections for split-view
     visibleDesktopSections() {
+      if (!this.current_recipe) return [];
       if (!this.showAllIngredients && this.activeSection) {
         return this.current_recipe.sections.filter(
           (section) => section.section === this.activeSection,
@@ -521,6 +530,10 @@ export default {
       // Persist sidebar state
       this.$store.dispatch("setRecipeShowIngredients", this.showIngredients);
     },
+    navSelected(uuid) {
+      const recipe = this.$store.state.recipes.find(r => r.recipe_uuid === uuid);
+      this.$router.push(recipeUrl(uuid, recipe?.recipe_name));
+    },
     exportRecipe() {
       const yaml = jsyaml.dump(this.current_recipe);
       const blob = new Blob([yaml], { type: "text/yaml" });
@@ -535,12 +548,14 @@ export default {
     },
     prevRecipe() {
       if (this.selected > 0) {
-        this.$router.push("/recipe/" + (this.selected - 1));
+        const prev = this.recipes[this.selected - 1];
+        this.$router.push(recipeUrl(prev.recipe_uuid, prev.recipe_name));
       }
     },
     nextRecipe() {
       if (this.selected < this.recipes.length - 1) {
-        this.$router.push("/recipe/" + (this.selected + 1));
+        const next = this.recipes[this.selected + 1];
+        this.$router.push(recipeUrl(next.recipe_uuid, next.recipe_name));
       }
     },
     copyRecipe() {
@@ -556,9 +571,9 @@ export default {
         recipe.recipe_uuid = UUID.generateUUID();
         // Append to store
         this.$store.dispatch("appendRecipe", recipe);
-        // Navigate to the new recipe (will be at the end of the list)
+        // Navigate to the new recipe
         this.$nextTick(() => {
-          this.$router.push("/recipe/" + (this.recipes.length - 1));
+          this.$router.push(recipeUrl(recipe.recipe_uuid, recipe.recipe_name));
         });
       } catch (error) {
         console.error("Error copying recipe:", error);
@@ -575,7 +590,7 @@ export default {
         confirm(`Rezept "${this.current_recipe.recipe_name}" wirklich löschen?`)
       ) {
         try {
-          this.$store.dispatch("deleteRecipe", this.selected);
+          this.$store.dispatch("deleteRecipe", this.current_recipe.recipe_uuid);
           // Navigate to gallery after deletion
           this.$router.push("/");
         } catch (error) {
@@ -595,7 +610,7 @@ export default {
       }
     },
     goToEdit() {
-      this.$router.push(`/edit/${this.selected}`);
+      this.$router.push(editUrl(this.current_recipe.recipe_uuid, this.current_recipe.recipe_name));
     },
     toggleEditMode() {
       if (!this.current_recipe) {
@@ -616,19 +631,17 @@ export default {
         }
       }
     },
-    saveRecipe() {
+    async saveRecipe() {
       if (!this.current_recipe) {
         this.toast("Rezept konnte nicht gespeichert werden", "danger");
         return;
       }
 
       try {
-        // Save changes to store
-        this.$store.dispatch("updateRecipe", {
+        await this.$store.dispatch("setRecipe", {
           index: this.selected,
           recipe: this.current_recipe,
         });
-        this.$store.dispatch("saveToLocalStorage");
         this.editMode = false;
         this.originalRecipe = null;
         this.toast("Rezept gespeichert", "success");
@@ -637,7 +650,7 @@ export default {
         this.toast("Fehler beim Speichern des Rezepts", "danger");
       }
     },
-    handleInlineSave() {
+    async handleInlineSave() {
       // Deprecated - kept for backward compatibility
       // Now using handleIngredientChanged instead
       if (!this.current_recipe) {
@@ -645,11 +658,10 @@ export default {
       }
 
       try {
-        this.$store.dispatch("updateRecipe", {
+        await this.$store.dispatch("setRecipe", {
           index: this.selected,
           recipe: this.current_recipe,
         });
-        this.$store.dispatch("saveToLocalStorage");
         this.toast("Änderung gespeichert", "success");
       } catch (error) {
         console.error("Error saving inline changes:", error);
@@ -672,7 +684,7 @@ export default {
       // Remove step from dirty items (undo)
       this.dirtyItems.delete(`step:${stepIndex}`);
     },
-    saveInlineChanges() {
+    async saveInlineChanges() {
       // Save all inline changes and exit inline edit mode
       if (!this.current_recipe) {
         this.toast("Rezept konnte nicht gespeichert werden", "danger");
@@ -680,12 +692,11 @@ export default {
       }
 
       try {
-        // Save changes to store
-        this.$store.dispatch("updateRecipe", {
+        // Save changes to store and API
+        await this.$store.dispatch("setRecipe", {
           index: this.selected,
           recipe: this.current_recipe,
         });
-        this.$store.dispatch("saveToLocalStorage");
         this.inlineEditMode = false;
         this.originalRecipe = null;
         this.dirtyItems.clear();

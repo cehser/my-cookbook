@@ -4,6 +4,13 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
+
+# OIDC config injected at build time
+ARG VITE_OIDC_AUTHORITY
+ARG VITE_OIDC_CLIENT_ID
+ENV VITE_OIDC_AUTHORITY=$VITE_OIDC_AUTHORITY
+ENV VITE_OIDC_CLIENT_ID=$VITE_OIDC_CLIENT_ID
+
 # Create vue.config.js to disable TypeScript checking
 RUN echo "module.exports = { chainWebpack: config => { config.plugins.delete('fork-ts-checker'); } };" > vue.config.js
 RUN npm run build

@@ -16,8 +16,13 @@ export interface AISettings {
 
 export interface Settings {
   read_only: boolean
-  autosync: boolean
   expert_mode: boolean
-  webdav: WebDAVSettings
-  ai: AISettings
+  gpt_model: string
+  role: string
+  /** @deprecated kept for backwards compat during migration */
+  autosync?: boolean
+  /** @deprecated kept for backwards compat during migration */
+  webdav?: WebDAVSettings
+  /** @deprecated kept for backwards compat during migration */
+  ai?: AISettings
 }

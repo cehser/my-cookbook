@@ -1,16 +1,18 @@
 import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
 import { useStore } from 'vuex'
 import { deepCopyYaml } from '@/js/deepCopy'
+import { isAuthenticated } from '@/auth/oidc'
 import type { Recipe, RecipePictures } from '@/types/recipe'
 
 interface RecipeHelperOptions {
-  selected: Ref<number>
+  recipeId: Ref<string>
 }
 
 interface RecipeHelperReturn {
   current_recipe: Ref<Recipe | null>
   do_recalc: Ref<boolean>
-  recipes_list: ComputedRef<Array<{ value: number; text: string }>>
+  selected: ComputedRef<number>
+  recipes_list: ComputedRef<Array<{ value: string; text: string }>>
   picture_src: ComputedRef<string>
   yields_unit: ComputedRef<string>
   yields_value: ComputedRef<number>
@@ -36,25 +38,44 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
   const recipes = computed(() => store.state.recipes as Recipe[])
   const recipe_pictures = computed(() => store.state.recipe_pictures as RecipePictures)
 
+  // Computed: index of current recipe in store (for backwards compat)
+  const selected = computed(() => {
+    const id = options.recipeId.value
+    if (!id) return -1
+    return recipes.value.findIndex(r => r.recipe_uuid === id)
+  })
+
   // Initialize recipe on mount
-  if (recipes.value && recipes.value[options.selected.value]) {
-    loadRecipe(recipes.value[options.selected.value])
+  const initIdx = selected.value
+  if (initIdx >= 0 && recipes.value[initIdx]) {
+    loadRecipe(recipes.value[initIdx])
   }
 
-  // Watch for recipe changes
+  // Watch for recipeId changes (e.g. navigation)
   watch(
-    recipes,
+    () => options.recipeId.value,
     () => {
-      // Updating current recipe leads to problems like unwantedly changing the amounts calculation
-      // loadRecipe(recipes.value[options.selected.value])
-    },
-    { deep: true }
+      const idx = selected.value
+      if (idx >= 0 && recipes.value[idx]) {
+        loadRecipe(recipes.value[idx])
+      }
+    }
   )
 
-  // Computed: List of recipes for dropdown
+  // Watch for recipes becoming available (e.g. async API load on direct URL)
+  watch(recipes, () => {
+    if (!current_recipe.value && options.recipeId.value) {
+      const idx = selected.value
+      if (idx >= 0 && recipes.value[idx]) {
+        loadRecipe(recipes.value[idx])
+      }
+    }
+  })
+
+  // Computed: List of recipes for dropdown (value = UUID)
   const recipes_list = computed(() => {
-    return recipes.value.map((val, idx) => ({
-      value: idx,
+    return recipes.value.map((val) => ({
+      value: val.recipe_uuid,
       text: val.recipe_name
     }))
   })
@@ -118,10 +139,41 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
   }
 
   /**
-   * Load a recipe (creates a deep copy)
+   * Load a recipe (creates a deep copy).
+   * If the recipe was loaded from the API list (no ingredients),
+   * fetch the full detail from the backend, with IDB fallback for offline.
    */
-  function loadRecipe(recipe: Recipe): void {
-    current_recipe.value = deepCopyYaml(recipe)
+  async function loadRecipe(recipe: Recipe): Promise<void> {
+    // Set immediately with safe defaults so the template never sees null
+    const safeCopy = deepCopyYaml(recipe)
+    safeCopy.ingredients = safeCopy.ingredients || []
+    safeCopy.steps = safeCopy.steps || []
+    safeCopy.sections = safeCopy.sections || [{ section: '' }]
+    current_recipe.value = safeCopy
+
+    // API list items have empty ingredients — need to fetch detail
+    if (
+      (!recipe.ingredients || recipe.ingredients.length === 0) &&
+      recipe.recipe_uuid &&
+      await isAuthenticated()
+    ) {
+      try {
+        const detail = await store.dispatch('loadRecipeDetailFromApi', recipe.recipe_uuid)
+        current_recipe.value = deepCopyYaml(detail)
+      } catch (e) {
+        console.warn('API detail fetch failed, trying IDB cache', e)
+        // Offline fallback: try IDB cache
+        try {
+          const { get } = await import('idb-keyval')
+          const cached = await get(`recipe:${recipe.recipe_uuid}`)
+          if (cached) {
+            current_recipe.value = deepCopyYaml(cached as Recipe)
+          }
+        } catch (idbErr) {
+          console.warn('IDB cache also unavailable', idbErr)
+        }
+      }
+    }
   }
 
   /**
@@ -190,6 +242,7 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
   return {
     current_recipe,
     do_recalc,
+    selected,
     recipes_list,
     picture_src,
     yields_unit,

@@ -36,6 +36,37 @@
           <slot></slot>
         </ul>
         <ul class="navbar-nav">
+          <!-- User display + Logout -->
+          <li v-if="userName" class="nav-item dropdown">
+            <a
+              class="nav-link dropdown-toggle"
+              href="#"
+              id="userDropdown"
+              role="button"
+              @click="toggleUserDropdown"
+              aria-expanded="false"
+            >
+              <i class="bi bi-person-circle"></i>
+              <span class="ms-1">{{ userName }}</span>
+            </a>
+            <ul
+              class="dropdown-menu dropdown-menu-end"
+              :class="{ show: isUserDropdownOpen }"
+              aria-labelledby="userDropdown"
+            >
+              <li>
+                <span class="dropdown-item-text text-muted small">
+                  {{ userEmail || userName }}
+                </span>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <a class="dropdown-item" href="#" @click.prevent="doLogout">
+                  <i class="bi bi-box-arrow-right"></i> Abmelden
+                </a>
+              </li>
+            </ul>
+          </li>
           <li class="nav-item dropdown">
             <a
               class="nav-link dropdown-toggle"
@@ -101,32 +132,50 @@
 import { ref, watch, onMounted, computed } from "vue";
 import { useRoute } from "vue-router";
 import { useStore } from "vuex";
+import { getUser, logout } from "@/auth/oidc";
 import type { Recipe } from "@/types/recipe";
 
 const props = withDefaults(
   defineProps<{
-    selected?: number;
+    selected?: string;
     read_only?: boolean;
     recipes_list?: Recipe[];
   }>(),
   {
-    selected: 0,
+    selected: '',
     read_only: true,
   },
 );
 
 const emit = defineEmits<{
-  "update:selected": [value: number];
+  "update:selected": [value: string];
   "cloud-sync": [];
 }>();
 
 const route = useRoute();
 const store = useStore();
-const data_selected = ref(0);
+const data_selected = ref('');
 const isMenuOpen = ref(false);
 const isAdminDropdownOpen = ref(false);
+const isUserDropdownOpen = ref(false);
+const userName = ref<string | null>(null);
+const userEmail = ref<string | null>(null);
 
 const expertMode = computed(() => store.state.settings.expert_mode);
+
+// Load OIDC user info
+onMounted(async () => {
+  data_selected.value = props.selected;
+  try {
+    const user = await getUser();
+    if (user?.profile) {
+      userName.value = user.profile.preferred_username || user.profile.name || user.profile.sub;
+      userEmail.value = user.profile.email || null;
+    }
+  } catch (e) {
+    console.warn('[Auth] Could not load user info:', e);
+  }
+});
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value;
@@ -134,6 +183,21 @@ const toggleMenu = () => {
 
 const toggleAdminDropdown = () => {
   isAdminDropdownOpen.value = !isAdminDropdownOpen.value;
+  isUserDropdownOpen.value = false;
+};
+
+const toggleUserDropdown = () => {
+  isUserDropdownOpen.value = !isUserDropdownOpen.value;
+  isAdminDropdownOpen.value = false;
+};
+
+const doLogout = async () => {
+  try {
+    await logout();
+  } catch (e) {
+    console.error('[Auth] Logout failed:', e);
+    window.location.href = '/';
+  }
 };
 
 const toggleExpertMode = () => {
@@ -157,12 +221,9 @@ watch(
     // Close mobile menu when route changes
     isMenuOpen.value = false;
     isAdminDropdownOpen.value = false;
+    isUserDropdownOpen.value = false;
   },
 );
-
-onMounted(() => {
-  data_selected.value = props.selected;
-});
 </script>
 
 <style scoped>

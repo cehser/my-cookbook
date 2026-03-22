@@ -1,9 +1,9 @@
 <template>
   <div id="edit">
     <AppNavbar
-      @update:selected="localSelected = $event"
+      @update:selected="navSelected"
       :recipes_list="recipes_list"
-      :selected="localSelected"
+      :selected="id"
       :read_only="settings.read_only"
     >
       <li>
@@ -441,6 +441,7 @@ import StepEdit from "@/components/edit/StepEdit.vue";
 import SectionIngredientsEdit from "@/components/edit/SectionIngredientsEdit.vue";
 import ArrayReorderBtnGroup from "@/components/common/ArrayReorderBtnGroup.vue";
 import AppNavbar from "@/components/layout/AppNavbar.vue";
+import { editUrl } from "@/js/slug";
 
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useToast } from "@/composables/useToast";
@@ -456,9 +457,9 @@ import { computed } from "vue";
 export default {
   name: "Edit",
   props: {
-    selected: {
-      type: Number,
-      default: 0,
+    id: {
+      type: String,
+      required: true,
     },
   },
   components: {
@@ -468,8 +469,8 @@ export default {
     AppNavbar,
   },
   setup(props) {
-    const selectedRef = computed(() => props.selected);
-    const recipeHelper = useRecipeHelper({ selected: selectedRef });
+    const idRef = computed(() => props.id);
+    const recipeHelper = useRecipeHelper({ recipeId: idRef });
     const { toast } = useToast();
 
     // Override do_recalc default
@@ -484,11 +485,12 @@ export default {
     return {
       file: null,
       delete_image: false,
-      localSelected: this.selected,
+      localSelected: -1,
       newTag: "",
     };
   },
   mounted() {
+    this.localSelected = this.selected;
     document.onkeydown = (event) => {
       //ctrl + s
       if (event.ctrlKey && event.code === "KeyS") {
@@ -550,7 +552,7 @@ export default {
       //only update if current_recipe is really different
       console.log(this.file);
       if (
-        !deepEqual(this.recipes[this.localSelected], this.current_recipe) ||
+        !deepEqual(this.recipes[this.selected], this.current_recipe) ||
         this.file ||
         this.delete_image
       ) {
@@ -580,7 +582,7 @@ export default {
         console.log(this.current_recipe.cloud_images);
         this.$store
           .dispatch("setRecipe", {
-            index: this.localSelected,
+            index: this.selected,
             recipe: this.current_recipe,
           })
           .then(() => this.toast("Gespeichert.", "success"))
@@ -590,7 +592,7 @@ export default {
       }
     },
     updateCurrentRecipe: function () {
-      let replace_recipe = this.recipes[this.localSelected];
+      let replace_recipe = this.recipes[this.selected];
       if (replace_recipe) {
         document.title = "Kochbuch: " + replace_recipe.recipe_name;
         this.current_recipe = this.deepCopyYaml(replace_recipe);
@@ -601,6 +603,12 @@ export default {
         "Neue Zutat": { amounts: [{ amount: null, unit: "" }] },
         section: "",
       });
+    },
+    navSelected(uuid) {
+      const r = this.recipes.find((r) => r.recipe_uuid === uuid);
+      if (r) {
+        this.$router.push(editUrl(r.recipe_uuid, r.recipe_name));
+      }
     },
   },
 };

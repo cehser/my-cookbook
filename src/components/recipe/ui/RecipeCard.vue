@@ -1,7 +1,7 @@
 <template>
   <div class="card recipe_card_container">
     <router-link
-      :to="{ path: '/recipe/' + index }"
+      :to="recipeLink"
       class="recipe-card-link"
       :class="{ 'pointer-events-none': showTagEditor }"
     >
@@ -187,6 +187,7 @@ import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
 import type { Recipe } from "@/types/recipe";
+import { recipeUrl, editUrl } from "@/js/slug";
 
 const props = defineProps<{
   recipe: Recipe;
@@ -281,6 +282,8 @@ const highlightedNameParts = computed(() => {
   return parts.length > 0 ? parts : [{ text: text, highlight: false }];
 });
 
+const recipeLink = computed(() => recipeUrl(props.recipe.recipe_uuid, props.recipe.recipe_name));
+
 const toggleFavorite = () => {
   if (isFavorite.value) {
     store.dispatch("removeFavorite", props.recipe.recipe_uuid);
@@ -290,7 +293,7 @@ const toggleFavorite = () => {
 };
 
 const editRecipe = () => {
-  router.push(`/edit/${props.index}`);
+  router.push(editUrl(props.recipe.recipe_uuid, props.recipe.recipe_name));
 };
 
 const deleteRecipe = () => {

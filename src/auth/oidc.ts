@@ -1,0 +1,64 @@
+/**
+ * OIDC Authentication via oidc-client-ts (IdP-agnostic).
+ *
+ * Required env variables (in .env or .env.local):
+ *   VITE_OIDC_AUTHORITY   - Issuer URL (e.g. https://idp.example.com/realms/my-cookbook)
+ *   VITE_OIDC_CLIENT_ID   - Client ID (e.g. my-cookbook-spa)
+ */
+
+import { UserManager, WebStorageStateStore, type User } from 'oidc-client-ts'
+
+const authority = import.meta.env.VITE_OIDC_AUTHORITY as string
+const clientId = import.meta.env.VITE_OIDC_CLIENT_ID as string
+
+if (!authority || !clientId) {
+  console.warn('[Auth] VITE_OIDC_AUTHORITY and VITE_OIDC_CLIENT_ID must be set for OIDC login.')
+}
+
+const userManager = new UserManager({
+  authority,
+  client_id: clientId,
+  redirect_uri: `${window.location.origin}/callback`,
+  post_logout_redirect_uri: window.location.origin,
+  response_type: 'code',
+  scope: 'openid profile email',
+  automaticSilentRenew: true,
+  userStore: new WebStorageStateStore({ store: window.localStorage }),
+})
+
+/** Redirect to IdP login page */
+export async function login(): Promise<void> {
+  await userManager.signinRedirect()
+}
+
+/** Handle the callback after IdP redirect */
+export async function handleCallback(): Promise<User> {
+  return await userManager.signinRedirectCallback()
+}
+
+/** Logout — redirect to IdP logout */
+export async function logout(): Promise<void> {
+  await userManager.signoutRedirect()
+}
+
+/** Get the currently authenticated user (or null) */
+export async function getUser(): Promise<User | null> {
+  return await userManager.getUser()
+}
+
+/** Get a valid access token (auto-refreshed if expired) */
+export async function getAccessToken(): Promise<string | null> {
+  const user = await userManager.getUser()
+  if (!user || user.expired) {
+    return null
+  }
+  return user.access_token
+}
+
+/** Check whether the user is authenticated */
+export async function isAuthenticated(): Promise<boolean> {
+  const user = await userManager.getUser()
+  return user !== null && !user.expired
+}
+
+export { userManager }

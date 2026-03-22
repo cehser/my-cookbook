@@ -1,9 +1,9 @@
 <template>
   <div id="recipe">
     <AppNavbar
-      @input="selected = $event"
+      @update:selected="navSelected"
       :recipes_list="recipes_list"
-      :selected="selected"
+      selected=""
       :read_only="settings.read_only"
     >
       <BButton v-if="updateExists" @click="refreshApp">
@@ -190,7 +190,7 @@
             :index="recipe.originalIndex"
             :highlight="filter"
             :read_only="settings.read_only"
-            @delete="deleteRecipe(recipe.originalIndex)"
+            @delete="handleDeleteRecipe(recipe.recipe_uuid)"
           />
         </div>
       </div>
@@ -206,27 +206,22 @@ import AppNavbar from "@/components/layout/AppNavbar.vue";
 import RecipeCard from "@/components/recipe/ui/RecipeCard.vue";
 import AIRecipeImport from "@/components/features/AIRecipeImport.vue";
 import { mapState } from "vuex";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import Recipes from "@/js/recipes";
 import Cloud from "@/js/cloud";
 import jsyaml from "js-yaml";
+import { recipeUrl } from "@/js/slug";
 
 export default {
   name: "Recipe",
-  props: {
-    selected: {
-      type: Number,
-      default: 0,
-    },
-  },
   components: {
     AppNavbar,
     RecipeCard,
     AIRecipeImport,
   },
-  setup(props) {
-    const selectedRef = computed(() => props.selected);
-    const recipeHelper = useRecipeHelper({ selected: selectedRef });
+  setup() {
+    const recipeId = ref('');
+    const recipeHelper = useRecipeHelper({ recipeId });
     const { toast } = useToast();
 
     return {
@@ -402,6 +397,10 @@ export default {
     },
   },
   methods: {
+    navSelected(uuid) {
+      const recipe = this.recipes.find(r => r.recipe_uuid === uuid);
+      this.$router.push(recipeUrl(uuid, recipe?.recipe_name));
+    },
     toggleTag(tag) {
       const index = this.selectedTags.indexOf(tag);
       if (index > -1) {
@@ -427,8 +426,8 @@ export default {
       }
       this.registration.waiting.postMessage("skipWaiting");
     },
-    handleDeleteRecipe(index) {
-      this.$store.dispatch("deleteRecipe", index);
+    handleDeleteRecipe(uuid) {
+      this.$store.dispatch("deleteRecipe", uuid);
     },
     newRecipe() {
       this.$store.dispatch("appendRecipe", Recipes.loadNewRecipe());

@@ -19,6 +19,7 @@
     "js-yaml": "^4.1.0",
     "json-url": "^4.0.0",
     "jsonpath": "^1.1.1",
+    "oidc-client-ts": "^3.5.0",
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.3",
     "sortablejs": "^1.15.1",

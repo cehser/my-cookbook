@@ -24,8 +24,8 @@ defineProps<{
   index: number;
 }>();
 
-const selectedRef = ref(0);
-const { swapElements } = useRecipeHelper({ selected: selectedRef });
+const selectedRef = ref('');
+const { swapElements } = useRecipeHelper({ recipeId: selectedRef });
 </script>
 
 <style scoped>

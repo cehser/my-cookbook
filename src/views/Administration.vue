@@ -1,9 +1,9 @@
 <template>
   <div id="administration">
     <AppNavbar
-      @input="selected = $event"
+      @update:selected="navSelected"
       :recipes_list="recipes_list"
-      :selected="selected"
+      selected=""
       :read_only="settings.read_only"
     >
     </AppNavbar>
@@ -105,23 +105,18 @@ import Recipes from "@/js/recipes";
 import Cloud from "@/js/cloud";
 
 import jsyaml from "js-yaml";
-import { computed } from "vue";
+import { ref } from "vue";
+import { recipeUrl } from "@/js/slug";
 
 export default {
   name: "Administration",
-  props: {
-    selected: {
-      type: Number,
-      default: 0,
-    },
-  },
   components: {
     AppNavbar,
     AIRecipeImport,
   },
-  setup(props) {
-    const selectedRef = computed(() => props.selected);
-    const recipeHelper = useRecipeHelper({ selected: selectedRef });
+  setup() {
+    const recipeId = ref('');
+    const recipeHelper = useRecipeHelper({ recipeId });
     const { toast } = useToast();
 
     return {
@@ -146,6 +141,10 @@ export default {
     };
   },
   methods: {
+    navSelected(uuid) {
+      const recipe = this.recipes.find(r => r.recipe_uuid === uuid);
+      this.$router.push(recipeUrl(uuid, recipe?.recipe_name));
+    },
     deleteRecipe: function (index) {
       this.$store.dispatch("deleteRecipe", index);
     },
