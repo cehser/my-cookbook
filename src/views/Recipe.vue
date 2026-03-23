@@ -325,6 +325,7 @@
       @edit="goToEdit"
       @copy="copyRecipe"
       @delete="deleteRecipe"
+      @share="shareRecipe"
       @export="exportRecipe"
     />
 
@@ -336,6 +337,13 @@
       :yields-value="yields_value"
       :yields-unit="yields_unit"
       @close="showMetadata = false"
+    />
+
+    <!-- Share Manager Overlay -->
+    <ShareManager
+      :show="showShareManager"
+      :recipe-id="current_recipe?.recipe_uuid"
+      @close="showShareManager = false"
     />
   </div>
 </template>
@@ -357,6 +365,7 @@ import { mapState } from "vuex";
 import { computed, ref, nextTick } from "vue";
 import { useToast } from "bootstrap-vue-next";
 import UUID from "@/js/uuid";
+import ShareManager from "@/components/recipe/ui/ShareManager.vue";
 import { deepCopyYaml } from "@/js/deepCopy";
 import { recipeUrl, editUrl } from "@/js/slug";
 
@@ -371,6 +380,7 @@ export default {
     RecipeFabMenu,
     InlineEditActionBar,
     StepSection,
+    ShareManager,
   },
   props: {
     id: {
@@ -418,6 +428,7 @@ export default {
       editMode: false, // inline edit mode
       originalRecipe: null, // backup for cancel
       showMetadata: false, // toggle metadata visibility
+      showShareManager: false, // toggle share manager
       observer: null, // Intersection Observer instance
       sectionUpdateTimeout: null, // Debounce timeout for section updates
     };
@@ -607,6 +618,10 @@ export default {
         }
       }
     },
+    async shareRecipe() {
+      if (!this.current_recipe) return;
+      this.showShareManager = true;
+    },
     toggleFavorite() {
       if (!this.current_recipe || !this.current_recipe.recipe_uuid) {
         return;
@@ -733,11 +748,8 @@ export default {
       this.originalRecipe = null;
     },
     renameIngredient(ingredient, newName) {
-      // Rename ingredient key
-      const oldName = Object.keys(ingredient)[0];
-      if (oldName !== newName && newName) {
-        ingredient[newName] = ingredient[oldName];
-        delete ingredient[oldName];
+      if (ingredient.name !== newName && newName) {
+        ingredient.name = newName;
       }
     },
     selectStep: function (ev) {
@@ -900,10 +912,11 @@ export default {
 </script>
 
 <style scoped>
+@import '@/assets/recipe-layout.css';
+
 /* ============================================
    INLINE EDIT MODE ADJUSTMENTS
    ============================================ */
-/* Add padding when action bar is visible */
 #recipe {
   padding-top: 0;
   transition: padding-top 0.3s ease;
@@ -916,267 +929,6 @@ export default {
 @media (max-width: 767px) {
   #recipe.inline-edit-active {
     padding-top: 80px;
-  }
-}
-
-/* ============================================
-   DESKTOP/TABLET: SPLIT-VIEW LAYOUT
-   ============================================ */
-@media (min-width: 768px) {
-  .recipe-container.split-view {
-    width: 100%;
-    min-height: 100vh;
-  }
-
-  .split-layout {
-    display: grid;
-    grid-template-columns: 35% 65%;
-    gap: 2rem;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem;
-  }
-
-  @media (max-width: 1024px) and (min-width: 768px) {
-    .split-layout {
-      grid-template-columns: 40% 60%;
-      gap: 1.5rem;
-      padding: 1.5rem;
-    }
-  }
-
-  .ingredients-column {
-    position: relative;
-  }
-
-  .sticky-wrapper {
-    position: sticky;
-    top: calc(56px + 1rem);
-    max-height: calc(100vh - 56px - 2rem);
-    overflow-y: auto;
-  }
-
-  .steps-column {
-    min-height: 100vh;
-  }
-
-  /* Desktop Filter Controls */
-  .filter-controls {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .filter-controls .btn {
-    font-size: 0.875rem;
-  }
-
-  /* Desktop Ingredients Section Highlighting */
-  .ingredients-column .ingredients-section {
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 8px;
-    background: var(--bs-light);
-    transition: all 0.3s ease;
-    border-left: 4px solid transparent;
-  }
-
-  .ingredients-column .ingredients-section.active {
-    background: rgba(var(--bs-primary-rgb), 0.1);
-    border-left-color: var(--bs-primary);
-    padding-left: calc(1rem - 4px);
-  }
-
-  .ingredients-column .ingredients-section h5 {
-    transition: color 0.3s ease;
-  }
-
-  .ingredients-column .ingredients-section.active h5 {
-    color: var(--bs-primary);
-    font-weight: 600;
-  }
-}
-
-/* ============================================
-   MOBILE: BOTTOM BAR LAYOUT
-   ============================================ */
-@media (max-width: 767px) {
-  .recipe-container.mobile-view {
-    position: relative;
-    padding-bottom: 80px;
-  }
-}
-
-/* ============================================
-   COMMON STYLES
-   ============================================ */
-#recipe_title_container {
-  position: relative;
-}
-
-#recipe_img {
-  max-height: 60vh;
-  object-fit: cover;
-  object-position: center;
-  width: 100%;
-  margin: auto;
-}
-
-#recipe_title {
-  width: 100%;
-  position: absolute;
-  bottom: 0;
-  background-color: rgba(230, 230, 230, 0.6);
-}
-
-.ingredients-section {
-  margin-bottom: 1.5rem;
-}
-
-.ingredients-section h5 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  color: var(--bs-dark);
-}
-
-/* Step Section Highlighting (optional visual feedback) */
-.step-section {
-  margin-bottom: 2rem;
-  scroll-margin-top: 100px;
-}
-
-.step-section h4 {
-  margin-top: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-/* List Styles */
-.list-group-alpha {
-  list-style: lower-alpha inside;
-}
-
-.list-group-roman {
-  list-style: lower-roman inside;
-}
-
-.list-group-alpha > li {
-  display: list-item;
-}
-
-/* Step Sections */
-.step-section {
-  margin-bottom: 2rem;
-}
-
-.step-section h4 {
-  margin-top: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-/* Quick Actions on Recipe Image */
-.recipe-image-container {
-  position: relative;
-}
-
-/* Desktop: Show all action buttons */
-.quick-actions.desktop-actions {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  display: flex;
-  gap: 0.25rem;
-  z-index: 10;
-}
-
-.quick-actions .action-btn {
-  width: var(--action-btn-size);
-  height: var(--action-btn-size);
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-md);
-  border: none;
-  transition: var(--transition-all-fast);
-}
-
-.quick-actions .action-btn i {
-  font-size: 1.2rem;
-}
-
-.quick-actions .action-btn:hover {
-  transform: scale(1.05);
-  box-shadow: var(--shadow-lg);
-}
-
-.quick-actions .action-btn.btn-warning {
-  background-color: #ffc107;
-  color: #000;
-}
-
-.quick-actions .action-btn.btn-light {
-  background-color: rgba(255, 255, 255, 0.9);
-}
-
-.quick-actions .action-btn.btn-light:hover {
-  background-color: #fff;
-}
-
-/* Mobile/Tablet: Only favorite star (no button style, like in gallery) */
-.favorite-star {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  z-index: var(--z-actions);
-  cursor: pointer;
-  font-size: 1.8rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  transition: var(--transition-transform);
-}
-
-.favorite-star:hover {
-  transform: scale(1.15);
-}
-
-/* Metadata Toggle Icon (right side of image) */
-.metadata-toggle-icon {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: var(--z-actions);
-  cursor: pointer;
-  width: var(--action-btn-size);
-  height: var(--action-btn-size);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-circle);
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
-  transition:
-    var(--transition-transform),
-    box-shadow var(--transition-fast);
-  box-shadow: var(--shadow-sm);
-}
-
-.metadata-toggle-icon i {
-  font-size: 1.3rem;
-  color: #495057;
-}
-
-.metadata-toggle-icon:hover {
-  transform: scale(1.1);
-  box-shadow: var(--shadow-md);
-}
-
-@media (max-width: 767px) {
-  .metadata-toggle-icon {
-    width: var(--fab-size-small);
-    height: var(--fab-size-small);
-  }
-
-  .metadata-toggle-icon i {
-    font-size: 1.4rem;
   }
 }
 </style>

@@ -100,9 +100,7 @@ const nameInput = ref<ComponentPublicInstance | null>(null);
 
 // Display values
 const displayName = computed(() => {
-  // Filter out 'section' property to get the actual ingredient name
-  const keys = Object.keys(props.ingredient).filter((key) => key !== "section");
-  return keys[0];
+  return props.ingredient.name;
 });
 
 // Helper to create unique ingredient key with section
@@ -111,14 +109,7 @@ function getIngredientKey(name: string): string {
 }
 
 const displayAmount = computed(() => {
-  const name = displayName.value;
-  const ingredientData = props.ingredient[name];
-
-  if (typeof ingredientData === "string") {
-    return ingredientData;
-  }
-
-  const amount = ingredientData.amounts[0].amount;
+  const amount = props.ingredient.amounts[0]?.amount;
 
   if (typeof amount !== "number") {
     return amount;
@@ -131,14 +122,7 @@ const displayAmount = computed(() => {
 });
 
 const displayUnit = computed(() => {
-  const name = displayName.value;
-  const ingredientData = props.ingredient[name];
-
-  if (typeof ingredientData === "string") {
-    return "";
-  }
-
-  return ingredientData.amounts[0].unit;
+  return props.ingredient.amounts[0]?.unit || "";
 });
 
 // Methods
@@ -148,17 +132,9 @@ function startEditing() {
   const name = displayName.value;
   emit("startEdit", getIngredientKey(name));
 
-  const ingredientData = props.ingredient[name];
-
-  if (typeof ingredientData === "string") {
-    editAmount.value = "";
-    editUnit.value = "";
-    editName.value = name;
-  } else {
-    editAmount.value = String(ingredientData.amounts[0].amount);
-    editUnit.value = ingredientData.amounts[0].unit;
-    editName.value = name;
-  }
+  editAmount.value = String(props.ingredient.amounts[0]?.amount ?? "");
+  editUnit.value = props.ingredient.amounts[0]?.unit || "";
+  editName.value = name;
 
   // Store originals for change detection
   originalAmount.value = editAmount.value;
@@ -253,23 +229,15 @@ function cancelEdit() {
 
 function undoChanges() {
   // Revert to UNDO values (original values from when first marked dirty)
-  const currentName = displayName.value;
-  const ingredientData = props.ingredient[currentName];
-
-  if (typeof ingredientData === "string") {
-    // Cannot undo for string-type ingredients
-    return;
+  // Restore undo values
+  if (props.ingredient.amounts?.[0]) {
+    props.ingredient.amounts[0].amount = undoAmount.value.trim() || "0";
+    props.ingredient.amounts[0].unit = undoUnit.value.trim();
   }
 
-  // Restore undo values
-  ingredientData.amounts[0].amount = undoAmount.value.trim() || "0";
-  ingredientData.amounts[0].unit = undoUnit.value.trim();
-
   // If name was changed, revert it back to undo name
-  if (currentName !== undoName.value && undoName.value) {
-    const data = props.ingredient[currentName];
-    delete props.ingredient[currentName];
-    props.ingredient[undoName.value] = data;
+  if (props.ingredient.name !== undoName.value && undoName.value) {
+    props.ingredient.name = undoName.value;
   }
 
   // Notify parent to remove from dirty items using UNDO name with section
@@ -288,24 +256,19 @@ function applyChanges() {
   const nameChanged = oldName !== newName;
 
   if (nameChanged) {
-    const oldData = props.ingredient[oldName];
-    delete props.ingredient[oldName];
-    props.ingredient[newName] = oldData;
+    props.ingredient.name = newName;
 
     // If name changed, we need to update the dirty tracking
-    // Remove old key and add new key
     emit("unchanged", getIngredientKey(oldName));
     emit("changed", getIngredientKey(newName));
   }
 
-  const ingredientData = props.ingredient[newName];
-  if (typeof ingredientData !== "string") {
-    ingredientData.amounts[0].amount = editAmount.value.trim() || "0";
-    ingredientData.amounts[0].unit = editUnit.value.trim();
+  if (props.ingredient.amounts?.[0]) {
+    props.ingredient.amounts[0].amount = editAmount.value.trim() || "0";
+    props.ingredient.amounts[0].unit = editUnit.value.trim();
   }
 
   // After changes applied, update all originals to current values
-  // This keeps the item dirty until manually saved
   originalAmount.value = editAmount.value;
   originalUnit.value = editUnit.value;
   originalName.value = newName;

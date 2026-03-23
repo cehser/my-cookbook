@@ -1,13 +1,15 @@
 export interface Amount {
-  amount: string | number
+  amount: number | null
   unit: string
 }
 
 export interface Ingredient {
-  [name: string]: {
-    amounts: Amount[]
-  } | string
+  name: string
+  amounts: Amount[]
   section: string
+  notes?: string[]
+  processing?: string[]
+  substitutions?: unknown[]
 }
 
 export interface Step {
@@ -22,7 +24,8 @@ export interface Section {
 }
 
 export interface Yield {
-  [key: string]: number | string
+  unit: string
+  value: number
 }
 
 export interface Recipe {

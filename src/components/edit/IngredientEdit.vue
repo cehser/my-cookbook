@@ -77,11 +77,7 @@ import { ref, computed, onMounted } from "vue";
 import IngredientModalDialogRename from "@/components/edit/IngredientModalDialogRename.vue";
 import ArrayReorderBtnGroup from "@/components/common/ArrayReorderBtnGroup.vue";
 import IngredientNotesFormRow from "@/components/edit/IngredientNotesFormRow.vue";
-
-interface Ingredient {
-  [key: string]: any;
-  section?: string;
-}
+import type { Ingredient } from "@/types/recipe";
 
 const props = defineProps<{
   ingredient: Ingredient;
@@ -97,42 +93,32 @@ const emit = defineEmits<{
 
 const showModal = ref(false);
 
-const ingredient_data = computed(() => {
-  return props.ingredient[Object.keys(props.ingredient)[0]];
-});
+const ingredient_data = computed(() => props.ingredient);
 
-const ingredient_name = computed(() => {
-  return Object.keys(props.ingredient)[0];
-});
+const ingredient_name = computed(() => props.ingredient.name);
 
 const deleteIngredient = () => emit("delete");
 
 const updateIngredient = (ingredient: Ingredient) => {
-  //use deep copy to avoid mutating props
   const updatedIngredient = JSON.parse(JSON.stringify(ingredient));
   emit("update", updatedIngredient);
 };
 
 const updateSection = (newSection: string) => {
-  // Create a deep copy and update the section
   const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
   updatedIngredient.section = newSection;
   emit("update", updatedIngredient);
 };
 
 const updateAmount = (newAmount: number) => {
-  // Create a deep copy and update the amount
   const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
-  const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
-  ingredientData.amounts[0].amount = Number(newAmount);
+  updatedIngredient.amounts[0].amount = Number(newAmount);
   emit("update", updatedIngredient);
 };
 
 const updateUnit = (newUnit: string) => {
-  // Create a deep copy and update the unit
   const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
-  const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
-  ingredientData.amounts[0].unit = newUnit;
+  updatedIngredient.amounts[0].unit = newUnit;
   emit("update", updatedIngredient);
 };
 

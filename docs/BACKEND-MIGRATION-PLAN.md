@@ -1,8 +1,434 @@
 # Backend-Migrationsplan: WebDAV → Python/FastAPI
 
 > **Planungsnotizen:** Entstanden aus Architektur-Diskussion (März 2026)  
-> **Letzte Aktualisierung:** 23. März 2026  
-> **Status:** 🚧 Sprint B3 abgeschlossen — Sprint B4 steht an
+> **Letzte Aktualisierung:** 24. März 2026  
+> **Status:** ✅ Sprint D1 abgeschlossen — Datenformat normalisiert
+
+---
+
+## ✅ Sprint D1: Datenformat-Normalisierung (Ingredients & Yields)
+
+> **Priorität:** 🔴 Kritisch (Blocker für typsichere Validierung)  
+> **Status:** ✅ Abgeschlossen (24. März 2026)  
+> **Ergebnis:** Einheitliches, validierbares Datenformat in DB, Backend, Frontend und AI-Prompt
+>
+> **Durchgeführt:**
+> - Alembic-Migration `005_normalize_recipe_data` erstellt und ausgeführt (17 Rezepte migriert)
+> - DB-Validierung: 0 Ingredients ohne `name`, 0 Yields ohne `unit`, 0 String-Amounts
+> - Backend-Schemas komplett neu geschrieben (feste Keys, model_validators)
+> - Frontend: 18 Dateien aktualisiert, alle `Object.keys()`-Patterns entfernt
+> - AI-Prompts (Backend + Frontend) auf neues Format umgestellt
+> - YAML-Samples konvertiert
+> - Build erfolgreich (353 Module, keine Fehler)
+
+### Problemstellung
+
+Die aktuelle Datenstruktur nutzt **dynamische JSON-Keys** für Ingredients und Yields, was Validierung nahezu unmöglich macht:
+
+```jsonc
+// ❌ AKTUELL: dynamische Keys — nicht typisierbar
+{
+  "ingredients": [
+    { "Rosinen": { "amounts": [{"amount": 100, "unit": "g"}] }, "section": "" },
+    { "Mehl":    { "amounts": [{"amount": 250, "unit": "g"}] }, "section": "Teig" }
+  ],
+  "yields": [ {"Portionen": 4} ]
+}
+```
+
+**Folgeprobleme:**
+- Pydantic-Schemas brauchen `extra="allow"` + `model_validator` → `dict`-Escape
+- Frontend nutzt überall `Object.keys(ingredient).filter(k => k !== 'section')[0]`
+- AI liefert `amount: "100"` (String statt Number) — keine Validierung greift
+- Umbenennen = `delete oldKey` + `create newKey` statt `ingredient.name = newName`
+
+### Zielformat
+
+```jsonc
+// ✅ NEU: feste Keys — trivial validierbar
+{
+  "ingredients": [
+    { "name": "Rosinen", "amounts": [{"amount": 100, "unit": "g"}], "section": "" },
+    { "name": "Mehl",    "amounts": [{"amount": 250, "unit": "g"}], "section": "Teig" }
+  ],
+  "yields": [ {"unit": "Portionen", "value": 4} ]
+}
+```
+
+### Betroffene Dateien (vollständige Inventur)
+
+#### Backend (3 Dateien)
+
+| Datei | Was ändert sich |
+|-------|----------------|
+| `backend/app/schemas/recipe.py` | `Ingredient` bekommt festes `name`-Feld, kein `extra="allow"` mehr. `RecipeData.yields` wird `list[YieldEntry]`. `normalize_recipe_data()` vereinfacht sich massiv. |
+| `backend/app/routes/ai.py` | SYSTEM_PROMPT: YAML-Schema auf neues Format umstellen |
+| `backend/scripts/migrate_yaml.py` | Optional: Falls YAML-Re-Import nötig |
+
+#### Alembic-Migration (1 neue Datei)
+
+| Datei | Was passiert |
+|-------|-------------|
+| `backend/alembic/versions/005_normalize_recipe_data.py` | SQL-UPDATE transformiert alle bestehenden JSONB-Daten in der DB |
+
+#### Frontend (13 Dateien)
+
+| Datei | Zeilen | Was ändert sich |
+|-------|--------|----------------|
+| `src/types/recipe.ts` | 6, 24 | `Ingredient`-Interface: Index-Signatur → `name: string`. `Yield`-Interface: Index-Signatur → `{unit: string, value: number}` |
+| `src/composables/useRecipeHelper.ts` | 108, 116, 222-256 | Yields: `Object.keys(yields[0])[0]` → `yields[0].unit`. Ingredients: `Object.keys(ingredient)[0]` → `ingredient.name` |
+| `src/js/recipes.ts` | 111-131 | `initRecipe` Typ-Coercion: kein Key-Scan mehr, direkt `ingredient.amounts` |
+| `src/components/edit/IngredientEdit.vue` | 101-134 | `Object.keys(ingredient)[0]` → `ingredient.name`, `.amounts` direkt |
+| `src/components/edit/IngredientNotesFormRow.vue` | 43-63 | Gleich: Dynamic-Key-Zugriff → `ingredient.name` |
+| `src/components/edit/IngredientModalDialogRename.vue` | 6, 45-49 | Rename: `delete+create` → `ingredient.name = newName` |
+| `src/components/edit/SectionIngredientsEdit.vue` | — | Props/Events prüfen, ggf. Typ-Anpassung |
+| `src/components/recipe/display/IngredientInlineEdit.vue` | 47-51, 115-135, 270-293 | Komplexeste Datei: Display, Rename, Undo — alles auf `.name` umstellen |
+| `src/components/recipe/display/IngredientsSection.vue` | 108-117 | `Object.keys(ingredient).filter(...)` → `ingredient.name` |
+| `src/views/Edit.vue` | 599-601 | Neue Zutat: `{"Neue Zutat": {amounts:...}}` → `{name: "Neue Zutat", amounts:...}` |
+| `src/views/Recipe.vue` | 752-755 | Rename-Handler: `delete+create` → `.name = newName` |
+| `src/views/SharedRecipe.vue` | 235-259 | Yields + Ingredients: Dynamic-Key-Zugriff → feste Felder |
+| `src/prompts/SYSTEM_PROMPT.ts` | 30-40 | YAML-Schema-Vorlage auf neues Format umstellen |
+
+### Umsetzungsplan (Reihenfolge)
+
+#### Phase 1: Backend-Schema + DB-Migration
+
+**Schritt 1.1 — Pydantic-Schemas sauber definieren**
+
+```python
+# backend/app/schemas/recipe.py
+
+class Amount(BaseModel):
+    amount: float | int | None = None
+    unit: str = ""
+
+class Ingredient(BaseModel):
+    name: str
+    amounts: list[Amount] = []
+    section: str = ""
+
+class YieldEntry(BaseModel):
+    unit: str
+    value: float | int
+
+class Step(BaseModel):
+    step: str
+    haccp: dict[str, Any] = Field(default_factory=dict)
+    notes: list[str] = Field(default_factory=list)
+    section: str = ""
+
+class Section(BaseModel):
+    section: str = ""
+
+class RecipeData(BaseModel):
+    author: str | None = None
+    source_url: str | None = None
+    source_book: str | None = None
+    # ... (Metadaten bleiben gleich)
+    yields: list[YieldEntry] | None = None
+    ingredients: list[Ingredient] = []
+    steps: list[Step] = []
+    sections: list[Section] = Field(default_factory=lambda: [Section()])
+    imageurl: str | None = None
+    recalc_exp: float | None = None
+    model_config = {"extra": "allow"}
+```
+
+Kein `extra="allow"` auf Ingredient, kein `model_validator`, kein `dict`-Bypass.
+
+**Schritt 1.2 — Alembic-Migration (SQL-Transformation)**
+
+```sql
+-- 005_normalize_recipe_data.py
+
+-- Ingredients: { "Mehl": { "amounts": [...] }, "section": "" }
+--           → { "name": "Mehl", "amounts": [...], "section": "" }
+UPDATE recipes SET data = jsonb_set(
+  data, '{ingredients}',
+  (
+    SELECT coalesce(jsonb_agg(
+      jsonb_build_object(
+        'name', (SELECT k FROM jsonb_object_keys(elem) k WHERE k != 'section' LIMIT 1),
+        'amounts', elem -> (SELECT k FROM jsonb_object_keys(elem) k WHERE k != 'section' LIMIT 1) -> 'amounts',
+        'section', coalesce(elem->>'section', '')
+      )
+    ), '[]'::jsonb)
+    FROM jsonb_array_elements(data->'ingredients') elem
+  )
+)
+WHERE data ? 'ingredients'
+  AND jsonb_array_length(data->'ingredients') > 0;
+
+-- Yields: { "Portionen": 4 } → { "unit": "Portionen", "value": 4 }
+UPDATE recipes SET data = jsonb_set(
+  data, '{yields}',
+  (
+    SELECT coalesce(jsonb_agg(
+      jsonb_build_object(
+        'unit', kv.key,
+        'value', CASE
+          WHEN jsonb_typeof(kv.value) = 'string' THEN to_jsonb((kv.value#>>'{}')::numeric)
+          ELSE kv.value
+        END
+      )
+    ), '[]'::jsonb)
+    FROM jsonb_array_elements(data->'yields') elem,
+         jsonb_each(elem) kv
+  )
+)
+WHERE data ? 'yields'
+  AND jsonb_array_length(coalesce(data->'yields', '[]'::jsonb)) > 0;
+
+-- Amounts: String → Number (Sicherheitsnetz)
+UPDATE recipes SET data = jsonb_set(
+  data, '{ingredients}',
+  (
+    SELECT coalesce(jsonb_agg(
+      jsonb_build_object(
+        'name', ing->>'name',
+        'amounts', (
+          SELECT coalesce(jsonb_agg(
+            jsonb_build_object(
+              'amount', CASE
+                WHEN jsonb_typeof(a->'amount') = 'string'
+                  AND a->>'amount' ~ '^\d+\.?\d*$'
+                THEN to_jsonb((a->>'amount')::numeric)
+                ELSE a->'amount'
+              END,
+              'unit', coalesce(a->>'unit', '')
+            )
+          ), '[]'::jsonb)
+          FROM jsonb_array_elements(ing->'amounts') a
+        ),
+        'section', coalesce(ing->>'section', '')
+      )
+    ), '[]'::jsonb)
+    FROM jsonb_array_elements(data->'ingredients') ing
+  )
+)
+WHERE data ? 'ingredients'
+  AND jsonb_array_length(data->'ingredients') > 0;
+```
+
+**Schritt 1.3 — normalize_recipe_data() vereinfachen**
+
+```python
+def normalize_recipe_data(data: dict) -> dict:
+    for ing in data.get("ingredients", []):
+        if isinstance(ing, dict):
+            ing.setdefault("section", "")
+            for amt in ing.get("amounts", []):
+                if isinstance(amt, dict):
+                    amt["amount"] = _to_number(amt.get("amount"))
+                    amt.setdefault("unit", "")
+    for yld in data.get("yields", []) or []:
+        if isinstance(yld, dict):
+            yld["value"] = _to_number(yld.get("value")) or 0
+    if not data.get("sections"):
+        data["sections"] = [{"section": ""}]
+    return data
+```
+
+**Schritt 1.4 — Route-Code aufräumen**
+
+In `recipes.py`: `body.data` ist jetzt immer `RecipeData`, kein `isinstance(body.data, dict)` mehr nötig.
+
+```python
+# create_recipe:
+data = body.data.model_dump(exclude_none=True)
+data = normalize_recipe_data(data)
+
+# update_recipe:
+if body.data is not None:
+    recipe.data = normalize_recipe_data(body.data.model_dump(exclude_none=True))
+```
+
+#### Phase 2: AI-Prompt updaten
+
+**Schritt 2.1 — Backend-Prompt (`ai.py`) und Frontend-Prompt (`SYSTEM_PROMPT.ts`)**
+
+```yaml
+# NEUES YAML-Zielschema
+ingredients:
+  - name: <ingredient-name>
+    amounts:
+      - amount: <number-or-null>    # MUSS Zahl oder null sein
+        unit: <unit-string>
+    section: <section-or-empty>
+yields:
+  - unit: <key>
+    value: <number>                  # MUSS Zahl sein
+```
+
+#### Phase 3: Frontend-Typen + Composables
+
+**Schritt 3.1 — TypeScript-Interfaces (`types/recipe.ts`)**
+
+```typescript
+// ALT:
+export interface Ingredient {
+  [name: string]: { amounts: Amount[] } | string
+  section: string
+}
+export interface Yield {
+  [key: string]: number | string
+}
+
+// NEU:
+export interface Ingredient {
+  name: string
+  amounts: Amount[]
+  section: string
+}
+export interface Yield {
+  unit: string
+  value: number
+}
+```
+
+**Schritt 3.2 — `useRecipeHelper.ts` (Portionsberechnung)**
+
+```typescript
+// ALT:
+const yields_unit = computed(() => Object.keys(recipe.yields[0])[0])
+const yields_value = computed(() => recipe.yields[0][yields_unit.value])
+
+// NEU:
+const yields_unit = computed(() => recipe.yields[0].unit)
+const yields_value = computed(() => recipe.yields[0].value)
+```
+
+```typescript
+// ALT (Ingredient-Name):
+const name = Object.keys(ingredient)[0]
+const data = ingredient[name]
+
+// NEU:
+const name = ingredient.name
+const amounts = ingredient.amounts
+```
+
+**Schritt 3.3 — `initRecipe()` in `js/recipes.ts`**
+
+```typescript
+// ALT:
+for (const key of Object.keys(ingredient)) {
+  if (key === 'section') continue
+  const val = ingredient[key]
+  if (val && typeof val === 'object' && 'amounts' in val) { ... }
+}
+
+// NEU:
+for (const amt of ingredient.amounts || []) {
+  amt.amount = toNumber(amt.amount) as any
+}
+```
+
+#### Phase 4: Frontend-Komponenten
+
+**Schritt 4.1 — Display-Komponenten (einfachster Impact)**
+
+| Komponente | Muster ALT → NEU |
+|-----------|-----------------|
+| `IngredientsSection.vue` | `Object.keys(ing).filter(k => k !== 'section')[0]` → `ing.name` |
+| `PortionControl.vue` | Props kommen aus Composable — folgt automatisch |
+| `MobileIngredientsBar.vue` | Durchreiche — keine eigene Logik |
+
+**Schritt 4.2 — Edit-Komponenten (mittlerer Impact)**
+
+| Komponente | Muster ALT → NEU |
+|-----------|-----------------|
+| `IngredientEdit.vue` | `ingredient[Object.keys(ingredient)[0]]` → `ingredient` (direkt) |
+| `IngredientNotesFormRow.vue` | Gleich: Key-Scan → direkt |
+| `SectionIngredientsEdit.vue` | Props prüfen |
+
+**Schritt 4.3 — Rename/Inline-Edit (höchster Impact)**
+
+| Komponente | Muster ALT → NEU |
+|-----------|-----------------|
+| `IngredientModalDialogRename.vue` | `delete ingredient[oldName]; ingredient[newName] = data` → `ingredient.name = newName` |
+| `IngredientInlineEdit.vue` | Komplexeste Datei: Display, Rename, Undo → alles auf `.name` / `.amounts` |
+| `Recipe.vue` (Rename-Handler) | `delete + create` → `ingredient.name = newName` |
+
+**Schritt 4.4 — Views**
+
+| View | Was ändert sich |
+|------|----------------|
+| `Edit.vue` | Neue Zutat: `{name: "Neue Zutat", amounts: [{amount: null, unit: ""}], section: ""}` |
+| `Recipe.vue` | Rename-Handler, Yields-Zugriff |
+| `SharedRecipe.vue` | Yields-Zugriff, Ingredient-Iteration |
+
+### Reihenfolge & Abhängigkeiten
+
+```
+┌─────────────────────────────┐
+│ 1. Alembic-Migration (DB)   │  ← Transformiert alle bestehenden Daten
+│    005_normalize_recipe_data │
+└──────────────┬──────────────┘
+               │
+┌──────────────▼──────────────┐
+│ 2. Backend-Schemas          │  ← Saubere Pydantic-Modelle
+│    recipe.py (Schemas)      │
+│    recipes.py (Routes)      │
+│    ai.py (System-Prompt)    │
+└──────────────┬──────────────┘
+               │
+┌──────────────▼──────────────┐
+│ 3. Frontend-Typen           │  ← TypeScript-Interfaces
+│    types/recipe.ts          │
+│    js/recipes.ts            │
+└──────────────┬──────────────┘
+               │
+┌──────────────▼──────────────┐
+│ 4. Frontend-Logik           │  ← Composables + Store
+│    useRecipeHelper.ts       │
+│    store/actions.ts         │
+└──────────────┬──────────────┘
+               │
+┌──────────────▼──────────────┐
+│ 5. Frontend-Komponenten     │  ← Von innen nach außen
+│    Display → Edit → Views   │
+└──────────────┬──────────────┘
+               │
+┌──────────────▼──────────────┐
+│ 6. AI-Prompt (Frontend)     │  ← SYSTEM_PROMPT.ts
+│    + Build + Test           │
+└─────────────────────────────┘
+```
+
+### Validierung nach Migration
+
+```bash
+# 1. DB-Check: Keine Ingredients mit dynamischen Keys mehr
+SELECT count(*) FROM recipes r,
+  jsonb_array_elements(r.data->'ingredients') ing
+WHERE NOT (ing ? 'name');
+-- Erwartet: 0
+
+# 2. DB-Check: Alle Yields haben unit + value
+SELECT count(*) FROM recipes r,
+  jsonb_array_elements(coalesce(r.data->'yields', '[]'::jsonb)) yld
+WHERE NOT (yld ? 'unit' AND yld ? 'value');
+-- Erwartet: 0
+
+# 3. DB-Check: Keine String-Amounts mehr
+SELECT count(*) FROM recipes r,
+  jsonb_array_elements(r.data->'ingredients') ing,
+  jsonb_array_elements(ing->'amounts') amt
+WHERE jsonb_typeof(amt->'amount') = 'string';
+-- Erwartet: 0
+
+# 4. Funktionstest: Rezept öffnen, Portionen ändern, speichern
+# 5. Funktionstest: AI-Import (Text + URL)
+# 6. Funktionstest: Rezept bearbeiten (Zutat umbenennen, hinzufügen, löschen)
+# 7. Funktionstest: Share-Link öffnen
+```
+
+### Rollback-Plan
+
+- Alembic-Migration hat `downgrade()`: Reverse-SQL transformiert zurück ins alte Format
+- Git-Revert auf den Commit vor der Migration
+- DB-Backup **vor** der Migration erstellen: `docker compose exec db pg_dump -U cookbook > backup_pre_d1.sql`
 
 ---
 
@@ -476,12 +902,12 @@ DELETE /v1/favorites/:recipeId    → Favorit entfernen                      ✅
 ── Tags (B4) ────────────────────────────────────────────
 GET    /v1/tags                   → Alle Tags (mit Anzahl)                 ✅
 
-── Share (B4) ───────────────────────────────────────────
-POST   /v1/recipes/:id/share      → Share-Link erzeugen [editor, admin]   ⬜
-GET    /v1/recipes/:id/shares     → Aktive Links auflisten                 ⬜
-DELETE /v1/shares/:shareId        → Share-Link deaktivieren                ⬜
-GET    /v1/shared/:token          → Rezept lesen (kein Auth)              ⬜
-GET    /v1/shared/:token/images/:imgId → Bild zum Share (kein Auth)       ⬜
+── Share (B5) ───────────────────────────────────────────
+POST   /v1/recipes/:id/share      → Share-Link erzeugen [editor, admin]   ✅
+GET    /v1/recipes/:id/shares     → Aktive Links auflisten                 ✅
+DELETE /v1/shares/:shareId        → Share-Link deaktivieren                ✅
+GET    /v1/shared/:token          → Rezept lesen (kein Auth)              ✅
+── (Bilder-Endpoint /v1/images/:id bereits öffentlich, kein separater Share-Endpunkt nötig)
 ```
 
 ### Request/Response-Beispiele
@@ -1062,7 +1488,7 @@ Ablauf:
 
 ### Sprint B5: Share-Links + Offline-Cache 📋
 **Ziel:** Öffentliche Share-Links, Offline-Lesemodus  
-**Status:** Offen
+**Status:** ✅ Share-Links abgeschlossen (23. März 2026), Offline-Cache offen
 
 **Bereits vorhanden:**
 - DB-Tabellen: `recipe_shares` (aus Migration `001_initial`)
@@ -1070,21 +1496,21 @@ Ablauf:
 - Frontend-Route `/s/:token` bereits im Router (ohne Guard)
 
 **Tasks — Share-Links:**
-- [ ] `POST /v1/recipes/{id}/share` — Share-Link erzeugen (`secrets.token_urlsafe`)
-- [ ] `GET /v1/recipes/{id}/shares` — Aktive Share-Links auflisten
-- [ ] `DELETE /v1/shares/{shareId}` — Share-Link deaktivieren
-- [ ] `GET /v1/shared/{token}` — Rezept öffentlich lesen (kein Auth)
-- [ ] `GET /v1/shared/{token}/images/{imgId}` — Bild zum Share (kein Auth)
-- [ ] Frontend: Share-Button im Rezept (Link erzeugen + kopieren)
-- [ ] Frontend: Route `/s/:token` → Read-only Rezeptansicht implementieren
-- [ ] Frontend: Share-Verwaltung (aktive Links anzeigen, widerrufen)
+- [x] `POST /v1/recipes/{id}/share` — Share-Link erzeugen (`secrets.token_urlsafe`)
+- [x] `GET /v1/recipes/{id}/shares` — Aktive Share-Links auflisten
+- [x] `DELETE /v1/shares/{shareId}` — Share-Link deaktivieren
+- [x] `GET /v1/shared/{token}` — Rezept öffentlich lesen (kein Auth)
+- [x] Bilder-Endpoint `/v1/images/{id}` bereits öffentlich → kein separater Share-Bild-Endpunkt nötig
+- [x] Frontend: Share-Button im Rezept (Link erzeugen + kopieren)
+- [x] Frontend: Route `/s/:token` → Read-only Rezeptansicht implementiert (SharedRecipe.vue)
+- [x] Frontend: Share-Verwaltung (ShareManager.vue — aktive Links anzeigen, widerrufen)
 
 **Tasks — Offline-Cache:**
 - [ ] IndexedDB als Read-Cache (Rezeptliste + Details für Offline)
 - [ ] Service Worker: Thumbnail-Caching
 - [ ] Offline-Erkennung + Toast-Hinweis
 
-**Ergebnis:** Share-Links funktional, Offline-Lesemodus verfügbar
+**Ergebnis:** Share-Links funktional, Offline-Lesemodus offen
 
 ---
 

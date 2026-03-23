@@ -1,40 +1,28 @@
 ingredients:
-  - apple:
-      usda_num: 09003
-      amounts:
-        - amount: 1
-          unit: each
-      processing:
-        - whole
-        - raw
-      substitutions:
-        - pears:
-            usda_num: 09252
-            amounts:
-              - amount: 1
-                unit: each
-      notes:
-        - Use whole apples
-        - >-
-          Apples may be substituted, but produce a different flavor and
-          mouthfeel
-  - pear:
-      usda_num: 09003
-      amounts:
-        - amount: 1
-          unit: each
-      processing:
-        - whole
-        - raw
-      substitutions:
-        - pears:
-            usda_num: 09252
-            amounts:
-              - amount: 1
-                unit: each
-      notes:
-        - Use whole pears
-        - 'Pears may be substituted, but produce a different flavor and mouthfeel'
+  - name: apple
+    amounts:
+      - amount: 1
+        unit: each
+    section: ""
+    processing:
+      - whole
+      - raw
+    notes:
+      - Use whole apples
+      - >-
+        Apples may be substituted, but produce a different flavor and
+        mouthfeel
+  - name: pear
+    amounts:
+      - amount: 1
+        unit: each
+    section: ""
+    processing:
+      - whole
+      - raw
+    notes:
+      - Use whole pears
+      - 'Pears may be substituted, but produce a different flavor and mouthfeel'
 steps:
   - step: Gather the apples.
     haccp:

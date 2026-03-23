@@ -18,13 +18,13 @@
           :yields-value="yieldsValue"
           :is-dirty="
             dirtyItems.has(
-              `ingredient:${section.section}:${getIngredientName(ingredient)}`,
+              `ingredient:${section.section}:${ingredient.name}`,
             )
           "
           :is-editing-other="
             currentEditingKey !== null &&
             currentEditingKey !==
-              `ingredient:${section.section}:${getIngredientName(ingredient)}`
+              `ingredient:${section.section}:${ingredient.name}`
           "
           @changed="$emit('changed', $event)"
           @unchanged="$emit('unchanged', $event)"
@@ -104,17 +104,13 @@ export default {
       return this.ingredients.filter((x) => x.section === sectionName);
     },
     getIngredientName(ingredient) {
-      // Filter out 'section' property
-      const keys = Object.keys(ingredient).filter((key) => key !== "section");
-      return keys[0];
+      return ingredient.name;
     },
     getUnit(ingredient) {
-      const name = this.getIngredientName(ingredient);
-      return ingredient[name].amounts[0].unit;
+      return ingredient.amounts[0]?.unit || "";
     },
     formatAmount(ingredient) {
-      const name = this.getIngredientName(ingredient);
-      const amount = ingredient[name].amounts[0].amount;
+      const amount = ingredient.amounts[0]?.amount;
 
       if (typeof amount !== "number") {
         return amount;
