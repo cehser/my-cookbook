@@ -19,11 +19,33 @@ const userManager = new UserManager({
   authority,
   client_id: clientId,
   redirect_uri: `${window.location.origin}/callback`,
+  silent_redirect_uri: `${window.location.origin}/silent-renew.html`,
   post_logout_redirect_uri: window.location.origin,
   response_type: 'code',
   scope: 'openid profile email',
   automaticSilentRenew: true,
+  // Keep user session alive: check token 60s before expiry
+  accessTokenExpiringNotificationTimeInSeconds: 60,
   userStore: new WebStorageStateStore({ store: window.localStorage }),
+})
+
+// --- Event handlers for token lifecycle ---
+
+// When silent renew fails, try a full re-login instead of leaving the user stuck
+userManager.events.addSilentRenewError((error) => {
+  console.warn('[Auth] Silent renew failed, attempting re-login:', error)
+  userManager.signinRedirect()
+})
+
+// When the access token is about to expire, log for debugging
+userManager.events.addAccessTokenExpiring(() => {
+  console.info('[Auth] Access token expiring soon, silent renew should trigger automatically.')
+})
+
+// When the user session ends unexpectedly (e.g. IdP session timeout)
+userManager.events.addUserSignedOut(() => {
+  console.info('[Auth] User signed out from IdP, redirecting to login.')
+  userManager.signinRedirect()
 })
 
 /** Redirect to IdP login page */
