@@ -9,7 +9,8 @@ sections: []
 recipe_name: Neues Rezept
 imageurl: 
 yields:
-  - Portionen: 4
+  - unit: Portionen
+    value: 4
 recalc_exp: 1
 `
 
@@ -18,42 +19,25 @@ sections: []
 recipe_name: Beispiel
 imageurl: 
 yields:
-  - Portionen: 4
+  - unit: Portionen
+    value: 4
 ingredients:
-  - apple:
-      usda_num: 09003
-      amounts:
-          - amount: 1
-            unit: each
-      processing:
-          - whole
-          - raw
-      substitutions:
-          - pears:
-              usda_num: 09252
-              amounts:
-                  - amount: 1
-                    unit: each
-      notes:
-          - Use whole apples
-          - Apples may be substituted, but produce a different flavor and mouthfeel
-  - pear:
-      usda_num: 09003
-      amounts:
-          - amount: 1
-            unit: each
-      processing:
-          - whole
-          - raw
-      substitutions:
-          - pears:
-              usda_num: 09252
-              amounts:
-                  - amount: 1
-                    unit: each
-      notes:
-          - Use whole pears
-          - Pears may be substituted, but produce a different flavor and mouthfeel
+  - name: apple
+    amounts:
+      - amount: 1
+        unit: each
+    section: ""
+    notes:
+      - Use whole apples
+      - Apples may be substituted, but produce a different flavor and mouthfeel
+  - name: pear
+    amounts:
+      - amount: 1
+        unit: each
+    section: ""
+    notes:
+      - Use whole pears
+      - Pears may be substituted, but produce a different flavor and mouthfeel
 steps:
   - step:
         Gather the apples.
@@ -69,7 +53,20 @@ steps:
 `
 
 /**
- * Initialize a recipe with default values
+ * Coerce a value to a number. Returns null if not possible.
+ */
+function toNumber(val: unknown): number | null {
+  if (val === null || val === undefined || val === '') return null
+  if (typeof val === 'number') return val
+  if (typeof val === 'string') {
+    const n = Number(val)
+    return Number.isFinite(n) ? n : null
+  }
+  return null
+}
+
+/**
+ * Initialize a recipe with default values and coerce types
  */
 export function initRecipe(recipe: Partial<Recipe>): Recipe {
   // Set default values
@@ -91,15 +88,29 @@ export function initRecipe(recipe: Partial<Recipe>): Recipe {
     tags: recipe.tags
   }
 
-  // Ensure all ingredients have a section
+  // Ensure all ingredients have required fields and numeric amounts
   initialized.ingredients.forEach(ingredient => {
+    ingredient.name = ingredient.name || ''
     ingredient.section = ingredient.section || ''
+    ingredient.amounts = ingredient.amounts || [{ amount: null, unit: '' }]
+    ingredient.amounts.forEach(amt => {
+      amt.amount = toNumber(amt.amount)
+    })
   })
 
   // Ensure all steps have a section
   initialized.steps.forEach(step => {
     step.section = step.section || ''
   })
+
+  // Coerce yields values to numbers
+  if (initialized.yields) {
+    initialized.yields.forEach(yld => {
+      yld.unit = yld.unit || 'Portionen'
+      const num = toNumber(yld.value)
+      if (num !== null) yld.value = num
+    })
+  }
 
   return initialized
 }

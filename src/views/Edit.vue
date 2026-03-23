@@ -507,7 +507,7 @@ export default {
       let units = new Set(["g", "ml", "Stück"]);
       let dyn_units = jp.query(
         this,
-        "recipes[*].ingredients[*].*.amounts[*].unit",
+        "recipes[*].ingredients[*].amounts[*].unit",
       );
       //console.log(dyn_units);
 
@@ -597,7 +597,8 @@ export default {
     },
     addIngredient: function () {
       this.current_recipe.ingredients.push({
-        "Neue Zutat": { amounts: [{ amount: null, unit: "" }] },
+        name: "Neue Zutat",
+        amounts: [{ amount: null, unit: "" }],
         section: "",
       });
     },

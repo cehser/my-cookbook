@@ -54,6 +54,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SectionIngredientsEdit: typeof import('./src/components/edit/SectionIngredientsEdit.vue')['default']
+    ShareManager: typeof import('./src/components/recipe/ui/ShareManager.vue')['default']
     StepEdit: typeof import('./src/components/edit/StepEdit.vue')['default']
     StepInlineEdit: typeof import('./src/components/recipe/display/StepInlineEdit.vue')['default']
     StepSection: typeof import('./src/components/recipe/display/StepSection.vue')['default']

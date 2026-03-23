@@ -22,6 +22,7 @@ from app.schemas.recipe import (
     RecipeResponse,
     RecipeUpdate,
     TagResponse,
+    normalize_recipe_data,
 )
 
 router = APIRouter(prefix="/v1", tags=["recipes"])
@@ -241,7 +242,7 @@ async def create_recipe(
     user: AppUser = Depends(require_editor),
     db: AsyncSession = Depends(get_db),
 ):
-    data = body.data if isinstance(body.data, dict) else body.data.model_dump(exclude_none=True)
+    data = normalize_recipe_data(body.data.model_dump())
 
     recipe = Recipe(
         recipe_name=body.recipe_name,
@@ -282,7 +283,7 @@ async def update_recipe(
     if body.recipe_name is not None:
         recipe.recipe_name = body.recipe_name
     if body.data is not None:
-        recipe.data = body.data if isinstance(body.data, dict) else body.data.model_dump(exclude_none=True)
+        recipe.data = normalize_recipe_data(body.data.model_dump())
 
     recipe.updated_by = user.oidc_sub
     recipe.updated_at = func.now()

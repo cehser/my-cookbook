@@ -38,13 +38,14 @@ source_url:
 source_book:
 bake_time:
 yields:
-  - <key>: <value>
+  - unit: <einheit>       # z.B. "Portionen", "Stück"
+    value: <zahl>          # MUSS Zahl (int/float) sein, KEIN String!
 subtitle:
 ingredients:
-  - <ingredient-name>:
-      amounts:
-        - amount: <value>
-          unit: <unit>
+  - name: <zutat-name>     # Klartext-Name der Zutat
+    amounts:
+      - amount: <wert>     # MUSS Zahl (int/float) oder null sein, NIEMALS ein String!
+        unit: <einheit>
     section: <section-or-empty>
 steps:
   - step: <text>
@@ -77,17 +78,29 @@ Ignoriere Blogtexte, SEO-Bereiche, Social-Media, Navigation, Footer, Kommentare.
 3) Mengen & Einheiten exakt übernehmen
 Keine Umrechnung, keine Vereinheitlichung.
 
-4) Sections sind Pflicht
+4) Datentypen sind STRIKT einzuhalten
+- amount: MUSS eine Zahl (int/float) oder null sein. NIEMALS ein String.
+  Richtig:  amount: 100    oder amount: 0.5   oder amount: null
+  FALSCH:   amount: "100"  oder amount: "0.5"  oder amount: ""
+- yields value: MUSS eine Zahl sein (int/float). NIEMALS ein String.
+  Richtig:  value: 4
+  FALSCH:   value: "4"
+- name: MUSS ein String sein (Name der Zutat)
+- unit: MUSS ein String sein (Einheit der Zutat/Portion)
+- Wenn keine Menge vorhanden: amount: null
+- Wenn keine Einheit vorhanden: unit: ''
+
+5) Sections sind Pflicht
 Wenn keine Struktur erkannt wird:
 sections:
   - section: ""
 Alle Zutaten und Schritte kommen in diese Section.
 
-5) UUID & Timestamp
+6) UUID & Timestamp
 recipe_uuid = generiere gültige UUID v4
 lastUpdated = aktueller ISO-8601 Timestamp
 
-6) recalc_exp
+7) recalc_exp
 1 = lineare Mengen (g, kg, Stück, Portionen, ml, Liter …)
 2 = flächenbasierte Angaben (Durchmesser, Radius)
 

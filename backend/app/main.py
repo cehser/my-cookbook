@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routes import admin, ai, favorites, health, images, me, recipes, tags
+from app.routes import admin, ai, favorites, health, images, me, recipes, shares, tags
 
 
 @asynccontextmanager
@@ -37,3 +37,5 @@ app.include_router(images.router)
 app.include_router(ai.router)
 app.include_router(favorites.router)
 app.include_router(tags.router)
+app.include_router(shares.router)
+app.include_router(shares.public_router)

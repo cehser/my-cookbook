@@ -23,12 +23,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-
-interface Ingredient {
-  [key: string]: {
-    notes?: string[];
-  };
-}
+import type { Ingredient } from "@/types/recipe";
 
 const props = defineProps<{
   ingredient: Ingredient;
@@ -39,29 +34,24 @@ const emit = defineEmits<{
   update: [value: Ingredient];
 }>();
 
-const ingredient_data = computed(() => {
-  return props.ingredient[Object.keys(props.ingredient)[0]];
-});
+const ingredient_data = computed(() => props.ingredient);
 
 const addNote = () => {
   const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
-  const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
-  ingredientData.notes = ingredientData.notes || [];
-  ingredientData.notes.push("Neue Notiz");
+  updatedIngredient.notes = updatedIngredient.notes || [];
+  updatedIngredient.notes.push("Neue Notiz");
   emit("update", updatedIngredient);
 };
 
 const deleteNote = (index: number) => {
   const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
-  const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
-  ingredientData.notes.splice(index, 1);
+  updatedIngredient.notes.splice(index, 1);
   emit("update", updatedIngredient);
 };
 
 const updateNote = (index: number, newValue: string) => {
   const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
-  const ingredientData = updatedIngredient[Object.keys(updatedIngredient)[0]];
-  ingredientData.notes[index] = newValue;
+  updatedIngredient.notes[index] = newValue;
   emit("update", updatedIngredient);
 };
 </script>

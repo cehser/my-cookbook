@@ -11,9 +11,18 @@ export interface AdminUser {
   last_login: string | null
 }
 
+export interface SiteSettings {
+  max_share_days: number
+}
+
 export const adminApi = {
   listUsers: () => api.get<AdminUser[]>('/admin/users'),
 
   updateRole: (userId: string, role: string) =>
     api.put<AdminUser>(`/admin/users/${userId}/role`, { role }),
+
+  getSettings: () => api.get<SiteSettings>('/admin/settings'),
+
+  updateSettings: (settings: SiteSettings) =>
+    api.put<SiteSettings>('/admin/settings', settings),
 }

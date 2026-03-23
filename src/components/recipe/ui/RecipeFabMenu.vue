@@ -48,6 +48,16 @@
             <i class="bi bi-trash"></i>
             <span>Löschen</span>
           </BButton>
+          <BButton
+            @click="handleAction('share')"
+            class="fab-menu-item"
+            variant="light"
+            size="sm"
+            title="Teilen"
+          >
+            <i class="bi bi-share"></i>
+            <span>Teilen</span>
+          </BButton>
         </template>
 
         <!-- Export (nur im Expert-Modus) -->
@@ -105,7 +115,7 @@ export default {
       default: false,
     },
   },
-  emits: ["toggle-menu", "inline-edit", "edit", "copy", "delete", "export"],
+  emits: ["toggle-menu", "inline-edit", "edit", "copy", "delete", "share", "export"],
   methods: {
     toggleMenu() {
       this.$emit("toggle-menu");

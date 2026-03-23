@@ -20,11 +20,7 @@
 
 <script setup lang="ts">
 import IngredientEdit from "@/components/edit/IngredientEdit.vue";
-
-interface Ingredient {
-  section?: string;
-  [key: string]: any;
-}
+import type { Ingredient } from "@/types/recipe";
 
 defineProps<{
   section: string;

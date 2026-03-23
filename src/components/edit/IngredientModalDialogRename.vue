@@ -3,7 +3,7 @@
     <form>
       <div class="form-group">
         <label :for="'new-ingredient-name' + index" class="col-form-label"
-          >Neue Bezeichnung für {{ Object.keys(ingredient)[0] }}</label
+          >Neue Bezeichnung für {{ ingredient.name }}</label
         >
         <input
           type="text"
@@ -20,11 +20,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from "vue";
-
-interface Ingredient {
-  [key: string]: any;
-  section?: string;
-}
+import type { Ingredient } from "@/types/recipe";
 
 const props = defineProps<{
   ingredient: Ingredient;
@@ -42,14 +38,12 @@ const inputField = ref<HTMLInputElement>();
 const renameIngredient = () => {
   if (!newName.value.trim()) return;
 
-  const oldName = Object.keys(props.ingredient)[0];
+  // Create new ingredient object with updated name
+  const ingredient: Ingredient = {
+    ...JSON.parse(JSON.stringify(props.ingredient)),
+    name: newName.value,
+  };
 
-  // Create new ingredient object instead of mutating prop
-  const ingredient: Ingredient = {};
-  ingredient[newName.value] = props.ingredient[oldName];
-  ingredient.section = props.ingredient.section;
-
-  // Emit the new ingredient without mutating the prop
   emit("update", ingredient);
 };
 

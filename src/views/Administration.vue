@@ -61,6 +61,27 @@
 
       <hr />
 
+      <!-- Site Settings (Admin only) -->
+      <div v-if="settings.role === 'admin'" class="mb-4">
+        <h4><i class="bi bi-gear"></i> Einstellungen</h4>
+        <div class="row align-items-center mb-2" style="max-width: 400px;">
+          <label class="col-auto col-form-label">Max. Share-Laufzeit (Tage)</label>
+          <div class="col-auto">
+            <input
+              type="number"
+              class="form-control form-control-sm"
+              style="width: 80px"
+              min="1"
+              max="365"
+              v-model.number="siteMaxShareDays"
+              @change="saveSiteSettings"
+            />
+          </div>
+        </div>
+      </div>
+
+      <hr />
+
       <div class="d-flex flex-wrap">
         <BButton
           v-if="!settings.read_only && settings.role === 'admin'"
@@ -155,6 +176,7 @@ export default {
       users: [],
       usersLoading: false,
       usersError: null,
+      siteMaxShareDays: 30,
     };
   },
   computed: {
@@ -166,6 +188,7 @@ export default {
   },
   mounted() {
     this.loadUsers();
+    this.loadSiteSettings();
     document.onkeydown = (event) => {
       //ctrl + s
       if (event.ctrlKey && event.code === "KeyS") {
@@ -198,6 +221,20 @@ export default {
         this.toast('Rolle konnte nicht geändert werden: ' + e.message, 'danger');
       } finally {
         user.saving = false;
+      }
+    },
+    async loadSiteSettings() {
+      try {
+        const s = await adminApi.getSettings();
+        this.siteMaxShareDays = s.max_share_days;
+      } catch { /* ignore if not admin */ }
+    },
+    async saveSiteSettings() {
+      try {
+        await adminApi.updateSettings({ max_share_days: this.siteMaxShareDays });
+        this.toast('Einstellungen gespeichert', 'success');
+      } catch (e) {
+        this.toast('Einstellungen konnten nicht gespeichert werden', 'danger');
       }
     },
     formatDate(iso) {

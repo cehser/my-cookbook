@@ -105,7 +105,7 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
   // Computed: Yields unit (getter only, setter via setYieldsUnit)
   const yields_unit = computed(() => {
     if (current_recipe.value?.yields && current_recipe.value.yields.length > 0) {
-      return Object.keys(current_recipe.value.yields[0])[0]
+      return current_recipe.value.yields[0].unit
     }
     return 'Units'
   })
@@ -113,7 +113,7 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
   // Computed: Yields value (getter only, setter via setYieldsValue)
   const yields_value = computed(() => {
     if (current_recipe.value?.yields && current_recipe.value.yields.length > 0) {
-      return current_recipe.value.yields[0][yields_unit.value] as number
+      return current_recipe.value.yields[0].value
     }
     return 1
   })
@@ -219,17 +219,13 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
     }
 
     current_recipe.value.ingredients.forEach(ingredient => {
-      const name = Object.keys(ingredient)[0]
-      const ingredientData = ingredient[name]
-
       if (
-        typeof ingredientData !== 'string' &&
-        ingredientData.amounts &&
-        ingredientData.amounts[0] &&
-        typeof ingredientData.amounts[0].amount === 'number'
+        ingredient.amounts &&
+        ingredient.amounts[0] &&
+        typeof ingredient.amounts[0].amount === 'number'
       ) {
-        ingredientData.amounts[0].amount =
-          (ingredientData.amounts[0].amount * Math.pow(newYield, exp)) / Math.pow(oldYield, exp)
+        ingredient.amounts[0].amount =
+          (ingredient.amounts[0].amount * Math.pow(newYield, exp)) / Math.pow(oldYield, exp)
       }
     })
   }
@@ -239,10 +235,7 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
    */
   function setYieldsUnit(newUnit: string): void {
     if (current_recipe.value?.yields && current_recipe.value.yields.length > 0) {
-      const oldUnit = Object.keys(current_recipe.value.yields[0])[0]
-      const value = yields_value.value
-      delete current_recipe.value.yields[0][oldUnit]
-      current_recipe.value.yields[0][newUnit] = value
+      current_recipe.value.yields[0].unit = newUnit
     }
   }
 
@@ -251,9 +244,9 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
    */
   function setYieldsValue(val: number): void {
     if (current_recipe.value?.yields && current_recipe.value.yields.length > 0 && val > 0) {
-      const oldVal = current_recipe.value.yields[0][yields_unit.value] as number
+      const oldVal = current_recipe.value.yields[0].value
 
-      current_recipe.value.yields[0][yields_unit.value] = val
+      current_recipe.value.yields[0].value = val
 
       if (do_recalc.value) {
         calcNewAmounts(oldVal)
