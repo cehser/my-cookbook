@@ -908,6 +908,12 @@ GET    /v1/recipes/:id/shares     → Aktive Links auflisten                 ✅
 DELETE /v1/shares/:shareId        → Share-Link deaktivieren                ✅
 GET    /v1/shared/:token          → Rezept lesen (kein Auth)              ✅
 ── (Bilder-Endpoint /v1/images/:id bereits öffentlich, kein separater Share-Endpunkt nötig)
+── Share (B5) ───────────────────────────────────────────
+POST   /v1/recipes/:id/share      → Share-Link erzeugen [editor, admin]   ✅
+GET    /v1/recipes/:id/shares     → Aktive Links auflisten                 ✅
+DELETE /v1/shares/:shareId        → Share-Link deaktivieren                ✅
+GET    /v1/shared/:token          → Rezept lesen (kein Auth)              ✅
+── (Bilder-Endpoint /v1/images/:id bereits öffentlich, kein separater Share-Endpunkt nötig)
 ```
 
 ### Request/Response-Beispiele
@@ -1504,12 +1510,21 @@ Ablauf:
 - [x] Frontend: Share-Button im Rezept (Link erzeugen + kopieren)
 - [x] Frontend: Route `/s/:token` → Read-only Rezeptansicht implementiert (SharedRecipe.vue)
 - [x] Frontend: Share-Verwaltung (ShareManager.vue — aktive Links anzeigen, widerrufen)
+- [x] `POST /v1/recipes/{id}/share` — Share-Link erzeugen (`secrets.token_urlsafe`)
+- [x] `GET /v1/recipes/{id}/shares` — Aktive Share-Links auflisten
+- [x] `DELETE /v1/shares/{shareId}` — Share-Link deaktivieren
+- [x] `GET /v1/shared/{token}` — Rezept öffentlich lesen (kein Auth)
+- [x] Bilder-Endpoint `/v1/images/{id}` bereits öffentlich → kein separater Share-Bild-Endpunkt nötig
+- [x] Frontend: Share-Button im Rezept (Link erzeugen + kopieren)
+- [x] Frontend: Route `/s/:token` → Read-only Rezeptansicht implementiert (SharedRecipe.vue)
+- [x] Frontend: Share-Verwaltung (ShareManager.vue — aktive Links anzeigen, widerrufen)
 
 **Tasks — Offline-Cache:**
 - [ ] IndexedDB als Read-Cache (Rezeptliste + Details für Offline)
 - [ ] Service Worker: Thumbnail-Caching
 - [ ] Offline-Erkennung + Toast-Hinweis
 
+**Ergebnis:** Share-Links funktional, Offline-Lesemodus offen
 **Ergebnis:** Share-Links funktional, Offline-Lesemodus offen
 
 ---
