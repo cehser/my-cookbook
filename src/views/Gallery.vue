@@ -227,7 +227,7 @@ export default {
     return {
       ...recipeHelper,
       toast,
-      picture_src: recipeHelper.recipePictureSrc,
+      picture_src: recipeHelper.recipeThumbnailSrc,
     };
   },
   data() {

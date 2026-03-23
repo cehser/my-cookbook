@@ -18,6 +18,7 @@ interface RecipeHelperReturn {
   yields_unit: ComputedRef<string>
   yields_value: ComputedRef<number>
   section_names: ComputedRef<string[]>
+  recipeThumbnailSrc: (recipe: Recipe) => string
   recipePictureSrc: (recipe: Recipe) => string
   loadRecipe: (recipe: Recipe) => void
   swapElements: (array: any[], index1: number, index2: number) => void
@@ -95,7 +96,7 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
     }))
   })
 
-  // Computed: Picture source for current recipe
+  // Computed: Picture source for current recipe (full resolution)
   const picture_src = computed(() => {
     if (!current_recipe.value) return ''
     return recipePictureSrc(current_recipe.value)
@@ -124,19 +125,31 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
   })
 
   /**
-   * Get the picture source URL for a recipe.
-   * Checks API images first, then local File objects, then imageurl.
+   * Get the thumbnail URL for a recipe (for galleries/lists).
+   */
+  function recipeThumbnailSrc(recipe: Recipe): string {
+    return recipeImageSrc(recipe, 'thumbnail')
+  }
+
+  /**
+   * Get the full-resolution image URL for a recipe (for detail view).
    */
   function recipePictureSrc(recipe: Recipe): string {
+    return recipeImageSrc(recipe, 'full')
+  }
+
+  function recipeImageSrc(recipe: Recipe, size: 'thumbnail' | 'full'): string {
+    const urlFn = size === 'thumbnail' ? imageApi.thumbnailUrl : imageApi.imageUrl
+
     // 1. Check first_image_id from API list (fastest path)
     if (recipe.first_image_id) {
-      return imageApi.thumbnailUrl(recipe.first_image_id)
+      return urlFn(recipe.first_image_id)
     }
 
     // 2. Check API image cache (lazy-loaded)
     const cachedImageId = apiImageCache.value[recipe.recipe_uuid]
     if (cachedImageId) {
-      return imageApi.thumbnailUrl(cachedImageId)
+      return urlFn(cachedImageId)
     }
 
     // 3. External URL
@@ -257,6 +270,7 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
     yields_unit,
     yields_value,
     section_names,
+    recipeThumbnailSrc,
     recipePictureSrc,
     loadRecipe,
     swapElements,
