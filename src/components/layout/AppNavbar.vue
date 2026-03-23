@@ -36,18 +36,16 @@
           <slot></slot>
         </ul>
         <ul class="navbar-nav">
-          <!-- User display + Logout -->
           <li v-if="userName" class="nav-item dropdown">
             <a
-              class="nav-link dropdown-toggle"
+              class="nav-link dropdown-toggle d-flex align-items-center p-0 ms-2"
               href="#"
               id="userDropdown"
               role="button"
               @click="toggleUserDropdown"
               aria-expanded="false"
             >
-              <i class="bi bi-person-circle"></i>
-              <span class="ms-1">{{ userName }}</span>
+              <span class="user-avatar">{{ userInitials }}</span>
             </a>
             <ul
               class="dropdown-menu dropdown-menu-end"
@@ -55,49 +53,25 @@
               aria-labelledby="userDropdown"
             >
               <li>
+                <span class="dropdown-item-text small">
+                  <strong>{{ userFullName || userName }}</strong>
+                </span>
+              </li>
+              <li v-if="userEmail">
                 <span class="dropdown-item-text text-muted small">
-                  {{ userEmail || userName }}
+                  {{ userEmail }}
                 </span>
               </li>
               <li><hr class="dropdown-divider" /></li>
-              <li>
-                <a class="dropdown-item" href="#" @click.prevent="doLogout">
-                  <i class="bi bi-box-arrow-right"></i> Abmelden
-                </a>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item dropdown">
-            <a
-              class="nav-link dropdown-toggle"
-              href="#"
-              id="adminDropdown"
-              role="button"
-              @click="toggleAdminDropdown"
-              aria-expanded="false"
-            >
-              <i class="bi bi-gear"></i>
-            </a>
-            <ul
-              class="dropdown-menu dropdown-menu-end"
-              :class="{ show: isAdminDropdownOpen }"
-              aria-labelledby="adminDropdown"
-            >
               <li>
                 <router-link class="dropdown-item" to="/settings">
                   <i class="bi bi-sliders"></i> Einstellungen
                 </router-link>
               </li>
-              <li>
+              <li v-if="isAdmin">
                 <router-link class="dropdown-item" to="/administration">
                   <i class="bi bi-tools"></i> Verwaltung
                 </router-link>
-              </li>
-              <li v-if="!read_only"><hr class="dropdown-divider" /></li>
-              <li v-if="!read_only">
-                <a class="dropdown-item" href="#" @click.prevent="cloudSync">
-                  <i class="bi bi-cloud-arrow-up-down"></i> Cloud-Sync
-                </a>
               </li>
               <li><hr class="dropdown-divider" /></li>
               <li>
@@ -111,6 +85,12 @@
                     :class="expertMode ? 'bi-check-square' : 'bi-square'"
                   ></i>
                   Experten-Modus
+                </a>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <a class="dropdown-item" href="#" @click.prevent="doLogout">
+                  <i class="bi bi-box-arrow-right"></i> Abmelden
                 </a>
               </li>
             </ul>
@@ -149,19 +129,35 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   "update:selected": [value: string];
-  "cloud-sync": [];
 }>();
 
 const route = useRoute();
 const store = useStore();
 const data_selected = ref('');
 const isMenuOpen = ref(false);
-const isAdminDropdownOpen = ref(false);
 const isUserDropdownOpen = ref(false);
 const userName = ref<string | null>(null);
 const userEmail = ref<string | null>(null);
+const userGivenName = ref<string | null>(null);
+const userFamilyName = ref<string | null>(null);
 
 const expertMode = computed(() => store.state.settings.expert_mode);
+
+const userFullName = computed(() => {
+  const parts = [userGivenName.value, userFamilyName.value].filter(Boolean);
+  return parts.length ? parts.join(' ') : null;
+});
+
+const userInitials = computed(() => {
+  if (userGivenName.value && userFamilyName.value) {
+    return (userGivenName.value[0] + userFamilyName.value[0]).toUpperCase();
+  }
+  if (userName.value) {
+    return userName.value.substring(0, 2).toUpperCase();
+  }
+  return '?';
+});
+const isAdmin = computed(() => store.state.settings.role === 'admin');
 
 // Load OIDC user info
 onMounted(async () => {
@@ -171,6 +167,8 @@ onMounted(async () => {
     if (user?.profile) {
       userName.value = user.profile.preferred_username || user.profile.name || user.profile.sub;
       userEmail.value = user.profile.email || null;
+      userGivenName.value = user.profile.given_name || null;
+      userFamilyName.value = user.profile.family_name || null;
     }
   } catch (e) {
     console.warn('[Auth] Could not load user info:', e);
@@ -181,14 +179,8 @@ const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value;
 };
 
-const toggleAdminDropdown = () => {
-  isAdminDropdownOpen.value = !isAdminDropdownOpen.value;
-  isUserDropdownOpen.value = false;
-};
-
 const toggleUserDropdown = () => {
   isUserDropdownOpen.value = !isUserDropdownOpen.value;
-  isAdminDropdownOpen.value = false;
 };
 
 const doLogout = async () => {
@@ -207,10 +199,6 @@ const toggleExpertMode = () => {
   });
 };
 
-const cloudSync = () => {
-  emit("cloud-sync");
-};
-
 watch(data_selected, (value) => {
   emit("update:selected", value);
 });
@@ -220,7 +208,6 @@ watch(
   () => {
     // Close mobile menu when route changes
     isMenuOpen.value = false;
-    isAdminDropdownOpen.value = false;
     isUserDropdownOpen.value = false;
   },
 );
@@ -251,6 +238,27 @@ watch(
 
 .dropdown-divider {
   border-color: #495057;
+}
+
+/* User avatar circle */
+.user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #6c757d;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.user-avatar:hover {
+  background-color: #5a6268;
 }
 
 /* Mobile improvements */

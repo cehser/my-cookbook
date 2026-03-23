@@ -15,7 +15,12 @@
       </div>
 
       <!-- Read-only toggle -->
-      <BFormCheckbox v-model="settings.read_only" name="read-only" switch>
+      <BFormCheckbox
+        v-model="settings.read_only"
+        name="read-only"
+        switch
+        :disabled="store_settings.role === 'pending' || store_settings.role === 'readonly'"
+      >
         Nur lesen
       </BFormCheckbox>
 

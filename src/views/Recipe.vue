@@ -7,8 +7,16 @@
       :read_only="settings.read_only"
     />
 
+    <!-- Pending user hint -->
+    <BContainer v-if="settings.role === 'pending'" class="mt-5">
+      <div class="alert alert-info text-center">
+        <i class="bi bi-hourglass-split"></i>
+        Dein Account wartet auf Freigabe durch einen Admin.
+      </div>
+    </BContainer>
+
     <!-- Loading state -->
-    <div v-if="!current_recipe" class="text-center mt-5">
+    <div v-else-if="!current_recipe" class="text-center mt-5">
       <div class="spinner-border" role="status">
         <span class="visually-hidden">Laden...</span>
       </div>

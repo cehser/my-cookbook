@@ -10,33 +10,56 @@
     <BContainer>
       <h2>Verwaltung</h2>
 
-      <!-- AI Import Section -->
-      <AIRecipeImport
-        v-if="!settings.read_only"
-        @imported="onAIImport"
-        class="mb-4"
-      />
-
-      <div class="d-flex flex-wrap">
-        <BButton
-          v-if="!settings.read_only"
-          class="btn m-2"
-          @click="syncWithWebDAV"
-          ><i class="bi bi-arrow-repeat"></i><br />Cloud-Abgleich</BButton
-        >
-        <BButton class="btn m-2" @click="loadFromWebDAV"
-          ><i class="bi bi-cloud-download"></i><br />Cloud-Download</BButton
-        >
-        <BButton class="btn m-2" @click="loadPictures"
-          ><i class="bi bi-cloud-download"></i><br />Bilder-Download</BButton
-        >
-        <BButton
-          v-if="!settings.read_only"
-          class="btn m-2"
-          @click="saveToWebDAV"
-          ><i class="bi bi-cloud-upload"></i><br />Cloud-Upload</BButton
-        >
+      <!-- User Management Section -->
+      <div class="mb-4">
+        <h4><i class="bi bi-people"></i> Benutzer</h4>
+        <div v-if="usersLoading" class="text-muted">Lade Benutzer…</div>
+        <div v-else-if="usersError" class="text-danger">{{ usersError }}</div>
+        <div v-else>
+          <div v-if="pendingUsers.length" class="alert alert-warning py-2 mb-3">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>{{ pendingUsers.length }}</strong> Nutzer warten auf Freigabe
+          </div>
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Name</th>
+                <th>E-Mail</th>
+                <th>Rolle</th>
+                <th>Erstellt</th>
+                <th>Letzter Login</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="u in users" :key="u.oidc_sub" :class="{ 'table-warning': u.role === 'pending' }">
+                <td>
+                  <div>{{ u.given_name || u.family_name ? [u.given_name, u.family_name].filter(Boolean).join(' ') : u.display_name }}</div>
+                  <small v-if="u.given_name || u.family_name" class="text-muted">{{ u.display_name }}</small>
+                </td>
+                <td><small>{{ u.email || '—' }}</small></td>
+                <td>
+                  <select
+                    class="form-select form-select-sm"
+                    style="width: auto; min-width: 120px"
+                    :value="u.role"
+                    @change="changeRole(u, $event.target.value)"
+                    :disabled="u.saving"
+                  >
+                    <option value="pending">⏳ Pending</option>
+                    <option value="readonly">👁️ Readonly</option>
+                    <option value="editor">✏️ Editor</option>
+                    <option value="admin">🛡️ Admin</option>
+                  </select>
+                </td>
+                <td>{{ formatDate(u.created_at) }}</td>
+                <td>{{ u.last_login ? formatDate(u.last_login) : '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      <hr />
 
       <div class="d-flex flex-wrap">
         <BButton
@@ -102,14 +125,12 @@
 import { mapState } from "vuex";
 
 import AppNavbar from "@/components/layout/AppNavbar.vue";
-import AIRecipeImport from "@/components/features/AIRecipeImport.vue";
+import { adminApi } from "@/api/admin";
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useToast } from "@/composables/useToast";
 import UUID from "@/js/uuid";
 import { deepCopyYaml } from "@/js/deepCopy";
 import Recipes from "@/js/recipes";
-import Cloud from "@/js/cloud";
-
 import jsyaml from "js-yaml";
 import { ref } from "vue";
 import { recipeUrl } from "@/js/slug";
@@ -118,7 +139,6 @@ export default {
   name: "Administration",
   components: {
     AppNavbar,
-    AIRecipeImport,
   },
   setup() {
     const recipeId = ref('');
@@ -131,13 +151,21 @@ export default {
     };
   },
   data() {
-    return {};
+    return {
+      users: [],
+      usersLoading: false,
+      usersError: null,
+    };
   },
   computed: {
     // mix the getters into computed with object spread operator
     ...mapState(["settings", "recipes", "recipe_pictures"]),
+    pendingUsers() {
+      return this.users.filter(u => u.role === 'pending');
+    },
   },
   mounted() {
+    this.loadUsers();
     document.onkeydown = (event) => {
       //ctrl + s
       if (event.ctrlKey && event.code === "KeyS") {
@@ -147,6 +175,38 @@ export default {
     };
   },
   methods: {
+    async loadUsers() {
+      this.usersLoading = true;
+      this.usersError = null;
+      try {
+        this.users = (await adminApi.listUsers()).map(u => ({ ...u, saving: false }));
+      } catch (e) {
+        this.usersError = 'Benutzer konnten nicht geladen werden.';
+      } finally {
+        this.usersLoading = false;
+      }
+    },
+    async changeRole(user, newRole) {
+      const oldRole = user.role;
+      user.role = newRole;
+      user.saving = true;
+      try {
+        await adminApi.updateRole(user.oidc_sub, newRole);
+        this.toast(`Rolle von ${user.display_name} → ${newRole}`, 'success');
+      } catch (e) {
+        user.role = oldRole;
+        this.toast('Rolle konnte nicht geändert werden: ' + e.message, 'danger');
+      } finally {
+        user.saving = false;
+      }
+    },
+    formatDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleDateString('de-DE', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+    },
     navSelected(uuid) {
       const recipe = this.recipes.find(r => r.recipe_uuid === uuid);
       this.$router.push(recipeUrl(uuid, recipe?.recipe_name));
@@ -167,50 +227,6 @@ export default {
     },
     loadSample: function () {
       this.$store.dispatch("appendRecipe", Recipes.loadSample());
-    },
-    saveToWebDAV: function () {
-      const spinner = document.querySelector("#loading-spinner");
-      if (spinner) spinner.classList.remove("d-none");
-      Cloud.putRecipes(this.settings, this.recipes, this.recipe_pictures)
-        .then(() => this.toast("Gespeichert.", "success"))
-        .catch(() => this.toast("Fehlgeschlagen.", "danger"))
-        .finally(() => {
-          if (spinner) spinner.classList.add("d-none");
-        });
-    },
-    loadFromWebDAV: async function () {
-      const spinner = document.querySelector("#loading-spinner");
-      if (spinner) spinner.classList.remove("d-none");
-      this.$store
-        .dispatch("getRecipesFromCloud")
-        .then(() => this.toast("Geladen.", "success"))
-        .catch(() => this.toast("Fehler.", "danger"))
-        .finally(() => {
-          if (spinner) spinner.classList.add("d-none");
-        });
-    },
-    loadPictures: async function () {
-      const spinner = document.querySelector("#loading-spinner");
-      if (spinner) spinner.classList.remove("d-none");
-      this.$store
-        .dispatch("downloadRecipePictures")
-        .then(() => this.toast("Geladen.", "success"))
-        .catch(() => this.toast("Fehler.", "danger"))
-        .finally(() => {
-          const spinner = document.querySelector("#loading-spinner");
-          if (spinner) spinner.classList.add("d-none");
-        });
-    },
-    syncWithWebDAV: async function () {
-      const spinner = document.querySelector("#loading-spinner");
-      if (spinner) spinner.classList.remove("d-none");
-      this.$store
-        .dispatch("syncRecipesWithCloud")
-        .then(() => this.toast("Synchronisiert.", "success"))
-        .catch(() => this.toast("Fehler.", "danger"))
-        .finally(() => {
-          if (spinner) spinner.classList.add("d-none");
-        });
     },
     async migrateImages() {
       try {
@@ -336,12 +352,6 @@ export default {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    },
-    onAIImport(recipe) {
-      this.toast(
-        `Rezept "${recipe.recipe_name}" per AI importiert.`,
-        "success",
-      );
     },
   },
 };

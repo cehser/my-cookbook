@@ -149,7 +149,7 @@
               </BFormCheckbox>
               <small class="text-muted d-block">
                 URL-Bilder können nach einiger Zeit ungültig werden. Lokale
-                Speicherung ermöglicht WebDAV-Sync.
+                Lokale Speicherung wird empfohlen.
               </small>
             </div>
 

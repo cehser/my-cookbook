@@ -11,7 +11,7 @@ from app.schemas.user import CurrentUserResponse, UserResponse, UserRoleUpdate
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
-VALID_ROLES = {"readonly", "editor", "admin"}
+VALID_ROLES = {"pending", "readonly", "editor", "admin"}
 
 
 @router.get("/users", response_model=list[UserResponse])

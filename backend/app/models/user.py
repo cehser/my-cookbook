@@ -13,6 +13,9 @@ class AppUser(Base):
 
     oidc_sub: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
     display_name: Mapped[str] = mapped_column(Text, nullable=False)
+    email: Mapped[str | None] = mapped_column(Text, nullable=True)
+    given_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    family_name: Mapped[str | None] = mapped_column(Text, nullable=True)
     role: Mapped[str] = mapped_column(
         String(20), nullable=False, server_default="readonly"
     )

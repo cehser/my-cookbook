@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="!editMode"
+    v-if="!editMode && (!readOnly || expertMode)"
     class="fab-container"
     :class="{ 'read-only': readOnly }"
   >

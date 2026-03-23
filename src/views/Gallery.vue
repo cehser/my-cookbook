@@ -21,6 +21,14 @@
         <AIRecipeImport v-if="!settings.read_only" @imported="onAIImport" />
       </BModal>
 
+      <!-- Pending User Alert -->
+      <div v-if="settings.role === 'pending'" class="alert alert-info mt-4 text-center">
+        <i class="bi bi-hourglass-split fs-1 d-block mb-2"></i>
+        <h5>Dein Account wartet auf Freigabe</h5>
+        <p class="mb-0">Ein Administrator muss deinen Zugang erst freischalten, bevor du Rezepte sehen kannst.</p>
+      </div>
+
+      <template v-if="settings.role !== 'pending'">
       <div class="d-flex justify-content-between align-items-center mt-2 mb-3">
         <h2 class="mb-0">Galerie</h2>
         <div class="d-flex gap-2 align-items-center">
@@ -54,19 +62,6 @@
             </BDropdownItem>
             <BDropdownItem v-if="settings.expert_mode" @click="triggerImport">
               <i class="bi bi-upload"></i> YAML Import
-            </BDropdownItem>
-            <BDropdownDivider />
-            <BDropdownItem @click="syncWithWebDAV">
-              <i class="bi bi-arrow-repeat"></i> Cloud-Sync
-            </BDropdownItem>
-            <BDropdownItem @click="loadFromWebDAV">
-              <i class="bi bi-cloud-download"></i> Cloud-Download
-            </BDropdownItem>
-            <BDropdownItem @click="loadPictures">
-              <i class="bi bi-image"></i> Bilder-Download
-            </BDropdownItem>
-            <BDropdownItem @click="saveToWebDAV">
-              <i class="bi bi-cloud-upload"></i> Cloud-Upload
             </BDropdownItem>
           </BDropdown>
         </div>
@@ -194,6 +189,7 @@
           />
         </div>
       </div>
+      </template>
     </BContainer>
   </div>
 </template>
@@ -208,7 +204,6 @@ import AIRecipeImport from "@/components/features/AIRecipeImport.vue";
 import { mapState } from "vuex";
 import { computed, ref } from "vue";
 import Recipes from "@/js/recipes";
-import Cloud from "@/js/cloud";
 import jsyaml from "js-yaml";
 import { recipeUrl } from "@/js/slug";
 
@@ -460,50 +455,6 @@ export default {
         }
       };
       reader.readAsText(file);
-    },
-    syncWithWebDAV() {
-      const spinner = document.querySelector("#loading-spinner");
-      if (spinner) spinner.classList.remove("d-none");
-      this.$store
-        .dispatch("syncRecipesWithCloud")
-        .then(() => this.toast("Synchronisiert.", "success"))
-        .catch(() => this.toast("Fehler.", "danger"))
-        .finally(() => {
-          if (spinner) spinner.classList.add("d-none");
-        });
-    },
-    loadFromWebDAV() {
-      const spinner = document.querySelector("#loading-spinner");
-      if (spinner) spinner.classList.remove("d-none");
-      Cloud.getRecipesFromCloud(this.settings)
-        .then((recipes) => {
-          this.$store.dispatch("setRecipes", recipes);
-          this.toast("Rezepte heruntergeladen.", "success");
-        })
-        .catch(() => this.toast("Cloud-Download fehlgeschlagen.", "danger"))
-        .finally(() => {
-          if (spinner) spinner.classList.add("d-none");
-        });
-    },
-    saveToWebDAV() {
-      const spinner = document.querySelector("#loading-spinner");
-      if (spinner) spinner.classList.remove("d-none");
-      Cloud.pushRecipesToCloud(this.recipes, this.settings)
-        .then(() => this.toast("Rezepte hochgeladen.", "success"))
-        .catch(() => this.toast("Cloud-Upload fehlgeschlagen.", "danger"))
-        .finally(() => {
-          if (spinner) spinner.classList.add("d-none");
-        });
-    },
-    loadPictures() {
-      const spinner = document.querySelector("#loading-spinner");
-      if (spinner) spinner.classList.remove("d-none");
-      Cloud.loadPictures(this.recipes, this.settings)
-        .then(() => this.toast("Bilder heruntergeladen.", "success"))
-        .catch(() => this.toast("Bilder-Download fehlgeschlagen.", "danger"))
-        .finally(() => {
-          if (spinner) spinner.classList.add("d-none");
-        });
     },
   },
 };

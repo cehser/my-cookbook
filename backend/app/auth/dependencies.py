@@ -17,27 +17,45 @@ security = HTTPBearer()
 
 
 async def get_or_create_user(
-    db: AsyncSession, sub: str, display_name: str | None
+    db: AsyncSession, payload: dict
 ) -> AppUser:
-    """Load user from DB. If not found, auto-provision with 'readonly' role."""
-    user_uuid = uuid.UUID(sub)
+    """Load user from DB. If not found, auto-provision with 'pending' role.
+
+    Syncs OIDC profile claims (display_name, email, given_name, family_name)
+    on every login.
+    """
+    user_uuid = uuid.UUID(payload["sub"])
+    display_name = payload.get("preferred_username") or "Unknown"
+    email = payload.get("email")
+    given_name = payload.get("given_name")
+    family_name = payload.get("family_name")
+
     result = await db.execute(select(AppUser).where(AppUser.oidc_sub == user_uuid))
     user = result.scalar_one_or_none()
 
     if user is None:
         user = AppUser(
             oidc_sub=user_uuid,
-            display_name=display_name or "Unknown",
-            role="readonly",
+            display_name=display_name,
+            email=email,
+            given_name=given_name,
+            family_name=family_name,
+            role="pending",
         )
         db.add(user)
         await db.commit()
         await db.refresh(user)
     else:
-        # Update last_login
+        # Sync profile fields from OIDC on every login
         user.last_login = datetime.now(timezone.utc)
         if display_name and user.display_name != display_name:
             user.display_name = display_name
+        if email is not None:
+            user.email = email
+        if given_name is not None:
+            user.given_name = given_name
+        if family_name is not None:
+            user.family_name = family_name
         await db.commit()
 
     return user
@@ -57,9 +75,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user = await get_or_create_user(
-        db, payload["sub"], payload.get("preferred_username")
-    )
+    user = await get_or_create_user(db, payload)
     return user
 
 

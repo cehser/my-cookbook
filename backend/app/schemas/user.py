@@ -7,6 +7,9 @@ from pydantic import BaseModel
 class UserResponse(BaseModel):
     oidc_sub: uuid.UUID
     display_name: str
+    email: str | None = None
+    given_name: str | None = None
+    family_name: str | None = None
     role: str
     created_at: datetime
     last_login: datetime | None

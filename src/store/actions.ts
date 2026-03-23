@@ -14,10 +14,9 @@ import {
   type SetRecipePayload,
   type SetRecipePicturesPayload
 } from './mutations'
-import { loadYamlCookbook, loadSample, mergeCookbooks } from '@/js/recipes'
+import { loadYamlCookbook, loadSample } from '@/js/recipes'
 import { deepCopyJSON, deepCopyYaml } from '@/js/deepCopy'
 import { serializeRecipePictures, deserializeRecipePictures } from '@/js/fileStorage'
-import Cloud from '@/js/cloud'
 import recipeApi from '@/api/recipes'
 import imageApi from '@/api/images'
 import { isAuthenticated } from '@/auth/oidc'
@@ -100,28 +99,55 @@ export default {
     })
   },
 
-  loadFavorites({ commit }: ActionContext) {
-    console.log('Read favorites from idb')
-    get('favorites').then((val: string[] | undefined) => {
-      if (val) {
-        commit(SET_FAVORITES, val)
+  async loadFavorites({ commit }: ActionContext) {
+    if (await isAuthenticated()) {
+      try {
+        const { default: favoritesApi } = await import('@/api/favorites')
+        const favorites = await favoritesApi.list()
+        commit(SET_FAVORITES, favorites)
+        // Cache in IDB for offline
+        set('favorites', favorites)
+        return
+      } catch (e) {
+        console.warn('Failed to load favorites from API, falling back to IDB', e)
       }
-    })
+    }
+    // Fallback: IDB
+    const val: string[] | undefined = await get('favorites')
+    if (val) {
+      commit(SET_FAVORITES, val)
+    }
   },
 
-  saveFavorites({ commit, state }: ActionContext) {
-    const favorites = [...state.favorites]
-    set('favorites', favorites).then(() => commit(SET_FAVORITES, state.favorites))
-  },
-
-  addFavorite({ commit, dispatch }: ActionContext, uuid: string) {
+  async addFavorite({ commit }: ActionContext, uuid: string) {
     commit(ADD_FAVORITE, uuid)
-    dispatch('saveFavorites')
+    if (await isAuthenticated()) {
+      try {
+        const { default: favoritesApi } = await import('@/api/favorites')
+        await favoritesApi.add(uuid)
+      } catch (e) {
+        console.warn('Failed to add favorite via API', e)
+      }
+    }
+    // Always cache in IDB
+    const favorites = [...(await get('favorites') as string[] || [])]
+    if (!favorites.includes(uuid)) favorites.push(uuid)
+    set('favorites', favorites)
   },
 
-  removeFavorite({ commit, dispatch }: ActionContext, uuid: string) {
+  async removeFavorite({ commit }: ActionContext, uuid: string) {
     commit(REMOVE_FAVORITE, uuid)
-    dispatch('saveFavorites')
+    if (await isAuthenticated()) {
+      try {
+        const { default: favoritesApi } = await import('@/api/favorites')
+        await favoritesApi.remove(uuid)
+      } catch (e) {
+        console.warn('Failed to remove favorite via API', e)
+      }
+    }
+    // Always cache in IDB
+    const favorites = ((await get('favorites') as string[] || []).filter((id: string) => id !== uuid))
+    set('favorites', favorites)
   },
 
   saveRecipes({ commit, state }: ActionContext) {
@@ -221,43 +247,6 @@ export default {
       }
     }
     dispatch('saveRecipes')
-  },
-
-  async getRecipesFromCloud({ commit, state }: ActionContext) {
-    const recipes_data = await Cloud.getRecipes(state.settings)
-    const recipes = loadYamlCookbook(recipes_data)
-    const images = await Cloud.getRecipeImages(state.settings, recipes)
-    commit(SET_RECIPES, recipes)
-    commit(SET_RECIPES_PICTURES, images)
-  },
-
-  async syncRecipesWithCloud({ commit, state, dispatch }: ActionContext) {
-    const recipes_data = await Cloud.getRecipes(state.settings)
-    const recipes_remote = loadYamlCookbook(recipes_data)
-
-    const recipes = mergeCookbooks(
-      deepCopyYaml(state.recipes),
-      recipes_remote,
-      (action: string, payload: any) => dispatch(action, payload)
-    )
-    commit(SET_RECIPES, recipes)
-  },
-
-  async downloadRecipePictures({ commit, dispatch, state }: ActionContext) {
-    Cloud.getRecipeImages(state.settings, state.recipes).then((recipe_images: RecipePictures) => {
-      commit(SET_RECIPES_PICTURES, recipe_images)
-      dispatch('saveRecipePictures')
-    })
-  },
-
-  async downloadSingleRecipePictures(
-    { commit, dispatch, state }: ActionContext,
-    { recipe }: { recipe: Recipe }
-  ) {
-    Cloud.getSingleRecipeImages(state.settings, recipe).then((pictures: File[]) => {
-      commit(SET_RECIPE_PICTURES, { uuid: recipe.recipe_uuid, pictures })
-      dispatch('saveRecipePictures')
-    })
   },
 
   async setRecipePicture(

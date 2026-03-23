@@ -468,13 +468,13 @@ GET    /v1/admin/users            → Alle User [admin]                      ✅
 PUT    /v1/admin/users/:id/role   → Rolle ändern [admin]                   ✅
 POST   /v1/admin/migrate-images   → Bild-Migration von WebDAV [admin]      ✅
 
-── Favoriten (B4) ───────────────────────────────────────
-GET    /v1/favorites              → Meine Favoriten (Recipe-IDs)           ⬜
-POST   /v1/favorites/:recipeId    → Favorit setzen                         ⬜
-DELETE /v1/favorites/:recipeId    → Favorit entfernen                      ⬜
+── Favoriten ────────────────────────────────────────────
+GET    /v1/favorites              → Meine Favoriten (Recipe-IDs)           ✅
+POST   /v1/favorites/:recipeId    → Favorit setzen                         ✅
+DELETE /v1/favorites/:recipeId    → Favorit entfernen                      ✅
 
 ── Tags (B4) ────────────────────────────────────────────
-GET    /v1/tags                   → Alle Tags (mit Anzahl)                 ⬜
+GET    /v1/tags                   → Alle Tags (mit Anzahl)                 ✅
 
 ── Share (B4) ───────────────────────────────────────────
 POST   /v1/recipes/:id/share      → Share-Link erzeugen [editor, admin]   ⬜
@@ -650,7 +650,7 @@ src/
     recipes.ts             ← getRecipes(), getRecipe(), createRecipe(), updateRecipe(), deleteRecipe()
     images.ts              ← uploadImage(), getImageUrl(), getThumbnailUrl()
     ai.ts                  ← importText(), importImage() (mit model-Parameter)
-    favorites.ts           ← ⬜ Noch nicht implementiert
+    favorites.ts           ← ✅ list(), add(), remove() — API-basiert, IDB-Fallback
     tags.ts                ← ⬜ Noch nicht implementiert
     admin.ts               ← ⬜ Noch nicht implementiert (Admin über bestehende API-Calls)
     shares.ts              ← ⬜ Noch nicht implementiert
@@ -662,12 +662,12 @@ src/
 ### Zu entfernende Client-Dateien
 
 ```
-src/js/cloud.ts            ← WebDAV-Logik: cloud_images-Download entfernt, Rest noch vorhanden
+src/js/cloud.ts            ← GELÖSCHT (komplett entfernt in B4-Cleanup)
 src/js/recipes.ts          ← mergeCookbooks() entfernt, initRecipe() + Hilfsfunktionen bleiben
 src/prompts/SYSTEM_PROMPT.ts ← cloud_images aus Schema entfernt, wird noch für Client-YAML-Anzeige genutzt
 ```
 
-> **Hinweis:** `webdav` NPM-Dependency kann in B4 entfernt werden, sobald `cloud.ts` komplett bereinigt ist.
+> **Erledigt:** `webdav` NPM-Dependency wurde in B4 entfernt. `cloud.ts` komplett gelöscht.
 
 ### Offline-Strategie
 
@@ -830,7 +830,8 @@ backend/
 │   │   ├── admin.py               # GET /v1/admin/users, PUT .../role
 │   │   ├── recipes.py             # CRUD + Suche + auto imageurl-Download
 │   │   ├── images.py              # Upload, Serve, Thumbnail, Delete, download_and_store_image()
-│   │   └── ai.py                  # Text/URL/Bild → Rezept via OpenAI
+│   │   ├── ai.py                  # Text/URL/Bild → Rezept via OpenAI
+│   │   └── favorites.py           # GET/POST/DELETE /v1/favorites (per-user)
 │   │
 │   └── services/                  # Business-Logik (noch ausbaufähig)
 │       └── __init__.py
@@ -1020,21 +1021,55 @@ Ablauf:
 
 ---
 
-### Sprint B4: Favoriten + Share-Links + Offline-Cache + Cleanup 📋
-**Ziel:** Feature-Parität, Share-Links, Offline-Modus, alte Logik entfernen  
-**Status:** Offen
+### Sprint B4: Favoriten + Tags + Admin-UI + Cleanup 📋
+**Ziel:** Feature-Parität, User-Verwaltung im Frontend, alte Logik entfernen  
+**Status:** ✅ Abgeschlossen
 
 **Bereits vorhanden (DB/Models):**
 - DB-Tabellen existieren: `favorites`, `recipe_shares`, `tags`, `recipe_tags` (aus Migration `001_initial`)
 - SQLAlchemy Models existieren: `Favorite`, `RecipeShare`, `Tag`, `RecipeTag`
+- Backend: `GET /v1/admin/users`, `PUT /v1/admin/users/{id}/role` (seit B1)
+- Auto-Provisioning: Neue User erhalten Rolle `pending` (kein Rezeptzugriff)
+
+**Erledigte Tasks:**
+- [x] `GET /v1/favorites` — Favoriten-Liste des aktuellen Users
+- [x] `POST /v1/favorites/{recipeId}` — Favorit setzen
+- [x] `DELETE /v1/favorites/{recipeId}` — Favorit entfernen
+- [x] Frontend: Favoriten auf API umstellen (aktuell nur IndexedDB)
+- [x] `GET /v1/tags` — Alle Tags mit Rezeptanzahl
+- [x] Settings-Seite aufräumen (WebDAV-Section entfernen, deprecated Felder bereinigen)
+- [x] `cloud.ts` komplett gelöscht, WebDAV-Code aus Gallery.vue, Administration.vue, AppNavbar.vue, store/actions.ts entfernt
+- [x] `webdav`-NPM-Dependency entfernt
+- [x] `types/settings.ts`: deprecated Interfaces (WebDAVCredentials, WebDAVSettings, AISettings) + Felder entfernt
+- [x] Datenmigration `cookbook.yaml` → PostgreSQL (bereits durchgeführt)
+- [x] Frontend: Admin-Seite → User-Liste mit Name, E-Mail, Rolle, letztem Login, Erstelldatum
+- [x] Frontend: Rollen-Dropdown pro User → `pending` | `readonly` | `editor` | `admin`
+- [x] Frontend: Pendente User hervorgehoben (Badge + `table-warning`)
+- [x] Frontend: Pending-Hinweis für nicht freigeschaltete User (Alert in Gallery)
+- [x] OIDC-Profil-Sync: `email`, `given_name`, `family_name` aus Token bei jedem Login in DB (Migration `003_user_profile_fields`)
+- [x] Navbar: Initialen-Avatar statt Username, User- + Settings-Dropdown zusammengelegt
+- [x] AI-Import aus Administration.vue entfernt (nur noch in Galerie verfügbar)
+
+**Offene Tasks — Rollen:**
+- [x] Frontend: Rollenbasierte UI-Sichtbarkeit — Settings.vue `read_only`-Toggle disabled für readonly/pending, Recipe.vue pending-Guard, RecipeFabMenu leerer FAB-Fix
+
+**Offene Tasks — Restarbeiten:**
+- [x] End-to-End-Test: Manuell durchgetestet, alles funktioniert ohne WebDAV
+
+**Ergebnis:** Admin kann User verwalten, Rollen-System im Frontend durchgesetzt, WebDAV vollständig abgelöst
+
+---
+
+### Sprint B5: Share-Links + Offline-Cache 📋
+**Ziel:** Öffentliche Share-Links, Offline-Lesemodus  
+**Status:** Offen
+
+**Bereits vorhanden:**
+- DB-Tabellen: `recipe_shares` (aus Migration `001_initial`)
+- SQLAlchemy Model: `RecipeShare`
 - Frontend-Route `/s/:token` bereits im Router (ohne Guard)
 
-**Offene Tasks:**
-- [ ] `GET /v1/favorites` — Favoriten-Liste des aktuellen Users
-- [ ] `POST /v1/favorites/{recipeId}` — Favorit setzen
-- [ ] `DELETE /v1/favorites/{recipeId}` — Favorit entfernen
-- [ ] Frontend: Favoriten auf API umstellen (aktuell nur IndexedDB)
-- [ ] `GET /v1/tags` — Alle Tags mit Rezeptanzahl
+**Tasks — Share-Links:**
 - [ ] `POST /v1/recipes/{id}/share` — Share-Link erzeugen (`secrets.token_urlsafe`)
 - [ ] `GET /v1/recipes/{id}/shares` — Aktive Share-Links auflisten
 - [ ] `DELETE /v1/shares/{shareId}` — Share-Link deaktivieren
@@ -1043,16 +1078,13 @@ Ablauf:
 - [ ] Frontend: Share-Button im Rezept (Link erzeugen + kopieren)
 - [ ] Frontend: Route `/s/:token` → Read-only Rezeptansicht implementieren
 - [ ] Frontend: Share-Verwaltung (aktive Links anzeigen, widerrufen)
+
+**Tasks — Offline-Cache:**
 - [ ] IndexedDB als Read-Cache (Rezeptliste + Details für Offline)
 - [ ] Service Worker: Thumbnail-Caching
 - [ ] Offline-Erkennung + Toast-Hinweis
-- [ ] Settings-Seite aufräumen (WebDAV-Section entfernen, deprecated Felder bereinigen)
-- [ ] `cloud.ts` WebDAV-Restcode entfernen (Download-Loop bereits entfernt)
-- [ ] `webdav`-NPM-Dependency entfernen
-- [ ] Migrations-Script: `cookbook.yaml` → PostgreSQL (oder über Admin-UI)
-- [ ] End-to-End-Test: Alles funktioniert ohne WebDAV
 
-**Ergebnis:** Feature-Parität erreicht, Share-Links funktional, WebDAV vollständig abgelöst
+**Ergebnis:** Share-Links funktional, Offline-Lesemodus verfügbar
 
 ---
 
@@ -1079,18 +1111,21 @@ Ablauf:
 
 ### Bekannte offene Punkte
 - `extra_hosts: cloud.cehser.de:128.251.187.1` noch in docker-compose (temporärer DNS-Workaround)
-- `webdav` NPM-Dependency noch installiert
-- `settings.ts` enthält deprecated Felder (`autosync`, `webdav`, `ai`)
-- Favoriten nur lokal (IndexedDB), nicht serverseitig
-- `pending`-Rolle als Default für neue User muss im Backend (Auto-Provisioning) und Frontend (Zugangs-Hinweis) umgesetzt werden
-- Admin-UI für User-Verwaltung (User-Liste + Rollenänderung) auf Admin-Seite erweitern
+- ~~`webdav` NPM-Dependency noch installiert~~ ✅ Entfernt
+- ~~`settings.ts` enthält deprecated Felder~~ ✅ Bereinigt
+- ~~Favoriten nur lokal (IndexedDB)~~ ✅ Behoben (B4: API + IDB-Fallback)
+- ~~`pending`-Rolle als Default für neue User~~ ✅ Implementiert (Auto-Provisioning + Frontend-Hinweis)
+- ~~Admin-UI für User-Verwaltung~~ ✅ Implementiert (User-Liste, Rollen-Dropdown, Profildaten via OIDC)
+- ⚠️ **Frontend-Config ist Compile-Time!** `VITE_OIDC_AUTHORITY` und `VITE_OIDC_CLIENT_ID` werden von Vite zur Build-Zeit in den JS-Code eingebettet (`import.meta.env`). Das bedeutet: bei Änderungen an der OIDC-Config muss das Frontend-Image neu gebaut werden. **Muss auf Runtime-Config umgestellt werden** (z.B. `/config.json` von nginx ausliefern, oder `window.__CONFIG__` via `envsubst` in `index.html` injizieren), damit nur docker-compose ENV-Variablen geändert werden müssen.
 
 ---
 
-### Sprint B5: Hardening & Polish
+### Sprint B6: Hardening & Polish
 **Ziel:** Production-Readiness
 
 **Tasks:**
+- [ ] **Runtime-Config für Frontend:** `VITE_OIDC_AUTHORITY` + `VITE_OIDC_CLIENT_ID` von Compile-Time (`import.meta.env`) auf Runtime umstellen. Ansatz: nginx `envsubst` injiziert Werte in `/config.json` oder `index.html` beim Container-Start → SPA liest Config per fetch/`window.__CONFIG__` → kein Rebuild bei Config-Änderung nötig.
+- [ ] **Runtime-konfigurierbarer AI System-Prompt:** Der SYSTEM_PROMPT in `ai.py` ist aktuell ein hardcoded Python-String. Umstellen auf externe Datei (`prompts/system_prompt.md`), die per Docker-Volume gemountet wird. Default-Prompt wird beim ersten Start aus dem Image in den Mount kopiert, falls noch nicht vorhanden. Ermöglicht Prompt-Anpassungen ohne Rebuild. Auch das Frontend-Duplikat (`src/prompts/SYSTEM_PROMPT.ts`) kann dann entfallen, da AI-Requests ohnehin übers Backend laufen.
 - [ ] Error Handling: Globaler Exception Handler (FastAPI)
 - [ ] Rate Limiting (AI-Endpunkte)
 - [ ] Request-Logging (strukturiert)
@@ -1105,6 +1140,12 @@ Ablauf:
 
 ---
 
+### Backlog / Zukunfts-Features 💡
+
+- [ ] **Cross-Instance Rezept-Sharing:** Rezept aus einer Instanz exportieren und in eine andere importieren. Mögliche Ansätze: standardisiertes Austauschformat (z.B. YAML/JSON-Datei mit Bildern als ZIP), öffentlicher Share-Link mit maschinenlesbarem Endpoint (`Accept: application/yaml`), oder Federation-Protokoll zwischen Instanzen. Ziel: Nutzer können Rezepte untereinander teilen, auch wenn sie verschiedene my-cookbook-Instanzen betreiben.
+
+---
+
 ## 📋 Sprint-Übersicht
 
 | Sprint | Thema | Voraussetzung | Priorität |
@@ -1113,8 +1154,9 @@ Ablauf:
 | **B1** | Auth + OIDC + Rollen | B0 | 🔴 Kritisch |
 | **B2** | Recipe CRUD API + Frontend-Umstellung | B1 | 🔴 Kritisch |
 | **B3** | Bilder + AI-Proxy | B2 | 🔴 Kritisch |
-| **B4** | Favoriten + Share-Links + Offline + Migration + Cleanup | B3 | 🔴 Kritisch |
-| **B5** | Hardening & Polish | B4 | 🟡 Wichtig |
+| **B4** | Favoriten + Tags + Admin-UI + Cleanup | B3 | 🔴 Kritisch |
+| **B5** | Share-Links + Offline-Cache | B4 | 🟡 Wichtig |
+| **B6** | Hardening & Polish | B5 | 🟡 Wichtig |
 
 ---
 
@@ -1125,7 +1167,7 @@ Ablauf:
 | Risiko | Mitigation |
 |--------|-----------|
 | IdP-Konfiguration komplex | Standard-OIDC, gut dokumentiert; Keycloak bereits vorhanden als Default |
-| Migration verliert Daten | UUIDs beibehalten, Validierung nach Migration, WebDAV als Backup behalten |
+| Migration verliert Daten | UUIDs beibehalten, Validierung nach Migration ✅ (Migration abgeschlossen) |
 | Offline-Modus Regression | Phase 1: nur Read-Cache, kein Offline-Write (KISS) |
 | Pillow HEIC-Support | HEIC-Konvertierung optional, erstmal JPEG/PNG/WebP |
 | Token-Refresh im SPA | `oidc-client-ts` hat Auto-Refresh (Silent Renew), muss aber getestet werden |
