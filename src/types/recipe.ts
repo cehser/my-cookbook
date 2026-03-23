@@ -46,7 +46,7 @@ export interface Recipe {
   recalc_exp?: number
   sections: Section[]
   lastUpdated: string
-  cloud_images?: string[]
+  first_image_id?: string
   tags?: string[]
 }
 

@@ -7,8 +7,7 @@
       <BCardBody>
         <div v-if="!hasApiKey" class="alert alert-warning">
           <i class="bi bi-exclamation-triangle"></i>
-          Bitte OpenAI API-Key in den
-          <router-link to="/settings">Einstellungen</router-link> hinterlegen.
+          AI-Import nicht verfügbar. Bitte einloggen.
         </div>
 
         <BTabs v-else content-class="mt-3">
@@ -175,6 +174,14 @@
         <div v-if="error" class="mt-4 alert alert-danger">
           <i class="bi bi-exclamation-triangle"></i> {{ error }}
         </div>
+
+        <!-- Raw YAML (Expert Mode) -->
+        <details v-if="rawYaml && settings.expert_mode" class="mt-3">
+          <summary class="text-muted" style="cursor: pointer">
+            <i class="bi bi-code-slash"></i> Raw YAML anzeigen
+          </summary>
+          <pre class="mt-2 p-3 bg-dark text-light rounded" style="max-height: 400px; overflow: auto; font-size: 0.85rem">{{ rawYaml }}</pre>
+        </details>
       </BCardBody>
     </BCard>
   </div>
@@ -185,7 +192,10 @@ import { ref, computed, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 import jsyaml from "js-yaml";
 import UUID from "@/js/uuid";
-import { SYSTEM_PROMPT } from "@/prompts/SYSTEM_PROMPT";
+import { initRecipe } from "@/js/recipes";
+import aiApi from "@/api/ai";
+import imageApi from "@/api/images";
+import { isAuthenticated } from "@/auth/oidc";
 import type { Recipe } from "@/types/recipe";
 
 const emit = defineEmits<{
@@ -207,6 +217,7 @@ const textInput = ref("");
 const loading = ref(false);
 const result = ref<Recipe | null>(null);
 const error = ref<string | null>(null);
+const rawYaml = ref<string | null>(null);
 const stream = ref<MediaStream | null>(null);
 const downloadImage = ref(true);
 const downloadingImage = ref(false);
@@ -214,10 +225,8 @@ const downloadingImage = ref(false);
 // Computed
 const settings = computed(() => store.state.settings);
 const hasApiKey = computed(() => {
-  return (
-    settings.value?.ai?.openai_api_key &&
-    settings.value.ai.openai_api_key.length > 0
-  );
+  // Backend holds the key — check if user is authenticated
+  return true;
 });
 
 // Methods
@@ -275,51 +284,15 @@ const analyzeImage = async () => {
   loading.value = true;
   error.value = null;
   result.value = null;
+  rawYaml.value = null;
 
   try {
-    const modelId = settings.value.ai.gpt_id || "gpt-4o";
+    // Convert data URI to Blob for the backend
+    const resp = await fetch(capturedImage.value);
+    const blob = await resp.blob();
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${settings.value.ai.openai_api_key}`,
-      },
-      body: JSON.stringify({
-        model: modelId,
-        messages: [
-          {
-            role: "system",
-            content: SYSTEM_PROMPT,
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Bitte extrahiere das Rezept aus diesem Bild.",
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: capturedImage.value,
-                },
-              },
-            ],
-          },
-        ],
-        max_completion_tokens: 4000,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMsg = errorData.error?.message || `HTTP ${response.status}`;
-      throw new Error(`API-Fehler: ${errorMsg}`);
-    }
-
-    const data = await response.json();
-    const yamlText = data.choices[0].message.content;
+    const data = await aiApi.importImage(blob, "photo.jpg", settings.value.gpt_model || "gpt-4o");
+    const yamlText = data.yaml;
 
     // Extract YAML from markdown code blocks if present
     let cleanYaml = yamlText;
@@ -328,7 +301,8 @@ const analyzeImage = async () => {
       cleanYaml = yamlMatch[1];
     }
 
-    result.value = jsyaml.load(cleanYaml) as Recipe;
+    rawYaml.value = cleanYaml;
+    result.value = initRecipe(jsyaml.load(cleanYaml) as Partial<Recipe>);
   } catch (err: any) {
     error.value = "Fehler bei der Analyse: " + err.message;
   } finally {
@@ -340,40 +314,13 @@ const analyzeText = async () => {
   loading.value = true;
   error.value = null;
   result.value = null;
+  rawYaml.value = null;
 
   try {
-    const modelId = settings.value.ai.gpt_id || "gpt-4o";
+    const modelId = settings.value.gpt_model || "gpt-4o";
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${settings.value.ai.openai_api_key}`,
-      },
-      body: JSON.stringify({
-        model: modelId,
-        messages: [
-          {
-            role: "system",
-            content: SYSTEM_PROMPT,
-          },
-          {
-            role: "user",
-            content: textInput.value,
-          },
-        ],
-        max_completion_tokens: 4000,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMsg = errorData.error?.message || `HTTP ${response.status}`;
-      throw new Error(`API-Fehler: ${errorMsg}`);
-    }
-
-    const data = await response.json();
-    const yamlText = data.choices[0].message.content;
+    const data = await aiApi.importText(textInput.value, modelId);
+    const yamlText = data.yaml;
 
     // Extract YAML from markdown code blocks if present
     let cleanYaml = yamlText;
@@ -382,7 +329,8 @@ const analyzeText = async () => {
       cleanYaml = yamlMatch[1];
     }
 
-    result.value = jsyaml.load(cleanYaml) as Recipe;
+    rawYaml.value = cleanYaml;
+    result.value = initRecipe(jsyaml.load(cleanYaml) as Partial<Recipe>);
   } catch (err: any) {
     error.value = "Fehler bei der Analyse: " + err.message;
   } finally {
@@ -392,11 +340,10 @@ const analyzeText = async () => {
 
 const downloadImageFromUrl = async (url: string, recipeUuid: string) => {
   try {
-    // Try multiple CORS proxies with fallback
+    // Download via fetch (same-origin or CORS proxy fallback)
     const proxies = [
+      url, // Try direct first
       `https://corsproxy.io/?${encodeURIComponent(url)}`,
-      `https://api.allorigins.win/raw?url=${url}`,
-      `https://cors-anywhere.herokuapp.com/${url}`,
     ];
 
     let response: Response | null = null;
@@ -406,44 +353,28 @@ const downloadImageFromUrl = async (url: string, recipeUuid: string) => {
       try {
         response = await fetch(proxyUrl, {
           cache: "no-cache",
-          signal: AbortSignal.timeout(10000), // 10 second timeout
+          signal: AbortSignal.timeout(10000),
         });
-
-        if (response.ok) {
-          break; // Success, exit loop
-        }
+        if (response.ok) break;
       } catch (err) {
         lastError = err as Error;
-        continue; // Try next proxy
+        continue;
       }
     }
 
     if (!response || !response.ok) {
-      throw lastError || new Error("Alle Proxy-Server fehlgeschlagen");
+      throw lastError || new Error("Bild konnte nicht heruntergeladen werden");
     }
 
     const blob = await response.blob();
+    const ext = blob.type?.split("/")[1]?.split(";")[0] || "jpg";
+    const filename = `${recipeUuid}.${ext}`;
+    const file = new File([blob], filename, { type: blob.type || "image/jpeg" });
 
-    // Detect extension from content-type or URL
-    let extension = "jpg";
-    const contentType = response.headers.get("content-type");
-    if (contentType) {
-      extension = contentType.split("/")[1]?.split(";")[0] || "jpg";
-    } else {
-      // Fallback: try to extract from URL
-      const urlMatch = url.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i);
-      if (urlMatch) extension = urlMatch[1];
+    // Upload to backend API
+    if (await isAuthenticated()) {
+      await imageApi.upload(recipeUuid, file);
     }
-
-    const filename = `${recipeUuid}.${extension}`;
-
-    // Store in recipe_pictures - create new object to trigger reactivity
-    const updatedPictures = {
-      ...store.state.recipe_pictures,
-      [filename]: blob,
-    };
-    store.commit("setRecipesPictures", updatedPictures);
-    store.dispatch("saveRecipePictures");
 
     return filename;
   } catch (err: any) {
@@ -460,32 +391,10 @@ const importRecipe = async () => {
     result.value.recipe_uuid = UUID.generateUUID();
   }
 
-  // Download image if requested and imageurl exists
-  if (downloadImage.value && result.value.imageurl) {
-    downloadingImage.value = true;
-    try {
-      const filename = await downloadImageFromUrl(
-        result.value.imageurl,
-        result.value.recipe_uuid,
-      );
-
-      // Move to cloud_images array and clear imageurl
-      if (!result.value.cloud_images) {
-        result.value.cloud_images = [];
-      }
-      result.value.cloud_images.push(filename);
-      result.value.imageurl = null;
-    } catch (err: any) {
-      error.value = err.message;
-      downloadingImage.value = false;
-      return;
-    }
-    downloadingImage.value = false;
-  }
+  // imageurl will be auto-downloaded by the backend on save
 
   // Dispatch to store
   store.dispatch("appendRecipe", result.value);
-  store.dispatch("saveToLocalStorage");
 
   // Emit success
   emit("imported", result.value);

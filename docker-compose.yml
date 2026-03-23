@@ -20,11 +20,14 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: my-cookbook-backend
+    extra_hosts:
+      - "cloud.cehser.de:128.251.187.1"
+    env_file:
+      - ./backend/.env
     environment:
       - DATABASE_URL=postgresql+asyncpg://cookbook:${DB_PASSWORD:-changeme}@db:5432/cookbook
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-https://auth.cehser.de/realms/cehser}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:-cookbook.cehser.de}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - UPLOAD_DIR=/app/uploads
       - MAX_UPLOAD_SIZE_MB=5
       - CORS_ORIGINS=["http://localhost:8080"]

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routes import admin, health, me, recipes
+from app.routes import admin, ai, health, images, me, recipes
 
 
 @asynccontextmanager
@@ -33,3 +33,5 @@ app.include_router(health.router)
 app.include_router(me.router)
 app.include_router(admin.router)
 app.include_router(recipes.router)
+app.include_router(images.router)
+app.include_router(ai.router)

@@ -19,6 +19,7 @@ import { deepCopyJSON, deepCopyYaml } from '@/js/deepCopy'
 import { serializeRecipePictures, deserializeRecipePictures } from '@/js/fileStorage'
 import Cloud from '@/js/cloud'
 import recipeApi from '@/api/recipes'
+import imageApi from '@/api/images'
 import { isAuthenticated } from '@/auth/oidc'
 import type { Recipe, RecipePictures } from '@/types/recipe'
 import type { Settings } from '@/types/settings'
@@ -259,11 +260,33 @@ export default {
     })
   },
 
-  setRecipePicture(
+  async setRecipePicture(
     { commit, dispatch }: ActionContext,
-    { uuid, picture }: { uuid: string; picture: File }
+    { uuid, picture }: { uuid: string; picture: File | null }
   ) {
-    commit(SET_RECIPE_PICTURES, { uuid, pictures: [picture] })
+    if (picture && await isAuthenticated()) {
+      try {
+        await imageApi.upload(uuid, picture)
+        // No need to store locally — images are served from API
+        return
+      } catch (e) {
+        console.warn('Failed to upload image to API, saving locally', e)
+      }
+    }
+    // Delete from API if picture is null
+    if (!picture && await isAuthenticated()) {
+      try {
+        const images = await imageApi.list(uuid)
+        for (const img of images) {
+          await imageApi.delete(uuid, img.id)
+        }
+        return
+      } catch (e) {
+        console.warn('Failed to delete images via API', e)
+      }
+    }
+    // Fallback: local IDB storage
+    commit(SET_RECIPE_PICTURES, { uuid, pictures: picture ? [picture] : [] })
     dispatch('saveRecipePictures')
   },
 
@@ -281,6 +304,7 @@ export default {
       subtitle: item.subtitle ?? undefined,
       tags: item.tags,
       imageurl: item.imageurl ?? undefined,
+      first_image_id: item.first_image_id ?? undefined,
       lastUpdated: item.updated_at,
       ingredients: [],
       steps: [],
@@ -301,6 +325,7 @@ export default {
       recipe_uuid: detail.id,
       recipe_name: detail.recipe_name,
       lastUpdated: detail.updated_at,
+      first_image_id: detail.first_image_id ?? undefined,
       ingredients: [],
       steps: [],
       sections: [],
@@ -328,6 +353,7 @@ export default {
               recipe_uuid: detail.id,
               recipe_name: detail.recipe_name,
               lastUpdated: detail.updated_at,
+              first_image_id: detail.first_image_id ?? undefined,
               ingredients: [],
               steps: [],
               sections: [],
@@ -353,6 +379,7 @@ export default {
       subtitle: item.subtitle ?? undefined,
       tags: item.tags,
       imageurl: item.imageurl ?? undefined,
+      first_image_id: item.first_image_id ?? undefined,
       lastUpdated: item.updated_at,
       ingredients: [],
       steps: [],

@@ -560,7 +560,6 @@ export default {
         console.log(this.current_recipe.lastUpdated);
 
         if (this.file) {
-          this.current_recipe.cloud_images = [this.file.name];
           this.$store
             .dispatch("setRecipePicture", {
               uuid: this.current_recipe.recipe_uuid,
@@ -570,7 +569,6 @@ export default {
         }
 
         if (this.delete_image) {
-          this.current_recipe.cloud_images = [];
           this.$store
             .dispatch("setRecipePicture", {
               uuid: this.current_recipe.recipe_uuid,
@@ -579,7 +577,6 @@ export default {
             .then(() => (this.delete_image = false))
             .catch(() => this.toast("Bildfehler.", "danger"));
         }
-        console.log(this.current_recipe.cloud_images);
         this.$store
           .dispatch("setRecipe", {
             index: this.selected,

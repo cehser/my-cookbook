@@ -88,7 +88,6 @@ export function initRecipe(recipe: Partial<Recipe>): Recipe {
     subtitle: recipe.subtitle,
     imageurl: recipe.imageurl,
     recalc_exp: recipe.recalc_exp,
-    cloud_images: recipe.cloud_images,
     tags: recipe.tags
   }
 

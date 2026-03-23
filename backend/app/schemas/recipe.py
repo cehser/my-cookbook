@@ -54,8 +54,6 @@ class RecipeData(BaseModel):
     sections: list[dict] | None = None
     imageurl: str | None = None
     recalc_exp: float | None = None
-    cloud_images: list[str] | None = None
-
     model_config = {"extra": "allow"}
 
 
@@ -90,6 +88,7 @@ class RecipeListItem(BaseModel):
     subtitle: str | None = None
     tags: list[str] = []
     imageurl: str | None = None
+    first_image_id: uuid.UUID | None = None
     updated_at: datetime
     created_by: uuid.UUID | None = None
 
@@ -102,6 +101,7 @@ class RecipeResponse(BaseModel):
     recipe_name: str
     data: dict
     tags: list[str] = []
+    first_image_id: uuid.UUID | None = None
     created_by: uuid.UUID | None = None
     updated_by: uuid.UUID | None = None
     created_at: datetime

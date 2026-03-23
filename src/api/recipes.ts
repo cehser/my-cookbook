@@ -13,6 +13,7 @@ export interface RecipeListItem {
   subtitle: string | null
   tags: string[]
   imageurl: string | null
+  first_image_id: string | null
   updated_at: string
   created_by: string | null
 }
@@ -29,6 +30,7 @@ export interface RecipeDetail {
   recipe_name: string
   data: Record<string, unknown>
   tags: string[]
+  first_image_id: string | null
   created_by: string | null
   updated_by: string | null
   created_at: string

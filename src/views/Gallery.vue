@@ -438,7 +438,6 @@ export default {
       this.toast("Beispielrezept geladen.", "success");
     },
     onAIImport(recipe) {
-      this.$store.dispatch("appendRecipe", recipe);
       this.toast(`Rezept "${recipe.recipe_name}" importiert.`, "success");
       this.showAIImport = false;
     },

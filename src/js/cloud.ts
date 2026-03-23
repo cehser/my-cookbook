@@ -50,19 +50,6 @@ class CloudService {
     const path = this.getRootpath(settings) + 'pictures/'
     const images: File[] = []
 
-    if (recipe.cloud_images && recipe.cloud_images.length > 0) {
-      for (const imagename of recipe.cloud_images) {
-        const image_path = `${path}${recipe.recipe_uuid}/${imagename}`
-        
-        try {
-          const buff = await client.getFileContents(image_path)
-          images.push(new File([buff as ArrayBuffer], imagename))
-        } catch (e) {
-          console.error(`Failed to load image ${imagename} for recipe ${recipe.recipe_name}:`, e)
-        }
-      }
-    }
-
     return images
   }
 

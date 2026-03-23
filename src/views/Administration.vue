@@ -39,6 +39,12 @@
       </div>
 
       <div class="d-flex flex-wrap">
+        <BButton
+          v-if="!settings.read_only && settings.role === 'admin'"
+          class="btn m-2"
+          @click="migrateImages"
+          ><i class="bi bi-images"></i><br />Bild-URLs migrieren</BButton
+        >
         <BButton v-if="!settings.read_only" class="btn m-2" @click="newRecipe"
           ><i class="bi bi-file-earmark-plus"></i><br />Neues Rezept</BButton
         >
@@ -205,6 +211,20 @@ export default {
         .finally(() => {
           if (spinner) spinner.classList.add("d-none");
         });
+    },
+    async migrateImages() {
+      try {
+        const { default: api } = await import('@/api/client');
+        const result = await api.post('/admin/migrate-images');
+        this.toast(
+          `Migration: ${result.migrated} Bilder gespeichert, ${result.failed} fehlgeschlagen.`,
+          result.failed > 0 ? 'warning' : 'success'
+        );
+        // Reload recipes to pick up new image IDs
+        this.$store.dispatch('loadRecipesFromApi');
+      } catch (e) {
+        this.toast('Migration fehlgeschlagen: ' + e.message, 'danger');
+      }
     },
     saveToLocalStorage: function () {
       this.$store.dispatch("saveRecipes");

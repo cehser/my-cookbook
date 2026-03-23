@@ -2,6 +2,7 @@ import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
 import { useStore } from 'vuex'
 import { deepCopyYaml } from '@/js/deepCopy'
 import { isAuthenticated } from '@/auth/oidc'
+import imageApi from '@/api/images'
 import type { Recipe, RecipePictures } from '@/types/recipe'
 
 interface RecipeHelperOptions {
@@ -37,6 +38,20 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
   // Computed properties from Vuex store
   const recipes = computed(() => store.state.recipes as Recipe[])
   const recipe_pictures = computed(() => store.state.recipe_pictures as RecipePictures)
+
+  // Cache of API image IDs per recipe UUID (loaded on demand)
+  const apiImageCache = ref<Record<string, string | null>>({})
+
+  async function loadApiImages(recipeUuid: string): Promise<void> {
+    if (recipeUuid in apiImageCache.value) return
+    if (!await isAuthenticated()) return
+    try {
+      const images = await imageApi.list(recipeUuid)
+      apiImageCache.value[recipeUuid] = images.length > 0 ? images[0].id : null
+    } catch {
+      apiImageCache.value[recipeUuid] = null
+    }
+  }
 
   // Computed: index of current recipe in store (for backwards compat)
   const selected = computed(() => {
@@ -109,28 +124,22 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
   })
 
   /**
-   * Get the picture source URL for a recipe
+   * Get the picture source URL for a recipe.
+   * Checks API images first, then local File objects, then imageurl.
    */
   function recipePictureSrc(recipe: Recipe): string {
-    if (
-      recipe.cloud_images &&
-      recipe.cloud_images[0] &&
-      recipe_pictures.value[recipe.recipe_uuid] &&
-      recipe_pictures.value[recipe.recipe_uuid][0]
-    ) {
-      const filename = recipe.cloud_images[0]
-      const picturesByName = recipe_pictures.value[recipe.recipe_uuid].reduce((map, file) => {
-        map[file.name] = file
-        return map
-      }, {} as Record<string, File>)
-
-      const file = picturesByName[filename]
-      // Check if file is a Blob/File object
-      if (file instanceof Blob) {
-        return URL.createObjectURL(file)
-      }
+    // 1. Check first_image_id from API list (fastest path)
+    if (recipe.first_image_id) {
+      return imageApi.thumbnailUrl(recipe.first_image_id)
     }
 
+    // 2. Check API image cache (lazy-loaded)
+    const cachedImageId = apiImageCache.value[recipe.recipe_uuid]
+    if (cachedImageId) {
+      return imageApi.thumbnailUrl(cachedImageId)
+    }
+
+    // 3. External URL
     if (recipe.imageurl && recipe.imageurl.localeCompare('') !== 0) {
       return new URL(recipe.imageurl, location.toString()).href
     }

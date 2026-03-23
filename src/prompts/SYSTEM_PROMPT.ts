@@ -43,8 +43,6 @@ recalc_exp:
 sections:
   - section: <name-or-empty>
 lastUpdated:
-cloud_images:
-  - <filename-or-base64>
 
 Alle Felder müssen IMMER vorhanden sein, auch wenn leer.
 

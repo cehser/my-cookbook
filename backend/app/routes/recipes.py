@@ -10,9 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_admin, require_editor
 from app.database import get_db
+from app.models.image import RecipeImage
 from app.models.recipe import Recipe
 from app.models.tag import RecipeTag, Tag
 from app.models.user import AppUser
+from app.routes.images import download_and_store_image
 from app.schemas.recipe import (
     RecipeCreate,
     RecipeListItem,
@@ -72,7 +74,37 @@ async def _sync_tags(recipe_id: uuid.UUID, tag_names: list[str], db: AsyncSessio
         db.add(RecipeTag(recipe_id=recipe_id, tag_id=tag.id))
 
 
-def _recipe_to_list_item(recipe: Recipe, tags: list[str]) -> RecipeListItem:
+async def _get_first_image_id(
+    recipe_id: uuid.UUID, db: AsyncSession
+) -> uuid.UUID | None:
+    result = await db.execute(
+        select(RecipeImage.id)
+        .where(RecipeImage.recipe_id == recipe_id)
+        .order_by(RecipeImage.sort_order)
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+async def _auto_download_imageurl(
+    recipe: Recipe, db: AsyncSession, uploaded_by: uuid.UUID | None = None
+) -> None:
+    """If recipe.data contains an http(s) imageurl, download it and clear the field."""
+    data = recipe.data or {}
+    url = data.get("imageurl")
+    if not url or not isinstance(url, str) or not url.startswith("http"):
+        return
+
+    img = await download_and_store_image(url, recipe.id, db, uploaded_by=uploaded_by)
+    if img:
+        # Clear imageurl + cloud_images since the image is now stored
+        data = dict(data)
+        data["imageurl"] = None
+        data.pop("cloud_images", None)
+        recipe.data = data
+
+
+def _recipe_to_list_item(recipe: Recipe, tags: list[str], first_image_id: uuid.UUID | None = None) -> RecipeListItem:
     data = recipe.data or {}
     return RecipeListItem(
         id=recipe.id,
@@ -81,17 +113,21 @@ def _recipe_to_list_item(recipe: Recipe, tags: list[str]) -> RecipeListItem:
         subtitle=data.get("subtitle"),
         imageurl=data.get("imageurl"),
         tags=tags,
+        first_image_id=first_image_id,
         updated_at=recipe.updated_at,
         created_by=recipe.created_by,
     )
 
 
-def _recipe_to_response(recipe: Recipe, tags: list[str]) -> RecipeResponse:
+def _recipe_to_response(
+    recipe: Recipe, tags: list[str], first_image_id: uuid.UUID | None = None
+) -> RecipeResponse:
     return RecipeResponse(
         id=recipe.id,
         recipe_name=recipe.recipe_name,
         data=recipe.data or {},
         tags=tags,
+        first_image_id=first_image_id,
         created_by=recipe.created_by,
         updated_by=recipe.updated_by,
         created_at=recipe.created_at,
@@ -156,11 +192,25 @@ async def list_recipes(
     result = await db.execute(query)
     recipes = result.scalars().all()
 
-    # Fetch tags for each recipe
+    # Fetch tags and first image for each recipe
     items = []
+    # Batch fetch first image IDs for all recipes
+    recipe_ids = [r.id for r in recipes]
+    first_images: dict[uuid.UUID, uuid.UUID] = {}
+    if recipe_ids:
+        # Use DISTINCT ON to get the image with lowest sort_order per recipe
+        img_result = await db.execute(
+            select(RecipeImage.recipe_id, RecipeImage.id)
+            .where(RecipeImage.recipe_id.in_(recipe_ids))
+            .order_by(RecipeImage.recipe_id, RecipeImage.sort_order)
+            .distinct(RecipeImage.recipe_id)
+        )
+        for row in img_result:
+            first_images[row[0]] = row[1]
+
     for recipe in recipes:
         tags = await _get_tags_for_recipe(recipe.id, db)
-        items.append(_recipe_to_list_item(recipe, tags))
+        items.append(_recipe_to_list_item(recipe, tags, first_images.get(recipe.id)))
 
     return RecipeListResponse(items=items, total=total, page=page, page_size=page_size)
 
@@ -177,7 +227,8 @@ async def get_recipe(
 ):
     recipe = await _get_recipe_or_404(recipe_id, db)
     tags = await _get_tags_for_recipe(recipe_id, db)
-    return _recipe_to_response(recipe, tags)
+    first_image_id = await _get_first_image_id(recipe_id, db)
+    return _recipe_to_response(recipe, tags, first_image_id)
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +252,9 @@ async def create_recipe(
     db.add(recipe)
     await db.flush()
 
+    # Auto-download imageurl if present
+    await _auto_download_imageurl(recipe, db, user.oidc_sub)
+
     if body.tags:
         await _sync_tags(recipe.id, body.tags, db)
 
@@ -208,7 +262,8 @@ async def create_recipe(
     await db.refresh(recipe)
 
     tags = await _get_tags_for_recipe(recipe.id, db)
-    return _recipe_to_response(recipe, tags)
+    first_image_id = await _get_first_image_id(recipe.id, db)
+    return _recipe_to_response(recipe, tags, first_image_id)
 
 
 # ---------------------------------------------------------------------------
@@ -232,6 +287,9 @@ async def update_recipe(
     recipe.updated_by = user.oidc_sub
     recipe.updated_at = func.now()
 
+    # Auto-download imageurl if present
+    await _auto_download_imageurl(recipe, db, user.oidc_sub)
+
     if body.tags is not None:
         await _sync_tags(recipe_id, body.tags, db)
 
@@ -239,7 +297,8 @@ async def update_recipe(
     await db.refresh(recipe)
 
     tags = await _get_tags_for_recipe(recipe_id, db)
-    return _recipe_to_response(recipe, tags)
+    first_image_id = await _get_first_image_id(recipe_id, db)
+    return _recipe_to_response(recipe, tags, first_image_id)
 
 
 # ---------------------------------------------------------------------------

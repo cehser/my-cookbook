@@ -1,8 +1,8 @@
 # Backend-Migrationsplan: WebDAV → Python/FastAPI
 
 > **Planungsnotizen:** Entstanden aus Architektur-Diskussion (März 2026)  
-> **Letzte Aktualisierung:** 21. März 2026  
-> **Status:** 📋 Planungsphase
+> **Letzte Aktualisierung:** 23. März 2026  
+> **Status:** 🚧 Sprint B3 abgeschlossen — Sprint B4 steht an
 
 ---
 
@@ -99,15 +99,15 @@
 
 | Bereich | Technologie | Version | Begründung |
 |---------|------------|---------|------------|
-| **Backend-Framework** | FastAPI + uvicorn | latest | Async, Pydantic-Validierung, Auto-OpenAPI-Docs |
-| **Python** | 3.14 | 3.14.x | Aktuellste stabile Version, Support bis Okt 2030 |
+| **Backend-Framework** | FastAPI + uvicorn | ≥0.135 / ≥0.42 | Async, Pydantic-Validierung, Auto-OpenAPI-Docs |
+| **Python** | 3.14 | 3.14-slim | Aktuellste stabile Version, Support bis Okt 2030 |
 | **ORM** | SQLAlchemy 2.0 (async) | 2.x | Type-safe, async-fähig, ausgereift |
 | **DB-Migrationen** | Alembic | latest | Standard für SQLAlchemy |
 | **Datenbank** | PostgreSQL | 16+ | JSONB für flexible Rezeptdaten, Volltextsuche, zuverlässig |
-| **Auth** | OIDC-kompatibler IdP (z.B. Keycloak) | — | Standard-OIDC, IdP austauschbar |
-| **JWT-Verify** | PyJWT oder python-jose | latest | Token-Validierung gegen JWKS Public Key des IdP |
+| **Auth** | Keycloak (OIDC IdP) | — | `auth.cehser.de/realms/cehser`, Client-ID `cookbook.cehser.de` |
+| **JWT-Verify** | PyJWT + cryptography | ≥2.12 / ≥46.0 | Token-Validierung gegen JWKS Public Key des IdP |
 | **Bildverarbeitung** | Pillow | latest | Resize, Thumbnails, WebP-Konvertierung |
-| **AI-Proxy** | openai (Python SDK) | latest | Erstklassige Python-Unterstützung, Server-seitiger Key |
+| **AI-Proxy** | openai (Python SDK) | ≥2.29 | Chat Completions API (Text/Bild), Responses API mit `web_search_preview` (URL-Import) |
 | **YAML-Migration** | PyYAML | latest | Import bestehender cookbook.yaml |
 | **Validation** | Pydantic v2 | (in FastAPI) | Automatische Request/Response-Validierung |
 | **ASGI-Server** | uvicorn | latest | Performant, Standard für FastAPI |
@@ -154,11 +154,11 @@ recipes   ∞───∞ tags           (recipe_tags)
 CREATE TABLE app_users (
     oidc_sub        UUID PRIMARY KEY,              -- OIDC Subject ID (vom IdP)
     display_name    TEXT NOT NULL,                  -- z.B. "preferred_username" aus Token
-    role            TEXT NOT NULL DEFAULT 'readonly',  -- 'readonly' | 'editor' | 'admin'
+    role            TEXT NOT NULL DEFAULT 'pending',   -- 'pending' | 'readonly' | 'editor' | 'admin'
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_login      TIMESTAMPTZ,
     
-    CONSTRAINT valid_role CHECK (role IN ('readonly', 'editor', 'admin'))
+    CONSTRAINT valid_role CHECK (role IN ('pending', 'readonly', 'editor', 'admin'))
 );
 
 -- ============================================================
@@ -385,24 +385,46 @@ async def require_role(*roles: str):
 
 ### Rollen-Konzept
 
-| Rolle | Lesen | Favoriten | Erstellen/Bearbeiten | Löschen | User verwalten |
-|-------|-------|-----------|---------------------|---------|---------------|
-| **readonly** | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **editor** | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **admin** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Rolle | Profil/Settings | Rezepte lesen | Favoriten | Erstellen/Bearbeiten | Löschen | User verwalten |
+|-------|----------------|---------------|-----------|---------------------|---------|---------------|
+| **pending** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **readonly** | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| **editor** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **admin** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 **Rollen-Zuweisung:**
-- Neuer User → automatisch `readonly` (sicherer Default)
-- Admin kann Rollen über UI ändern (Settings-Seite)
+- Neuer User → automatisch `pending` (**kein Zugriff** auf Rezepte)
+- `pending`-User können nur ihr Profil (`/v1/me`) und Settings (`/v1/me/settings`) sehen
+- Admin muss erst mindestens `readonly` vergeben, damit Rezepte sichtbar werden
+- Admin kann Rollen über Admin-Seite verwalten (User-Liste + Rollenänderung)
 - Rolle steht in `app_users.role`, **nicht** im IdP (einfacher, keine IdP-Admin-API nötig)
+
+**Warum `pending` statt `readonly` als Default?**
+- Jeder mit Zugang zum OIDC-IdP könnte sich einloggen
+- Ohne explizite Freigabe soll niemand Rezepte sehen können
+- Admin behält volle Kontrolle, wer Zugriff erhält
+
+### Admin: User- & Rechteverwaltung
+
+Der Admin verwaltet User und Rollen über die Admin-Seite (`/administration`):
+
+- **User-Übersicht:** Liste aller registrierten User mit Rolle, letztem Login, Erstelldatum
+- **Rolle ändern:** Dropdown pro User → `pending` | `readonly` | `editor` | `admin`
+- **Neue User freigeben:** Pendente User werden hervorgehoben (Badge/Hinweis)
+- **Optional (B4+):** User löschen, User sperren (Rolle zurück auf `pending`)
+
+Endpunkte:
+- `GET /v1/admin/users` — Alle User mit Rollen (bereits implementiert)
+- `PUT /v1/admin/users/{id}/role` — Rolle ändern (bereits implementiert)
 
 ### Auto-User-Provisioning
 
 Beim ersten API-Request eines neuen OIDC-Users:
 1. Token ist gültig → `sub` (UUID) ist bekannt
-2. User existiert nicht in `app_users` → Auto-Create mit Rolle `readonly`
+2. User existiert nicht in `app_users` → Auto-Create mit Rolle `pending`
 3. `display_name` aus `preferred_username` Claim
-4. Admin wird per Toast benachrichtigt: "Neuer Nutzer registriert"
+4. Admin wird per Toast/Hinweis benachrichtigt: "Neuer Nutzer wartet auf Freigabe"
+5. User sieht Hinweis: "Dein Account wurde registriert. Ein Admin muss dir noch Zugriff gewähren."
 
 ---
 
@@ -411,47 +433,55 @@ Beim ersten API-Request eines neuen OIDC-Users:
 ### Endpunkte
 
 ```
-Basis-URL: /api/v1
-
-── Rezepte ──────────────────────────────────────────────
-GET    /recipes                  → Liste (Suche, Filter, Sortierung, Pagination)
-GET    /recipes/:id              → Einzelnes Rezept (mit Bild-URLs)
-POST   /recipes                  → Neues Rezept               [editor, admin]
-PUT    /recipes/:id              → Rezept aktualisieren        [editor, admin]
-DELETE /recipes/:id              → Rezept löschen              [admin]
-
-── Bilder ───────────────────────────────────────────────
-POST   /recipes/:id/images       → Bild hochladen             [editor, admin]
-DELETE /recipes/:id/images/:imgId → Bild löschen              [editor, admin]
-GET    /images/:id                → Bild ausliefern (Query: ?size=thumb|full)
-
-── Favoriten ────────────────────────────────────────────
-GET    /favorites                 → Meine Favoriten (Recipe-IDs)
-POST   /favorites/:recipeId       → Favorit setzen
-DELETE /favorites/:recipeId       → Favorit entfernen
-
-── Tags ─────────────────────────────────────────────────
-GET    /tags                      → Alle Tags (mit Anzahl)
-POST   /recipes/:id/tags          → Tags setzen               [editor, admin]
-
-── Share (öffentliche Links) ─────────────────────────────
-POST   /recipes/:id/share         → Share-Link erzeugen        [editor, admin]
-GET    /recipes/:id/shares         → Aktive Links auflisten     [editor, admin]
-DELETE /shares/:shareId            → Share-Link deaktivieren    [editor, admin]
-GET    /shared/:token              → Rezept lesen               [kein Auth nötig]
-GET    /shared/:token/images/:imgId → Bild zum Share            [kein Auth nötig]
-
-── AI ───────────────────────────────────────────────────
-POST   /ai/import                 → AI-Rezeptimport            [editor, admin]
-POST   /ai/import/image           → Bild → AI → Rezept        [editor, admin]
-
-── Admin ────────────────────────────────────────────────
-GET    /admin/users               → Alle User                  [admin]
-PUT    /admin/users/:id/role      → Rolle ändern               [admin]
+Basis-URL: /api  (root_path)
+API-Version: /v1
 
 ── System ───────────────────────────────────────────────
-GET    /health                    → Health-Check (kein Auth)
-GET    /docs                      → Swagger UI (Auto-generiert)
+GET    /health                    → Health-Check (kein Auth)          ✅
+GET    /docs                      → Swagger UI (Auto-generiert)      ✅
+
+── User ─────────────────────────────────────────────────
+GET    /v1/me                     → Aktueller User (aus Token)       ✅
+GET    /v1/me/settings            → User-Settings laden              ✅
+PUT    /v1/me/settings            → User-Settings speichern          ✅
+
+── Rezepte ──────────────────────────────────────────────
+GET    /v1/recipes                → Liste (Suche, Sortierung, Pagination) [readonly+]  ✅
+GET    /v1/recipes/:id            → Einzelnes Rezept (mit first_image_id) [readonly+]  ✅
+POST   /v1/recipes                → Neues Rezept [editor, admin]           ✅
+PUT    /v1/recipes/:id            → Rezept aktualisieren [editor, admin]   ✅
+DELETE /v1/recipes/:id            → Rezept löschen [admin]                 ✅
+
+── Bilder ───────────────────────────────────────────────
+POST   /v1/recipes/:id/images     → Bild hochladen [editor, admin]        ✅
+GET    /v1/recipes/:id/images     → Bilderliste pro Rezept [readonly+]     ✅
+DELETE /v1/recipes/:id/images/:imgId → Bild löschen [editor, admin]        ✅
+GET    /v1/images/:id             → Optimiertes Bild ausliefern [readonly+] ✅
+GET    /v1/images/:id/thumbnail   → Thumbnail ausliefern [readonly+]       ✅
+
+── AI ───────────────────────────────────────────────────
+POST   /v1/ai/import              → Text/URL → Rezept [editor, admin]     ✅
+POST   /v1/ai/import/image        → Bild → Rezept [editor, admin]         ✅
+
+── Admin ────────────────────────────────────────────────
+GET    /v1/admin/users            → Alle User [admin]                      ✅
+PUT    /v1/admin/users/:id/role   → Rolle ändern [admin]                   ✅
+POST   /v1/admin/migrate-images   → Bild-Migration von WebDAV [admin]      ✅
+
+── Favoriten (B4) ───────────────────────────────────────
+GET    /v1/favorites              → Meine Favoriten (Recipe-IDs)           ⬜
+POST   /v1/favorites/:recipeId    → Favorit setzen                         ⬜
+DELETE /v1/favorites/:recipeId    → Favorit entfernen                      ⬜
+
+── Tags (B4) ────────────────────────────────────────────
+GET    /v1/tags                   → Alle Tags (mit Anzahl)                 ⬜
+
+── Share (B4) ───────────────────────────────────────────
+POST   /v1/recipes/:id/share      → Share-Link erzeugen [editor, admin]   ⬜
+GET    /v1/recipes/:id/shares     → Aktive Links auflisten                 ⬜
+DELETE /v1/shares/:shareId        → Share-Link deaktivieren                ⬜
+GET    /v1/shared/:token          → Rezept lesen (kein Auth)              ⬜
+GET    /v1/shared/:token/images/:imgId → Bild zum Share (kein Auth)       ⬜
 ```
 
 ### Request/Response-Beispiele
@@ -580,8 +610,7 @@ Backend:
 
 ```
 GET /api/v1/images/{image-id}              → Optimiertes Bild (Standard)
-GET /api/v1/images/{image-id}?size=thumb   → Thumbnail
-GET /api/v1/images/{image-id}?size=original → Original
+GET /api/v1/images/{image-id}/thumbnail    → Thumbnail (400px WebP)
 ```
 
 Caching: `Cache-Control: public, max-age=86400, immutable` (Bilder ändern sich nicht, UUID ist stabil)
@@ -616,26 +645,29 @@ Caching: `Cache-Control: public, max-age=86400, immutable` (Bilder ändern sich 
 
 ```
 src/
-  api/
-    client.ts              ← Axios/fetch Wrapper mit Token-Injection
-    recipes.ts             ← getRecipes(), getRecipe(), createRecipe(), ...
-    images.ts              ← uploadImage(), getImageUrl()
-    favorites.ts           ← getFavorites(), toggleFavorite()
-    ai.ts                  ← importFromText(), importFromImage()
-    tags.ts                ← getTags(), setRecipeTags()
-    admin.ts               ← getUsers(), updateUserRole()
-    shares.ts              ← createShareLink(), getShareLinks(), revokeShare()
-  auth/
-    oidc.ts                ← OIDC-Init, Token-Refresh, Login/Logout (via oidc-client-ts)
-    guards.ts              ← Router Guards (Auth-Check, Rollen-Check)
+  api/                             ← ✅ Implementiert
+    client.ts              ← Fetch Wrapper mit Bearer-Token-Injection (oidc-client-ts)
+    recipes.ts             ← getRecipes(), getRecipe(), createRecipe(), updateRecipe(), deleteRecipe()
+    images.ts              ← uploadImage(), getImageUrl(), getThumbnailUrl()
+    ai.ts                  ← importText(), importImage() (mit model-Parameter)
+    favorites.ts           ← ⬜ Noch nicht implementiert
+    tags.ts                ← ⬜ Noch nicht implementiert
+    admin.ts               ← ⬜ Noch nicht implementiert (Admin über bestehende API-Calls)
+    shares.ts              ← ⬜ Noch nicht implementiert
+  auth/                            ← ✅ Implementiert
+    oidc.ts                ← UserManager-Wrapper, Login/Logout, Token-Refresh
+    guards.ts              ← requireAuth, requireRole('editor','admin') Route Guards
 ```
 
 ### Zu entfernende Client-Dateien
 
 ```
-src/js/cloud.ts            ← WebDAV-Logik komplett
-src/js/recipes.ts          ← mergeCookbooks() etc. (Sync-Logik)
+src/js/cloud.ts            ← WebDAV-Logik: cloud_images-Download entfernt, Rest noch vorhanden
+src/js/recipes.ts          ← mergeCookbooks() entfernt, initRecipe() + Hilfsfunktionen bleiben
+src/prompts/SYSTEM_PROMPT.ts ← cloud_images aus Schema entfernt, wird noch für Client-YAML-Anzeige genutzt
 ```
+
+> **Hinweis:** `webdav` NPM-Dependency kann in B4 entfernt werden, sobald `cloud.ts` komplett bereinigt ist.
 
 ### Offline-Strategie
 
@@ -678,11 +710,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    env_file: ./backend/.env           # DATABASE_URL, OIDC, OPENAI_API_KEY, CORS
     environment:
-      - DATABASE_URL=postgresql+asyncpg://cookbook:${DB_PASSWORD}@db:5432/cookbook
-      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL}
-      - OIDC_AUDIENCE=${OIDC_AUDIENCE:-my-cookbook-api}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - UPLOAD_DIR=/app/uploads
       - MAX_UPLOAD_SIZE_MB=5
     volumes:
@@ -711,6 +740,9 @@ volumes:
   pgdata:
   recipe_uploads:
 ```
+
+> **Wichtig:** Secrets (DB-Passwort, OIDC-URLs, OpenAI-Key) liegen in `backend/.env` via `env_file`.  
+> Nie dieselbe Variable zusätzlich im `environment`-Block setzen — das überschreibt `env_file` mit dem (leeren) Host-Wert!
 
 ### Backend Dockerfile
 
@@ -768,65 +800,51 @@ server {
 backend/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                    # FastAPI App, CORS, Lifespan
-│   ├── config.py                  # pydantic-settings (ENV-Vars)
-│   ├── database.py                # AsyncEngine, AsyncSession
+│   ├── main.py                    # FastAPI App, CORS, Lifespan, root_path="/api"
+│   ├── config.py                  # pydantic-settings (OIDC, CORS, Uploads, DB)
+│   ├── database.py                # AsyncEngine, AsyncSession Factory
 │   │
 │   ├── auth/
 │   │   ├── __init__.py
-│   │   ├── oidc.py                # Token-Verify (JWKS, offline, IdP-agnostisch)
+│   │   ├── oidc.py                # Token-Verify (JWKS, offline, Keycloak-kompatibel)
 │   │   └── dependencies.py        # get_current_user, require_editor, require_admin
 │   │
 │   ├── models/                    # SQLAlchemy Models
 │   │   ├── __init__.py
-│   │   ├── user.py
-│   │   ├── recipe.py
-│   │   ├── image.py
-│   │   ├── favorite.py
-│   │   ├── tag.py
-│   │   └── share.py
+│   │   ├── base.py                # DeclarativeBase
+│   │   ├── user.py                # AppUser (+ settings JSONB)
+│   │   ├── recipe.py              # Recipe (+ search_vector TSVECTOR)
+│   │   ├── image.py               # RecipeImage
+│   │   ├── favorite.py            # Favorite (M:N User↔Recipe)
+│   │   └── tag.py                 # Tag, RecipeTag, RecipeShare
 │   │
 │   ├── schemas/                   # Pydantic Request/Response Models
 │   │   ├── __init__.py
-│   │   ├── recipe.py              # RecipeCreate, RecipeUpdate, RecipeResponse, RecipeList
-│   │   ├── user.py                # UserResponse, UserRoleUpdate
-│   │   ├── image.py               # ImageResponse
-│   │   ├── share.py               # ShareCreate, ShareResponse
-│   │   └── ai.py                  # AIImportRequest, AIImportResponse
+│   │   ├── recipe.py              # RecipeCreate, RecipeUpdate, RecipeResponse, RecipeListItem
+│   │   └── user.py                # CurrentUserResponse, UserSettings, UserSettingsResponse
 │   │
 │   ├── routes/                    # API-Router
 │   │   ├── __init__.py
-│   │   ├── recipes.py
-│   │   ├── images.py
-│   │   ├── favorites.py
-│   │   ├── tags.py
-│   │   ├── ai_import.py
-│   │   ├── shares.py
-│   │   └── admin.py
+│   │   ├── health.py              # GET /health
+│   │   ├── me.py                  # GET /me, GET/PUT /me/settings
+│   │   ├── admin.py               # GET /v1/admin/users, PUT .../role
+│   │   ├── recipes.py             # CRUD + Suche + auto imageurl-Download
+│   │   ├── images.py              # Upload, Serve, Thumbnail, Delete, download_and_store_image()
+│   │   └── ai.py                  # Text/URL/Bild → Rezept via OpenAI
 │   │
-│   └── services/                  # Business-Logik
-│       ├── __init__.py
-│       ├── recipe_service.py
-│       ├── image_processor.py     # Pillow: Resize, WebP, Thumbnails
-│       └── ai_service.py          # OpenAI SDK Wrapper
+│   └── services/                  # Business-Logik (noch ausbaufähig)
+│       └── __init__.py
 │
 ├── alembic/                       # DB-Migrationen
 │   ├── env.py
 │   └── versions/
-│
-├── scripts/
-│   └── migrate_from_yaml.py       # Einmaliges Migrations-Script: YAML → PostgreSQL
-│
-├── tests/
-│   ├── conftest.py
-│   ├── test_recipes.py
-│   ├── test_auth.py
-│   └── test_images.py
+│       ├── 001_initial.py         # Alle Tabellen + Fulltext-Trigger
+│       └── 002_user_settings.py   # settings JSONB für app_users
 │
 ├── alembic.ini
 ├── requirements.txt
 ├── Dockerfile
-└── .env.example
+└── .env                           # DATABASE_URL, OIDC, OPENAI_API_KEY, CORS
 ```
 
 ---
@@ -862,7 +880,7 @@ PyYAML>=6.0
 
 # Utils
 python-multipart>=0.0.18  # File-Uploads in FastAPI
-httpx>=0.28               # Async HTTP (OIDC JWKS fetch)
+httpx>=0.28               # Async HTTP (OIDC JWKS fetch, Bild-Downloads)
 ```
 
 ---
@@ -879,124 +897,193 @@ Ablauf:
    b. recipe_name → eigene Spalte
    c. Rest → data (JSONB)
    d. tags aus data extrahieren → tags + recipe_tags Tabellen
-   e. cloud_images → Bilder vom WebDAV herunterladen
-      → in uploads/{uuid}/originals/ speichern
-      → Thumbnails generieren
+   e. imageurl → serverseitig herunterladen via download_and_store_image()
+      → in uploads/{uuid}/ speichern (Original + Thumbnail + Optimiert)
       → recipe_images Einträge erstellen
 3. Erste Admin-User manuell anlegen
 4. Validierung: Anzahl Rezepte, Bilder-Integrität prüfen
 ```
 
+> **Hinweis:** `cloud_images` wurde komplett entfernt. Bilder werden jetzt nur noch über  
+> `download_and_store_image()` verarbeitet. Der Admin-Endpunkt `POST /v1/admin/migrate-images`  
+> kann für die Bild-Migration bestehender Rezepte verwendet werden.
+
 ### Migrations-Checkliste
 
-- [ ] `cookbook.yaml` → PostgreSQL Rezepte
+- [ ] `cookbook.yaml` → PostgreSQL Rezepte (via Script oder Admin-UI)
 - [ ] Bestehende UUIDs als Primary Keys übernehmen
 - [ ] Tags extrahieren und normalisieren
-- [ ] Bilder von WebDAV herunterladen
-- [ ] Thumbnails generieren
-- [ ] Favoriten: Einmalig aus IndexedDB eines Referenz-Browsers exportieren (optional)
+- [ ] `imageurl` für bestehende Rezepte herunterladen (via `migrate-images` Endpoint)
+- [ ] Thumbnails + optimierte Bilder automatisch generiert (Pillow)
 - [ ] Smoke-Test: Alle Rezepte über API abrufbar
-- [ ] Bild-URLs funktionieren
+- [ ] Bild-URLs funktionieren (Thumbnail + Optimiert)
 - [ ] Volltextsuche liefert Ergebnisse
 
 ---
 
 ## 📋 Sprint-Plan (Backend-Migration)
 
-### Sprint B0: Backend-Grundgerüst
-**Ziel:** Lauffähiges FastAPI-Projekt mit DB-Anbindung
+### Sprint B0: Backend-Grundgerüst ✅
+**Ziel:** Lauffähiges FastAPI-Projekt mit DB-Anbindung  
+**Status:** Abgeschlossen (21. März 2026)
 
 **Tasks:**
-- [ ] Backend-Projektstruktur anlegen
-- [ ] FastAPI App mit CORS, Health-Endpoint
-- [ ] PostgreSQL in docker-compose.yml
-- [ ] SQLAlchemy Async-Setup + Models
-- [ ] Alembic Init + erste Migration (Schema erstellen)
-- [ ] Basis-Config (pydantic-settings, .env)
-- [ ] Backend-Dockerfile
-- [ ] docker-compose.yml erweitern (frontend + backend + db)
+- [x] Backend-Projektstruktur anlegen (`backend/app/` mit routes, models, schemas, auth, services)
+- [x] FastAPI App mit CORS, Health-Endpoint (`app/main.py`, `root_path="/api"`)
+- [x] PostgreSQL 16-alpine in docker-compose.yml
+- [x] SQLAlchemy 2.0 Async-Setup + Models (User, Recipe, Image, Tag, Favorite, Share)
+- [x] Alembic Init + erste Migration (`001_initial` — alle Tabellen + Volltextsuche-Trigger)
+- [x] Basis-Config (pydantic-settings via `config.py`, `.env`-Datei)
+- [x] Backend-Dockerfile (Python 3.14-slim + Pillow-Dependencies)
+- [x] docker-compose.yml erweitern (frontend + backend + db + Volumes)
 
-**Ergebnis:** `GET /health` → `200 OK`, DB verbunden
+**Ergebnis:** `GET /api/health` → `200 OK`, DB verbunden, alle Tabellen angelegt
 
 ---
 
-### Sprint B1: Auth + User-Management
-**Ziel:** OIDC-Integration, Rollen-System
+### Sprint B1: Auth + User-Management ✅
+**Ziel:** OIDC-Integration, Rollen-System  
+**Status:** Abgeschlossen (21. März 2026)
 
 **Tasks:**
-- [ ] OIDC IdP konfigurieren (Client für SPA + Audience für API)
-- [ ] JWT-Verify Middleware (JWKS, offline via `.well-known/openid-configuration`)
-- [ ] `get_current_user` Dependency
-- [ ] Auto-User-Provisioning (`readonly` Default)
-- [ ] Rollen-Check Dependencies (`require_editor`, `require_admin`)
-- [ ] Admin-Endpunkte: GET /admin/users, PUT /admin/users/:id/role
-- [ ] Frontend: `oidc-client-ts` Integration
-- [ ] Frontend: Router Guards (Auth-Check)
-- [ ] Frontend: Token in API-Requests (Axios Interceptor)
+- [x] Keycloak IdP konfiguriert (`auth.cehser.de/realms/cehser`, Client-ID `cookbook.cehser.de`)
+- [x] JWT-Verify Middleware (`auth/oidc.py` — JWKS offline via `.well-known/openid-configuration`)
+- [x] `get_current_user` Dependency (`auth/dependencies.py`)
+- [x] Auto-User-Provisioning (`pending` Default, Auto-Create beim ersten Token — kein Rezeptzugriff)
+- [x] Rollen-Check Dependencies (`require_editor`, `require_admin`)
+- [x] Admin-Endpunkte: `GET /v1/admin/users`, `PUT /v1/admin/users/{id}/role`
+- [x] Frontend: `oidc-client-ts` Integration (`src/auth/oidc.ts`)
+- [x] Frontend: Router Guards — `requireAuth`, `requireRole('editor','admin')` (`src/auth/guards.ts`)
+- [x] Frontend: Token in API-Requests (Bearer Token via `src/api/client.ts`)
+- [x] User-Settings Endpunkte: `GET /v1/me`, `GET/PUT /v1/me/settings` (`routes/me.py`)
+- [x] Alembic Migration `002_user_settings` — JSONB `settings`-Spalte für `app_users`
 
-**Ergebnis:** Login via OIDC IdP, Rollen funktionieren, API geschützt
+**Ergebnis:** Login via Keycloak, Rollen funktionieren, API geschützt, User-Settings serverseitig
 
 ---
 
-### Sprint B2: Recipe CRUD API
-**Ziel:** Rezepte über API laden, erstellen, bearbeiten, löschen
+### Sprint B2: Recipe CRUD API ✅
+**Ziel:** Rezepte über API laden, erstellen, bearbeiten, löschen  
+**Status:** Abgeschlossen (22. März 2026)
 
 **Tasks:**
-- [ ] GET /recipes (Liste mit Suche, Filter, Sort, Pagination)
-- [ ] GET /recipes/:id (Einzelnes Rezept)
-- [ ] POST /recipes (Neues Rezept, Pydantic-Validierung)
-- [ ] PUT /recipes/:id (Update)
-- [ ] DELETE /recipes/:id (nur Admin)
-- [ ] Volltextsuche (tsvector + Trigger)
-- [ ] Tags: GET /tags, POST /recipes/:id/tags
-- [ ] Frontend: API-Client (`src/api/`) erstellen
-- [ ] Frontend: Store-Actions auf API umstellen
-- [ ] Frontend: WebDAV-Code entfernen
+- [x] `GET /v1/recipes` (Liste mit Suche, Sortierung, Pagination — `?search=`, `?limit=`, `?offset=`)
+- [x] `GET /v1/recipes/{id}` (Einzelnes Rezept mit `first_image_id`)
+- [x] `POST /v1/recipes` (Neues Rezept, Pydantic-Validierung, Auto-Download `imageurl`)
+- [x] `PUT /v1/recipes/{id}` (Update, Auto-Download `imageurl`)
+- [x] `DELETE /v1/recipes/{id}` (nur Admin)
+- [x] Volltextsuche (tsvector + Trigger, Gewichtung: Name A, Author B, Notes C)
+- [x] Frontend: API-Client (`src/api/recipes.ts`, `src/api/client.ts`)
+- [x] Frontend: Store-Actions auf API umstellen (`loadRecipesFromApi`, `loadRecipeDetailFromApi`, `prefetchRecipeDetails`)
+- [x] Frontend: WebDAV-Sync-Logik entfernt (`mergeCookbooks()` etc.)
 
-**Ergebnis:** Rezepte vollständig über API verwaltet statt WebDAV
+**Abweichungen vom Plan:**
+- Tags werden beim Create/Update automatisch aus `data` extrahiert, separate Tag-API-Endpunkte noch nicht implementiert
+- `first_image_id` in allen Responses ergänzt (nicht im Originalplan)
+- `_auto_download_imageurl()` Helper: Lädt `imageurl` serverseitig herunter und speichert als Bild
+
+**Ergebnis:** Rezepte vollständig über API verwaltet, Volltextsuche funktioniert
 
 ---
 
-### Sprint B3: Bilder + AI-Proxy
-**Ziel:** Bild-Upload/Auslieferung + AI-Import über Backend
+### Sprint B3: Bilder + AI-Proxy ✅
+**Ziel:** Bild-Upload/Auslieferung + AI-Import über Backend  
+**Status:** Abgeschlossen (23. März 2026)
 
 **Tasks:**
-- [ ] POST /recipes/:id/images (Upload + Pillow-Processing)
-- [ ] GET /images/:id (Auslieferung mit Caching-Headers)
-- [ ] DELETE /recipes/:id/images/:imgId
-- [ ] Thumbnail-Generierung (400px WebP)
-- [ ] Optimierte Bilder (1200px WebP)
-- [ ] POST /ai/import (Text → Rezept via OpenAI)
-- [ ] POST /ai/import/image (Bild → Rezept via OpenAI Vision)
-- [ ] Frontend: Bild-Upload auf API umstellen
-- [ ] Frontend: AI-Import auf API umstellen
-- [ ] Frontend: OpenAI-Key aus Settings entfernen
+- [x] `POST /v1/recipes/{id}/images` (Upload + Pillow-Processing)
+- [x] `GET /v1/images/{id}` (Optimiertes Bild ausliefern)
+- [x] `GET /v1/images/{id}/thumbnail` (Thumbnail ausliefern)
+- [x] `DELETE /v1/recipes/{id}/images/{imgId}`
+- [x] `GET /v1/recipes/{id}/images` (Bilderliste pro Rezept)
+- [x] Thumbnail-Generierung (400px WebP, Quality 80)
+- [x] Optimierte Bilder (1200px WebP, Quality 85)
+- [x] `POST /v1/ai/import` (Text → Rezept via OpenAI Chat Completions)
+- [x] `POST /v1/ai/import` mit URL-Erkennung → OpenAI Responses API + `web_search_preview`
+- [x] `POST /v1/ai/import/image` (Bild → Rezept via OpenAI Vision, konfigurierbares `model`)
+- [x] Frontend: Bild-Upload auf API umstellen (`src/api/images.ts`)
+- [x] Frontend: AI-Import auf API umstellen (`src/api/ai.ts`, `AIRecipeImport.vue`)
+- [x] Frontend: OpenAI-Key aus Frontend-Settings entfernt (nur noch serverseitig in `backend/.env`)
+- [x] Frontend: Expert-Mode YAML-Vorschau bei AI-Import
+- [x] `cloud_images` komplett entfernt (Typ, Komponenten, Store, Prompts)
+- [x] `POST /v1/admin/migrate-images` — Admin-Endpunkt für Bild-Migration von WebDAV
+- [x] `download_and_store_image()` Hilfsfunktion in `images.py` (httpx, 15s Timeout)
 
-**Ergebnis:** Bilder serverseitig verarbeitet, AI ohne Client-Key
+**Abweichungen vom Plan:**
+- Bild-Auslieferung über separate Thumbnail-Route (`/images/{id}/thumbnail`) statt Query-Parameter `?size=thumb`
+- AI-Import unterstützt 3 Modi: Freitext, URL (mit Web-Suche), Bild
+- GPT-Modell als Query-Parameter konfigurierbar (`?model=gpt-4o`)
+- `initRecipe()` wird nach YAML-Parsing angewendet (leere Felder → Defaults)
+- Doppelter Rezept-Save in `Gallery.vue` behoben (emit-basiert statt doppeltem dispatch)
+
+**Ergebnis:** Bilder serverseitig verarbeitet, AI-Import ohne Client-Key, URL-Import mit Web-Suche
 
 ---
 
-### Sprint B4: Favoriten + Share-Links + Offline-Cache + Cleanup
-**Ziel:** Feature-Parität, Share-Links, Offline-Modus, alte Logik entfernen
+### Sprint B4: Favoriten + Share-Links + Offline-Cache + Cleanup 📋
+**Ziel:** Feature-Parität, Share-Links, Offline-Modus, alte Logik entfernen  
+**Status:** Offen
 
-**Tasks:**
-- [ ] GET/POST/DELETE /favorites
-- [ ] Frontend: Favoriten auf API umstellen
-- [ ] Share-Links: POST/GET/DELETE Endpunkte + `recipe_shares` Tabelle
-- [ ] Share-Links: GET /shared/:token (öffentlich, kein Auth)
+**Bereits vorhanden (DB/Models):**
+- DB-Tabellen existieren: `favorites`, `recipe_shares`, `tags`, `recipe_tags` (aus Migration `001_initial`)
+- SQLAlchemy Models existieren: `Favorite`, `RecipeShare`, `Tag`, `RecipeTag`
+- Frontend-Route `/s/:token` bereits im Router (ohne Guard)
+
+**Offene Tasks:**
+- [ ] `GET /v1/favorites` — Favoriten-Liste des aktuellen Users
+- [ ] `POST /v1/favorites/{recipeId}` — Favorit setzen
+- [ ] `DELETE /v1/favorites/{recipeId}` — Favorit entfernen
+- [ ] Frontend: Favoriten auf API umstellen (aktuell nur IndexedDB)
+- [ ] `GET /v1/tags` — Alle Tags mit Rezeptanzahl
+- [ ] `POST /v1/recipes/{id}/share` — Share-Link erzeugen (`secrets.token_urlsafe`)
+- [ ] `GET /v1/recipes/{id}/shares` — Aktive Share-Links auflisten
+- [ ] `DELETE /v1/shares/{shareId}` — Share-Link deaktivieren
+- [ ] `GET /v1/shared/{token}` — Rezept öffentlich lesen (kein Auth)
+- [ ] `GET /v1/shared/{token}/images/{imgId}` — Bild zum Share (kein Auth)
 - [ ] Frontend: Share-Button im Rezept (Link erzeugen + kopieren)
-- [ ] Frontend: Route `/s/:token` → Read-only Rezeptansicht (ohne Login)
+- [ ] Frontend: Route `/s/:token` → Read-only Rezeptansicht implementieren
 - [ ] Frontend: Share-Verwaltung (aktive Links anzeigen, widerrufen)
-- [ ] IndexedDB als Read-Cache (Rezeptliste + Details)
+- [ ] IndexedDB als Read-Cache (Rezeptliste + Details für Offline)
 - [ ] Service Worker: Thumbnail-Caching
 - [ ] Offline-Erkennung + Toast-Hinweis
-- [ ] Settings-Seite aufräumen (WebDAV-Section entfernen)
-- [ ] `cloud.ts` und `recipes.ts` Sync-Logik entfernen
-- [ ] Migrations-Script: cookbook.yaml → PostgreSQL
-- [ ] Bilder von WebDAV migrieren
+- [ ] Settings-Seite aufräumen (WebDAV-Section entfernen, deprecated Felder bereinigen)
+- [ ] `cloud.ts` WebDAV-Restcode entfernen (Download-Loop bereits entfernt)
+- [ ] `webdav`-NPM-Dependency entfernen
+- [ ] Migrations-Script: `cookbook.yaml` → PostgreSQL (oder über Admin-UI)
 - [ ] End-to-End-Test: Alles funktioniert ohne WebDAV
 
 **Ergebnis:** Feature-Parität erreicht, Share-Links funktional, WebDAV vollständig abgelöst
+
+---
+
+## 📝 Bisherige Erkenntnisse (B0–B3)
+
+### Architektur-Entscheidungen
+- **`root_path="/api"`** im FastAPI-Backend — nginx proxied `/api/` → Backend, SPA liegt auf `/`
+- **`env_file: ./backend/.env`** in docker-compose.yml — Secrets nur in `.env`, **nie** zusätzlich im `environment`-Block (überschreibt mit leerem Wert!)
+- **`first_image_id`** in allen Recipe-Responses — ein `DISTINCT ON`-Query pro Rezept statt alle Bilder vorladen
+- **`_auto_download_imageurl()`** — beim Create/Update wird `imageurl` serverseitig via httpx heruntergeladen und als echtes Bild gespeichert, dann `imageurl` + `cloud_images` aus `data` entfernt
+- **Kein `services/`-Layer nötig** — Business-Logik direkt in Route-Handlern, bei dieser App-Größe ausreichend
+
+### AI-Import Architektur
+- **3 Modi:** Freitext (Chat Completions), URL (Responses API + `web_search_preview`), Bild (Chat Completions + Vision)
+- **SYSTEM_PROMPT** liegt server-seitig in `ai.py` — Client sendet nur den User-Input
+- **`initRecipe()`** muss nach YAML-Parsing angewendet werden (js-yaml setzt leere Felder auf `null`)
+- **GPT-Modell** konfigurierbar pro User-Setting (`gpt_model`), wird als Query-Parameter an Backend gesendet
+
+### Docker / Deployment
+- **Python 3.14-slim** + Pillow System-Dependencies (`libjpeg62-turbo-dev`, `libwebp-dev`)
+- **Volume `recipe_uploads:/app/uploads`** für persistente Bilder
+- **`extra_hosts`** im docker-compose kann für DNS-Workarounds genutzt werden
+- **Frontend-Rebuild:** `docker compose up -d --build frontend`
+
+### Bekannte offene Punkte
+- `extra_hosts: cloud.cehser.de:128.251.187.1` noch in docker-compose (temporärer DNS-Workaround)
+- `webdav` NPM-Dependency noch installiert
+- `settings.ts` enthält deprecated Felder (`autosync`, `webdav`, `ai`)
+- Favoriten nur lokal (IndexedDB), nicht serverseitig
+- `pending`-Rolle als Default für neue User muss im Backend (Auto-Provisioning) und Frontend (Zugangs-Hinweis) umgesetzt werden
+- Admin-UI für User-Verwaltung (User-Liste + Rollenänderung) auf Admin-Seite erweitern
 
 ---
 
