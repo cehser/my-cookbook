@@ -15,6 +15,18 @@ export interface SiteSettings {
   max_share_days: number
 }
 
+export interface AdminShare {
+  id: string
+  recipe_id: string
+  recipe_name: string
+  token: string
+  created_by: string
+  created_by_name: string
+  created_at: string
+  expires_at: string | null
+  is_active: boolean
+}
+
 export const adminApi = {
   listUsers: () => api.get<AdminUser[]>('/admin/users'),
 
@@ -25,4 +37,8 @@ export const adminApi = {
 
   updateSettings: (settings: SiteSettings) =>
     api.put<SiteSettings>('/admin/settings', settings),
+
+  listShares: () => api.get<AdminShare[]>('/admin/shares'),
+
+  revokeShare: (shareId: string) => api.delete(`/admin/shares/${shareId}`),
 }

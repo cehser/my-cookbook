@@ -82,6 +82,62 @@
 
       <hr />
 
+      <!-- Share-Links Übersicht (Admin only) -->
+      <div v-if="settings.role === 'admin'" class="mb-4">
+        <h4><i class="bi bi-share"></i> Share-Links</h4>
+        <div v-if="sharesLoading" class="text-muted">Lade Share-Links…</div>
+        <div v-else-if="!shares.length" class="text-muted">Keine Share-Links vorhanden.</div>
+        <div v-else class="table-responsive">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Rezept</th>
+                <th>Link</th>
+                <th>Erstellt von</th>
+                <th>Erstellt am</th>
+                <th>Läuft ab</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="s in shares" :key="s.id" :class="shareRowClass(s)">
+                <td>{{ s.recipe_name }}</td>
+                <td>
+                  <div class="d-flex align-items-center gap-1">
+                    <code class="text-truncate" style="max-width: 120px;" :title="shareUrl(s.token)">{{ s.token }}</code>
+                    <button class="btn btn-sm btn-outline-secondary py-0 px-1" @click="copyShareLink(s.token)" title="Link kopieren">
+                      <i class="bi bi-clipboard"></i>
+                    </button>
+                  </div>
+                </td>
+                <td>{{ s.created_by_name }}</td>
+                <td>{{ formatDate(s.created_at) }}</td>
+                <td>{{ s.expires_at ? formatDate(s.expires_at) : '—' }}</td>
+                <td>
+                  <span v-if="!s.is_active" class="badge bg-secondary">Widerrufen</span>
+                  <span v-else-if="isExpired(s.expires_at)" class="badge bg-danger">Abgelaufen</span>
+                  <span v-else-if="isExpiringSoon(s.expires_at)" class="badge bg-warning text-dark">Läuft bald ab</span>
+                  <span v-else class="badge bg-success">Aktiv</span>
+                </td>
+                <td>
+                  <button
+                    v-if="s.is_active && !isExpired(s.expires_at)"
+                    class="btn btn-sm btn-outline-danger"
+                    @click="revokeShare(s)"
+                    title="Widerrufen"
+                  >
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr />
+
       <div class="d-flex flex-wrap">
         <BButton
           v-if="!settings.read_only && settings.role === 'admin'"
@@ -177,6 +233,8 @@ export default {
       usersLoading: false,
       usersError: null,
       siteMaxShareDays: 30,
+      shares: [],
+      sharesLoading: false,
     };
   },
   computed: {
@@ -189,6 +247,7 @@ export default {
   mounted() {
     this.loadUsers();
     this.loadSiteSettings();
+    this.loadShares();
     document.onkeydown = (event) => {
       //ctrl + s
       if (event.ctrlKey && event.code === "KeyS") {
@@ -198,6 +257,50 @@ export default {
     };
   },
   methods: {
+    formatDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    },
+    isExpired(expiresAt) {
+      return expiresAt && new Date(expiresAt) < new Date();
+    },
+    isExpiringSoon(expiresAt) {
+      if (!expiresAt) return false;
+      const diff = new Date(expiresAt) - new Date();
+      return diff > 0 && diff < 3 * 24 * 60 * 60 * 1000;
+    },
+    shareRowClass(s) {
+      if (!s.is_active) return 'text-muted';
+      if (this.isExpired(s.expires_at)) return 'text-muted';
+      return '';
+    },
+    shareUrl(token) {
+      return `${window.location.origin}/s/${token}`;
+    },
+    async copyShareLink(token) {
+      try {
+        await navigator.clipboard.writeText(this.shareUrl(token));
+      } catch {}
+    },
+    async loadShares() {
+      this.sharesLoading = true;
+      try {
+        this.shares = await adminApi.listShares();
+      } catch (e) {
+        console.error('Failed to load shares', e);
+      } finally {
+        this.sharesLoading = false;
+      }
+    },
+    async revokeShare(share) {
+      if (!confirm(`Share-Link für "${share.recipe_name}" widerrufen?`)) return;
+      try {
+        await adminApi.revokeShare(share.id);
+        share.is_active = false;
+      } catch (e) {
+        console.error('Failed to revoke share', e);
+      }
+    },
     async loadUsers() {
       this.usersLoading = true;
       this.usersError = null;

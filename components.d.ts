@@ -50,6 +50,7 @@ declare module 'vue' {
     MobileIngredientsBar: typeof import('./src/components/recipe/display/MobileIngredientsBar.vue')['default']
     PortionControl: typeof import('./src/components/recipe/display/PortionControl.vue')['default']
     RecipeCard: typeof import('./src/components/recipe/ui/RecipeCard.vue')['default']
+    RecipeDisplay: typeof import('./src/components/recipe/display/RecipeDisplay.vue')['default']
     RecipeFabMenu: typeof import('./src/components/recipe/ui/RecipeFabMenu.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

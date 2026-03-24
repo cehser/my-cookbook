@@ -31,335 +31,89 @@
       @cancel="cancelInlineEdit"
     />
 
-    <!-- Desktop/Tablet: Split-View Layout -->
-    <div v-if="isDesktopOrTablet" class="recipe-container split-view">
-      <div class="split-layout">
-        <!-- Left Column: Sticky Ingredients -->
-        <aside class="ingredients-column">
-          <div class="sticky-wrapper">
-            <div class="card rounded-0">
-              <div class="card-header">
-                <h3 class="card-title mb-0">Zutaten</h3>
-
-                <!-- Portionen-Kontrolle (Desktop) -->
-                <PortionControl
-                  v-if="!editMode"
-                  :yields-value="yields_value"
-                  :yields-unit="yields_unit"
-                  variant="desktop"
-                  @update:yields="setYieldsValue"
-                />
-
-                <!-- Filter Toggle (Desktop) -->
-                <div
-                  v-if="!editMode && current_recipe.sections.length > 1"
-                  class="filter-controls mt-3"
-                >
-                  <BButton
-                    size="sm"
-                    :variant="
-                      showAllIngredients ? 'primary' : 'outline-secondary'
-                    "
-                    @click="showAllIngredients = true"
-                  >
-                    Alle Zutaten
-                  </BButton>
-                  <BButton
-                    v-if="activeSection"
-                    size="sm"
-                    :variant="
-                      !showAllIngredients ? 'primary' : 'outline-secondary'
-                    "
-                    @click="showAllIngredients = false"
-                  >
-                    Nur aktuell
-                  </BButton>
-                </div>
-              </div>
-              <div class="card-body">
-                <!-- Zutaten-Sections (Desktop) -->
-                <IngredientsSection
-                  :sections="visibleDesktopSections"
-                  :active-section="activeSection"
-                  :ingredients="current_recipe.ingredients"
-                  :yields-value="yields_value"
-                  :inline-editable="inlineEditMode"
-                  :dirty-items="dirtyItems"
-                  @changed="handleIngredientChanged"
-                  @unchanged="handleIngredientUnchanged"
-                />
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <!-- Right Column: Recipe Content -->
-        <main class="steps-column">
-          <div class="card rounded-0">
-            <div id="recipe_title_container" class="recipe-image-container">
-              <img
-                class="card-img-top rounded-0"
-                id="recipe_img"
-                :src="picture_src"
-                alt="Rezeptbild"
-              />
-              <!-- Favoriten-Stern (immer sichtbar, links oben) -->
-              <div
-                v-if="!settings.read_only"
-                class="favorite-star"
-                @click.prevent.stop="toggleFavorite"
-              >
-                <i
-                  class="bi"
-                  :class="
-                    isFavorite
-                      ? 'bi-star-fill text-warning'
-                      : 'bi-star text-white'
-                  "
-                  :title="
-                    isFavorite
-                      ? 'Aus Favoriten entfernen'
-                      : 'Zu Favoriten hinzufügen'
-                  "
-                ></i>
-              </div>
-              <!-- Metadaten-Button (rechts oben) -->
-              <div
-                class="metadata-toggle-icon"
-                @click.prevent.stop="showMetadata = !showMetadata"
-              >
-                <i class="bi bi-info-circle" title="Metadaten anzeigen"></i>
-              </div>
-
-              <!-- Metadaten-Sidebar-Overlay (Desktop/Tablet) -->
-              <MetadataOverlay
-                :show="showMetadata && !isMobile"
-                :is-mobile="false"
-                :recipe="current_recipe"
-                :yields-value="yields_value"
-                :yields-unit="yields_unit"
-                @close="showMetadata = false"
-              />
-
-              <div class="card-body" id="recipe_title">
-                <h2 class="card-title">
-                  <div v-if="!editMode">
-                    {{ current_recipe.recipe_name }}
-                  </div>
-                  <BFormInput
-                    v-else
-                    v-model="current_recipe.recipe_name"
-                    size="lg"
-                    class="fw-bold"
-                  />
-                </h2>
-                <p
-                  v-if="!editMode && current_recipe.subtitle"
-                  class="card-text"
-                >
-                  {{ current_recipe.subtitle }}
-                </p>
-                <BFormInput
-                  v-else-if="editMode"
-                  v-model="current_recipe.subtitle"
-                  placeholder="Untertitel"
-                />
-
-                <div
-                  v-if="current_recipe.tags && current_recipe.tags.length"
-                  class="mt-2"
-                >
-                  <span
-                    v-for="(tag, idx) in current_recipe.tags"
-                    :key="idx"
-                    class="badge bg-light text-dark me-1"
-                    >{{ tag }}</span
-                  >
-                </div>
-              </div>
-            </div>
-
-            <div class="card-body">
-              <h3>Zubereitung</h3>
-              <StepSection
-                :sections="current_recipe.sections"
-                :steps="current_recipe.steps"
-                :edit-mode="editMode"
-                :inline-editable="inlineEditMode"
-                :dirty-items="dirtyItems"
-                key-prefix="desktop-"
-                @select-step="selectStep"
-                @changed="handleStepChanged"
-                @unchanged="handleStepUnchanged"
-              />
-            </div>
-          </div>
-        </main>
-      </div>
-    </div>
-
-    <!-- Mobile: Bottom Bar Layout -->
-    <div v-else class="recipe-container mobile-view">
-      <div class="recipe-content">
-        <div class="card rounded-0">
-          <div id="recipe_title_container" class="recipe-image-container">
-            <img
-              class="card-img-top rounded-0"
-              id="recipe_img"
-              :src="picture_src"
-              alt="Rezeptbild"
-            />
-
-            <!-- Favoriten-Stern (immer sichtbar, links oben) -->
-            <div
-              v-if="!settings.read_only"
-              class="favorite-star"
-              @click.prevent.stop="toggleFavorite"
-            >
-              <i
-                class="bi"
-                :class="
-                  isFavorite
-                    ? 'bi-star-fill text-warning'
-                    : 'bi-star text-white'
-                "
-                :title="
-                  isFavorite
-                    ? 'Aus Favoriten entfernen'
-                    : 'Zu Favoriten hinzufügen'
-                "
-              ></i>
-            </div>
-
-            <!-- Metadaten-Button (rechts oben) -->
-            <div
-              class="metadata-toggle-icon"
-              @click.prevent.stop="showMetadata = !showMetadata"
-            >
-              <i class="bi bi-info-circle" title="Metadaten anzeigen"></i>
-            </div>
-            <div class="card-body" id="recipe_title">
-              <h2 class="card-title">
-                <div v-if="!editMode">
-                  {{ current_recipe.recipe_name }}
-                </div>
-                <BFormInput
-                  v-else
-                  v-model="current_recipe.recipe_name"
-                  size="lg"
-                  class="fw-bold"
-                />
-              </h2>
-              <p v-if="!editMode && current_recipe.subtitle" class="card-text">
-                {{ current_recipe.subtitle }}
-              </p>
-              <BFormInput
-                v-else-if="editMode"
-                v-model="current_recipe.subtitle"
-                placeholder="Untertitel"
-              />
-
-              <div
-                v-if="current_recipe.tags && current_recipe.tags.length"
-                class="mt-2"
-              >
-                <span
-                  v-for="(tag, idx) in current_recipe.tags"
-                  :key="idx"
-                  class="badge bg-light text-dark me-1"
-                  >{{ tag }}</span
-                >
-              </div>
-            </div>
-          </div>
-
-          <div class="card-body">
-            <h3>Zubereitung</h3>
-            <StepSection
-              :sections="current_recipe.sections"
-              :steps="current_recipe.steps"
-              :edit-mode="editMode"
-              :inline-editable="inlineEditMode"
-              :dirty-items="dirtyItems"
-              key-prefix="mobile-"
-              @select-step="selectStep"
-              @changed="handleStepChanged"
-              @unchanged="handleStepUnchanged"
-            />
-          </div>
+    <!-- Desktop/Tablet: Split-View Layout + Mobile: Bottom Bar Layout -->
+    <RecipeDisplay
+      ref="recipeDisplay"
+      :recipe="current_recipe"
+      :image-src="picture_src"
+      :edit-mode="editMode"
+      :inline-editable="inlineEditMode"
+      :dirty-items="dirtyItems"
+      @ingredient-changed="handleIngredientChanged"
+      @ingredient-unchanged="handleIngredientUnchanged"
+      @step-changed="handleStepChanged"
+      @step-unchanged="handleStepUnchanged"
+    >
+      <template #image-overlays>
+        <div
+          v-if="!settings.read_only"
+          class="favorite-star"
+          @click.prevent.stop="toggleFavorite"
+        >
+          <i
+            class="bi"
+            :class="
+              isFavorite
+                ? 'bi-star-fill text-warning'
+                : 'bi-star text-white'
+            "
+            :title="
+              isFavorite
+                ? 'Aus Favoriten entfernen'
+                : 'Zu Favoriten hinzufügen'
+            "
+          ></i>
         </div>
-      </div>
+      </template>
+      <template v-if="editMode" #title>
+        <BFormInput
+          v-model="current_recipe.recipe_name"
+          size="lg"
+          class="fw-bold"
+        />
+      </template>
+      <template v-if="editMode" #subtitle>
+        <BFormInput
+          v-model="current_recipe.subtitle"
+          placeholder="Untertitel"
+        />
+      </template>
+      <template #after-content>
+        <!-- Floating Action Button (FAB) mit Menü -->
+        <RecipeFabMenu
+          :edit-mode="editMode"
+          :read-only="settings.read_only"
+          :expert-mode="settings.expert_mode"
+          :menu-open="fabMenuOpen"
+          @toggle-menu="fabMenuOpen = !fabMenuOpen"
+          @inline-edit="toggleEditMode"
+          @edit="goToEdit"
+          @copy="copyRecipe"
+          @delete="deleteRecipe"
+          @share="shareRecipe"
+          @export="exportRecipe"
+        />
 
-      <!-- Mobile Bottom Bar -->
-      <MobileIngredientsBar
-        :is-expanded="ingredientsExpanded"
-        :yields-value="yields_value"
-        :yields-unit="yields_unit"
-        :show-only-current-section="showOnlyCurrentSection"
-        :visible-sections="visibleIngredientSections"
-        :sections="current_recipe.sections"
-        :active-section="activeSection"
-        :ingredients="current_recipe.ingredients"
-        :inline-editable="inlineEditMode"
-        :dirty-items="dirtyItems"
-        @open="openIngredientsBar"
-        @close="closeIngredientsBar"
-        @update:yields="setYieldsValue"
-        @update:show-only-current-section="showOnlyCurrentSection = $event"
-        @scroll-to-section="scrollToIngredientSection"
-        @changed="handleIngredientChanged"
-        @unchanged="handleIngredientUnchanged"
-      />
-    </div>
+        <!-- Share Manager Overlay -->
+        <ShareManager
+          :show="showShareManager"
+          :recipe-id="current_recipe?.recipe_uuid"
+          @close="showShareManager = false"
+        />
+      </template>
+    </RecipeDisplay>
 
     </template>
-
-    <!-- Floating Action Button (FAB) mit Menü -->
-    <RecipeFabMenu
-      :edit-mode="editMode"
-      :read-only="settings.read_only"
-      :expert-mode="settings.expert_mode"
-      :menu-open="fabMenuOpen"
-      @toggle-menu="fabMenuOpen = !fabMenuOpen"
-      @inline-edit="toggleEditMode"
-      @edit="goToEdit"
-      @copy="copyRecipe"
-      @delete="deleteRecipe"
-      @share="shareRecipe"
-      @export="exportRecipe"
-    />
-
-    <!-- Mobile: Metadaten Bottom Sheet -->
-    <MetadataOverlay
-      :show="isMobile && showMetadata"
-      :is-mobile="true"
-      :recipe="current_recipe"
-      :yields-value="yields_value"
-      :yields-unit="yields_unit"
-      @close="showMetadata = false"
-    />
-
-    <!-- Share Manager Overlay -->
-    <ShareManager
-      :show="showShareManager"
-      :recipe-id="current_recipe?.recipe_uuid"
-      @close="showShareManager = false"
-    />
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
-import { useViewport } from "@/composables/useViewport";
 import AppNavbar from "@/components/layout/AppNavbar.vue";
-import MetadataOverlay from "@/components/recipe/display/MetadataOverlay.vue";
-import PortionControl from "@/components/recipe/display/PortionControl.vue";
-import IngredientsSection from "@/components/recipe/display/IngredientsSection.vue";
-import MobileIngredientsBar from "@/components/recipe/display/MobileIngredientsBar.vue";
+import RecipeDisplay from "@/components/recipe/display/RecipeDisplay.vue";
 import RecipeFabMenu from "@/components/recipe/ui/RecipeFabMenu.vue";
 import InlineEditActionBar from "@/components/recipe/ui/InlineEditActionBar.vue";
-import StepSection from "@/components/recipe/display/StepSection.vue";
 import jsyaml from "js-yaml";
 import { mapState } from "vuex";
 import { computed, ref, nextTick } from "vue";
@@ -373,13 +127,9 @@ export default {
   name: "Recipe",
   components: {
     AppNavbar,
-    MetadataOverlay,
-    PortionControl,
-    IngredientsSection,
-    MobileIngredientsBar,
+    RecipeDisplay,
     RecipeFabMenu,
     InlineEditActionBar,
-    StepSection,
     ShareManager,
   },
   props: {
@@ -391,15 +141,6 @@ export default {
   setup(props) {
     const idRef = computed(() => props.id);
     const recipeHelper = useRecipeHelper({ recipeId: idRef });
-    const viewport = useViewport();
-
-    // Mobile Bottom Bar State
-    const ingredientsExpanded = ref(false);
-    const showOnlyCurrentSection = ref(true); // Mobile: Default only current section
-    const activeSection = ref(null);
-
-    // Desktop Filter State
-    const showAllIngredients = ref(true); // Desktop: Default show all
 
     // FAB Menu State (Mobile)
     const fabMenuOpen = ref(false);
@@ -411,11 +152,6 @@ export default {
 
     return {
       ...recipeHelper,
-      ...viewport,
-      ingredientsExpanded,
-      showOnlyCurrentSection,
-      showAllIngredients,
-      activeSection,
       fabMenuOpen,
       inlineEditMode,
       dirtyItems,
@@ -424,95 +160,23 @@ export default {
   },
   data() {
     return {
-      showIngredients: true, // control ingredients panel visibility
       editMode: false, // inline edit mode
       originalRecipe: null, // backup for cancel
-      showMetadata: false, // toggle metadata visibility
       showShareManager: false, // toggle share manager
-      observer: null, // Intersection Observer instance
-      sectionUpdateTimeout: null, // Debounce timeout for section updates
     };
   },
   mounted() {
     // Restore UI state
     this.$store.dispatch("restoreUIState");
-    const savedShowIngredients = this.$store.getters.recipeShowIngredients;
-
-    //hide ingredients sidebar on default in portrait mode (unless user has preference)
-    let x = window.matchMedia("(max-width: 812px)");
-    if (x.matches && savedShowIngredients === true) {
-      // Only hide on mobile if no saved preference
-      this.showIngredients = false;
-    } else {
-      this.showIngredients = savedShowIngredients;
-    }
-
-    // Setup Intersection Observer
-    this.$nextTick(() => {
-      this.observeStepSections();
-    });
-  },
-  beforeUnmount() {
-    window.removeEventListener("scroll", this.handleScroll);
-    // Cleanup Intersection Observer
-    if (this.observer) {
-      this.observer.disconnect();
-    }
-    // Cleanup debounce timeout
-    if (this.sectionUpdateTimeout) {
-      clearTimeout(this.sectionUpdateTimeout);
-    }
   },
   watch: {
     id() {
       // Scroll to top when changing recipes via route
       window.scrollTo(0, 0);
-      this.$nextTick(() => {
-        this.observeStepSections();
-      });
     },
   },
   computed: {
     ...mapState(["settings", "recipes"]),
-    stepsFullWidth() {
-      return !this.showIngredients;
-    },
-    hasMetadata() {
-      if (!this.current_recipe) return false;
-
-      return !!(
-        this.current_recipe.author ||
-        this.current_recipe.source_url ||
-        this.current_recipe.source_book ||
-        this.current_recipe.servings ||
-        this.current_recipe.prep_time ||
-        this.current_recipe.cook_time ||
-        this.current_recipe.bake_time ||
-        this.current_recipe.total_time ||
-        this.current_recipe.difficulty ||
-        this.current_recipe.notes
-      );
-    },
-    // Mobile: Filtered sections for bottom bar
-    visibleIngredientSections() {
-      if (!this.current_recipe) return [];
-      if (this.showOnlyCurrentSection && this.activeSection) {
-        return this.current_recipe.sections.filter(
-          (section) => section.section === this.activeSection,
-        );
-      }
-      return this.current_recipe.sections;
-    },
-    // Desktop: Filtered sections for split-view
-    visibleDesktopSections() {
-      if (!this.current_recipe) return [];
-      if (!this.showAllIngredients && this.activeSection) {
-        return this.current_recipe.sections.filter(
-          (section) => section.section === this.activeSection,
-        );
-      }
-      return this.current_recipe.sections;
-    },
     // Check if current recipe is in favorites
     isFavorite() {
       if (!this.current_recipe || !this.current_recipe.recipe_uuid) {
@@ -523,32 +187,6 @@ export default {
     },
   },
   methods: {
-    formatNumbers: function (value) {
-      if (typeof value !== "number") {
-        return value;
-      }
-      return Number(value).toLocaleString("de-DE", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      });
-    },
-    getStepNumber: function (sectionName, stepIndex) {
-      let count = 1;
-      for (let section of this.current_recipe.sections) {
-        if (section.section === sectionName) {
-          return count + stepIndex;
-        }
-        count += this.current_recipe.steps.filter(
-          (x) => x.section === section.section,
-        ).length;
-      }
-      return count;
-    },
-    toggleIngredients() {
-      this.showIngredients = !this.showIngredients;
-      // Persist sidebar state
-      this.$store.dispatch("setRecipeShowIngredients", this.showIngredients);
-    },
     navSelected(uuid) {
       const recipe = this.$store.state.recipes.find(r => r.recipe_uuid === uuid);
       this.$router.push(recipeUrl(uuid, recipe?.recipe_name));
@@ -747,41 +385,6 @@ export default {
       this.editMode = false;
       this.originalRecipe = null;
     },
-    renameIngredient(ingredient, newName) {
-      if (ingredient.name !== newName && newName) {
-        ingredient.name = newName;
-      }
-    },
-    selectStep: function (ev) {
-      let doHighlight = !ev.target.classList.contains(
-        "list-group-item-primary",
-      );
-
-      // Remove highlight from all steps
-      document.querySelectorAll("#steps .list-group-item").forEach((el) => {
-        el.classList.remove("list-group-item-primary");
-      });
-      ev.target.classList.toggle("list-group-item-primary", doHighlight);
-
-      // Remove highlight from all ingredient sections
-      document
-        .querySelectorAll("#ingredients .ingredients-section")
-        .forEach((el) => {
-          el.classList.remove(
-            "highlighted",
-            "list-group-item-primary",
-            "border-primary",
-          );
-        });
-
-      const section = ev.target.dataset.section;
-      const ingredientBox = document.querySelector("#box-ing-" + section);
-      if (ingredientBox) {
-        ingredientBox.classList.toggle("highlighted", doHighlight);
-        ingredientBox.classList.toggle("list-group-item-primary", doHighlight);
-        ingredientBox.classList.toggle("border-primary", doHighlight);
-      }
-    },
     showToast(content, variant = "info") {
       if (this.toast) {
         this.toast.create({
@@ -793,127 +396,11 @@ export default {
         });
       }
     },
-    // Mobile Bottom Bar Controls
-    openIngredientsBar() {
-      this.ingredientsExpanded = true;
-
-      // Smart scroll to active section (when "Alle" active)
-      if (!this.showOnlyCurrentSection && this.activeSection) {
-        nextTick(() => {
-          const sectionEl = document.querySelector(
-            `.ingredient-section[data-section="${this.activeSection}"]`,
-          );
-          sectionEl?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-      }
-    },
-    closeIngredientsBar() {
-      this.ingredientsExpanded = false;
-    },
-    scrollToIngredientSection(sectionName) {
-      const sectionEl = document.querySelector(
-        `.ingredient-section[data-section="${sectionName}"]`,
-      );
-      sectionEl?.scrollIntoView({ behavior: "smooth", block: "start" });
-    },
-    getIngredients(sectionName) {
-      return this.current_recipe.ingredients.filter(
-        (ing) => ing.section === sectionName,
-      );
-    },
-    // Intersection Observer Setup
-    observeStepSections() {
-      // Cleanup existing observer
-      if (this.observer) {
-        this.observer.disconnect();
-      }
-
-      const stepSections = document.querySelectorAll("[data-step-section]");
-
-      if (stepSections.length === 0) {
-        // Retry after a short delay (DOM might not be ready)
-        setTimeout(() => this.observeStepSections(), 100);
-        return;
-      }
-
-      this.observer = new IntersectionObserver(
-        () => {
-          // Clear previous timeout
-          if (this.sectionUpdateTimeout) {
-            clearTimeout(this.sectionUpdateTimeout);
-          }
-
-          // Debounce section updates to prevent flickering
-          this.sectionUpdateTimeout = setTimeout(() => {
-            // Query all sections to find the most visible one
-            const allSections = document.querySelectorAll(
-              "[data-step-section]",
-            );
-            let maxVisibility = 0;
-            let mostVisibleSection = null;
-
-            allSections.forEach((section) => {
-              const rect = section.getBoundingClientRect();
-              const viewportHeight = window.innerHeight;
-
-              // Calculate how much of the section is visible
-              const visibleTop = Math.max(0, rect.top);
-              const visibleBottom = Math.min(viewportHeight, rect.bottom);
-              const visibleHeight = Math.max(0, visibleBottom - visibleTop);
-
-              // Prioritize sections in the upper half of viewport
-              const centerOffset = Math.abs(
-                rect.top + rect.height / 2 - viewportHeight / 3,
-              );
-              const visibility = visibleHeight - centerOffset * 0.5;
-
-              if (visibility > maxVisibility && visibleHeight > 50) {
-                maxVisibility = visibility;
-                mostVisibleSection = section.getAttribute("data-step-section");
-              }
-            });
-
-            if (
-              mostVisibleSection &&
-              mostVisibleSection !== this.activeSection
-            ) {
-              this.activeSection = mostVisibleSection;
-            }
-          }, 150); // 150ms debounce
-        },
-        {
-          threshold: [0, 0.5, 1],
-          rootMargin: "-100px 0px -200px 0px",
-        },
-      );
-
-      stepSections.forEach((section) => this.observer.observe(section));
-
-      // Add scroll listener for last section detection
-      this.handleScroll();
-      window.addEventListener("scroll", this.handleScroll);
-    },
-    handleScroll() {
-      // Detect if scrolled to bottom (within 100px)
-      const scrollPosition = window.innerHeight + window.scrollY;
-      const documentHeight = document.documentElement.scrollHeight;
-
-      if (scrollPosition >= documentHeight - 100) {
-        // Set last section as active
-        const lastSection =
-          this.current_recipe.sections[this.current_recipe.sections.length - 1];
-        if (lastSection) {
-          this.activeSection = lastSection.section;
-        }
-      }
-    },
   },
 };
 </script>
 
 <style scoped>
-@import '@/assets/recipe-layout.css';
-
 /* ============================================
    INLINE EDIT MODE ADJUSTMENTS
    ============================================ */
