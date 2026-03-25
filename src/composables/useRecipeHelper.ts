@@ -176,24 +176,27 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
     // API list items have empty ingredients — need to fetch detail
     if (
       (!recipe.ingredients || recipe.ingredients.length === 0) &&
-      recipe.recipe_uuid &&
-      await isAuthenticated()
+      recipe.recipe_uuid
     ) {
-      try {
-        const detail = await store.dispatch('loadRecipeDetailFromApi', recipe.recipe_uuid)
-        current_recipe.value = deepCopyYaml(detail)
-      } catch (e) {
-        console.warn('API detail fetch failed, trying IDB cache', e)
-        // Offline fallback: try IDB cache
+      // API first if online and authenticated
+      if (navigator.onLine && await isAuthenticated()) {
         try {
-          const { get } = await import('idb-keyval')
-          const cached = await get(`recipe:${recipe.recipe_uuid}`)
-          if (cached) {
-            current_recipe.value = deepCopyYaml(cached as Recipe)
-          }
-        } catch (idbErr) {
-          console.warn('IDB cache also unavailable', idbErr)
+          const detail = await store.dispatch('loadRecipeDetailFromApi', recipe.recipe_uuid)
+          current_recipe.value = deepCopyYaml(detail)
+          return
+        } catch {
+          // API unreachable — fall through to IDB
         }
+      }
+      // Fallback: IDB cache
+      try {
+        const { get } = await import('idb-keyval')
+        const cached = await get(`recipe:${recipe.recipe_uuid}`)
+        if (cached) {
+          current_recipe.value = deepCopyYaml(cached as Recipe)
+        }
+      } catch {
+        // IDB also unavailable
       }
     }
   }

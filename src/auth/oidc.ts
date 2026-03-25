@@ -31,10 +31,12 @@ const userManager = new UserManager({
 
 // --- Event handlers for token lifecycle ---
 
-// When silent renew fails, try a full re-login instead of leaving the user stuck
+// When silent renew fails, try a full re-login (only when online)
 userManager.events.addSilentRenewError((error) => {
-  console.warn('[Auth] Silent renew failed, attempting re-login:', error)
-  userManager.signinRedirect()
+  console.warn('[Auth] Silent renew failed:', error)
+  if (navigator.onLine) {
+    userManager.signinRedirect()
+  }
 })
 
 // When the access token is about to expire, log for debugging
@@ -44,8 +46,10 @@ userManager.events.addAccessTokenExpiring(() => {
 
 // When the user session ends unexpectedly (e.g. IdP session timeout)
 userManager.events.addUserSignedOut(() => {
-  console.info('[Auth] User signed out from IdP, redirecting to login.')
-  userManager.signinRedirect()
+  console.info('[Auth] User signed out from IdP.')
+  if (navigator.onLine) {
+    userManager.signinRedirect()
+  }
 })
 
 /** Redirect to IdP login page */

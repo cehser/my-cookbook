@@ -300,10 +300,10 @@ export default {
       sections: [],
     }))
     commit(SET_RECIPES, recipes)
-    // Cache list in IDB for offline access
-    set('recipes', recipes)
+    // Cache lightweight list in IDB for offline gallery
+    set('recipes', deepCopyYaml(recipes))
 
-    // Prefetch all recipe details in the background for offline use
+    // Prefetch full details into recipe:{uuid} keys for offline recipe view
     dispatch('prefetchRecipeDetails', recipes)
   },
 
@@ -327,16 +327,21 @@ export default {
   },
 
   async prefetchRecipeDetails(_ctx: ActionContext, recipes: Recipe[]) {
-    // Fetch all details in parallel (in batches of 5) and cache in IDB
+    // Fetch full details and cache each under recipe:{uuid} in IDB
+    let fetched = 0
     const batchSize = 5
     for (let i = 0; i < recipes.length; i += batchSize) {
       const batch = recipes.slice(i, i + batchSize)
       await Promise.allSettled(
         batch.map(async (r) => {
           try {
-            // Skip if already cached with recent data
             const cached: Recipe | undefined = await get(`recipe:${r.recipe_uuid}`)
-            if (cached && cached.lastUpdated === r.lastUpdated) return
+            // Re-fetch if not cached, timestamp changed, or cached data is incomplete
+            const isComplete = cached?.ingredients?.some(i => i.amounts?.length > 0)
+            if (cached && cached.lastUpdated === r.lastUpdated && isComplete) {
+              fetched++
+              return
+            }
             const detail = await recipeApi.get(r.recipe_uuid)
             const full: Recipe = {
               recipe_uuid: detail.id,
@@ -350,13 +355,14 @@ export default {
               ...(detail.data as Record<string, unknown>),
             }
             set(`recipe:${full.recipe_uuid}`, full)
+            fetched++
           } catch (e) {
-            // Silently skip — offline prefetch is best-effort
+            // Best-effort — skip on error
           }
         })
       )
     }
-    console.log(`Prefetched ${recipes.length} recipe details for offline use`)
+    console.log(`Prefetched ${fetched}/${recipes.length} recipe details for offline use`)
   },
 
   async searchRecipesApi({ commit }: ActionContext, query: string) {

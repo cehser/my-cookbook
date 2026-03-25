@@ -1,4 +1,8 @@
 <template>
+  <div v-if="!isOnline" class="offline-banner">
+    <i class="bi bi-wifi-off me-1"></i>
+    Offline
+  </div>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
     <div class="container-fluid">
       <router-link class="navbar-brand" to="/">Kochbuch</router-link>
@@ -109,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount, computed } from "vue";
 import { useRoute } from "vue-router";
 import { useStore } from "vuex";
 import { getUser, logout } from "@/auth/oidc";
@@ -159,8 +163,15 @@ const userInitials = computed(() => {
 });
 const isAdmin = computed(() => store.state.settings.role === 'admin');
 
+const isOnline = ref(navigator.onLine);
+
+function handleOnline() { isOnline.value = true; }
+function handleOffline() { isOnline.value = false; }
+
 // Load OIDC user info
 onMounted(async () => {
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
   data_selected.value = props.selected;
   try {
     const user = await getUser();
@@ -173,6 +184,11 @@ onMounted(async () => {
   } catch (e) {
     console.warn('[Auth] Could not load user info:', e);
   }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('online', handleOnline);
+  window.removeEventListener('offline', handleOffline);
 });
 
 const toggleMenu = () => {
@@ -284,5 +300,14 @@ watch(
     border: none;
     background-color: #212529;
   }
+}
+
+.offline-banner {
+  background: #664d03;
+  color: #fff3cd;
+  text-align: center;
+  padding: 4px 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 </style>

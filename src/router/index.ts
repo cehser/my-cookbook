@@ -71,4 +71,15 @@ const router = createRouter({
   routes
 })
 
+// Handle chunk load errors after SW update (hash mismatch)
+router.onError((error, to) => {
+  if (
+    error.message.includes('Failed to fetch dynamically imported module') ||
+    error.message.includes('Unable to preload CSS')
+  ) {
+    // Force full reload to pick up new SW + assets
+    window.location.assign(to.fullPath)
+  }
+})
+
 export default router

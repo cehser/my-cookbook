@@ -107,10 +107,10 @@ export default {
       return ingredient.name;
     },
     getUnit(ingredient) {
-      return ingredient.amounts[0]?.unit || "";
+      return ingredient.amounts?.[0]?.unit || "";
     },
     formatAmount(ingredient) {
-      const amount = ingredient.amounts[0]?.amount;
+      const amount = ingredient.amounts?.[0]?.amount;
 
       if (typeof amount !== "number") {
         return amount;

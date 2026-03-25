@@ -33,6 +33,36 @@ export default defineConfig({
               },
             },
           },
+          {
+            // Thumbnails: CacheFirst — Bilder ändern sich nicht (UUID-basiert)
+            urlPattern: /\/api\/v1\/images\/[^/]+\/thumbnail$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "recipe-thumbnails",
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 60 * 60 * 24 * 90, // 90 Tage
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            // Optimierte Bilder: CacheFirst
+            urlPattern: /\/api\/v1\/images\/[^/]+$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "recipe-images",
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 90, // 90 Tage
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
         ],
       },
       manifest: {

@@ -33,7 +33,7 @@ export function clearRoleCache(): void {
 
 /**
  * Auth guard — redirects to IdP login if not authenticated.
- * Attach to routes via `beforeEnter` or as a global guard.
+ * When offline, allows navigation with cached data (read-only mode).
  */
 export async function requireAuth(
   to: RouteLocationNormalized,
@@ -41,6 +41,9 @@ export async function requireAuth(
   next: NavigationGuardNext,
 ): Promise<void> {
   if (await isAuthenticated()) {
+    next()
+  } else if (!navigator.onLine) {
+    // Offline: allow navigation with cached IDB data (read-only)
     next()
   } else {
     await login()
@@ -57,6 +60,10 @@ export function requireRole(...roles: string[]) {
     next: NavigationGuardNext,
   ): Promise<void> => {
     if (!(await isAuthenticated())) {
+      if (!navigator.onLine) {
+        next({ name: 'Gallery' })
+        return
+      }
       await login()
       return
     }

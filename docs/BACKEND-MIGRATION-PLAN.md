@@ -2,7 +2,7 @@
 
 > **Planungsnotizen:** Entstanden aus Architektur-Diskussion (März 2026)  
 > **Letzte Aktualisierung:** 25. März 2026  
-> **Status:** ✅ Sprint B5 — Share-Links + Refactoring abgeschlossen, Offline-Cache offen
+> **Status:** ✅ Sprint B5 vollständig abgeschlossen — Share-Links, Offline-Cache, Refactoring
 
 ---
 
@@ -1530,11 +1530,17 @@ Ablauf:
 - [x] Gesamtergebnis: 1.255 → 887 Zeilen (−29%, 885 entfernt / 670 neu)
 
 **Tasks — Offline-Cache:**
-- [ ] IndexedDB als Read-Cache (Rezeptliste + Details für Offline)
-- [ ] Service Worker: Thumbnail-Caching
-- [ ] Offline-Erkennung + Toast-Hinweis
+- [x] IndexedDB als Read-Cache (Rezeptliste + Details für Offline) — `prefetchRecipeDetails()` + IDB-Fallback in allen API-Actions
+- [x] Service Worker: Thumbnail- + Image-Caching (Workbox CacheFirst, 500 Thumbnails / 200 Bilder, 90 Tage)
+- [x] Offline-Erkennung + Banner-Hinweis (AppNavbar, `navigator.onLine` + `online`/`offline`-Events)
+- [x] Auth-Guards offline-fähig: `requireAuth` erlaubt Navigation offline, `requireRole` redirected zur Galerie
+- [x] OIDC-Event-Handler prüfen `navigator.onLine` vor `signinRedirect()`
+- [x] Chunk-Load-Error-Handler: `router.onError` fängt veraltete Assets ab → erzwingt Full Reload
+- [x] IDB-Cache-Architektur bereinigt: Klare Rollentrennung `recipes` (leichte Liste für Galerie) vs. `recipe:{uuid}` (volle Details für Rezeptansicht)
+- [x] Cache-Invalidierung: `prefetchRecipeDetails` erkennt unvollständige Cache-Einträge (fehlende Amounts) und lädt sie neu
+- [x] `useRecipeHelper.loadRecipe()`: API-first mit stillem IDB-Fallback bei Netzwerkfehler
 
-**Ergebnis:** Share-Links funktional, Admin-Übersicht, RecipeDisplay-Refactoring abgeschlossen, Offline-Lesemodus offen
+**Ergebnis:** ✅ Sprint B5 vollständig abgeschlossen — Share-Links, Admin-Übersicht, RecipeDisplay-Refactoring, Offline-Cache (inkl. Auth-Hardening + Cache-Invalidierung)
 
 ---
 
@@ -1546,6 +1552,12 @@ Ablauf:
 - **`first_image_id`** in allen Recipe-Responses — ein `DISTINCT ON`-Query pro Rezept statt alle Bilder vorladen
 - **`_auto_download_imageurl()`** — beim Create/Update wird `imageurl` serverseitig via httpx heruntergeladen und als echtes Bild gespeichert, dann `imageurl` + `cloud_images` aus `data` entfernt
 - **Kein `services/`-Layer nötig** — Business-Logik direkt in Route-Handlern, bei dieser App-Größe ausreichend
+
+### Offline-Modus & IDB-Cache
+- **Zwei-Stufen-IDB-Cache:** `recipes` (leichte Liste: Name, Tags, Bild-ID, ohne Ingredients) für Galerie + `recipe:{uuid}` (volle Details) für Rezeptansicht. Klar getrennte Verantwortlichkeiten, kein Duplizieren.
+- **Cache-Invalidierung nötig:** Reiner `lastUpdated`-Vergleich reicht nicht — unvollständige Cache-Einträge (leere Amounts) werden nie aktualisiert, wenn sich das Rezept nicht ändert. Fix: Vollständigkeitsprüfung bei Prefetch.
+- **`navigator.onLine` ist unzuverlässig:** Browser meldet „online" auch bei fehlendem Server. API-Calls trotzdem versuchen, mit stillem Fallback auf IDB.
+- **Auth offline:** OIDC-Token kann offline nicht erneuert werden. Guards müssen offline Navigation erlauben, Event-Handler dürfen kein `signinRedirect()` auslösen.
 
 ### AI-Import Architektur
 - **3 Modi:** Freitext (Chat Completions), URL (Responses API + `web_search_preview`), Bild (Chat Completions + Vision)
