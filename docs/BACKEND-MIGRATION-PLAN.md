@@ -1,8 +1,8 @@
 # Backend-Migrationsplan: WebDAV → Python/FastAPI
 
 > **Planungsnotizen:** Entstanden aus Architektur-Diskussion (März 2026)  
-> **Letzte Aktualisierung:** 24. März 2026  
-> **Status:** ✅ Sprint D1 abgeschlossen — Datenformat normalisiert
+> **Letzte Aktualisierung:** 25. März 2026  
+> **Status:** ✅ Sprint B5 — Share-Links + Refactoring abgeschlossen, Offline-Cache offen
 
 ---
 
@@ -1084,11 +1084,14 @@ src/
     ai.ts                  ← importText(), importImage() (mit model-Parameter)
     favorites.ts           ← ✅ list(), add(), remove() — API-basiert, IDB-Fallback
     tags.ts                ← ⬜ Noch nicht implementiert
-    admin.ts               ← ⬜ Noch nicht implementiert (Admin über bestehende API-Calls)
+    admin.ts               ← ✅ listShares(), revokeShare() + AdminShare Interface (B5)
     shares.ts              ← ⬜ Noch nicht implementiert
   auth/                            ← ✅ Implementiert
     oidc.ts                ← UserManager-Wrapper, Login/Logout, Token-Refresh
     guards.ts              ← requireAuth, requireRole('editor','admin') Route Guards
+  components/
+    recipe/display/
+      RecipeDisplay.vue    ← ✅ Shared Display-Komponente (Split-View, Portionen, Yields, Sections)
 ```
 
 ### Zu entfernende Client-Dateien
@@ -1492,9 +1495,9 @@ Ablauf:
 
 ---
 
-### Sprint B5: Share-Links + Offline-Cache 📋
-**Ziel:** Öffentliche Share-Links, Offline-Lesemodus  
-**Status:** ✅ Share-Links abgeschlossen (23. März 2026), Offline-Cache offen
+### Sprint B5: Share-Links + Offline-Cache + Refactoring 📋
+**Ziel:** Öffentliche Share-Links, Offline-Lesemodus, Code-Qualität  
+**Status:** ✅ Share-Links + Refactoring abgeschlossen (24. März 2026), Offline-Cache offen
 
 **Bereits vorhanden:**
 - DB-Tabellen: `recipe_shares` (aus Migration `001_initial`)
@@ -1510,26 +1513,32 @@ Ablauf:
 - [x] Frontend: Share-Button im Rezept (Link erzeugen + kopieren)
 - [x] Frontend: Route `/s/:token` → Read-only Rezeptansicht implementiert (SharedRecipe.vue)
 - [x] Frontend: Share-Verwaltung (ShareManager.vue — aktive Links anzeigen, widerrufen)
-- [x] `POST /v1/recipes/{id}/share` — Share-Link erzeugen (`secrets.token_urlsafe`)
-- [x] `GET /v1/recipes/{id}/shares` — Aktive Share-Links auflisten
-- [x] `DELETE /v1/shares/{shareId}` — Share-Link deaktivieren
-- [x] `GET /v1/shared/{token}` — Rezept öffentlich lesen (kein Auth)
-- [x] Bilder-Endpoint `/v1/images/{id}` bereits öffentlich → kein separater Share-Bild-Endpunkt nötig
-- [x] Frontend: Share-Button im Rezept (Link erzeugen + kopieren)
-- [x] Frontend: Route `/s/:token` → Read-only Rezeptansicht implementiert (SharedRecipe.vue)
-- [x] Frontend: Share-Verwaltung (ShareManager.vue — aktive Links anzeigen, widerrufen)
+
+**Tasks — Admin Share-Links (24. März 2026):**
+- [x] `GET /v1/admin/shares` — Alle Share-Links mit Rezeptname + Username auflisten
+- [x] `DELETE /v1/admin/shares/{shareId}` — Admin kann beliebige Share-Links deaktivieren
+- [x] Frontend: Share-Links-Tabelle in Administration.vue (Rezept, Link, Erstellt von, Ablauf, Status, Aktionen)
+- [x] Frontend: Copy-Button für Share-Links (Clipboard API)
+
+**Tasks — RecipeDisplay Refactoring (24. März 2026):**
+- [x] `RecipeDisplay.vue` als gemeinsame Darstellungskomponente extrahiert (Desktop Split-View, Mobile Bottom-Bar, MetadataOverlay, IntersectionObserver, PortionControl, Section-Filtering, Yields-Berechnung)
+- [x] SharedRecipe.vue → dünner Wrapper (~100 Zeilen, nur API-Fetch + Fehlerstatus)
+- [x] Recipe.vue → nutzt RecipeDisplay mit Slots (#image-overlays, #title, #subtitle, #after-content)
+- [x] CSS-Scoping: `recipe-layout.css` Import in RecipeDisplay statt in Parent-Views
+- [x] Yields-Logik in RecipeDisplay internalisiert (kein Prop-Durchreichen mehr)
+- [x] SharedRecipe: Bildhöhe begrenzt (`max-height: 50vh`), Platzhalter bei fehlendem Bild
+- [x] Gesamtergebnis: 1.255 → 887 Zeilen (−29%, 885 entfernt / 670 neu)
 
 **Tasks — Offline-Cache:**
 - [ ] IndexedDB als Read-Cache (Rezeptliste + Details für Offline)
 - [ ] Service Worker: Thumbnail-Caching
 - [ ] Offline-Erkennung + Toast-Hinweis
 
-**Ergebnis:** Share-Links funktional, Offline-Lesemodus offen
-**Ergebnis:** Share-Links funktional, Offline-Lesemodus offen
+**Ergebnis:** Share-Links funktional, Admin-Übersicht, RecipeDisplay-Refactoring abgeschlossen, Offline-Lesemodus offen
 
 ---
 
-## 📝 Bisherige Erkenntnisse (B0–B3)
+## 📝 Bisherige Erkenntnisse (B0–B5)
 
 ### Architektur-Entscheidungen
 - **`root_path="/api"`** im FastAPI-Backend — nginx proxied `/api/` → Backend, SPA liegt auf `/`
@@ -1543,6 +1552,12 @@ Ablauf:
 - **SYSTEM_PROMPT** liegt server-seitig in `ai.py` — Client sendet nur den User-Input
 - **`initRecipe()`** muss nach YAML-Parsing angewendet werden (js-yaml setzt leere Felder auf `null`)
 - **GPT-Modell** konfigurierbar pro User-Setting (`gpt_model`), wird als Query-Parameter an Backend gesendet
+
+### RecipeDisplay Refactoring (B5)
+- **Gemeinsame Darstellungskomponente** `RecipeDisplay.vue` extrahiert — enthält Desktop Split-View, Mobile Bottom-Bar, MetadataOverlay, PortionControl, Section-Filtering, Yields-Berechnung
+- **Slot-Pattern** für Erweiterbarkeit: `#image-overlays`, `#title`, `#subtitle`, `#after-content` — Parent-Views stecken Edit-Mode-Inputs, Favoriten-Stern, FAB-Menü etc. per Slot rein
+- **CSS-Scoping-Falle:** `@import` in `<style scoped>` eines Parent penetriert NICHT in Child-Komponenten. Import muss in der Komponente liegen, die die Klassen tatsächlich nutzt.
+- **Yields-Logik internalisiert:** RecipeDisplay liest/mutiert `recipe.yields[0]` direkt, kein Prop-Durchreichen nötig da Vue-Reactivity auch auf gemutete Props greift
 
 ### Docker / Deployment
 - **Python 3.14-slim** + Pillow System-Dependencies (`libjpeg62-turbo-dev`, `libwebp-dev`)
@@ -1596,7 +1611,7 @@ Ablauf:
 | **B2** | Recipe CRUD API + Frontend-Umstellung | B1 | 🔴 Kritisch |
 | **B3** | Bilder + AI-Proxy | B2 | 🔴 Kritisch |
 | **B4** | Favoriten + Tags + Admin-UI + Cleanup | B3 | 🔴 Kritisch |
-| **B5** | Share-Links + Offline-Cache | B4 | 🟡 Wichtig |
+| **B5** | Share-Links + Refactoring + Offline-Cache | B4 | 🟡 Wichtig |
 | **B6** | Hardening & Polish | B5 | 🟡 Wichtig |
 
 ---
