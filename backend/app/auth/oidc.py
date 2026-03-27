@@ -12,7 +12,7 @@ _jwks_client: PyJWKClient | None = None
 def _get_jwks_client() -> PyJWKClient:
     global _jwks_client
     if _jwks_client is None:
-        jwks_url = f"{settings.oidc_issuer_url.rstrip('/')}/.well-known/openid-configuration"
+        jwks_url = f"{settings.oidc_authority.rstrip('/')}/.well-known/openid-configuration"
         # PyJWKClient resolves jwks_uri from OIDC discovery automatically when using
         # the jwks_uri directly. We fetch it manually for clarity.
         resp = httpx.get(jwks_url, timeout=10)
@@ -37,15 +37,15 @@ def verify_oidc_token(token: str) -> dict:
         token,
         signing_key.key,
         algorithms=["RS256", "ES256"],
-        issuer=settings.oidc_issuer_url,
+        issuer=settings.oidc_authority,
         options={
             "require": ["sub", "exp", "iss"],
             "verify_aud": False,  # Keycloak sets azp, not always aud
         },
     )
 
-    # Verify audience: accept if aud or azp matches our expected audience
-    expected = settings.oidc_audience
+    # Verify audience: accept if aud or azp matches our client_id
+    expected = settings.oidc_client_id
     if expected:
         aud = payload.get("aud", [])
         azp = payload.get("azp", "")

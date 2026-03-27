@@ -1544,7 +1544,7 @@ Ablauf:
 
 ---
 
-## 📝 Bisherige Erkenntnisse (B0–B5)
+## 📝 Bisherige Erkenntnisse (B0–B6)
 
 ### Architektur-Entscheidungen
 - **`root_path="/api"`** im FastAPI-Backend — nginx proxied `/api/` → Backend, SPA liegt auf `/`
@@ -1561,7 +1561,7 @@ Ablauf:
 
 ### AI-Import Architektur
 - **3 Modi:** Freitext (Chat Completions), URL (Responses API + `web_search_preview`), Bild (Chat Completions + Vision)
-- **SYSTEM_PROMPT** liegt server-seitig in `ai.py` — Client sendet nur den User-Input
+- **SYSTEM_PROMPT** liegt server-seitig in `backend/prompts/system_prompt.md` (extern, per Docker-Volume änderbar) — Client sendet nur den User-Input
 - **`initRecipe()`** muss nach YAML-Parsing angewendet werden (js-yaml setzt leere Felder auf `null`)
 - **GPT-Modell** konfigurierbar pro User-Setting (`gpt_model`), wird als Query-Parameter an Backend gesendet
 
@@ -1571,9 +1571,15 @@ Ablauf:
 - **CSS-Scoping-Falle:** `@import` in `<style scoped>` eines Parent penetriert NICHT in Child-Komponenten. Import muss in der Komponente liegen, die die Klassen tatsächlich nutzt.
 - **Yields-Logik internalisiert:** RecipeDisplay liest/mutiert `recipe.yields[0]` direkt, kein Prop-Durchreichen nötig da Vue-Reactivity auch auf gemutete Props greift
 
+### Runtime-Config (B6)
+- **Frontend-Config darf nie compile-time sein:** `import.meta.env.VITE_*` wird von Vite zur Build-Zeit eingebettet → Config-Änderung erfordert Rebuild. Lösung: nginx `envsubst` generiert `/config.js` mit `window.__CONFIG__` beim Container-Start. SPA liest Config aus `window.__CONFIG__` mit Fallback auf `import.meta.env` für lokale Entwicklung (`public/config.js`).
+- **AI System-Prompt externalisieren:** Prompt als `.md`-Datei in Docker-Volume → änderbar ohne Rebuild. Default-Prompt beim Image-Build nach `/app/prompts/` kopieren, Volume überschreibt bei Bedarf.
+- **`envsubst` in nginx:** Offizielles nginx-Image unterstützt Templates in `/etc/nginx/templates/`. Für `config.js` eigenes Entrypoint-Script unter `/docker-entrypoint.d/40-inject-config.sh` — flexibler als das Template-System (Ziel ist nicht nginx-Config, sondern statisches JS-File).
+
 ### Docker / Deployment
 - **Python 3.14-slim** + Pillow System-Dependencies (`libjpeg62-turbo-dev`, `libwebp-dev`)
 - **Volume `recipe_uploads:/app/uploads`** für persistente Bilder
+- **Volume `recipe_prompts:/app/prompts`** für extern änderbaren AI-Prompt
 - **`extra_hosts`** im docker-compose kann für DNS-Workarounds genutzt werden
 - **Frontend-Rebuild:** `docker compose up -d --build frontend`
 
@@ -1584,7 +1590,7 @@ Ablauf:
 - ~~Favoriten nur lokal (IndexedDB)~~ ✅ Behoben (B4: API + IDB-Fallback)
 - ~~`pending`-Rolle als Default für neue User~~ ✅ Implementiert (Auto-Provisioning + Frontend-Hinweis)
 - ~~Admin-UI für User-Verwaltung~~ ✅ Implementiert (User-Liste, Rollen-Dropdown, Profildaten via OIDC)
-- ⚠️ **Frontend-Config ist Compile-Time!** `VITE_OIDC_AUTHORITY` und `VITE_OIDC_CLIENT_ID` werden von Vite zur Build-Zeit in den JS-Code eingebettet (`import.meta.env`). Das bedeutet: bei Änderungen an der OIDC-Config muss das Frontend-Image neu gebaut werden. **Muss auf Runtime-Config umgestellt werden** (z.B. `/config.json` von nginx ausliefern, oder `window.__CONFIG__` via `envsubst` in `index.html` injizieren), damit nur docker-compose ENV-Variablen geändert werden müssen.
+- ~~Frontend-Config ist Compile-Time~~ ✅ Auf Runtime-Config umgestellt (B6: nginx `envsubst` → `config.js` → `window.__CONFIG__`)
 
 ---
 
@@ -1592,8 +1598,8 @@ Ablauf:
 **Ziel:** Production-Readiness
 
 **Tasks:**
-- [ ] **Runtime-Config für Frontend:** `VITE_OIDC_AUTHORITY` + `VITE_OIDC_CLIENT_ID` von Compile-Time (`import.meta.env`) auf Runtime umstellen. Ansatz: nginx `envsubst` injiziert Werte in `/config.json` oder `index.html` beim Container-Start → SPA liest Config per fetch/`window.__CONFIG__` → kein Rebuild bei Config-Änderung nötig.
-- [ ] **Runtime-konfigurierbarer AI System-Prompt:** Der SYSTEM_PROMPT in `ai.py` ist aktuell ein hardcoded Python-String. Umstellen auf externe Datei (`prompts/system_prompt.md`), die per Docker-Volume gemountet wird. Default-Prompt wird beim ersten Start aus dem Image in den Mount kopiert, falls noch nicht vorhanden. Ermöglicht Prompt-Anpassungen ohne Rebuild. Auch das Frontend-Duplikat (`src/prompts/SYSTEM_PROMPT.ts`) kann dann entfallen, da AI-Requests ohnehin übers Backend laufen.
+- [x] **Runtime-Config für Frontend:** ✅ `VITE_OIDC_AUTHORITY` + `VITE_OIDC_CLIENT_ID` von Compile-Time auf Runtime umgestellt. Umsetzung: `.docker/nginx/docker-entrypoint.sh` führt `envsubst` auf `.docker/nginx/config.js.template` aus → generiert `/usr/share/nginx/html/config.js` mit `window.__CONFIG__` beim Container-Start. `src/auth/oidc.ts` liest `window.__CONFIG__` mit Fallback auf `import.meta.env.VITE_*` für lokale Entwicklung. `index.html` lädt `<script src="/config.js">` vor dem App-Bundle. Build-Args `VITE_OIDC_*` aus Dockerfile entfernt, `docker-compose.yml` nutzt nur noch `environment`.
+- [x] **Runtime-konfigurierbarer AI System-Prompt:** ✅ Prompt aus `ai.py` extrahiert nach `backend/prompts/system_prompt.md`. Backend lädt Prompt per `_load_system_prompt()` aus `settings.prompt_dir` (Default: `/app/prompts`). Docker-Volume `recipe_prompts:/app/prompts` ermöglicht Prompt-Anpassungen ohne Rebuild. Default-Prompt wird beim Image-Build nach `/app/prompts/` kopiert. Frontend-Duplikat `src/prompts/SYSTEM_PROMPT.ts` gelöscht (via `git rm`).
 - [ ] Error Handling: Globaler Exception Handler (FastAPI)
 - [ ] Rate Limiting (AI-Endpunkte)
 - [ ] Request-Logging (strukturiert)

@@ -5,20 +5,16 @@ COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
 
-# OIDC config injected at build time
-ARG VITE_OIDC_AUTHORITY
-ARG VITE_OIDC_CLIENT_ID
-ENV VITE_OIDC_AUTHORITY=$VITE_OIDC_AUTHORITY
-ENV VITE_OIDC_CLIENT_ID=$VITE_OIDC_CLIENT_ID
-
 # Create vue.config.js to disable TypeScript checking
 RUN echo "module.exports = { chainWebpack: config => { config.plugins.delete('fork-ts-checker'); } };" > vue.config.js
 RUN npm run build
 
 # production stage
 FROM nginx:stable-alpine AS production-stage
-COPY .docker/nginx/prod.conf /temp/prod.conf
-RUN envsubst /app < /temp/prod.conf > /etc/nginx/conf.d/default.conf
+COPY .docker/nginx/prod.conf /etc/nginx/conf.d/default.conf
+COPY .docker/nginx/config.js.template /etc/nginx/templates/config.js.template
+COPY .docker/nginx/docker-entrypoint.sh /docker-entrypoint.d/40-inject-config.sh
+RUN chmod +x /docker-entrypoint.d/40-inject-config.sh
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

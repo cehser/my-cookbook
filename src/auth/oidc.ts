@@ -1,15 +1,15 @@
 /**
  * OIDC Authentication via oidc-client-ts (IdP-agnostic).
  *
- * Required env variables (in .env or .env.local):
- *   VITE_OIDC_AUTHORITY   - Issuer URL (e.g. https://idp.example.com/realms/my-cookbook)
- *   VITE_OIDC_CLIENT_ID   - Client ID (e.g. my-cookbook-spa)
+ * Config is injected at runtime via /config.js → window.__CONFIG__
+ * (no compile-time env vars needed).
  */
 
 import { UserManager, WebStorageStateStore, type User } from 'oidc-client-ts'
 
-const authority = import.meta.env.VITE_OIDC_AUTHORITY as string
-const clientId = import.meta.env.VITE_OIDC_CLIENT_ID as string
+const cfg = (window as any).__CONFIG__ || {}
+const authority = cfg.OIDC_AUTHORITY || import.meta.env.VITE_OIDC_AUTHORITY as string
+const clientId = cfg.OIDC_CLIENT_ID || import.meta.env.VITE_OIDC_CLIENT_ID as string
 
 if (!authority || !clientId) {
   console.warn('[Auth] VITE_OIDC_AUTHORITY and VITE_OIDC_CLIENT_ID must be set for OIDC login.')

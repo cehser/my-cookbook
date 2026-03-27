@@ -5,12 +5,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY:-https://auth.cehser.de/realms/cehser}
-        VITE_OIDC_CLIENT_ID: ${VITE_OIDC_CLIENT_ID:-cookbook.cehser.de}
     ports:
       - "8080:80"
     container_name: my-cookbook-frontend
+    env_file:
+      - .env
     depends_on:
       - backend
     restart: unless-stopped
@@ -20,19 +19,16 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: my-cookbook-backend
-    extra_hosts:
-      - "cloud.cehser.de:128.251.187.1"
     env_file:
-      - ./backend/.env
+      - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://cookbook:${DB_PASSWORD:-changeme}@db:5432/cookbook
-      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-https://auth.cehser.de/realms/cehser}
-      - OIDC_AUDIENCE=${OIDC_AUDIENCE:-cookbook.cehser.de}
+      - DB_HOST=db
+      - DB_PORT=5432
       - UPLOAD_DIR=/app/uploads
       - MAX_UPLOAD_SIZE_MB=5
-      - CORS_ORIGINS=["http://localhost:8080"]
     volumes:
       - recipe_uploads:/app/uploads
+      - recipe_prompts:/app/prompts
     depends_on:
       db:
         condition: service_healthy
@@ -42,8 +38,8 @@ services:
     image: postgres:16-alpine
     container_name: my-cookbook-db
     environment:
-      - POSTGRES_DB=cookbook
-      - POSTGRES_USER=cookbook
+      - POSTGRES_DB=${DB_NAME:-cookbook}
+      - POSTGRES_USER=${DB_USER:-cookbook}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -57,3 +53,4 @@ services:
 volumes:
   pgdata:
   recipe_uploads:
+  recipe_prompts:
