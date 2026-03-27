@@ -14,4 +14,14 @@ const app = createApp(App)
 app.use(router)
 app.use(store)
 
+// Global Vue error handler — prevents white screen on render errors
+app.config.errorHandler = (err, instance, info) => {
+  console.error(`[Vue Error] ${info}:`, err)
+}
+
+// Catch unhandled promise rejections (e.g. forgotten API .catch())
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('[Unhandled Promise]', event.reason)
+})
+
 app.mount('#app')

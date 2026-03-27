@@ -491,6 +491,7 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 - [ ] Einkaufsliste-Export (Clipboard + Native Share)
 - [ ] Koch-Notizen (Text + Spracheingabe)
 - [ ] URL-Rezept-Sharing (Link-basiert, ohne WebDAV)
+- [ ] Error-Boundary-Komponente (Retry-Seite bei kritischen Vue-Render-Fehlern)
 
 ### Neue Features - Phase D (Design):
 - [ ] Design-System
@@ -523,6 +524,7 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 - ✅ **Security** XSS-Schwachstelle behoben (Post-Sprint 1)
 - ✅ **Code Quality** Full ESLint/Prettier Compliance (Post-Sprint 1)
 - ✅ **Inline-Editing** mit Manual Save und Dirty Tracking (Sprint 2)
+- ✅ **Globales Error-Handling** (app.config.errorHandler + unhandledrejection) verhindert weiße Bildschirme
 
 **Codebase Status:**
 - 🟢 Production-ready: Keine ESLint-Fehler, keine Warnungen
@@ -531,11 +533,16 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 - 🟢 Type Safety: Generic types, zentralisierte interfaces
 - 🟢 Design System: 42 CSS Custom Properties für Konsistenz
 - 🟢 UX: Inline-Editing mit präziser Kontrolle (Manual Save, nur eine Zeile gleichzeitig, Click-Outside)
+- 🟢 Error-Handling: Global Error Handler (Vue + unhandled rejections), Backend Exception Handler
+- 🟢 Projektstruktur: Saubere Trennung `frontend/` + `backend/` + zentrales `.env`
 
 **Was noch verbessert werden muss:**
 - Tag-Editor Close-Funktionalität (ESC, Toggle) → siehe Known Issues
 - Metadaten-Bearbeitung im Editor → Sprint 4 (Editor-Überarbeitung)
 - Optional: [+ Zutat] / [+ Schritt] Buttons im Inline-Edit Modus
+- Error-Boundary-Komponente (Retry-Seite bei totalem Crash) → Phase C
+
+**Hinweis:** Frontend-Code liegt seit B6 unter `frontend/` (nicht mehr im Root). Alle `src/`-Pfade in dieser Roadmap beziehen sich auf `frontend/src/`.
 
 **Nächster Schritt:** Sprint 3 (Rezept-Wizard) - Geschätzt 1 Woche  
 **Focus:** Guided Recipe Creation für bessere User Experience beim Rezept-Anlegen

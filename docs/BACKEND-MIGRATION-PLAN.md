@@ -1229,58 +1229,60 @@ server {
 
 ---
 
-## 📁 Backend-Projektstruktur
+## 📁 Projektstruktur
 
 ```
-backend/
-├── app/
-│   ├── __init__.py
-│   ├── main.py                    # FastAPI App, CORS, Lifespan, root_path="/api"
-│   ├── config.py                  # pydantic-settings (OIDC, CORS, Uploads, DB)
-│   ├── database.py                # AsyncEngine, AsyncSession Factory
-│   │
-│   ├── auth/
-│   │   ├── __init__.py
-│   │   ├── oidc.py                # Token-Verify (JWKS, offline, Keycloak-kompatibel)
-│   │   └── dependencies.py        # get_current_user, require_editor, require_admin
-│   │
-│   ├── models/                    # SQLAlchemy Models
-│   │   ├── __init__.py
-│   │   ├── base.py                # DeclarativeBase
-│   │   ├── user.py                # AppUser (+ settings JSONB)
-│   │   ├── recipe.py              # Recipe (+ search_vector TSVECTOR)
-│   │   ├── image.py               # RecipeImage
-│   │   ├── favorite.py            # Favorite (M:N User↔Recipe)
-│   │   └── tag.py                 # Tag, RecipeTag, RecipeShare
-│   │
-│   ├── schemas/                   # Pydantic Request/Response Models
-│   │   ├── __init__.py
-│   │   ├── recipe.py              # RecipeCreate, RecipeUpdate, RecipeResponse, RecipeListItem
-│   │   └── user.py                # CurrentUserResponse, UserSettings, UserSettingsResponse
-│   │
-│   ├── routes/                    # API-Router
-│   │   ├── __init__.py
-│   │   ├── health.py              # GET /health
-│   │   ├── me.py                  # GET /me, GET/PUT /me/settings
-│   │   ├── admin.py               # GET /v1/admin/users, PUT .../role
-│   │   ├── recipes.py             # CRUD + Suche + auto imageurl-Download
-│   │   ├── images.py              # Upload, Serve, Thumbnail, Delete, download_and_store_image()
-│   │   ├── ai.py                  # Text/URL/Bild → Rezept via OpenAI
-│   │   └── favorites.py           # GET/POST/DELETE /v1/favorites (per-user)
-│   │
-│   └── services/                  # Business-Logik (noch ausbaufähig)
-│       └── __init__.py
+my-cookbook/
+├── .env                               # Zentrales Environment (OIDC, DB, OpenAI, CORS)
+├── .env.example                       # Vorlage mit allen Variablen
+├── docker-compose.yml                 # Frontend + Backend + DB Orchestrierung
+├── README.md
+├── scripts/
+│   └── backup.sh                      # pg_dump Backup mit Rotation
+├── docs/
+│   ├── BACKEND-MIGRATION-PLAN.md
+│   └── UI-ROADMAP-FINAL.md
 │
-├── alembic/                       # DB-Migrationen
-│   ├── env.py
-│   └── versions/
-│       ├── 001_initial.py         # Alle Tabellen + Fulltext-Trigger
-│       └── 002_user_settings.py   # settings JSONB für app_users
+├── frontend/                          # Vue 3 SPA (PWA)
+│   ├── Dockerfile                     # Multi-Stage: node build → nginx serve
+│   ├── .docker/nginx/                 # nginx config + runtime config injection
+│   │   ├── prod.conf
+│   │   ├── config.js.template         # envsubst Template → window.__CONFIG__
+│   │   └── docker-entrypoint.sh       # Injiziert OIDC-Config beim Container-Start
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── tsconfig.json
+│   ├── index.html
+│   ├── public/                        # Statische Assets (icons, config.js dev-fallback)
+│   └── src/
+│       ├── main.ts                    # App-Bootstrap + globaler Error Handler
+│       ├── auth/oidc.ts               # OIDC via window.__CONFIG__ (Runtime)
+│       ├── api/                       # API-Client (recipes, images, ai, ...)
+│       ├── components/                # Vue-Komponenten (6 Ordner)
+│       ├── composables/               # useToast, useRecipeHelper, useViewport
+│       ├── store/                     # Vuex (actions, mutations, modules)
+│       ├── router/                    # Vue Router + Chunk-Error-Handler
+│       ├── views/                     # Page-Komponenten
+│       └── types/                     # TypeScript Interfaces
 │
-├── alembic.ini
-├── requirements.txt
-├── Dockerfile
-└── .env                           # DATABASE_URL, OIDC, OPENAI_API_KEY, CORS
+└── backend/                           # FastAPI + PostgreSQL
+    ├── Dockerfile
+    ├── requirements.txt
+    ├── alembic.ini
+    ├── prompts/
+    │   └── system_prompt.md           # AI System-Prompt (extern, per Volume änderbar)
+    ├── alembic/
+    │   ├── env.py                     # Liest DB-URL aus app.config.settings
+    │   └── versions/
+    └── app/
+        ├── main.py                    # FastAPI App, CORS, Lifespan, Exception Handler
+        ├── config.py                  # pydantic-settings (DB_*, OIDC_*, CORS, Uploads)
+        ├── database.py                # AsyncEngine, AsyncSession Factory
+        ├── auth/                      # OIDC Token-Verify, Dependencies
+        ├── models/                    # SQLAlchemy Models (User, Recipe, Image, Tag, ...)
+        ├── schemas/                   # Pydantic Request/Response Models
+        ├── routes/                    # API-Router (recipes, images, ai, admin, ...)
+        └── services/
 ```
 
 ---
@@ -1576,10 +1578,17 @@ Ablauf:
 - **AI System-Prompt externalisieren:** Prompt als `.md`-Datei in Docker-Volume → änderbar ohne Rebuild. Default-Prompt beim Image-Build nach `/app/prompts/` kopieren, Volume überschreibt bei Bedarf.
 - **`envsubst` in nginx:** Offizielles nginx-Image unterstützt Templates in `/etc/nginx/templates/`. Für `config.js` eigenes Entrypoint-Script unter `/docker-entrypoint.d/40-inject-config.sh` — flexibler als das Template-System (Ziel ist nicht nginx-Config, sondern statisches JS-File).
 
+### Zentrales Environment (B6)
+- **Ein `.env` im Projekt-Root** für alle Services (Frontend, Backend, DB). Keine separaten `.env`-Dateien pro Service. `docker-compose.yml` nutzt `env_file: .env` für Frontend und Backend, DB-Service referenziert `${DB_*}` Variablen.
+- **Variablen vereinheitlichen:** `OIDC_ISSUER_URL` und `OIDC_AUTHORITY` waren dasselbe → zu `OIDC_AUTHORITY` vereint. `OIDC_AUDIENCE` und `OIDC_CLIENT_ID` waren bei Keycloak identisch → zu `OIDC_CLIENT_ID` vereint.
+- **`DATABASE_URL` aufspalten:** Einzelvariablen (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`) sind verständlicher als eine URL mit Sonderzeichen. `config.py` baut die SQLAlchemy-URL per `@property` zusammen.
+- **Alembic** soll die gleiche Config-Quelle nutzen wie die App: `env.py` importiert `settings.database_url` aus `app.config` statt eigene Env-Vars zu lesen.
+
 ### Docker / Deployment
 - **Python 3.14-slim** + Pillow System-Dependencies (`libjpeg62-turbo-dev`, `libwebp-dev`)
 - **Volume `recipe_uploads:/app/uploads`** für persistente Bilder
 - **Volume `recipe_prompts:/app/prompts`** für extern änderbaren AI-Prompt
+- **Projektstruktur:** Frontend in `frontend/`, Backend in `backend/`. Root enthält nur Orchestrierung (`.env`, `docker-compose.yml`, `scripts/`, `docs/`).
 - **`extra_hosts`** im docker-compose kann für DNS-Workarounds genutzt werden
 - **Frontend-Rebuild:** `docker compose up -d --build frontend`
 
@@ -1600,14 +1609,15 @@ Ablauf:
 **Tasks:**
 - [x] **Runtime-Config für Frontend:** ✅ `VITE_OIDC_AUTHORITY` + `VITE_OIDC_CLIENT_ID` von Compile-Time auf Runtime umgestellt. Umsetzung: `.docker/nginx/docker-entrypoint.sh` führt `envsubst` auf `.docker/nginx/config.js.template` aus → generiert `/usr/share/nginx/html/config.js` mit `window.__CONFIG__` beim Container-Start. `src/auth/oidc.ts` liest `window.__CONFIG__` mit Fallback auf `import.meta.env.VITE_*` für lokale Entwicklung. `index.html` lädt `<script src="/config.js">` vor dem App-Bundle. Build-Args `VITE_OIDC_*` aus Dockerfile entfernt, `docker-compose.yml` nutzt nur noch `environment`.
 - [x] **Runtime-konfigurierbarer AI System-Prompt:** ✅ Prompt aus `ai.py` extrahiert nach `backend/prompts/system_prompt.md`. Backend lädt Prompt per `_load_system_prompt()` aus `settings.prompt_dir` (Default: `/app/prompts`). Docker-Volume `recipe_prompts:/app/prompts` ermöglicht Prompt-Anpassungen ohne Rebuild. Default-Prompt wird beim Image-Build nach `/app/prompts/` kopiert. Frontend-Duplikat `src/prompts/SYSTEM_PROMPT.ts` gelöscht (via `git rm`).
-- [ ] Error Handling: Globaler Exception Handler (FastAPI)
+- [x] **Error Handling:** ✅ Backend: Globaler Exception Handler in `main.py` — loggt Fehler server-seitig, Client bekommt nur `{"detail": "Internal server error"}`. Frontend: `app.config.errorHandler` + `unhandledrejection`-Listener in `main.ts` — verhindert weißen Bildschirm bei Vue-Render-Fehlern.
 - [ ] Rate Limiting (AI-Endpunkte)
 - [ ] Request-Logging (strukturiert)
 - [ ] Input-Sanitization prüfen (bereits durch Pydantic, aber doppelt-checken)
-- [ ] CORS nur für erlaubte Origins
-- [ ] Backup-Strategie: pg_dump Cronjob
+- [x] **CORS nur für erlaubte Origins:** ✅ War bereits korrekt implementiert — `settings.cors_origins` wird aus `CORS_ORIGINS` in `.env` gelesen.
+- [x] **Backup-Strategie:** ✅ `scripts/backup.sh` — `pg_dump` via `docker compose exec`, zeitgestempelte `.sql.gz`-Dateien, automatische Rotation (behält letzte 30).
 - [ ] README aktualisieren
-- [ ] .env.example + Deployment-Doku
+- [x] **.env.example + Deployment-Doku:** ✅ Zentrales `.env` im Root, `.env.example` mit allen Variablen (`OIDC_AUTHORITY`, `OIDC_CLIENT_ID`, `DB_*`, `OPENAI_API_KEY`, `CORS_ORIGINS`).
+- [x] **Projektstruktur bereinigt:** ✅ Frontend nach `frontend/` verschoben (Dockerfile, src/, public/, configs). Root enthält nur noch: `.env`, `docker-compose.yml`, `README.md`, `docs/`, `frontend/`, `backend/`, `scripts/`.
 - [ ] UI-ROADMAP-FINAL.md aktualisieren
 
 **Ergebnis:** Production-ready Backend
@@ -1651,7 +1661,7 @@ Ablauf:
 - [ ] **IdP-Entscheidung**: Keycloak (vorhanden) oder alternativer OIDC IdP? (Architektur ist IdP-agnostisch)
 - [ ] **Domain**: Bleibt die URL gleich? (Wichtig für PWA-Installation, Service Worker)
 - [ ] **Parallel-Betrieb**: Übergangsphase mit WebDAV + API gleichzeitig, oder Big-Bang-Umstellung?
-- [ ] **Backup**: pg_dump reicht → aber wie oft? Cronjob in Docker?
+- [ ] **Backup**: ~~pg_dump reicht → aber wie oft? Cronjob in Docker?~~ ✅ `scripts/backup.sh` vorhanden, Cronjob muss auf Host eingerichtet werden
 - [ ] **HTTPS**: Traefik/Caddy als Reverse Proxy vor nginx, oder bereits vorhanden?
 
 ---
