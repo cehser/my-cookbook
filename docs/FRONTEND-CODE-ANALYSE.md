@@ -225,8 +225,8 @@ Betrifft hauptsächlich:
 | **C1** | Dateien gelöscht: `babel.config.js`, `registerServiceWorker.js`, `sw.js`, `api/tags.ts` | ✅ |
 | **C2** | Dependencies entfernt: `core-js`, `json-url`, `@eslint/eslintrc` | ✅ |
 | **C3** | `qr-scanner`, `qrcode`, `sortablejs` entfernt (alle ungenutzt) | ✅ |
-| **C4** | Doppelte Exports bereinigen (5× Named + Default in API-Modulen) | ⬜ offen |
-| **C5** | `components.d.ts` in `.gitignore` (wird auto-generiert) | ⬜ offen |
+| **C4** | Doppelte Exports bereinigt (7× Named + Default → nur Named, 14 Imports aktualisiert) | ✅ |
+| **C5** | `components.d.ts` in `.gitignore` (wird auto-generiert) | ✅ |
 
 ### Priorität 3 — TypeScript-Verbesserung (teilweise erledigt)
 
@@ -234,7 +234,7 @@ Betrifft hauptsächlich:
 |---|----------|--------|
 | **T1** | `strict: true` aktiviert | ✅ |
 | **T2** | `moduleResolution: "bundler"`, `baseUrl` entfernt (TS7-ready) | ✅ |
-| **T3** | 17× `any` schrittweise durch konkrete Typen ersetzen | ⬜ offen |
+| **T3** | 17× `any` durch konkrete Typen ersetzt (`unknown`, generics, inline types) | ✅ |
 
 ### Priorität 4 — Strategische Entscheidungen (Diskussion nötig)
 
