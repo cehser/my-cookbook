@@ -53,76 +53,55 @@
   </div>
 </template>
 
-<script>
-import IngredientInlineEdit from "./IngredientInlineEdit.vue";
+<script setup lang="ts">
+import { ref } from 'vue'
+import IngredientInlineEdit from './IngredientInlineEdit.vue'
+import type { Ingredient, Section } from '@/types/recipe'
 
-export default {
-  name: "IngredientsSection",
-  components: {
-    IngredientInlineEdit,
-  },
-  props: {
-    sections: {
-      type: Array,
-      required: true,
-    },
-    activeSection: {
-      type: String,
-      default: null,
-    },
-    ingredients: {
-      type: Array,
-      required: true,
-    },
-    yieldsValue: {
-      type: Number,
-      required: true,
-    },
-    inlineEditable: {
-      type: Boolean,
-      default: false,
-    },
-    dirtyItems: {
-      type: Set,
-      default: () => new Set(),
-    },
-  },
-  emits: ["changed", "unchanged"],
-  data() {
-    return {
-      currentEditingKey: null,
-    };
-  },
-  methods: {
-    handleStartEdit(ingredientKey) {
-      this.currentEditingKey = ingredientKey;
-    },
-    handleEndEdit() {
-      this.currentEditingKey = null;
-    },
-    getSectionIngredients(sectionName) {
-      return this.ingredients.filter((x) => x.section === sectionName);
-    },
-    getIngredientName(ingredient) {
-      return ingredient.name;
-    },
-    getUnit(ingredient) {
-      return ingredient.amounts?.[0]?.unit || "";
-    },
-    formatAmount(ingredient) {
-      const amount = ingredient.amounts?.[0]?.amount;
+const props = defineProps<{
+  sections: Section[]
+  activeSection: string | null
+  ingredients: Ingredient[]
+  yieldsValue: number
+  inlineEditable?: boolean
+  dirtyItems?: Set<string>
+}>()
 
-      if (typeof amount !== "number") {
-        return amount;
-      }
+defineEmits<{
+  changed: [event: unknown]
+  unchanged: [event: unknown]
+}>()
 
-      return Number(amount).toLocaleString("de-DE", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      });
-    },
-  },
-};
+const currentEditingKey = ref<string | null>(null)
+
+function handleStartEdit(ingredientKey: string) {
+  currentEditingKey.value = ingredientKey
+}
+
+function handleEndEdit() {
+  currentEditingKey.value = null
+}
+
+function getSectionIngredients(sectionName: string) {
+  return props.ingredients.filter((x) => x.section === sectionName)
+}
+
+function getIngredientName(ingredient: Ingredient) {
+  return ingredient.name
+}
+
+function getUnit(ingredient: Ingredient) {
+  return ingredient.amounts?.[0]?.unit || ''
+}
+
+function formatAmount(ingredient: Ingredient) {
+  const amount = ingredient.amounts?.[0]?.amount
+  if (typeof amount !== 'number') return amount
+  return Number(amount).toLocaleString('de-DE', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })
+}
 </script>
 
 <style scoped>

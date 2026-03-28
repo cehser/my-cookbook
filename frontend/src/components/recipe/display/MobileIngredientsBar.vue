@@ -86,72 +86,35 @@
   </div>
 </template>
 
-<script>
-import PortionControl from "./PortionControl.vue";
-import IngredientsSection from "./IngredientsSection.vue";
-import CloseButton from "@/components/common/CloseButton.vue";
-import { BButton } from "bootstrap-vue-next";
+<script setup lang="ts">
+import PortionControl from './PortionControl.vue'
+import IngredientsSection from './IngredientsSection.vue'
+import CloseButton from '@/components/common/CloseButton.vue'
+import { BButton } from 'bootstrap-vue-next'
+import type { Ingredient, Section } from '@/types/recipe'
 
-export default {
-  name: "MobileIngredientsBar",
-  components: {
-    PortionControl,
-    IngredientsSection,
-    CloseButton,
-    BButton,
-  },
-  props: {
-    isExpanded: {
-      type: Boolean,
-      required: true,
-    },
-    yieldsValue: {
-      type: Number,
-      required: true,
-    },
-    yieldsUnit: {
-      type: String,
-      required: true,
-    },
-    showOnlyCurrentSection: {
-      type: Boolean,
-      required: true,
-    },
-    visibleSections: {
-      type: Array,
-      required: true,
-    },
-    sections: {
-      type: Array,
-      required: true,
-    },
-    activeSection: {
-      type: String,
-      default: "",
-    },
-    ingredients: {
-      type: Object,
-      required: true,
-    },
-    inlineEditable: {
-      type: Boolean,
-      default: false,
-    },
-    dirtyItems: {
-      type: Set,
-      default: () => new Set(),
-    },
-  },
-  emits: [
-    "open",
-    "close",
-    "update:yields",
-    "update:showOnlyCurrentSection",
-    "scroll-to-section",
-    "changed",
-    "unchanged",
-  ],
-};
+defineProps<{
+  isExpanded: boolean
+  yieldsValue: number
+  yieldsUnit: string
+  showOnlyCurrentSection: boolean
+  visibleSections: Section[]
+  sections: Section[]
+  activeSection?: string
+  ingredients: Ingredient[]
+  inlineEditable?: boolean
+  dirtyItems?: Set<string>
+}>()
+
+defineEmits<{
+  open: []
+  close: []
+  'update:yields': [value: number]
+  'update:showOnlyCurrentSection': [value: boolean]
+  'scroll-to-section': [section: string]
+  changed: [event: unknown]
+  unchanged: [event: unknown]
+}>()
 </script>
 
 <style scoped>

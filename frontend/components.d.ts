@@ -15,7 +15,6 @@ declare module 'vue' {
     AppNavbar: typeof import('./src/components/layout/AppNavbar.vue')['default']
     ArrayReorderBtnGroup: typeof import('./src/components/common/ArrayReorderBtnGroup.vue')['default']
     BAlert: typeof import('bootstrap-vue-next/components/BAlert')['BAlert']
-    BApp: typeof import('bootstrap-vue-next/components/BApp')['BApp']
     BButton: typeof import('bootstrap-vue-next/components/BButton')['BButton']
     BCard: typeof import('bootstrap-vue-next/components/BCard')['BCard']
     BCardBody: typeof import('bootstrap-vue-next/components/BCard')['BCardBody']

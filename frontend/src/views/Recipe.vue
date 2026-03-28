@@ -107,297 +107,255 @@
   </div>
 </template>
 
-<script>
-// @ is an alias to /src
-import { useRecipeHelper } from "@/composables/useRecipeHelper";
-import AppNavbar from "@/components/layout/AppNavbar.vue";
-import RecipeDisplay from "@/components/recipe/display/RecipeDisplay.vue";
-import RecipeFabMenu from "@/components/recipe/ui/RecipeFabMenu.vue";
-import InlineEditActionBar from "@/components/recipe/ui/InlineEditActionBar.vue";
-import jsyaml from "js-yaml";
-import { mapState } from "vuex";
-import { computed, ref, nextTick } from "vue";
-import { useToast } from "bootstrap-vue-next";
-import UUID from "@/js/uuid";
-import ShareManager from "@/components/recipe/ui/ShareManager.vue";
-import { deepCopyYaml } from "@/js/deepCopy";
-import { recipeUrl, editUrl } from "@/js/slug";
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import { useRecipeHelper } from '@/composables/useRecipeHelper'
+import { useRecipeStore } from '@/store/recipeStore'
+import { useUIStore } from '@/store/uiStore'
+import AppNavbar from '@/components/layout/AppNavbar.vue'
+import RecipeDisplay from '@/components/recipe/display/RecipeDisplay.vue'
+import RecipeFabMenu from '@/components/recipe/ui/RecipeFabMenu.vue'
+import InlineEditActionBar from '@/components/recipe/ui/InlineEditActionBar.vue'
+import ShareManager from '@/components/recipe/ui/ShareManager.vue'
+import jsyaml from 'js-yaml'
+import { useToast } from 'bootstrap-vue-next'
+import UUID from '@/js/uuid'
+import { deepCopyYaml } from '@/js/deepCopy'
+import { recipeUrl, editUrl } from '@/js/slug'
 
-export default {
-  name: "Recipe",
-  components: {
-    AppNavbar,
-    RecipeDisplay,
-    RecipeFabMenu,
-    InlineEditActionBar,
-    ShareManager,
-  },
-  props: {
-    id: {
-      type: String,
-      required: true,
-    },
-  },
-  setup(props) {
-    const idRef = computed(() => props.id);
-    const recipeHelper = useRecipeHelper({ recipeId: idRef });
+const props = defineProps<{ id: string }>()
 
-    // FAB Menu State (Mobile)
-    const fabMenuOpen = ref(false);
+const router = useRouter()
+const store = useRecipeStore()
+const uiStore = useUIStore()
+const bvnToast = useToast()
 
-    // Inline Edit Mode State
-    const inlineEditMode = ref(false);
-    const dirtyItems = ref(new Set());
-    const toast = useToast();
+const idRef = computed(() => props.id)
+const {
+  current_recipe,
+  selected,
+  recipes_list,
+  picture_src,
+} = useRecipeHelper({ recipeId: idRef })
 
-    return {
-      ...recipeHelper,
-      fabMenuOpen,
-      inlineEditMode,
-      dirtyItems,
-      toast,
-    };
-  },
-  data() {
-    return {
-      editMode: false, // inline edit mode
-      originalRecipe: null, // backup for cancel
-      showShareManager: false, // toggle share manager
-    };
-  },
-  mounted() {
-    // Restore UI state
-    this.$store.dispatch("restoreUIState");
-  },
-  watch: {
-    id() {
-      // Scroll to top when changing recipes via route
-      window.scrollTo(0, 0);
-    },
-  },
-  computed: {
-    ...mapState(["settings", "recipes"]),
-    // Check if current recipe is in favorites
-    isFavorite() {
-      if (!this.current_recipe || !this.current_recipe.recipe_uuid) {
-        return false;
-      }
-      const favorites = this.$store.state.favorites || [];
-      return favorites.includes(this.current_recipe.recipe_uuid);
-    },
-  },
-  methods: {
-    navSelected(uuid) {
-      const recipe = this.$store.state.recipes.find(r => r.recipe_uuid === uuid);
-      this.$router.push(recipeUrl(uuid, recipe?.recipe_name));
-    },
-    exportRecipe() {
-      const yaml = jsyaml.dump(this.current_recipe);
-      const blob = new Blob([yaml], { type: "text/yaml" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${this.current_recipe.recipe_name || "recipe"}.yaml`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    },
-    prevRecipe() {
-      if (this.selected > 0) {
-        const prev = this.recipes[this.selected - 1];
-        this.$router.push(recipeUrl(prev.recipe_uuid, prev.recipe_name));
-      }
-    },
-    nextRecipe() {
-      if (this.selected < this.recipes.length - 1) {
-        const next = this.recipes[this.selected + 1];
-        this.$router.push(recipeUrl(next.recipe_uuid, next.recipe_name));
-      }
-    },
-    copyRecipe() {
-      if (!this.current_recipe) {
-        this.toast("Rezept konnte nicht dupliziert werden", "danger");
-        return;
-      }
+// FAB Menu State
+const fabMenuOpen = ref(false)
 
-      try {
-        // Deep copy current recipe
-        const recipe = deepCopyYaml(this.current_recipe);
-        // Generate new UUID
-        recipe.recipe_uuid = UUID.generateUUID();
-        // Append to store
-        this.$store.dispatch("appendRecipe", recipe);
-        // Navigate to the new recipe
-        this.$nextTick(() => {
-          this.$router.push(recipeUrl(recipe.recipe_uuid, recipe.recipe_name));
-        });
-      } catch (error) {
-        console.error("Error copying recipe:", error);
-        this.toast("Fehler beim Duplizieren des Rezepts", "danger");
-      }
-    },
-    deleteRecipe() {
-      if (!this.current_recipe) {
-        this.toast("Rezept konnte nicht gelöscht werden", "danger");
-        return;
-      }
+// Inline Edit Mode State
+const inlineEditMode = ref(false)
+const dirtyItems = ref(new Set<string>())
 
-      if (
-        confirm(`Rezept "${this.current_recipe.recipe_name}" wirklich löschen?`)
-      ) {
-        try {
-          this.$store.dispatch("deleteRecipe", this.current_recipe.recipe_uuid);
-          // Navigate to gallery after deletion
-          this.$router.push("/");
-        } catch (error) {
-          console.error("Error deleting recipe:", error);
-          this.toast("Fehler beim Löschen des Rezepts", "danger");
-        }
-      }
-    },
-    async shareRecipe() {
-      if (!this.current_recipe) return;
-      this.showShareManager = true;
-    },
-    toggleFavorite() {
-      if (!this.current_recipe || !this.current_recipe.recipe_uuid) {
-        return;
-      }
-      if (this.isFavorite) {
-        this.$store.dispatch("removeFavorite", this.current_recipe.recipe_uuid);
-      } else {
-        this.$store.dispatch("addFavorite", this.current_recipe.recipe_uuid);
-      }
-    },
-    goToEdit() {
-      this.$router.push(editUrl(this.current_recipe.recipe_uuid, this.current_recipe.recipe_name));
-    },
-    toggleEditMode() {
-      if (!this.current_recipe) {
-        this.toast("Rezept konnte nicht bearbeitet werden", "danger");
-        return;
-      }
+// Data
+const editMode = ref(false)
+const originalRecipe = ref<ReturnType<typeof deepCopyYaml> | null>(null)
+const showShareManager = ref(false)
+const recipeDisplay = ref<InstanceType<typeof RecipeDisplay> | null>(null)
 
-      // Toggle inline edit mode instead of full edit mode
-      this.inlineEditMode = !this.inlineEditMode;
-      if (this.inlineEditMode) {
-        // Backup current recipe for cancel
-        this.originalRecipe = deepCopyYaml(this.current_recipe);
-        this.dirtyItems.clear();
-      } else {
-        // Exiting inline edit mode - clear backup if not saving
-        if (this.dirtyItems.size === 0) {
-          this.originalRecipe = null;
-        }
-      }
-    },
-    async saveRecipe() {
-      if (!this.current_recipe) {
-        this.toast("Rezept konnte nicht gespeichert werden", "danger");
-        return;
-      }
+// Computed
+const settings = computed(() => store.settings)
+const recipes = computed(() => store.recipes)
 
-      try {
-        await this.$store.dispatch("setRecipe", {
-          index: this.selected,
-          recipe: this.current_recipe,
-        });
-        this.editMode = false;
-        this.originalRecipe = null;
-        this.toast("Rezept gespeichert", "success");
-      } catch (error) {
-        console.error("Error saving recipe:", error);
-        this.toast("Fehler beim Speichern des Rezepts", "danger");
-      }
-    },
-    async handleInlineSave() {
-      // Deprecated - kept for backward compatibility
-      // Now using handleIngredientChanged instead
-      if (!this.current_recipe) {
-        return;
-      }
+const isFavorite = computed(() => {
+  if (!current_recipe.value?.recipe_uuid) return false
+  return store.favorites.includes(current_recipe.value.recipe_uuid)
+})
 
-      try {
-        await this.$store.dispatch("setRecipe", {
-          index: this.selected,
-          recipe: this.current_recipe,
-        });
-        this.toast("Änderung gespeichert", "success");
-      } catch (error) {
-        console.error("Error saving inline changes:", error);
-        this.toast("Fehler beim Speichern", "danger");
-      }
-    },
-    handleIngredientChanged(ingredientKey) {
-      // Track which ingredient was changed (key already includes "ingredient:" prefix)
-      this.dirtyItems.add(ingredientKey);
-    },
-    handleIngredientUnchanged(ingredientKey) {
-      // Remove ingredient from dirty items (key already includes "ingredient:" prefix)
-      this.dirtyItems.delete(ingredientKey);
-    },
-    handleStepChanged(stepIndex) {
-      // Track which step was changed
-      this.dirtyItems.add(`step:${stepIndex}`);
-    },
-    handleStepUnchanged(stepIndex) {
-      // Remove step from dirty items (undo)
-      this.dirtyItems.delete(`step:${stepIndex}`);
-    },
-    async saveInlineChanges() {
-      // Save all inline changes and exit inline edit mode
-      if (!this.current_recipe) {
-        this.toast("Rezept konnte nicht gespeichert werden", "danger");
-        return;
-      }
+// Watch
+watch(() => props.id, () => {
+  window.scrollTo(0, 0)
+})
 
-      try {
-        // Save changes to store and API
-        await this.$store.dispatch("setRecipe", {
-          index: this.selected,
-          recipe: this.current_recipe,
-        });
-        this.inlineEditMode = false;
-        this.originalRecipe = null;
-        this.dirtyItems.clear();
-        this.showToast("Änderungen gespeichert", "success");
-      } catch (error) {
-        console.error("Error saving inline changes:", error);
-        this.showToast("Fehler beim Speichern der Änderungen", "danger");
-      }
+// Lifecycle
+onMounted(() => {
+  uiStore.restoreUIState()
+})
+
+// Methods
+function showToast(content: string, variant = 'info') {
+  bvnToast?.show?.({
+    props: {
+      body: content,
+      variant,
+      pos: 'bottom-left',
     },
-    cancelInlineEdit() {
-      // Restore original recipe and exit inline edit mode
-      if (this.originalRecipe) {
-        this.current_recipe = deepCopyYaml(this.originalRecipe);
-      }
-      this.inlineEditMode = false;
-      this.originalRecipe = null;
-      this.dirtyItems.clear();
-      this.showToast("Änderungen verworfen", "info");
-    },
-    cancelEdit() {
-      // Restore original recipe
-      if (this.originalRecipe) {
-        this.current_recipe = deepCopyYaml(this.originalRecipe);
-      }
-      this.editMode = false;
-      this.originalRecipe = null;
-    },
-    showToast(content, variant = "info") {
-      if (this.toast) {
-        this.toast.create({
-          props: {
-            body: content,
-            variant: variant,
-            pos: "bottom-left",
-          },
-        });
-      }
-    },
-  },
-};
+  })
+}
+
+function navSelected(uuid: string) {
+  const recipe = store.recipes.find(r => r.recipe_uuid === uuid)
+  router.push(recipeUrl(uuid, recipe?.recipe_name))
+}
+
+function exportRecipe() {
+  if (!current_recipe.value) return
+  const yaml = jsyaml.dump(current_recipe.value)
+  const blob = new Blob([yaml], { type: 'text/yaml' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${current_recipe.value.recipe_name || 'recipe'}.yaml`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+function prevRecipe() {
+  if (selected.value > 0) {
+    const prev = store.recipes[selected.value - 1]
+    router.push(recipeUrl(prev.recipe_uuid, prev.recipe_name))
+  }
+}
+
+function nextRecipe() {
+  if (selected.value < store.recipes.length - 1) {
+    const next = store.recipes[selected.value + 1]
+    router.push(recipeUrl(next.recipe_uuid, next.recipe_name))
+  }
+}
+
+function copyRecipe() {
+  if (!current_recipe.value) {
+    showToast('Rezept konnte nicht dupliziert werden', 'danger')
+    return
+  }
+  try {
+    const recipe = deepCopyYaml(current_recipe.value)
+    recipe.recipe_uuid = UUID.generateUUID()
+    store.appendRecipe(recipe)
+    nextTick(() => {
+      router.push(recipeUrl(recipe.recipe_uuid, recipe.recipe_name))
+    })
+  } catch (error) {
+    console.error('Error copying recipe:', error)
+    showToast('Fehler beim Duplizieren des Rezepts', 'danger')
+  }
+}
+
+function deleteRecipe() {
+  if (!current_recipe.value) {
+    showToast('Rezept konnte nicht gelöscht werden', 'danger')
+    return
+  }
+  if (confirm(`Rezept "${current_recipe.value.recipe_name}" wirklich löschen?`)) {
+    try {
+      store.deleteRecipe(current_recipe.value.recipe_uuid)
+      router.push('/')
+    } catch (error) {
+      console.error('Error deleting recipe:', error)
+      showToast('Fehler beim Löschen des Rezepts', 'danger')
+    }
+  }
+}
+
+function shareRecipe() {
+  if (!current_recipe.value) return
+  showShareManager.value = true
+}
+
+function toggleFavorite() {
+  if (!current_recipe.value?.recipe_uuid) return
+  if (isFavorite.value) {
+    store.removeFavorite(current_recipe.value.recipe_uuid)
+  } else {
+    store.addFavorite(current_recipe.value.recipe_uuid)
+  }
+}
+
+function goToEdit() {
+  if (!current_recipe.value) return
+  router.push(editUrl(current_recipe.value.recipe_uuid, current_recipe.value.recipe_name))
+}
+
+function toggleEditMode() {
+  if (!current_recipe.value) {
+    showToast('Rezept konnte nicht bearbeitet werden', 'danger')
+    return
+  }
+  inlineEditMode.value = !inlineEditMode.value
+  if (inlineEditMode.value) {
+    originalRecipe.value = deepCopyYaml(current_recipe.value)
+    dirtyItems.value.clear()
+  } else {
+    if (dirtyItems.value.size === 0) {
+      originalRecipe.value = null
+    }
+  }
+}
+
+async function saveRecipe() {
+  if (!current_recipe.value) {
+    showToast('Rezept konnte nicht gespeichert werden', 'danger')
+    return
+  }
+  try {
+    await store.setRecipe({
+      index: selected.value,
+      recipe: current_recipe.value,
+    })
+    editMode.value = false
+    originalRecipe.value = null
+    showToast('Rezept gespeichert', 'success')
+  } catch (error) {
+    console.error('Error saving recipe:', error)
+    showToast('Fehler beim Speichern des Rezepts', 'danger')
+  }
+}
+
+function handleIngredientChanged(ingredientKey: string) {
+  dirtyItems.value.add(ingredientKey)
+}
+
+function handleIngredientUnchanged(ingredientKey: string) {
+  dirtyItems.value.delete(ingredientKey)
+}
+
+function handleStepChanged(stepIndex: number) {
+  dirtyItems.value.add(`step:${stepIndex}`)
+}
+
+function handleStepUnchanged(stepIndex: number) {
+  dirtyItems.value.delete(`step:${stepIndex}`)
+}
+
+async function saveInlineChanges() {
+  if (!current_recipe.value) {
+    showToast('Rezept konnte nicht gespeichert werden', 'danger')
+    return
+  }
+  try {
+    await store.setRecipe({
+      index: selected.value,
+      recipe: current_recipe.value,
+    })
+    inlineEditMode.value = false
+    originalRecipe.value = null
+    dirtyItems.value.clear()
+    showToast('Änderungen gespeichert', 'success')
+  } catch (error) {
+    console.error('Error saving inline changes:', error)
+    showToast('Fehler beim Speichern der Änderungen', 'danger')
+  }
+}
+
+function cancelInlineEdit() {
+  if (originalRecipe.value) {
+    current_recipe.value = deepCopyYaml(originalRecipe.value)
+  }
+  inlineEditMode.value = false
+  originalRecipe.value = null
+  dirtyItems.value.clear()
+  showToast('Änderungen verworfen', 'info')
+}
+
+function cancelEdit() {
+  if (originalRecipe.value) {
+    current_recipe.value = deepCopyYaml(originalRecipe.value)
+  }
+  editMode.value = false
+  originalRecipe.value = null
+}
 </script>
 
 <style scoped>

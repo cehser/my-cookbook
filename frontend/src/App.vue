@@ -4,20 +4,19 @@
   </BApp>
 </template>
 
-<script>
-import { BApp } from "bootstrap-vue-next";
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import { BApp } from 'bootstrap-vue-next'
+import { useRecipeStore } from '@/store/recipeStore'
 
-export default {
-  components: {
-    BApp,
-  },
-  mounted() {
-    this.$store.dispatch("loadSettings");
-    this.$store.dispatch("loadRecipes");
-    this.$store.dispatch("loadRecipePictures");
-    this.$store.dispatch("loadFavorites");
-  },
-};
+const store = useRecipeStore()
+
+onMounted(() => {
+  store.loadSettings()
+  store.loadRecipes()
+  store.loadRecipePictures()
+  store.loadFavorites()
+})
 </script>
 
 <style>

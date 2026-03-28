@@ -96,91 +96,77 @@
   </div>
 </template>
 
-<script>
-import AppNavbar from "@/components/layout/AppNavbar.vue";
-import { useRecipeHelper } from "@/composables/useRecipeHelper";
-import { mapState } from "vuex";
-import { useToast } from "@/composables/useToast";
-import deepEqual from "deep-equal";
-import { ref } from "vue";
-import { recipeUrl } from "@/js/slug";
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import AppNavbar from '@/components/layout/AppNavbar.vue'
+import { useRecipeHelper } from '@/composables/useRecipeHelper'
+import { useRecipeStore } from '@/store/recipeStore'
+import { useToast } from '@/composables/useToast'
+import deepEqual from 'deep-equal'
+import { recipeUrl } from '@/js/slug'
 
-export default {
-  name: "Settings",
-  components: {
-    AppNavbar,
+const router = useRouter()
+const store = useRecipeStore()
+const { toast } = useToast()
+
+const recipeId = ref('')
+const { recipes_list } = useRecipeHelper({ recipeId })
+
+// Local copy of settings for editing
+const settings = ref(JSON.parse(JSON.stringify(store.settings)))
+const userEdited = ref(false)
+
+const store_settings = computed(() => store.settings)
+const recipes = computed(() => store.recipes)
+
+// Watch store settings — update local copy unless user is editing
+watch(
+  () => store.settings,
+  (newVal) => {
+    if (!userEdited.value) {
+      settings.value = JSON.parse(JSON.stringify(newVal))
+    }
   },
-  setup() {
-    const recipeId = ref('');
-    const recipeHelper = useRecipeHelper({ recipeId });
-    const { toast } = useToast();
-    return {
-      ...recipeHelper,
-      toast,
-    };
+  { deep: true }
+)
+
+// Watch local settings — mark as edited when they diverge
+watch(
+  settings,
+  () => {
+    if (settings.value && !deepEqual(settings.value, store.settings)) {
+      userEdited.value = true
+    }
   },
-  data() {
-    return {
-      settings: null,
-      userEdited: false,
-    };
-  },
-  created() {
-    this.settings = JSON.parse(JSON.stringify(this.store_settings));
-  },
-  watch: {
-    store_settings: {
-      deep: true,
-      handler(newVal) {
-        // Update local copy when store is updated (e.g. async loadSettings),
-        // but only if the user hasn't started editing yet.
-        if (!this.userEdited) {
-          this.settings = JSON.parse(JSON.stringify(newVal));
-        }
-      },
-    },
-    settings: {
-      deep: true,
-      handler() {
-        // Mark as user-edited once local settings diverge from store
-        if (this.settings && !deepEqual(this.settings, this.store_settings)) {
-          this.userEdited = true;
-        }
-      },
-    },
-  },
-  computed: {
-    ...mapState({
-      store_settings: "settings",
-      recipes: "recipes",
-    }),
-    changed() {
-      return !deepEqual(this.settings, this.store_settings);
-    },
-    roleBadgeClass() {
-      const role = this.settings?.role || this.store_settings?.role;
-      if (role === "admin") return "bg-danger";
-      if (role === "editor") return "bg-success";
-      return "bg-secondary";
-    },
-    roleLabel() {
-      const role = this.settings?.role || this.store_settings?.role;
-      if (role === "admin") return "Administrator";
-      if (role === "editor") return "Bearbeiter";
-      return "Nur Lesen";
-    },
-  },
-  methods: {
-    navSelected(uuid) {
-      const recipe = this.$store.state.recipes.find(r => r.recipe_uuid === uuid);
-      this.$router.push(recipeUrl(uuid, recipe?.recipe_name));
-    },
-    async saveChanges() {
-      await this.$store.dispatch("saveSettings", this.settings);
-      this.settings = JSON.parse(JSON.stringify(this.store_settings));
-      this.userEdited = false;
-      this.toast("Einstellungen", "Gespeichert.", "success");
-    },
-  },
-};
+  { deep: true }
+)
+
+const changed = computed(() => !deepEqual(settings.value, store.settings))
+
+const roleBadgeClass = computed(() => {
+  const role = settings.value?.role || store.settings?.role
+  if (role === 'admin') return 'bg-danger'
+  if (role === 'editor') return 'bg-success'
+  return 'bg-secondary'
+})
+
+const roleLabel = computed(() => {
+  const role = settings.value?.role || store.settings?.role
+  if (role === 'admin') return 'Administrator'
+  if (role === 'editor') return 'Bearbeiter'
+  return 'Nur Lesen'
+})
+
+function navSelected(uuid: string) {
+  const recipe = store.recipes.find(r => r.recipe_uuid === uuid)
+  router.push(recipeUrl(uuid, recipe?.recipe_name))
+}
+
+async function saveChanges() {
+  await store.saveSettings(settings.value)
+  settings.value = JSON.parse(JSON.stringify(store.settings))
+  userEdited.value = false
+  toast('Einstellungen', 'Gespeichert.', 'success')
+}
 </script>

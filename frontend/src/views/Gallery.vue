@@ -194,270 +194,254 @@
   </div>
 </template>
 
-<script>
-// @ is an alias to /src
-import { useRecipeHelper } from "@/composables/useRecipeHelper";
-import { useToast } from "@/composables/useToast";
-import AppNavbar from "@/components/layout/AppNavbar.vue";
-import RecipeCard from "@/components/recipe/ui/RecipeCard.vue";
-import AIRecipeImport from "@/components/features/AIRecipeImport.vue";
-import { mapState } from "vuex";
-import { computed, ref } from "vue";
-import Recipes from "@/js/recipes";
-import jsyaml from "js-yaml";
-import { recipeUrl } from "@/js/slug";
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import { useRecipeHelper } from '@/composables/useRecipeHelper'
+import { useToast } from '@/composables/useToast'
+import { useRecipeStore } from '@/store/recipeStore'
+import { useUIStore } from '@/store/uiStore'
+import AppNavbar from '@/components/layout/AppNavbar.vue'
+import RecipeCard from '@/components/recipe/ui/RecipeCard.vue'
+import AIRecipeImport from '@/components/features/AIRecipeImport.vue'
+import Recipes from '@/js/recipes'
+import jsyaml from 'js-yaml'
+import { recipeUrl } from '@/js/slug'
 
-export default {
-  name: "Recipe",
-  components: {
-    AppNavbar,
-    RecipeCard,
-    AIRecipeImport,
-  },
-  setup() {
-    const recipeId = ref('');
-    const recipeHelper = useRecipeHelper({ recipeId });
-    const { toast } = useToast();
+const router = useRouter()
+const store = useRecipeStore()
+const uiStore = useUIStore()
+const { toast } = useToast()
 
-    return {
-      ...recipeHelper,
-      toast,
-      picture_src: recipeHelper.recipeThumbnailSrc,
-    };
-  },
-  data() {
-    return {
-      refreshing: false,
-      registration: null,
-      updateExists: false,
-      filter: "",
-      selectedTags: [],
-      selectedAuthor: null,
-      selectedDifficulty: null,
-      sortBy: "name-asc",
-      showAIImport: false,
-    };
-  },
-  created() {
-    document.addEventListener("swUpdated", this.showRefreshUI, { once: true });
-    if (navigator.serviceWorker) {
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (this.refreshing) return;
-        this.refreshing = true;
-        window.location.reload();
-      });
+const recipeId = ref('')
+const { recipes_list, recipeThumbnailSrc } = useRecipeHelper({ recipeId })
+const picture_src = recipeThumbnailSrc
+
+// Data
+const refreshing = ref(false)
+const registration = ref<{ waiting?: { postMessage: (msg: string) => void } } | null>(null)
+const updateExists = ref(false)
+const filter = ref('')
+const selectedTags = ref<string[]>([])
+const selectedAuthor = ref<string | null>(null)
+const selectedDifficulty = ref<string | null>(null)
+const sortBy = ref('name-asc')
+const showAIImport = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+
+// Computed
+const settings = computed(() => store.settings)
+const recipes = computed(() => store.recipes)
+
+const allTags = computed(() => {
+  const tags = new Set<string>()
+  store.recipes.forEach((recipe) => {
+    if (recipe.tags) {
+      recipe.tags.forEach((tag: string) => tags.add(tag))
     }
-  },
-  mounted() {
-    // Restore UI state
+  })
+  return Array.from(tags).sort()
+})
+
+const allAuthors = computed(() => {
+  const authors = new Set<string>()
+  store.recipes.forEach((recipe) => {
+    if (recipe.author) {
+      authors.add(recipe.author)
+    }
+  })
+  return Array.from(authors).sort()
+})
+
+const hasActiveFilters = computed(() => {
+  return (
+    filter.value ||
+    selectedTags.value.length > 0 ||
+    selectedAuthor.value ||
+    selectedDifficulty.value
+  )
+})
+
+const orphanedTags = computed(() => {
+  return selectedTags.value.filter((tag) => !allTags.value.includes(tag))
+})
+
+const filteredRecipes = computed(() => {
+  const recipesWithIndex = store.recipes.map((recipe, index) => ({
+    ...recipe,
+    originalIndex: index,
+  }))
+
+  const filtered = recipesWithIndex.filter((recipe) => {
+    const matchesText =
+      !filter.value ||
+      recipe.recipe_name.toLowerCase().includes(filter.value.toLowerCase())
+
+    const matchesTags =
+      selectedTags.value.length === 0 ||
+      (recipe.tags &&
+        selectedTags.value.some((tag) => recipe.tags.includes(tag)))
+
+    const matchesAuthor =
+      !selectedAuthor.value || recipe.author === selectedAuthor.value
+
+    const matchesDifficulty =
+      !selectedDifficulty.value ||
+      recipe.difficulty === selectedDifficulty.value
+
+    return matchesText && matchesTags && matchesAuthor && matchesDifficulty
+  })
+
+  const sorted = [...filtered]
+  const favorites = store.favorites
+
+  sorted.sort((a, b) => {
+    switch (sortBy.value) {
+      case 'name-asc':
+        return a.recipe_name.localeCompare(b.recipe_name)
+      case 'name-desc':
+        return b.recipe_name.localeCompare(a.recipe_name)
+      case 'date-new':
+        return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+      case 'date-old':
+        return new Date(a.lastUpdated).getTime() - new Date(b.lastUpdated).getTime()
+      case 'favorites': {
+        const aIsFav = favorites.includes(a.recipe_uuid)
+        const bIsFav = favorites.includes(b.recipe_uuid)
+        if (aIsFav && !bIsFav) return -1
+        if (!aIsFav && bIsFav) return 1
+        return a.recipe_name.localeCompare(b.recipe_name)
+      }
+      default:
+        return 0
+    }
+  })
+
+  return sorted
+})
+
+// Service Worker
+document.addEventListener('swUpdated', showRefreshUI as EventListener, { once: true })
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing.value) return
+    refreshing.value = true
+    window.location.reload()
+  })
+}
+
+// Watchers
+watch(filter, (newFilter) => {
+  uiStore.setGalleryFilter(newFilter)
+})
+
+watch(selectedTags, (newTags) => {
+  uiStore.setGallerySelectedTags(newTags)
+}, { deep: true })
+
+watch(sortBy, (newSortBy) => {
+  uiStore.setGallerySortBy(newSortBy)
+})
+
+// Lifecycle
+onMounted(() => {
+  try {
+    uiStore.restoreUIState()
+    filter.value = uiStore.galleryFilter || ''
+    selectedTags.value = uiStore.gallerySelectedTags
+      ? [...uiStore.gallerySelectedTags]
+      : []
+    sortBy.value = uiStore.gallerySortBy || 'name-asc'
+
+    nextTick(() => {
+      const scrollPos = uiStore.galleryScrollPosition || 0
+      if (scrollPos > 0) {
+        window.scrollTo(0, scrollPos)
+      }
+    })
+  } catch (e) {
+    console.error('Failed to restore UI state:', e)
+  }
+})
+
+onBeforeUnmount(() => {
+  uiStore.setGalleryScrollPosition(window.scrollY)
+})
+
+// Methods
+function navSelected(uuid: string) {
+  const recipe = store.recipes.find(r => r.recipe_uuid === uuid)
+  router.push(recipeUrl(uuid, recipe?.recipe_name))
+}
+
+function toggleTag(tag: string) {
+  const index = selectedTags.value.indexOf(tag)
+  if (index > -1) {
+    selectedTags.value.splice(index, 1)
+  } else {
+    selectedTags.value.push(tag)
+  }
+}
+
+function clearAllFilters() {
+  filter.value = ''
+  selectedTags.value = []
+  selectedAuthor.value = null
+  selectedDifficulty.value = null
+}
+
+function showRefreshUI(e: Event) {
+  registration.value = (e as CustomEvent).detail
+  updateExists.value = true
+}
+
+function refreshApp() {
+  updateExists.value = false
+  if (!registration.value?.waiting) return
+  registration.value.waiting.postMessage('skipWaiting')
+}
+
+function handleDeleteRecipe(uuid: string) {
+  store.deleteRecipe(uuid)
+}
+
+function newRecipe() {
+  store.appendRecipe(Recipes.loadNewRecipe())
+  toast('Neues Rezept erstellt.', 'success')
+}
+
+function loadSample() {
+  store.appendRecipe(Recipes.loadSample())
+  toast('Beispielrezept geladen.', 'success')
+}
+
+function onAIImport(recipe: { recipe_name: string }) {
+  toast(`Rezept "${recipe.recipe_name}" importiert.`, 'success')
+  showAIImport.value = false
+}
+
+function triggerImport() {
+  fileInput.value?.click()
+}
+
+function importRecipe(ev: Event) {
+  const input = ev.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
     try {
-      this.$store.dispatch("restoreUIState");
-      this.filter = this.$store.getters.galleryFilter || "";
-      this.selectedTags = this.$store.getters.gallerySelectedTags
-        ? [...this.$store.getters.gallerySelectedTags]
-        : [];
-      this.sortBy = this.$store.getters.gallerySortBy || "name-asc";
-
-      // Restore scroll position
-      this.$nextTick(() => {
-        const scrollPos = this.$store.getters.galleryScrollPosition || 0;
-        if (scrollPos > 0) {
-          window.scrollTo(0, scrollPos);
-        }
-      });
-    } catch (e) {
-      console.error("Failed to restore UI state:", e);
+      const recipe = jsyaml.load(e.target?.result as string) as { recipe_name: string }
+      store.appendRecipe(recipe)
+      toast(`Rezept "${recipe.recipe_name}" importiert.`, 'success')
+      input.value = ''
+    } catch (error) {
+      toast('Fehler beim Importieren: ' + (error as Error).message, 'danger')
     }
-  },
-  beforeUnmount() {
-    // Save scroll position before leaving
-    this.$store.dispatch("setGalleryScrollPosition", window.scrollY);
-  },
-  watch: {
-    filter(newFilter) {
-      try {
-        this.$store.dispatch("setGalleryFilter", newFilter);
-      } catch (e) {
-        console.error("Failed to save filter:", e);
-      }
-    },
-    selectedTags: {
-      deep: true,
-      handler(newTags) {
-        try {
-          this.$store.dispatch("setGallerySelectedTags", newTags);
-        } catch (e) {
-          console.error("Failed to save tags:", e);
-        }
-      },
-    },
-    sortBy(newSortBy) {
-      try {
-        this.$store.dispatch("setGallerySortBy", newSortBy);
-      } catch (e) {
-        console.error("Failed to save sortBy:", e);
-      }
-    },
-  },
-  computed: {
-    ...mapState(["settings", "recipes"]),
-    allTags() {
-      const tags = new Set();
-      this.recipes.forEach((recipe) => {
-        if (recipe.tags) {
-          recipe.tags.forEach((tag) => tags.add(tag));
-        }
-      });
-      return Array.from(tags).sort();
-    },
-    allAuthors() {
-      const authors = new Set();
-      this.recipes.forEach((recipe) => {
-        if (recipe.author) {
-          authors.add(recipe.author);
-        }
-      });
-      return Array.from(authors).sort();
-    },
-    hasActiveFilters() {
-      return (
-        this.filter ||
-        this.selectedTags.length > 0 ||
-        this.selectedAuthor ||
-        this.selectedDifficulty
-      );
-    },
-    orphanedTags() {
-      // Tags that are selected but don't exist in any recipe
-      return this.selectedTags.filter((tag) => !this.allTags.includes(tag));
-    },
-    filteredRecipes() {
-      // Add original index to each recipe
-      const recipesWithIndex = this.recipes.map((recipe, index) => ({
-        ...recipe,
-        originalIndex: index,
-      }));
-
-      const filtered = recipesWithIndex.filter((recipe) => {
-        // Text filter
-        const matchesText =
-          !this.filter ||
-          recipe.recipe_name.toLowerCase().includes(this.filter.toLowerCase());
-
-        // Tag filter (OR logic: recipe must have at least one selected tag)
-        const matchesTags =
-          this.selectedTags.length === 0 ||
-          (recipe.tags &&
-            this.selectedTags.some((tag) => recipe.tags.includes(tag)));
-
-        // Author filter
-        const matchesAuthor =
-          !this.selectedAuthor || recipe.author === this.selectedAuthor;
-
-        // Difficulty filter
-        const matchesDifficulty =
-          !this.selectedDifficulty ||
-          recipe.difficulty === this.selectedDifficulty;
-
-        return matchesText && matchesTags && matchesAuthor && matchesDifficulty;
-      });
-
-      // Sortierung
-      const sorted = [...filtered];
-      const favorites = this.$store.state.favorites || [];
-
-      sorted.sort((a, b) => {
-        switch (this.sortBy) {
-          case "name-asc":
-            return a.recipe_name.localeCompare(b.recipe_name);
-          case "name-desc":
-            return b.recipe_name.localeCompare(a.recipe_name);
-          case "date-new":
-            return new Date(b.lastUpdated) - new Date(a.lastUpdated);
-          case "date-old":
-            return new Date(a.lastUpdated) - new Date(b.lastUpdated);
-          case "favorites": {
-            const aIsFav = favorites.includes(a.recipe_uuid);
-            const bIsFav = favorites.includes(b.recipe_uuid);
-            if (aIsFav && !bIsFav) return -1;
-            if (!aIsFav && bIsFav) return 1;
-            return a.recipe_name.localeCompare(b.recipe_name);
-          }
-          default:
-            return 0;
-        }
-      });
-
-      return sorted;
-    },
-  },
-  methods: {
-    navSelected(uuid) {
-      const recipe = this.recipes.find(r => r.recipe_uuid === uuid);
-      this.$router.push(recipeUrl(uuid, recipe?.recipe_name));
-    },
-    toggleTag(tag) {
-      const index = this.selectedTags.indexOf(tag);
-      if (index > -1) {
-        this.selectedTags.splice(index, 1);
-      } else {
-        this.selectedTags.push(tag);
-      }
-    },
-    clearAllFilters() {
-      this.filter = "";
-      this.selectedTags = [];
-      this.selectedAuthor = null;
-      this.selectedDifficulty = null;
-    },
-    showRefreshUI(e) {
-      this.registration = e.detail;
-      this.updateExists = true;
-    },
-    refreshApp() {
-      this.updateExists = false;
-      if (!this.registration || !this.registration.waiting) {
-        return;
-      }
-      this.registration.waiting.postMessage("skipWaiting");
-    },
-    handleDeleteRecipe(uuid) {
-      this.$store.dispatch("deleteRecipe", uuid);
-    },
-    newRecipe() {
-      this.$store.dispatch("appendRecipe", Recipes.loadNewRecipe());
-      this.toast("Neues Rezept erstellt.", "success");
-    },
-    loadSample() {
-      this.$store.dispatch("appendRecipe", Recipes.loadSample());
-      this.toast("Beispielrezept geladen.", "success");
-    },
-    onAIImport(recipe) {
-      this.toast(`Rezept "${recipe.recipe_name}" importiert.`, "success");
-      this.showAIImport = false;
-    },
-    triggerImport() {
-      this.$refs.fileInput.click();
-    },
-    importRecipe(ev) {
-      const file = ev.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const recipe = jsyaml.load(e.target.result);
-          this.$store.dispatch("appendRecipe", recipe);
-          this.toast(`Rezept "${recipe.recipe_name}" importiert.`, "success");
-          this.$refs.fileInput.value = "";
-        } catch (error) {
-          this.toast("Fehler beim Importieren: " + error.message, "danger");
-        }
-      };
-      reader.readAsText(file);
-    },
-  },
-};
+  }
+  reader.readAsText(file)
+}
 </script>
 
 <style lang="scss">

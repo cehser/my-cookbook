@@ -89,43 +89,34 @@
   </div>
 </template>
 
-<script>
-import { BButton } from "bootstrap-vue-next";
+<script setup lang="ts">
+import { BButton } from 'bootstrap-vue-next'
 
-export default {
-  name: "RecipeFabMenu",
-  components: {
-    BButton,
-  },
-  props: {
-    editMode: {
-      type: Boolean,
-      default: false,
-    },
-    readOnly: {
-      type: Boolean,
-      default: false,
-    },
-    expertMode: {
-      type: Boolean,
-      default: false,
-    },
-    menuOpen: {
-      type: Boolean,
-      default: false,
-    },
-  },
-  emits: ["toggle-menu", "inline-edit", "edit", "copy", "delete", "share", "export"],
-  methods: {
-    toggleMenu() {
-      this.$emit("toggle-menu");
-    },
-    handleAction(action) {
-      this.$emit(action);
-      this.$emit("toggle-menu"); // Close menu after action
-    },
-  },
-};
+defineProps<{
+  editMode?: boolean
+  readOnly?: boolean
+  expertMode?: boolean
+  menuOpen?: boolean
+}>()
+
+const emit = defineEmits<{
+  'toggle-menu': []
+  'inline-edit': []
+  edit: []
+  copy: []
+  delete: []
+  share: []
+  export: []
+}>()
+
+function toggleMenu() {
+  emit('toggle-menu')
+}
+
+function handleAction(action: 'inline-edit' | 'edit' | 'copy' | 'delete' | 'share' | 'export') {
+  emit(action)
+  emit('toggle-menu')
+}
 </script>
 
 <style scoped>

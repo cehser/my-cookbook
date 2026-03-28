@@ -198,301 +198,261 @@
   </div>
 </template>
 
-<script>
-import { mapState } from "vuex";
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import AppNavbar from '@/components/layout/AppNavbar.vue'
+import { adminApi } from '@/api/admin'
+import { useRecipeHelper } from '@/composables/useRecipeHelper'
+import { useToast } from '@/composables/useToast'
+import { useRecipeStore } from '@/store/recipeStore'
+import UUID from '@/js/uuid'
+import { deepCopyYaml } from '@/js/deepCopy'
+import Recipes from '@/js/recipes'
+import jsyaml from 'js-yaml'
+import { recipeUrl } from '@/js/slug'
 
-import AppNavbar from "@/components/layout/AppNavbar.vue";
-import { adminApi } from "@/api/admin";
-import { useRecipeHelper } from "@/composables/useRecipeHelper";
-import { useToast } from "@/composables/useToast";
-import UUID from "@/js/uuid";
-import { deepCopyYaml } from "@/js/deepCopy";
-import Recipes from "@/js/recipes";
-import jsyaml from "js-yaml";
-import { ref } from "vue";
-import { recipeUrl } from "@/js/slug";
+const router = useRouter()
+const store = useRecipeStore()
+const { toast } = useToast()
 
-export default {
-  name: "Administration",
-  components: {
-    AppNavbar,
-  },
-  setup() {
-    const recipeId = ref('');
-    const recipeHelper = useRecipeHelper({ recipeId });
-    const { toast } = useToast();
+const recipeId = ref('')
+const { recipes_list, current_recipe } = useRecipeHelper({ recipeId })
 
-    return {
-      ...recipeHelper,
-      toast,
-    };
-  },
-  data() {
-    return {
-      users: [],
-      usersLoading: false,
-      usersError: null,
-      siteMaxShareDays: 30,
-      shares: [],
-      sharesLoading: false,
-    };
-  },
-  computed: {
-    // mix the getters into computed with object spread operator
-    ...mapState(["settings", "recipes", "recipe_pictures"]),
-    pendingUsers() {
-      return this.users.filter(u => u.role === 'pending');
-    },
-  },
-  mounted() {
-    this.loadUsers();
-    this.loadSiteSettings();
-    this.loadShares();
-    document.onkeydown = (event) => {
-      //ctrl + s
-      if (event.ctrlKey && event.code === "KeyS") {
-        event.preventDefault(); //do not show browser dialog
-        this.saveToLocalStorage();
-      }
-    };
-  },
-  methods: {
-    formatDate(iso) {
-      if (!iso) return '—';
-      return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    },
-    isExpired(expiresAt) {
-      return expiresAt && new Date(expiresAt) < new Date();
-    },
-    isExpiringSoon(expiresAt) {
-      if (!expiresAt) return false;
-      const diff = new Date(expiresAt) - new Date();
-      return diff > 0 && diff < 3 * 24 * 60 * 60 * 1000;
-    },
-    shareRowClass(s) {
-      if (!s.is_active) return 'text-muted';
-      if (this.isExpired(s.expires_at)) return 'text-muted';
-      return '';
-    },
-    shareUrl(token) {
-      return `${window.location.origin}/s/${token}`;
-    },
-    async copyShareLink(token) {
-      try {
-        await navigator.clipboard.writeText(this.shareUrl(token));
-      } catch {}
-    },
-    async loadShares() {
-      this.sharesLoading = true;
-      try {
-        this.shares = await adminApi.listShares();
-      } catch (e) {
-        console.error('Failed to load shares', e);
-      } finally {
-        this.sharesLoading = false;
-      }
-    },
-    async revokeShare(share) {
-      if (!confirm(`Share-Link für "${share.recipe_name}" widerrufen?`)) return;
-      try {
-        await adminApi.revokeShare(share.id);
-        share.is_active = false;
-      } catch (e) {
-        console.error('Failed to revoke share', e);
-      }
-    },
-    async loadUsers() {
-      this.usersLoading = true;
-      this.usersError = null;
-      try {
-        this.users = (await adminApi.listUsers()).map(u => ({ ...u, saving: false }));
-      } catch (e) {
-        this.usersError = 'Benutzer konnten nicht geladen werden.';
-      } finally {
-        this.usersLoading = false;
-      }
-    },
-    async changeRole(user, newRole) {
-      const oldRole = user.role;
-      user.role = newRole;
-      user.saving = true;
-      try {
-        await adminApi.updateRole(user.oidc_sub, newRole);
-        this.toast(`Rolle von ${user.display_name} → ${newRole}`, 'success');
-      } catch (e) {
-        user.role = oldRole;
-        this.toast('Rolle konnte nicht geändert werden: ' + e.message, 'danger');
-      } finally {
-        user.saving = false;
-      }
-    },
-    async loadSiteSettings() {
-      try {
-        const s = await adminApi.getSettings();
-        this.siteMaxShareDays = s.max_share_days;
-      } catch { /* ignore if not admin */ }
-    },
-    async saveSiteSettings() {
-      try {
-        await adminApi.updateSettings({ max_share_days: this.siteMaxShareDays });
-        this.toast('Einstellungen gespeichert', 'success');
-      } catch (e) {
-        this.toast('Einstellungen konnten nicht gespeichert werden', 'danger');
-      }
-    },
-    formatDate(iso) {
-      if (!iso) return '—';
-      return new Date(iso).toLocaleDateString('de-DE', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      });
-    },
-    navSelected(uuid) {
-      const recipe = this.recipes.find(r => r.recipe_uuid === uuid);
-      this.$router.push(recipeUrl(uuid, recipe?.recipe_name));
-    },
-    deleteRecipe: function (index) {
-      this.$store.dispatch("deleteRecipe", index);
-    },
-    copyRecipe: function (index) {
-      //deep copy recipe
-      let recipe = deepCopyYaml(this.recipes[index]);
-      //new uuid
-      recipe.recipe_uuid = UUID.generateUUID();
-      //load
-      this.$store.dispatch("appendRecipe", recipe);
-    },
-    newRecipe: function () {
-      this.$store.dispatch("appendRecipe", Recipes.loadNewRecipe());
-    },
-    loadSample: function () {
-      this.$store.dispatch("appendRecipe", Recipes.loadSample());
-    },
-    async migrateImages() {
-      try {
-        const { api } = await import('@/api/client');
-        const result = await api.post('/admin/migrate-images');
-        this.toast(
-          `Migration: ${result.migrated} Bilder gespeichert, ${result.failed} fehlgeschlagen.`,
-          result.failed > 0 ? 'warning' : 'success'
-        );
-        // Reload recipes to pick up new image IDs
-        this.$store.dispatch('loadRecipesFromApi');
-      } catch (e) {
-        this.toast('Migration fehlgeschlagen: ' + e.message, 'danger');
-      }
-    },
-    saveToLocalStorage: function () {
-      this.$store.dispatch("saveRecipes");
-      this.$store
-        .dispatch("saveRecipePictures")
-        .then(() => this.toast("Gespeichert.", "success"));
-    },
-    saveRecipeAsFile: function () {
-      let fileNameToSaveAs = "recipe.yaml";
-      let textFileAsBlob = new Blob([jsyaml.dump(this.current_recipe)], {
-        type: "text/plain",
-      });
-      let downloadLink = document.createElement("a");
-      downloadLink.download = fileNameToSaveAs;
-      downloadLink.innerHTML = "Download File";
-      if (window.webkitURL != null) {
-        // Chrome allows the link to be clicked
-        // without actually adding it to the DOM.
-        downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
-      } else {
-        // Firefox requires the link to be added to the DOM
-        // before it can be clicked.
-        downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
-        downloadLink.onclick = this.destroyClickedElement;
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
-      }
+// Data
+interface UserEntry {
+  oidc_sub: string
+  display_name: string
+  given_name?: string
+  family_name?: string
+  email?: string
+  role: string
+  created_at: string
+  last_login?: string
+  saving: boolean
+}
 
-      downloadLink.click();
-    },
-    saveCookbookAsFile: function () {
-      let fileNameToSaveAs = "cookbook.yaml";
-      let blob = new Blob([jsyaml.dump(this.recipes)], {
-        type: "application/octet-stream",
-      });
-      let url = window.URL.createObjectURL(blob);
-      window.URL = window.URL || window.webkitURL;
+interface ShareEntry {
+  id: string
+  token: string
+  recipe_name: string
+  created_by_name: string
+  created_at: string
+  expires_at?: string
+  is_active: boolean
+}
 
-      window.location.href = url;
+const users = ref<UserEntry[]>([])
+const usersLoading = ref(false)
+const usersError = ref<string | null>(null)
+const siteMaxShareDays = ref(30)
+const shares = ref<ShareEntry[]>([])
+const sharesLoading = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
 
-      if (
-        navigator.userAgent.match(/iPad/i) ||
-        navigator.userAgent.match(/iPhone/i)
-      ) {
-        //Safari & Opera iOS
-        window.location.href = url;
-      } else {
-        let downloadLink = document.createElement("a");
-        downloadLink.download = fileNameToSaveAs;
-        downloadLink.innerHTML = "Download File";
-        downloadLink.href = url;
-        downloadLink.onclick = this.destroyClickedElement;
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-      }
-    },
-    loadFromFile: function (ev) {
-      const file = ev.target.files[0];
-      const reader = new FileReader();
+// Computed
+const settings = computed(() => store.settings)
+const recipes = computed(() => store.recipes)
+const recipe_pictures = computed(() => store.recipe_pictures)
 
-      reader.onload = (e) => {
-        let content = jsyaml.load(e.target.result);
-        let recipes = [];
+const pendingUsers = computed(() => users.value.filter(u => u.role === 'pending'))
 
-        if (!Array.isArray(content)) {
-          recipes = [content];
-        } else {
-          recipes = content;
-        }
+// Lifecycle
+function onKeyDown(event: KeyboardEvent) {
+  if (event.ctrlKey && event.code === 'KeyS') {
+    event.preventDefault()
+    saveToLocalStorage()
+  }
+}
 
-        recipes.forEach((recipe) => {
-          this.appendRecipe(recipe);
-        });
-      };
-      //reader.onload = e => console.log(e.target.result);
+onMounted(() => {
+  loadUsers()
+  loadSiteSettings()
+  loadShares()
+  document.addEventListener('keydown', onKeyDown)
+})
 
-      reader.readAsText(file);
-    },
-    triggerImport: function () {
-      this.$refs.fileInput.click();
-    },
-    importRecipe: function (ev) {
-      const file = ev.target.files[0];
-      if (!file) return;
+onUnmounted(() => {
+  document.removeEventListener('keydown', onKeyDown)
+})
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const recipe = jsyaml.load(e.target.result);
-          this.$store.dispatch("appendRecipe", recipe);
-          this.toast(`Rezept "${recipe.recipe_name}" importiert.`, "success");
-          this.$refs.fileInput.value = "";
-        } catch (error) {
-          this.toast("Fehler beim Importieren: " + error.message, "danger");
-        }
-      };
-      reader.readAsText(file);
-    },
-    exportRecipe: function (index) {
-      const recipe = this.recipes[index];
-      const yaml = jsyaml.dump(recipe);
-      const blob = new Blob([yaml], { type: "text/yaml" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${recipe.recipe_name || "recipe"}.yaml`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    },
-  },
-};
+// Methods
+function formatDate(iso: string | undefined) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('de-DE', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
+function isExpired(expiresAt?: string) {
+  return expiresAt && new Date(expiresAt) < new Date()
+}
+
+function isExpiringSoon(expiresAt?: string) {
+  if (!expiresAt) return false
+  const diff = new Date(expiresAt).getTime() - new Date().getTime()
+  return diff > 0 && diff < 3 * 24 * 60 * 60 * 1000
+}
+
+function shareRowClass(s: ShareEntry) {
+  if (!s.is_active) return 'text-muted'
+  if (isExpired(s.expires_at)) return 'text-muted'
+  return ''
+}
+
+function shareUrl(token: string) {
+  return `${window.location.origin}/s/${token}`
+}
+
+async function copyShareLink(token: string) {
+  try {
+    await navigator.clipboard.writeText(shareUrl(token))
+  } catch { /* ignore */ }
+}
+
+async function loadShares() {
+  sharesLoading.value = true
+  try {
+    shares.value = await adminApi.listShares()
+  } catch (e) {
+    console.error('Failed to load shares', e)
+  } finally {
+    sharesLoading.value = false
+  }
+}
+
+async function revokeShare(share: ShareEntry) {
+  if (!confirm(`Share-Link für "${share.recipe_name}" widerrufen?`)) return
+  try {
+    await adminApi.revokeShare(share.id)
+    share.is_active = false
+  } catch (e) {
+    console.error('Failed to revoke share', e)
+  }
+}
+
+async function loadUsers() {
+  usersLoading.value = true
+  usersError.value = null
+  try {
+    users.value = (await adminApi.listUsers()).map((u: Record<string, unknown>) => ({ ...u, saving: false } as UserEntry))
+  } catch {
+    usersError.value = 'Benutzer konnten nicht geladen werden.'
+  } finally {
+    usersLoading.value = false
+  }
+}
+
+async function changeRole(user: UserEntry, newRole: string) {
+  const oldRole = user.role
+  user.role = newRole
+  user.saving = true
+  try {
+    await adminApi.updateRole(user.oidc_sub, newRole)
+    toast(`Rolle von ${user.display_name} → ${newRole}`, 'success')
+  } catch (e) {
+    user.role = oldRole
+    toast('Rolle konnte nicht geändert werden: ' + (e as Error).message, 'danger')
+  } finally {
+    user.saving = false
+  }
+}
+
+async function loadSiteSettings() {
+  try {
+    const s = await adminApi.getSettings()
+    siteMaxShareDays.value = s.max_share_days
+  } catch { /* ignore if not admin */ }
+}
+
+async function saveSiteSettings() {
+  try {
+    await adminApi.updateSettings({ max_share_days: siteMaxShareDays.value })
+    toast('Einstellungen gespeichert', 'success')
+  } catch {
+    toast('Einstellungen konnten nicht gespeichert werden', 'danger')
+  }
+}
+
+function navSelected(uuid: string) {
+  const recipe = store.recipes.find(r => r.recipe_uuid === uuid)
+  router.push(recipeUrl(uuid, recipe?.recipe_name))
+}
+
+function deleteRecipe(index: number) {
+  store.deleteRecipe(index)
+}
+
+function copyRecipe(index: number) {
+  const recipe = deepCopyYaml(store.recipes[index])
+  recipe.recipe_uuid = UUID.generateUUID()
+  store.appendRecipe(recipe)
+}
+
+function newRecipe() {
+  store.appendRecipe(Recipes.loadNewRecipe())
+}
+
+function loadSample() {
+  store.appendRecipe(Recipes.loadSample())
+}
+
+async function migrateImages() {
+  try {
+    const { api } = await import('@/api/client')
+    const result = await api.post<{ migrated: number; failed: number }>('/admin/migrate-images')
+    toast(
+      `Migration: ${result.migrated} Bilder gespeichert, ${result.failed} fehlgeschlagen.`,
+      result.failed > 0 ? 'warning' : 'success'
+    )
+    store.loadRecipesFromApi()
+  } catch (e) {
+    toast('Migration fehlgeschlagen: ' + (e as Error).message, 'danger')
+  }
+}
+
+function saveToLocalStorage() {
+  store.saveRecipes()
+  store
+    .saveRecipePictures()
+    .then(() => toast('Gespeichert.', 'success'))
+}
+
+function triggerImport() {
+  fileInput.value?.click()
+}
+
+function importRecipe(ev: Event) {
+  const input = ev.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const recipe = jsyaml.load(e.target?.result as string) as { recipe_name: string }
+      store.appendRecipe(recipe)
+      toast(`Rezept "${recipe.recipe_name}" importiert.`, 'success')
+      input.value = ''
+    } catch (error) {
+      toast('Fehler beim Importieren: ' + (error as Error).message, 'danger')
+    }
+  }
+  reader.readAsText(file)
+}
+
+function exportRecipe(index: number) {
+  const recipe = store.recipes[index]
+  const yaml = jsyaml.dump(recipe)
+  const blob = new Blob([yaml], { type: 'text/yaml' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${recipe.recipe_name || 'recipe'}.yaml`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 </script>

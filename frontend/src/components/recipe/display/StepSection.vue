@@ -56,74 +56,53 @@
   </div>
 </template>
 
-<script>
-import { BFormInput, BFormTextarea } from "bootstrap-vue-next";
-import StepInlineEdit from "./StepInlineEdit.vue";
+<script setup lang="ts">
+import { ref } from 'vue'
+import { BFormInput, BFormTextarea } from 'bootstrap-vue-next'
+import StepInlineEdit from './StepInlineEdit.vue'
+import type { Step, Section } from '@/types/recipe'
 
-export default {
-  name: "StepSection",
-  components: {
-    BFormInput,
-    BFormTextarea,
-    StepInlineEdit,
-  },
-  props: {
-    sections: {
-      type: Array,
-      required: true,
-    },
-    steps: {
-      type: Array,
-      required: true,
-    },
-    editMode: {
-      type: Boolean,
-      default: false,
-    },
-    inlineEditable: {
-      type: Boolean,
-      default: false,
-    },
-    keyPrefix: {
-      type: String,
-      default: "",
-    },
-    dirtyItems: {
-      type: Set,
-      default: () => new Set(),
-    },
-  },
-  emits: ["select-step", "changed", "unchanged"],
-  data() {
-    return {
-      currentEditingIndex: null,
-    };
-  },
-  methods: {
-    handleStartEdit(stepIndex) {
-      this.currentEditingIndex = stepIndex;
-    },
-    handleEndEdit() {
-      this.currentEditingIndex = null;
-    },
-    getFilteredSteps(sectionName) {
-      return this.steps.filter((x) => x.section === sectionName);
-    },
-    getStepNumber(sectionName, stepIndex) {
-      // Calculate the global step number based on previous sections
-      let globalIndex = 0;
-      for (const section of this.sections) {
-        if (section.section === sectionName) {
-          return globalIndex + stepIndex + 1;
-        }
-        globalIndex += this.steps.filter(
-          (x) => x.section === section.section,
-        ).length;
-      }
-      return stepIndex + 1;
-    },
-  },
-};
+const props = defineProps<{
+  sections: Section[]
+  steps: Step[]
+  editMode?: boolean
+  inlineEditable?: boolean
+  keyPrefix?: string
+  dirtyItems?: Set<string>
+}>()
+
+defineEmits<{
+  'select-step': [event: Event]
+  changed: [event: unknown]
+  unchanged: [event: unknown]
+}>()
+
+const currentEditingIndex = ref<number | null>(null)
+
+function handleStartEdit(stepIndex: number) {
+  currentEditingIndex.value = stepIndex
+}
+
+function handleEndEdit() {
+  currentEditingIndex.value = null
+}
+
+function getFilteredSteps(sectionName: string) {
+  return props.steps.filter((x) => x.section === sectionName)
+}
+
+function getStepNumber(sectionName: string, stepIndex: number) {
+  let globalIndex = 0
+  for (const section of props.sections) {
+    if (section.section === sectionName) {
+      return globalIndex + stepIndex + 1
+    }
+    globalIndex += props.steps.filter(
+      (x) => x.section === section.section,
+    ).length
+  }
+  return stepIndex + 1
+}
 </script>
 
 <style scoped>

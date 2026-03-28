@@ -184,7 +184,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onBeforeUnmount } from "vue";
-import { useStore } from "vuex";
+import { useRecipeStore } from "@/store/recipeStore";
 import { useRouter } from "vue-router";
 import type { Recipe } from "@/types/recipe";
 import { recipeUrl, editUrl } from "@/js/slug";
@@ -202,7 +202,7 @@ const emit = defineEmits<{
   "update:recipe": [recipe: Recipe];
 }>();
 
-const store = useStore();
+const store = useRecipeStore();
 const router = useRouter();
 const newTag = ref("");
 const showTagEditor = ref(false);
@@ -229,13 +229,12 @@ onBeforeUnmount(() => {
 });
 
 const isFavorite = computed(() => {
-  const favorites = store.state.favorites || [];
-  return favorites.includes(props.recipe.recipe_uuid);
+  return store.favorites.includes(props.recipe.recipe_uuid);
 });
 
 const allTags = computed(() => {
   const tags = new Set<string>();
-  const recipes = store.state.recipes || [];
+  const recipes = store.recipes;
   recipes.forEach((recipe: Recipe) => {
     if (recipe.tags) {
       recipe.tags.forEach((tag: string) => tags.add(tag));
@@ -286,9 +285,9 @@ const recipeLink = computed(() => recipeUrl(props.recipe.recipe_uuid, props.reci
 
 const toggleFavorite = () => {
   if (isFavorite.value) {
-    store.dispatch("removeFavorite", props.recipe.recipe_uuid);
+    store.removeFavorite(props.recipe.recipe_uuid);
   } else {
-    store.dispatch("addFavorite", props.recipe.recipe_uuid);
+    store.addFavorite(props.recipe.recipe_uuid);
   }
 };
 
@@ -315,7 +314,7 @@ const addTag = () => {
 
   if (!props.recipe.tags.includes(newTag.value.trim())) {
     props.recipe.tags.push(newTag.value.trim());
-    store.dispatch("setRecipe", { index: props.index, recipe: props.recipe });
+    store.setRecipe({ index: props.index, recipe: props.recipe });
   }
 
   newTag.value = "";
@@ -324,7 +323,7 @@ const addTag = () => {
 const removeTag = (index: number) => {
   if (props.recipe.tags) {
     props.recipe.tags.splice(index, 1);
-    store.dispatch("setRecipe", { index: props.index, recipe: props.recipe });
+    store.setRecipe({ index: props.index, recipe: props.recipe });
   }
 };
 
@@ -335,7 +334,7 @@ const addExistingTag = (tag: string) => {
 
   if (!props.recipe.tags.includes(tag)) {
     props.recipe.tags.push(tag);
-    store.dispatch("setRecipe", { index: props.index, recipe: props.recipe });
+    store.setRecipe({ index: props.index, recipe: props.recipe });
   }
 };
 </script>

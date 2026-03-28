@@ -91,50 +91,37 @@
   </div>
 </template>
 
-<script>
-import { BButton } from "bootstrap-vue-next";
+<script setup lang="ts">
+import { BButton } from 'bootstrap-vue-next'
 
-export default {
-  name: "PortionControl",
-  components: {
-    BButton,
-  },
-  props: {
-    yieldsValue: {
-      type: Number,
-      required: true,
-    },
-    yieldsUnit: {
-      type: String,
-      required: true,
-    },
-    variant: {
-      type: String,
-      required: true,
-      validator: (value) =>
-        ["desktop", "mobile-collapsed", "mobile-expanded"].includes(value),
-    },
-  },
-  emits: ["update:yields"],
-  methods: {
-    increase() {
-      if (this.yieldsValue < 100) {
-        this.$emit("update:yields", this.yieldsValue + 1);
-      }
-    },
-    decrease() {
-      if (this.yieldsValue > 1) {
-        this.$emit("update:yields", this.yieldsValue - 1);
-      }
-    },
-    updateValue(value) {
-      const numValue = Number(value);
-      if (numValue >= 1 && numValue <= 100) {
-        this.$emit("update:yields", numValue);
-      }
-    },
-  },
-};
+const props = defineProps<{
+  yieldsValue: number
+  yieldsUnit: string
+  variant: 'desktop' | 'mobile-collapsed' | 'mobile-expanded'
+}>()
+
+const emit = defineEmits<{
+  'update:yields': [value: number]
+}>()
+
+function increase() {
+  if (props.yieldsValue < 100) {
+    emit('update:yields', props.yieldsValue + 1)
+  }
+}
+
+function decrease() {
+  if (props.yieldsValue > 1) {
+    emit('update:yields', props.yieldsValue - 1)
+  }
+}
+
+function updateValue(value: string) {
+  const numValue = Number(value)
+  if (numValue >= 1 && numValue <= 100) {
+    emit('update:yields', numValue)
+  }
+}
 </script>
 
 <style scoped>

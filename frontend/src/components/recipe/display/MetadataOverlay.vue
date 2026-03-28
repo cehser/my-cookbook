@@ -159,61 +159,37 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "MetadataOverlay",
-  props: {
-    show: {
-      type: Boolean,
-      required: true,
-    },
-    isMobile: {
-      type: Boolean,
-      required: true,
-    },
-    recipe: {
-      type: Object,
-      required: true,
-    },
-    yieldsValue: {
-      type: Number,
-      default: null,
-    },
-    yieldsUnit: {
-      type: String,
-      default: null,
-    },
-  },
-  emits: ["close"],
-  computed: {
-    hasTimeInfo() {
-      return !!(
-        this.recipe.prep_time ||
-        this.recipe.cook_time ||
-        this.recipe.bake_time ||
-        this.recipe.total_time
-      );
-    },
-    difficultyLabel() {
-      if (!this.recipe.difficulty) return "";
-      const difficulties = {
-        easy: "Einfach",
-        medium: "Mittel",
-        hard: "Schwer",
-      };
-      return difficulties[this.recipe.difficulty] || "";
-    },
-    difficultyClass() {
-      if (!this.recipe.difficulty) return "bg-secondary";
-      const classes = {
-        easy: "bg-success",
-        medium: "bg-warning",
-        hard: "bg-danger",
-      };
-      return classes[this.recipe.difficulty] || "bg-secondary";
-    },
-  },
-};
+<script setup lang="ts">
+import { computed } from 'vue'
+import type { Recipe } from '@/types/recipe'
+
+const props = defineProps<{
+  show: boolean
+  isMobile: boolean
+  recipe: Recipe
+  yieldsValue: number | null
+  yieldsUnit: string | null
+}>()
+
+defineEmits<{
+  close: []
+}>()
+
+const hasTimeInfo = computed(() =>
+  !!(props.recipe.prep_time || props.recipe.cook_time || props.recipe.bake_time || props.recipe.total_time)
+)
+
+const difficultyLabel = computed(() => {
+  if (!props.recipe.difficulty) return ''
+  const difficulties: Record<string, string> = { easy: 'Einfach', medium: 'Mittel', hard: 'Schwer' }
+  return difficulties[props.recipe.difficulty] || ''
+})
+
+const difficultyClass = computed(() => {
+  if (!props.recipe.difficulty) return 'bg-secondary'
+  const classes: Record<string, string> = { easy: 'bg-success', medium: 'bg-warning', hard: 'bg-danger' }
+  return classes[props.recipe.difficulty] || 'bg-secondary'
+})
 </script>
 
 <style scoped>

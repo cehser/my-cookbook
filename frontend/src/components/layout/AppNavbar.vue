@@ -115,7 +115,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, computed } from "vue";
 import { useRoute } from "vue-router";
-import { useStore } from "vuex";
+import { useRecipeStore } from "@/store/recipeStore";
 import { getUser, logout } from "@/auth/oidc";
 import type { Recipe } from "@/types/recipe";
 
@@ -136,7 +136,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
-const store = useStore();
+const store = useRecipeStore();
 const data_selected = ref('');
 const isMenuOpen = ref(false);
 const isUserDropdownOpen = ref(false);
@@ -145,7 +145,7 @@ const userEmail = ref<string | null>(null);
 const userGivenName = ref<string | null>(null);
 const userFamilyName = ref<string | null>(null);
 
-const expertMode = computed(() => store.state.settings.expert_mode);
+const expertMode = computed(() => store.settings.expert_mode);
 
 const userFullName = computed(() => {
   const parts = [userGivenName.value, userFamilyName.value].filter(Boolean);
@@ -161,7 +161,7 @@ const userInitials = computed(() => {
   }
   return '?';
 });
-const isAdmin = computed(() => store.state.settings.role === 'admin');
+const isAdmin = computed(() => store.settings.role === 'admin');
 
 const isOnline = ref(navigator.onLine);
 
@@ -209,10 +209,7 @@ const doLogout = async () => {
 };
 
 const toggleExpertMode = () => {
-  store.commit("setSettings", {
-    ...store.state.settings,
-    expert_mode: !store.state.settings.expert_mode,
-  });
+  store.settings.expert_mode = !store.settings.expert_mode;
 };
 
 watch(data_selected, (value) => {

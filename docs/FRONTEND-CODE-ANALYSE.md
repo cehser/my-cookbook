@@ -10,7 +10,7 @@
 
 ### Scope
 - **Codebase:** `frontend/src/` — ~6.000+ Zeilen in ~40 Vue-Komponenten, 63 Dateien, ~9.900 Zeilen gesamt
-- **Stack:** Vue 3.4, Vuex 4, Vue Router 4, TypeScript 5.3, Vite 7.2, bootstrap-vue-next 0.40
+- **Stack:** Vue 3.5, Pinia 3, Vue Router 4, TypeScript 5.9, Vite 7.2, bootstrap-vue-next 0.40
 - **Infrastruktur:** PWA (Workbox), OIDC Auth, Custom API-Client, IndexedDB-Offline-Cache
 
 ### Nicht im Scope
@@ -26,12 +26,12 @@
 
 | Dimension | Bewertung | Zusammenfassung |
 |-----------|-----------|-----------------|
-| Architektur & Komponentenschnitt | 🟡 | 12 Options API + 17 `<script setup>` — inkonsistenter Mix. 38 direkte `$store`-Zugriffe in Views. |
+| Architektur & Komponentenschnitt | � | Alle 29 Komponenten nutzen `<script setup>`. Pinia-Stores statt Vuex. 0 direkte `$store`-Zugriffe. |
 | Code-Qualität & DRY | 🟢 | Nur 1,72% Duplikation (10 Clones). 7 ungenutzte Dateien, 5 ungenutzte Dependencies. |
-| TypeScript-Striktheit | 🟢 | `strict: true` ergibt 0 echte Fehler (nur 2 Deprecation-Warnings). 17× `any` im Code. |
-| Abhängigkeiten & Forward Compatibility | � | ~~16~~ → 4 Vulnerabilities (Build-Tools, kein Runtime). `jsonpath` entfernt. Vuex deprecated. |
-| Bundle & Performance | � | 138 kB gzipped Hauptbundle. 49 kB CSS. Edit-Chunk ~~36~~ → 8 kB. Precache ~~1220~~ → 1138 kB. |
-| Testbarkeit | 🟡 | Keine Tests vorhanden. Composables testbar, Store-Actions mäßig, Options-API-Views schwer. |
+| TypeScript-Striktheit | 🟢 | `strict: true` ergibt 0 echte Fehler (nur 2 Deprecation-Warnings). `any` weitgehend eliminiert. |
+| Abhängigkeiten & Forward Compatibility | 🟢 | ~~16~~ → 4 Vulnerabilities (Build-Tools, kein Runtime). `jsonpath` entfernt. Vuex entfernt, Pinia migriert. |
+| Bundle & Performance | 🟢 | 135 kB gzipped Hauptbundle. 49 kB CSS. Edit-Chunk 8 kB. Precache ~~1220~~ → 1138 kB. |
+| Testbarkeit | 🟡 | Keine Tests vorhanden. Composables und Pinia-Stores gut testbar. Alle Views als `<script setup>`. |
 
 ---
 
@@ -52,7 +52,7 @@
 | sortablejs | 1.15.1 | 1.15.7 | Patch |
 | workbox-window | 7.0.0 | 7.4.0 | Minor |
 
-> `vuex` (4.1.0), `oidc-client-ts` (3.5.0), `json-url` (4.0.0), `qr-scanner` (1.4.2): Haben keine neueren Versionen.
+> `oidc-client-ts` (3.5.0): Hat keine neuere Version. `vuex`, `json-url`, `qr-scanner` wurden entfernt.
 
 #### Sicherheits-Audit (16 Vulnerabilities)
 
@@ -81,12 +81,12 @@
 
 | Kategorie | Anzahl | Dateien |
 |-----------|--------|---------|
-| Vuex Action-Context | 8 | `uiState.ts` (6×), `actions.ts` (2×) |
+| ~~Vuex Action-Context~~ | ~~8~~ | ~~`uiState.ts` (6×), `actions.ts` (2×)~~ — ✅ entfallen durch Pinia-Migration |
 | Error-Catch `err: any` | 4 | `AIRecipeImport.vue` |
 | Array/Payload `any` | 3 | `useRecipeHelper.ts`, `actions.ts`, `recipes.ts` |
 | Type-Assertion | 2 | `RecipeCard.vue`, `actions.ts` |
 
-> **Empfehlung:** `strict: true` kann sofort aktiviert werden — es gibt keine blockierenden Fehler. Die `any`-Verwendungen in Vuex-Actions lösen sich bei einer Pinia-Migration automatisch auf.
+> **Status:** `strict: true` ist aktiviert. Die `any`-Verwendungen in Vuex-Actions haben sich durch die Pinia-Migration aufgelöst.
 
 **tsconfig.json Deprecation-Fix:** `moduleResolution: "node10"` → `"bundler"` und `baseUrl` durch `paths` in Vite ersetzen.
 
@@ -155,8 +155,8 @@ Betrifft hauptsächlich:
 
 | Chunk | Größe (raw) | Größe (gzip) | Inhalt |
 |-------|-------------|--------------|--------|
-| `index.js` (Vendor) | 427 kB | **138 kB** | Vue, Vuex, Router, Bootstrap, OIDC, Workbox |
-| `Edit.js` | 115 kB | **36 kB** | Edit-View (größter Feature-Chunk) |
+| `index.js` (Vendor) | 416 kB | **135 kB** | Vue, Pinia, Router, Bootstrap, OIDC, Workbox |
+| `Edit.js` | 28 kB | **8 kB** | Edit-View (größter Feature-Chunk) |
 | `index.js` (App) | 53 kB | **17 kB** | App-Shell, Store, Router, API-Client |
 | `RecipeDisplay.js` | 32 kB | **8 kB** | RecipeDisplay + Sub-Komponenten |
 | `Recipe.js` | 16 kB | **5 kB** | Recipe-View |
@@ -176,7 +176,7 @@ Betrifft hauptsächlich:
 | `bootstrap-icons.woff2` | 134 kB |
 | `bootstrap-icons.woff` | 180 kB |
 
-**Gesamtgröße Initial Load (gzip):** ~138 + 17 + 49 = **~204 kB** (JS + CSS, ohne Fonts)
+**Gesamtgröße Initial Load (gzip):** ~135 + 17 + 49 = **~201 kB** (JS + CSS, ohne Fonts)
 
 **Build-Warnung:** `api/client.ts` wird sowohl dynamisch als auch statisch importiert → wird nicht in separaten Chunk verschoben.
 
@@ -190,21 +190,19 @@ Betrifft hauptsächlich:
 
 | Stil | Anzahl | Dateien |
 |------|--------|---------|
-| **`<script setup>` (Composition API)** | 17 | Alle neuen/refactored Komponenten |
-| **`export default { }` (Options API)** | 12 | App.vue, alle Views (5), 6 Display-Komponenten |
-
-**Options API (Legacy):** `App.vue`, `Gallery.vue`, `Recipe.vue`, `Edit.vue`, `Settings.vue`, `Administration.vue`, `RecipeFabMenu.vue`, `IngredientsSection.vue`, `MetadataOverlay.vue`, `MobileIngredientsBar.vue`, `PortionControl.vue`, `StepSection.vue`
+| **`<script setup>` (Composition API)** | **29** | ✅ Alle Komponenten (D2 abgeschlossen) |
+| **`export default { }` (Options API)** | **0** | — |
 
 #### Store-Zugriffe
 
 | Muster | Anzahl | Kommentar |
 |--------|--------|-----------|
-| `this.$store.dispatch(...)` | 30 | Nur in Options-API-Views |
-| `this.$store.state.*` | 4 | Direkter State-Zugriff |
-| `this.$store.getters.*` | 4 | Getter-Zugriff |
-| `useStore()` (Composition API) | 3 | AIRecipeImport, AppNavbar, RecipeCard |
+| `useRecipeStore()` (Pinia) | alle | ✅ Alle Komponenten nutzen typisierte Pinia-Stores |
+| `useUIStore()` (Pinia) | alle | ✅ UI-State via dediziertem Pinia-Store |
+| ~~`this.$store.dispatch(...)`~~ | ~~30~~ → 0 | Entfernt durch D1+D2 |
+| ~~`this.$store.state/getters`~~ | ~~8~~ → 0 | Entfernt durch D1+D2 |
 
-> **Fazit:** 38 direkte Store-Zugriffe in 7 Dateien. Alle in Options-API-Komponenten. Die 3 Composition-API-Komponenten nutzen `useStore()` korrekt.
+> **Fazit:** 0 direkte `$store`-Zugriffe. Alle Komponenten nutzen typisierte Pinia-Stores (`useRecipeStore`, `useUIStore`).
 
 ---
 
@@ -240,10 +238,11 @@ Betrifft hauptsächlich:
 
 | # | Frage | Aufwand | Empfehlung |
 |---|-------|---------|------------|
-| **D1** | **Vuex → Pinia?** Vuex ist deprecated. 10 Mutations, 6 Actions, 1 Modul, 38 `$store`-Zugriffe. | Mittel (~1-2 Tage) | 🟡 Ja, aber kein Blitz-Umbau. Kann mit Options→Composition Migration kombiniert werden. |
-| **D2** | **Options API → `<script setup>`?** 12 von 29 Komponenten nutzen noch Options API. | Mittel (pro Komponente 30-60 Min.) | 🟡 Schrittweise bei nächster Feature-Arbeit an jeweiliger Datei. |
+| **D1** | **Vuex → Pinia** — Vuex entfernt, 2 Pinia-Stores (`useRecipeStore`, `useUIStore`) erstellt, alle Komponenten migriert. | — | ✅ Erledigt |
+| **D2** | **Options API → `<script setup>`** — Alle 12 Options-API-Komponenten konvertiert. 29/29 nutzen `<script setup lang="ts">`. | — | ✅ Erledigt |
 | **D3** | **vue-router 4 → 5?** Major-Upgrade verfügbar. | Mittel | 🟢 Kann warten. Router-Nutzung ist Standard, Upgrade sollte überschaubar sein. |
 | **D4** | **bootstrap-vue-next Stabilität?** Pre-1.0 Community-Projekt (v0.40). | — | 🟡 Beobachten. Welche BVN-Komponenten werden konkret genutzt? Falls nur wenige → eigene Wrapper erwägen. |
+| **D5** | **Major-Dependency-Upgrades.** TypeScript 5→6, ESLint 9→10, Vite 7→8, Vue Router 4→5, globals 16→17, unplugin-vue-components 30→32, bootstrap-vue-next 0.40→0.44. | Mittel–Hoch | 🟡 Einzeln angehen, Changelogs prüfen. Kein Batch-Upgrade. BVN und unplugin ggf. zuerst (kleinere Breaking Changes). TS 6 und Vite 8 erst wenn Ökosystem stabil. |
 
 ### Nicht empfohlen (Over-Engineering-Vermeidung)
 
@@ -251,7 +250,7 @@ Betrifft hauptsächlich:
 |-----------|-------------|
 | PurgeCSS für Bootstrap | 49 kB gzip CSS ist akzeptabel, Aufwand lohnt nicht |
 | MetadataOverlay Desktop/Mobile-Refactoring | 1,72% Duplikation ist niedrig, Pattern ist verständlich |
-| Sofortige Migration aller Options-API-Komponenten | Nur bei Bedarf, nicht als Selbstzweck |
+| ~~Sofortige Migration aller Options-API-Komponenten~~ | ✅ Erledigt (D2) |
 | Test-Suite aufsetzen | Zuerst Architektur stabilisieren, dann testen |
 
 ---

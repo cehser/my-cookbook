@@ -189,7 +189,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount } from "vue";
-import { useStore } from "vuex";
+import { useRecipeStore } from "@/store/recipeStore";
 import jsyaml from "js-yaml";
 import UUID from "@/js/uuid";
 import { initRecipe } from "@/js/recipes";
@@ -202,7 +202,7 @@ const emit = defineEmits<{
   imported: [recipe: Recipe];
 }>();
 
-const store = useStore();
+const store = useRecipeStore();
 
 // Template refs
 const cameraVideo = ref<HTMLVideoElement>();
@@ -223,7 +223,7 @@ const downloadImage = ref(true);
 const downloadingImage = ref(false);
 
 // Computed
-const settings = computed(() => store.state.settings);
+const settings = computed(() => store.settings);
 const hasApiKey = computed(() => {
   // Backend holds the key — check if user is authenticated
   return true;
@@ -394,7 +394,7 @@ const importRecipe = async () => {
   // imageurl will be auto-downloaded by the backend on save
 
   // Dispatch to store
-  store.dispatch("appendRecipe", result.value);
+  store.appendRecipe(result.value);
 
   // Emit success
   emit("imported", result.value);

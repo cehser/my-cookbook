@@ -340,7 +340,7 @@
               <BFormFile
                 size="sm"
                 id="input-foto"
-                ref="input-foto"
+                ref="inputFoto"
                 accept="image/*"
                 placeholder="Datei auswählen oder ablegen"
                 drop-placeholder="Hier ablegen"
@@ -435,176 +435,179 @@
   </div>
 </template>
 
-<script>
-// @ is an alias to /src
-import StepEdit from "@/components/edit/StepEdit.vue";
-import SectionIngredientsEdit from "@/components/edit/SectionIngredientsEdit.vue";
-import ArrayReorderBtnGroup from "@/components/common/ArrayReorderBtnGroup.vue";
-import AppNavbar from "@/components/layout/AppNavbar.vue";
-import { editUrl } from "@/js/slug";
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import StepEdit from '@/components/edit/StepEdit.vue'
+import SectionIngredientsEdit from '@/components/edit/SectionIngredientsEdit.vue'
+import ArrayReorderBtnGroup from '@/components/common/ArrayReorderBtnGroup.vue'
+import AppNavbar from '@/components/layout/AppNavbar.vue'
+import { editUrl } from '@/js/slug'
+import { useRecipeHelper } from '@/composables/useRecipeHelper'
+import { useToast } from '@/composables/useToast'
+import { useRecipeStore } from '@/store/recipeStore'
+import jsyaml from 'js-yaml'
+import deepEqual from 'deep-equal'
 
-import { useRecipeHelper } from "@/composables/useRecipeHelper";
-import { useToast } from "@/composables/useToast";
+const props = defineProps<{ id: string }>()
 
-import jsyaml from "js-yaml";
+const router = useRouter()
+const store = useRecipeStore()
+const { toast } = useToast()
 
-import deepEqual from "deep-equal";
+const idRef = computed(() => props.id)
+const {
+  current_recipe,
+  do_recalc,
+  selected,
+  recipes_list,
+  picture_src,
+  yields_unit,
+  yields_value,
+  section_names,
+  deepCopyYaml,
+  setYieldsUnit,
+  setYieldsValue,
+} = useRecipeHelper({ recipeId: idRef })
 
-import { mapState } from "vuex";
-import { computed } from "vue";
+// Override do_recalc default
+do_recalc.value = false
 
-export default {
-  name: "Edit",
-  props: {
-    id: {
-      type: String,
-      required: true,
-    },
-  },
-  components: {
-    StepEdit,
-    SectionIngredientsEdit,
-    ArrayReorderBtnGroup,
-    AppNavbar,
-  },
-  setup(props) {
-    const idRef = computed(() => props.id);
-    const recipeHelper = useRecipeHelper({ recipeId: idRef });
-    const { toast } = useToast();
+// Data
+const file = ref<File | null>(null)
+const delete_image = ref(false)
+const localSelected = ref(-1)
+const newTag = ref('')
+const inputFoto = ref<{ reset: () => void } | null>(null)
 
-    // Override do_recalc default
-    recipeHelper.do_recalc.value = false;
+// Computed
+const yaml = computed(() => jsyaml.dump(current_recipe.value))
 
-    return {
-      ...recipeHelper,
-      toast,
-    };
-  },
-  data() {
-    return {
-      file: null,
-      delete_image: false,
-      localSelected: -1,
-      newTag: "",
-    };
-  },
-  mounted() {
-    this.localSelected = this.selected;
-    document.onkeydown = (event) => {
-      //ctrl + s
-      if (event.ctrlKey && event.code === "KeyS") {
-        event.preventDefault(); //do not show browser dialog
-        this.saveRecipe();
+const ingredient_units = computed(() => {
+  const units = new Set(['g', 'ml', 'Stück'])
+  for (const recipe of store.recipes) {
+    for (const ingredient of recipe.ingredients || []) {
+      for (const amount of ingredient.amounts || []) {
+        if (amount.unit) units.add(amount.unit)
       }
-    };
-  },
-  computed: {
-    yaml: function () {
-      return jsyaml.dump(this.current_recipe);
-    },
-    ingredient_units: function () {
-      let units = new Set(["g", "ml", "Stück"]);
-      for (const recipe of this.recipes) {
-        for (const ingredient of recipe.ingredients || []) {
-          for (const amount of ingredient.amounts || []) {
-            if (amount.unit) units.add(amount.unit);
-          }
-        }
-      }
-      return [...units].sort(); //convert to array
-    },
-    ...mapState(["settings", "recipes", "recipe_pictures"]),
-  },
-  watch: {
-    file: function (newFile) {
-      this.preview_image(newFile);
-    },
-  },
-  methods: {
-    addTag() {
-      if (!this.newTag.trim()) return;
-      if (!this.current_recipe.tags) {
-        this.current_recipe.tags = [];
-      }
-      if (!this.current_recipe.tags.includes(this.newTag.trim())) {
-        this.current_recipe.tags.push(this.newTag.trim());
-      }
-      this.newTag = "";
-    },
-    removeTag(index) {
-      this.current_recipe.tags.splice(index, 1);
-    },
-    clearFile: function () {
-      this.$refs["input-foto"].reset();
-    },
-    preview_image: function (file) {
-      var preview = document.querySelector("#image-preview");
-      if (file) {
-        preview.src = URL.createObjectURL(file);
-      } else {
-        preview.src = "";
-      }
-    },
-    saveRecipe: function () {
-      //only update if current_recipe is really different
-      console.log(this.file);
-      if (
-        !deepEqual(this.recipes[this.selected], this.current_recipe) ||
-        this.file ||
-        this.delete_image
-      ) {
-        this.current_recipe.lastUpdated = new Date();
-        console.log(this.current_recipe.lastUpdated);
+    }
+  }
+  return [...units].sort()
+})
 
-        if (this.file) {
-          this.$store
-            .dispatch("setRecipePicture", {
-              uuid: this.current_recipe.recipe_uuid,
-              picture: this.file,
-            })
-            .catch(() => this.toast("Bildfehler.", "danger"));
-        }
+const settings = computed(() => store.settings)
+const recipes = computed(() => store.recipes)
+const recipe_pictures = computed(() => store.recipe_pictures)
 
-        if (this.delete_image) {
-          this.$store
-            .dispatch("setRecipePicture", {
-              uuid: this.current_recipe.recipe_uuid,
-              picture: null,
-            })
-            .then(() => (this.delete_image = false))
-            .catch(() => this.toast("Bildfehler.", "danger"));
-        }
-        this.$store
-          .dispatch("setRecipe", {
-            index: this.selected,
-            recipe: this.current_recipe,
-          })
-          .then(() => this.toast("Gespeichert.", "success"))
-          .catch(() => this.toast("Fehler.", "danger"));
-      } else {
-        this.toast("Unverändert.", "success");
-      }
-    },
-    updateCurrentRecipe: function () {
-      let replace_recipe = this.recipes[this.selected];
-      if (replace_recipe) {
-        document.title = "Kochbuch: " + replace_recipe.recipe_name;
-        this.current_recipe = this.deepCopyYaml(replace_recipe);
-      }
-    },
-    addIngredient: function () {
-      this.current_recipe.ingredients.push({
-        name: "Neue Zutat",
-        amounts: [{ amount: null, unit: "" }],
-        section: "",
-      });
-    },
-    navSelected(uuid) {
-      const r = this.recipes.find((r) => r.recipe_uuid === uuid);
-      if (r) {
-        this.$router.push(editUrl(r.recipe_uuid, r.recipe_name));
-      }
-    },
-  },
-};
+// Watch
+watch(file, (newFile) => {
+  preview_image(newFile)
+})
+
+// Lifecycle
+function onKeyDown(event: KeyboardEvent) {
+  if (event.ctrlKey && event.code === 'KeyS') {
+    event.preventDefault()
+    saveRecipe()
+  }
+}
+
+onMounted(() => {
+  localSelected.value = selected.value
+  document.addEventListener('keydown', onKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onKeyDown)
+})
+
+// Methods
+function addTag() {
+  if (!newTag.value.trim()) return
+  if (!current_recipe.value) return
+  if (!current_recipe.value.tags) {
+    current_recipe.value.tags = []
+  }
+  if (!current_recipe.value.tags.includes(newTag.value.trim())) {
+    current_recipe.value.tags.push(newTag.value.trim())
+  }
+  newTag.value = ''
+}
+
+function removeTag(index: number) {
+  current_recipe.value?.tags?.splice(index, 1)
+}
+
+function clearFile() {
+  inputFoto.value?.reset()
+}
+
+function preview_image(f: File | null) {
+  const preview = document.querySelector('#image-preview') as HTMLImageElement | null
+  if (preview) {
+    preview.src = f ? URL.createObjectURL(f) : ''
+  }
+}
+
+function saveRecipe() {
+  if (!current_recipe.value) return
+  if (
+    !deepEqual(store.recipes[selected.value], current_recipe.value) ||
+    file.value ||
+    delete_image.value
+  ) {
+    current_recipe.value.lastUpdated = new Date()
+
+    if (file.value) {
+      store
+        .setRecipePicture({
+          uuid: current_recipe.value.recipe_uuid,
+          picture: file.value,
+        })
+        .catch(() => toast('Bildfehler.', 'danger'))
+    }
+
+    if (delete_image.value) {
+      store
+        .setRecipePicture({
+          uuid: current_recipe.value.recipe_uuid,
+          picture: null,
+        })
+        .then(() => (delete_image.value = false))
+        .catch(() => toast('Bildfehler.', 'danger'))
+    }
+    store
+      .setRecipe({
+        index: selected.value,
+        recipe: current_recipe.value,
+      })
+      .then(() => toast('Gespeichert.', 'success'))
+      .catch(() => toast('Fehler.', 'danger'))
+  } else {
+    toast('Unverändert.', 'success')
+  }
+}
+
+function updateCurrentRecipe() {
+  const replace_recipe = store.recipes[selected.value]
+  if (replace_recipe) {
+    document.title = 'Kochbuch: ' + replace_recipe.recipe_name
+    current_recipe.value = deepCopyYaml(replace_recipe)
+  }
+}
+
+function addIngredient() {
+  current_recipe.value?.ingredients.push({
+    name: 'Neue Zutat',
+    amounts: [{ amount: null, unit: '' }],
+    section: '',
+  })
+}
+
+function navSelected(uuid: string) {
+  const r = store.recipes.find((r) => r.recipe_uuid === uuid)
+  if (r) {
+    router.push(editUrl(r.recipe_uuid, r.recipe_name))
+  }
+}
 </script>

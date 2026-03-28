@@ -1,5 +1,5 @@
 import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
-import { useStore } from 'vuex'
+import { useRecipeStore } from '@/store/recipeStore'
 import { deepCopyYaml } from '@/js/deepCopy'
 import { isAuthenticated } from '@/auth/oidc'
 import { imageApi } from '@/api/images'
@@ -32,13 +32,13 @@ interface RecipeHelperReturn {
  * Provides recipe loading, picture handling, and yield calculation
  */
 export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperReturn {
-  const store = useStore()
+  const store = useRecipeStore()
   const current_recipe = ref<Recipe | null>(null)
   const do_recalc = ref(true) // enable amounts recalculation
 
-  // Computed properties from Vuex store
-  const recipes = computed(() => store.state.recipes as Recipe[])
-  const recipe_pictures = computed(() => store.state.recipe_pictures as RecipePictures)
+  // Computed properties from Pinia store
+  const recipes = computed(() => store.recipes)
+  const recipe_pictures = computed(() => store.recipe_pictures)
 
   // Cache of API image IDs per recipe UUID (loaded on demand)
   const apiImageCache = ref<Record<string, string | null>>({})
@@ -181,7 +181,7 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
       // API first if online and authenticated
       if (navigator.onLine && await isAuthenticated()) {
         try {
-          const detail = await store.dispatch('loadRecipeDetailFromApi', recipe.recipe_uuid)
+          const detail = await store.loadRecipeDetailFromApi(recipe.recipe_uuid)
           current_recipe.value = deepCopyYaml(detail)
           return
         } catch {
