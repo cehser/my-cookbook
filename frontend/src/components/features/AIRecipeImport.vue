@@ -1,3 +1,243 @@
+<script setup lang="ts">
+import { ref, computed, onBeforeUnmount } from "vue";
+import { useRecipeStore } from "@/store/recipeStore";
+import jsyaml from "js-yaml";
+import { generateUUID } from "@/js/uuid";
+import { initRecipe } from "@/js/recipes";
+import { aiApi } from "@/api/ai";
+import { imageApi } from "@/api/images";
+import { isAuthenticated } from "@/auth/oidc";
+import type { Recipe } from "@/types/recipe";
+
+const emit = defineEmits<{
+  imported: [recipe: Recipe];
+}>();
+
+const store = useRecipeStore();
+
+// Template refs
+const cameraVideo = ref<HTMLVideoElement>();
+const cameraCanvas = ref<HTMLCanvasElement>();
+
+// State
+const cameraActive = ref(false);
+const capturedImage = ref<string | null>(null);
+const uploadedFile = ref<File | null>(null);
+const uploadedImage = ref<string | null>(null);
+const textInput = ref("");
+const loading = ref(false);
+const result = ref<Recipe | null>(null);
+const error = ref<string | null>(null);
+const rawYaml = ref<string | null>(null);
+const stream = ref<MediaStream | null>(null);
+const downloadImage = ref(true);
+const downloadingImage = ref(false);
+
+// Computed
+const settings = computed(() => store.settings);
+const hasApiKey = computed(() => {
+  // Backend holds the key — check if user is authenticated
+  return true;
+});
+
+// Methods
+const startCamera = async () => {
+  try {
+    stream.value = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+    });
+    if (cameraVideo.value) {
+      cameraVideo.value.srcObject = stream.value;
+    }
+    cameraActive.value = true;
+    capturedImage.value = null;
+  } catch (err: unknown) {
+    error.value =
+      "Kamera-Zugriff fehlgeschlagen: " +
+      (err instanceof Error ? err.message : String(err));
+  }
+};
+
+const stopCamera = () => {
+  if (stream.value) {
+    stream.value.getTracks().forEach((track) => track.stop());
+    stream.value = null;
+    cameraActive.value = false;
+  }
+};
+
+const capturePhoto = () => {
+  const video = cameraVideo.value;
+  const canvas = cameraCanvas.value;
+  if (!video || !canvas) return;
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d")?.drawImage(video, 0, 0);
+  capturedImage.value = canvas.toDataURL("image/jpeg");
+  stopCamera();
+};
+
+const handleFileUpload = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImage.value = e.target?.result as string;
+      capturedImage.value = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const analyzeImage = async () => {
+  if (!capturedImage.value) return;
+
+  loading.value = true;
+  error.value = null;
+  result.value = null;
+  rawYaml.value = null;
+
+  try {
+    // Convert data URI to Blob for the backend
+    const resp = await fetch(capturedImage.value);
+    const blob = await resp.blob();
+
+    const data = await aiApi.importImage(
+      blob,
+      "photo.jpg",
+      settings.value.gpt_model || "gpt-4o",
+    );
+    const yamlText = data.yaml;
+
+    // Extract YAML from markdown code blocks if present
+    let cleanYaml = yamlText;
+    const yamlMatch = yamlText.match(/```ya?ml\n([\s\S]*?)\n```/);
+    if (yamlMatch) {
+      cleanYaml = yamlMatch[1];
+    }
+
+    rawYaml.value = cleanYaml;
+    result.value = initRecipe(jsyaml.load(cleanYaml) as Partial<Recipe>);
+  } catch (err: unknown) {
+    error.value =
+      "Fehler bei der Analyse: " +
+      (err instanceof Error ? err.message : String(err));
+  } finally {
+    loading.value = false;
+  }
+};
+
+const analyzeText = async () => {
+  loading.value = true;
+  error.value = null;
+  result.value = null;
+  rawYaml.value = null;
+
+  try {
+    const modelId = settings.value.gpt_model || "gpt-4o";
+
+    const data = await aiApi.importText(textInput.value, modelId);
+    const yamlText = data.yaml;
+
+    // Extract YAML from markdown code blocks if present
+    let cleanYaml = yamlText;
+    const yamlMatch = yamlText.match(/```ya?ml\n([\s\S]*?)\n```/);
+    if (yamlMatch) {
+      cleanYaml = yamlMatch[1];
+    }
+
+    rawYaml.value = cleanYaml;
+    result.value = initRecipe(jsyaml.load(cleanYaml) as Partial<Recipe>);
+  } catch (err: unknown) {
+    error.value =
+      "Fehler bei der Analyse: " +
+      (err instanceof Error ? err.message : String(err));
+  } finally {
+    loading.value = false;
+  }
+};
+
+const downloadImageFromUrl = async (url: string, recipeUuid: string) => {
+  try {
+    // Download via fetch (same-origin or CORS proxy fallback)
+    const proxies = [
+      url, // Try direct first
+      `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    ];
+
+    let response: Response | null = null;
+    let lastError: Error | null = null;
+
+    for (const proxyUrl of proxies) {
+      try {
+        response = await fetch(proxyUrl, {
+          cache: "no-cache",
+          signal: AbortSignal.timeout(10000),
+        });
+        if (response.ok) break;
+      } catch (err) {
+        lastError = err as Error;
+        continue;
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw lastError || new Error("Bild konnte nicht heruntergeladen werden");
+    }
+
+    const blob = await response.blob();
+    const ext = blob.type?.split("/")[1]?.split(";")[0] || "jpg";
+    const filename = `${recipeUuid}.${ext}`;
+    const file = new File([blob], filename, {
+      type: blob.type || "image/jpeg",
+    });
+
+    // Upload to backend API
+    if (await isAuthenticated()) {
+      await imageApi.upload(recipeUuid, file);
+    }
+
+    return filename;
+  } catch (err: unknown) {
+    console.error("Image download failed:", err);
+    throw new Error(
+      `Bild konnte nicht heruntergeladen werden: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+};
+
+const importRecipe = async () => {
+  if (!result.value) return;
+
+  // Generate UUID if not present
+  if (!result.value.recipe_uuid) {
+    result.value.recipe_uuid = generateUUID();
+  }
+
+  // imageurl will be auto-downloaded by the backend on save
+
+  // Dispatch to store
+  store.appendRecipe(result.value);
+
+  // Emit success
+  emit("imported", result.value);
+
+  // Reset
+  result.value = null;
+  capturedImage.value = null;
+  uploadedImage.value = null;
+  textInput.value = "";
+  downloadImage.value = true;
+};
+
+// Lifecycle
+onBeforeUnmount(() => {
+  stopCamera();
+});
+</script>
+
 <template>
   <div class="ai-import">
     <BCard>
@@ -180,238 +420,16 @@
           <summary class="text-muted" style="cursor: pointer">
             <i class="bi bi-code-slash"></i> Raw YAML anzeigen
           </summary>
-          <pre class="mt-2 p-3 bg-dark text-light rounded" style="max-height: 400px; overflow: auto; font-size: 0.85rem">{{ rawYaml }}</pre>
+          <pre
+            class="mt-2 p-3 bg-dark text-light rounded"
+            style="max-height: 400px; overflow: auto; font-size: 0.85rem"
+            >{{ rawYaml }}</pre
+          >
         </details>
       </BCardBody>
     </BCard>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref, computed, onBeforeUnmount } from "vue";
-import { useRecipeStore } from "@/store/recipeStore";
-import jsyaml from "js-yaml";
-import UUID from "@/js/uuid";
-import { initRecipe } from "@/js/recipes";
-import { aiApi } from "@/api/ai";
-import { imageApi } from "@/api/images";
-import { isAuthenticated } from "@/auth/oidc";
-import type { Recipe } from "@/types/recipe";
-
-const emit = defineEmits<{
-  imported: [recipe: Recipe];
-}>();
-
-const store = useRecipeStore();
-
-// Template refs
-const cameraVideo = ref<HTMLVideoElement>();
-const cameraCanvas = ref<HTMLCanvasElement>();
-
-// State
-const cameraActive = ref(false);
-const capturedImage = ref<string | null>(null);
-const uploadedFile = ref<File | null>(null);
-const uploadedImage = ref<string | null>(null);
-const textInput = ref("");
-const loading = ref(false);
-const result = ref<Recipe | null>(null);
-const error = ref<string | null>(null);
-const rawYaml = ref<string | null>(null);
-const stream = ref<MediaStream | null>(null);
-const downloadImage = ref(true);
-const downloadingImage = ref(false);
-
-// Computed
-const settings = computed(() => store.settings);
-const hasApiKey = computed(() => {
-  // Backend holds the key — check if user is authenticated
-  return true;
-});
-
-// Methods
-const startCamera = async () => {
-  try {
-    stream.value = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
-    });
-    if (cameraVideo.value) {
-      cameraVideo.value.srcObject = stream.value;
-    }
-    cameraActive.value = true;
-    capturedImage.value = null;
-  } catch (err: unknown) {
-    error.value = "Kamera-Zugriff fehlgeschlagen: " + (err instanceof Error ? err.message : String(err));
-  }
-};
-
-const stopCamera = () => {
-  if (stream.value) {
-    stream.value.getTracks().forEach((track) => track.stop());
-    stream.value = null;
-    cameraActive.value = false;
-  }
-};
-
-const capturePhoto = () => {
-  const video = cameraVideo.value;
-  const canvas = cameraCanvas.value;
-  if (!video || !canvas) return;
-
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext("2d")?.drawImage(video, 0, 0);
-  capturedImage.value = canvas.toDataURL("image/jpeg");
-  stopCamera();
-};
-
-const handleFileUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const file = target.files?.[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedImage.value = e.target?.result as string;
-      capturedImage.value = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  }
-};
-
-const analyzeImage = async () => {
-  if (!capturedImage.value) return;
-
-  loading.value = true;
-  error.value = null;
-  result.value = null;
-  rawYaml.value = null;
-
-  try {
-    // Convert data URI to Blob for the backend
-    const resp = await fetch(capturedImage.value);
-    const blob = await resp.blob();
-
-    const data = await aiApi.importImage(blob, "photo.jpg", settings.value.gpt_model || "gpt-4o");
-    const yamlText = data.yaml;
-
-    // Extract YAML from markdown code blocks if present
-    let cleanYaml = yamlText;
-    const yamlMatch = yamlText.match(/```ya?ml\n([\s\S]*?)\n```/);
-    if (yamlMatch) {
-      cleanYaml = yamlMatch[1];
-    }
-
-    rawYaml.value = cleanYaml;
-    result.value = initRecipe(jsyaml.load(cleanYaml) as Partial<Recipe>);
-  } catch (err: unknown) {
-    error.value = "Fehler bei der Analyse: " + (err instanceof Error ? err.message : String(err));
-  } finally {
-    loading.value = false;
-  }
-};
-
-const analyzeText = async () => {
-  loading.value = true;
-  error.value = null;
-  result.value = null;
-  rawYaml.value = null;
-
-  try {
-    const modelId = settings.value.gpt_model || "gpt-4o";
-
-    const data = await aiApi.importText(textInput.value, modelId);
-    const yamlText = data.yaml;
-
-    // Extract YAML from markdown code blocks if present
-    let cleanYaml = yamlText;
-    const yamlMatch = yamlText.match(/```ya?ml\n([\s\S]*?)\n```/);
-    if (yamlMatch) {
-      cleanYaml = yamlMatch[1];
-    }
-
-    rawYaml.value = cleanYaml;
-    result.value = initRecipe(jsyaml.load(cleanYaml) as Partial<Recipe>);
-  } catch (err: unknown) {
-    error.value = "Fehler bei der Analyse: " + (err instanceof Error ? err.message : String(err));
-  } finally {
-    loading.value = false;
-  }
-};
-
-const downloadImageFromUrl = async (url: string, recipeUuid: string) => {
-  try {
-    // Download via fetch (same-origin or CORS proxy fallback)
-    const proxies = [
-      url, // Try direct first
-      `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    ];
-
-    let response: Response | null = null;
-    let lastError: Error | null = null;
-
-    for (const proxyUrl of proxies) {
-      try {
-        response = await fetch(proxyUrl, {
-          cache: "no-cache",
-          signal: AbortSignal.timeout(10000),
-        });
-        if (response.ok) break;
-      } catch (err) {
-        lastError = err as Error;
-        continue;
-      }
-    }
-
-    if (!response || !response.ok) {
-      throw lastError || new Error("Bild konnte nicht heruntergeladen werden");
-    }
-
-    const blob = await response.blob();
-    const ext = blob.type?.split("/")[1]?.split(";")[0] || "jpg";
-    const filename = `${recipeUuid}.${ext}`;
-    const file = new File([blob], filename, { type: blob.type || "image/jpeg" });
-
-    // Upload to backend API
-    if (await isAuthenticated()) {
-      await imageApi.upload(recipeUuid, file);
-    }
-
-    return filename;
-  } catch (err: unknown) {
-    console.error("Image download failed:", err);
-    throw new Error(`Bild konnte nicht heruntergeladen werden: ${err instanceof Error ? err.message : String(err)}`);
-  }
-};
-
-const importRecipe = async () => {
-  if (!result.value) return;
-
-  // Generate UUID if not present
-  if (!result.value.recipe_uuid) {
-    result.value.recipe_uuid = UUID.generateUUID();
-  }
-
-  // imageurl will be auto-downloaded by the backend on save
-
-  // Dispatch to store
-  store.appendRecipe(result.value);
-
-  // Emit success
-  emit("imported", result.value);
-
-  // Reset
-  result.value = null;
-  capturedImage.value = null;
-  uploadedImage.value = null;
-  textInput.value = "";
-  downloadImage.value = true;
-};
-
-// Lifecycle
-onBeforeUnmount(() => {
-  stopCamera();
-});
-</script>
 
 <style scoped>
 .camera-container {

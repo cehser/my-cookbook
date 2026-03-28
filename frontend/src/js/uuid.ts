@@ -3,22 +3,23 @@
  * Public Domain/MIT
  */
 export function generateUUID(): string {
-  let d = new Date().getTime()
-  
-  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
-    d += performance.now() // use high-precision timer if available
-  }
-  
-  const newGuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (d + Math.random() * 16) % 16 | 0
-    d = Math.floor(d / 16)
-    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
-  })
-  
-  return newGuid
-}
+  let d = new Date().getTime();
 
-// Default export for backward compatibility
-export default {
-  generateUUID
+  if (
+    typeof performance !== "undefined" &&
+    typeof performance.now === "function"
+  ) {
+    d += performance.now(); // use high-precision timer if available
+  }
+
+  const newGuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+    /[xy]/g,
+    (c) => {
+      const r = ((d + Math.random() * 16) % 16) | 0;
+      d = Math.floor(d / 16);
+      return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+    },
+  );
+
+  return newGuid;
 }

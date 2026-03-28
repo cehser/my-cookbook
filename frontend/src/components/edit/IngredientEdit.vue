@@ -1,3 +1,60 @@
+<script setup lang="ts">
+import { ref, computed, onMounted } from "vue";
+import IngredientModalDialogRename from "@/components/edit/IngredientModalDialogRename.vue";
+import ArrayReorderBtnGroup from "@/components/common/ArrayReorderBtnGroup.vue";
+import IngredientNotesFormRow from "@/components/edit/IngredientNotesFormRow.vue";
+import type { Ingredient } from "@/types/recipe";
+
+const props = defineProps<{
+  ingredient: Ingredient;
+  ingredients: Ingredient[];
+  index: number;
+  sections: string[];
+}>();
+
+const emit = defineEmits<{
+  delete: [];
+  update: [value: Ingredient];
+}>();
+
+const showModal = ref(false);
+
+const ingredient_data = computed(() => props.ingredient);
+
+const ingredient_name = computed(() => props.ingredient.name);
+
+const deleteIngredient = () => emit("delete");
+
+const updateIngredient = (ingredient: Ingredient) => {
+  const updatedIngredient = JSON.parse(JSON.stringify(ingredient));
+  emit("update", updatedIngredient);
+};
+
+const updateSection = (newSection: string) => {
+  const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
+  updatedIngredient.section = newSection;
+  emit("update", updatedIngredient);
+};
+
+const updateAmount = (newAmount: number) => {
+  const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
+  updatedIngredient.amounts[0].amount = Number(newAmount);
+  emit("update", updatedIngredient);
+};
+
+const updateUnit = (newUnit: string) => {
+  const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
+  updatedIngredient.amounts[0].unit = newUnit;
+  emit("update", updatedIngredient);
+};
+
+onMounted(() => {
+  if (ingredient_name.value === "Neue Zutat") {
+    showModal.value = true;
+  }
+});
+</script>
+
 <template>
   <div>
     <BRow align-v="center">
@@ -71,60 +128,3 @@
     </BModal>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import IngredientModalDialogRename from "@/components/edit/IngredientModalDialogRename.vue";
-import ArrayReorderBtnGroup from "@/components/common/ArrayReorderBtnGroup.vue";
-import IngredientNotesFormRow from "@/components/edit/IngredientNotesFormRow.vue";
-import type { Ingredient } from "@/types/recipe";
-
-const props = defineProps<{
-  ingredient: Ingredient;
-  ingredients: Ingredient[];
-  index: number;
-  sections: string[];
-}>();
-
-const emit = defineEmits<{
-  delete: [];
-  update: [value: Ingredient];
-}>();
-
-const showModal = ref(false);
-
-const ingredient_data = computed(() => props.ingredient);
-
-const ingredient_name = computed(() => props.ingredient.name);
-
-const deleteIngredient = () => emit("delete");
-
-const updateIngredient = (ingredient: Ingredient) => {
-  const updatedIngredient = JSON.parse(JSON.stringify(ingredient));
-  emit("update", updatedIngredient);
-};
-
-const updateSection = (newSection: string) => {
-  const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
-  updatedIngredient.section = newSection;
-  emit("update", updatedIngredient);
-};
-
-const updateAmount = (newAmount: number) => {
-  const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
-  updatedIngredient.amounts[0].amount = Number(newAmount);
-  emit("update", updatedIngredient);
-};
-
-const updateUnit = (newUnit: string) => {
-  const updatedIngredient = JSON.parse(JSON.stringify(props.ingredient));
-  updatedIngredient.amounts[0].unit = newUnit;
-  emit("update", updatedIngredient);
-};
-
-onMounted(() => {
-  if (ingredient_name.value === "Neue Zutat") {
-    showModal.value = true;
-  }
-});
-</script>

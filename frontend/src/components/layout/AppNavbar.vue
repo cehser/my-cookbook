@@ -1,3 +1,124 @@
+<script setup lang="ts">
+import { ref, watch, onMounted, onBeforeUnmount, computed } from "vue";
+import { useRoute } from "vue-router";
+import { useRecipeStore } from "@/store/recipeStore";
+import { getUser, logout } from "@/auth/oidc";
+import type { Recipe } from "@/types/recipe";
+
+const props = withDefaults(
+  defineProps<{
+    selected?: string;
+    read_only?: boolean;
+    recipes_list?: Recipe[];
+  }>(),
+  {
+    selected: "",
+    read_only: true,
+  },
+);
+
+const emit = defineEmits<{
+  "update:selected": [value: string];
+}>();
+
+const route = useRoute();
+const store = useRecipeStore();
+const data_selected = ref("");
+const isMenuOpen = ref(false);
+const isUserDropdownOpen = ref(false);
+const userName = ref<string | null>(null);
+const userEmail = ref<string | null>(null);
+const userGivenName = ref<string | null>(null);
+const userFamilyName = ref<string | null>(null);
+
+const expertMode = computed(() => store.settings.expert_mode);
+
+const userFullName = computed(() => {
+  const parts = [userGivenName.value, userFamilyName.value].filter(Boolean);
+  return parts.length ? parts.join(" ") : null;
+});
+
+const userInitials = computed(() => {
+  if (userGivenName.value && userFamilyName.value) {
+    return (userGivenName.value[0] + userFamilyName.value[0]).toUpperCase();
+  }
+  if (userName.value) {
+    return userName.value.substring(0, 2).toUpperCase();
+  }
+  return "?";
+});
+const isAdmin = computed(() => store.settings.role === "admin");
+
+const isOnline = ref(navigator.onLine);
+
+function handleOnline() {
+  isOnline.value = true;
+}
+function handleOffline() {
+  isOnline.value = false;
+}
+
+// Load OIDC user info
+onMounted(async () => {
+  window.addEventListener("online", handleOnline);
+  window.addEventListener("offline", handleOffline);
+  data_selected.value = props.selected;
+  try {
+    const user = await getUser();
+    if (user?.profile) {
+      userName.value =
+        user.profile.preferred_username ||
+        user.profile.name ||
+        user.profile.sub;
+      userEmail.value = user.profile.email || null;
+      userGivenName.value = user.profile.given_name || null;
+      userFamilyName.value = user.profile.family_name || null;
+    }
+  } catch (e) {
+    console.warn("[Auth] Could not load user info:", e);
+  }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("online", handleOnline);
+  window.removeEventListener("offline", handleOffline);
+});
+
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value;
+};
+
+const toggleUserDropdown = () => {
+  isUserDropdownOpen.value = !isUserDropdownOpen.value;
+};
+
+const doLogout = async () => {
+  try {
+    await logout();
+  } catch (e) {
+    console.error("[Auth] Logout failed:", e);
+    window.location.href = "/";
+  }
+};
+
+const toggleExpertMode = () => {
+  store.settings.expert_mode = !store.settings.expert_mode;
+};
+
+watch(data_selected, (value) => {
+  emit("update:selected", value);
+});
+
+watch(
+  () => route.path,
+  () => {
+    // Close mobile menu when route changes
+    isMenuOpen.value = false;
+    isUserDropdownOpen.value = false;
+  },
+);
+</script>
+
 <template>
   <div v-if="!isOnline" class="offline-banner">
     <i class="bi bi-wifi-off me-1"></i>
@@ -111,120 +232,6 @@
     </div>
   </nav>
 </template>
-
-<script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, computed } from "vue";
-import { useRoute } from "vue-router";
-import { useRecipeStore } from "@/store/recipeStore";
-import { getUser, logout } from "@/auth/oidc";
-import type { Recipe } from "@/types/recipe";
-
-const props = withDefaults(
-  defineProps<{
-    selected?: string;
-    read_only?: boolean;
-    recipes_list?: Recipe[];
-  }>(),
-  {
-    selected: '',
-    read_only: true,
-  },
-);
-
-const emit = defineEmits<{
-  "update:selected": [value: string];
-}>();
-
-const route = useRoute();
-const store = useRecipeStore();
-const data_selected = ref('');
-const isMenuOpen = ref(false);
-const isUserDropdownOpen = ref(false);
-const userName = ref<string | null>(null);
-const userEmail = ref<string | null>(null);
-const userGivenName = ref<string | null>(null);
-const userFamilyName = ref<string | null>(null);
-
-const expertMode = computed(() => store.settings.expert_mode);
-
-const userFullName = computed(() => {
-  const parts = [userGivenName.value, userFamilyName.value].filter(Boolean);
-  return parts.length ? parts.join(' ') : null;
-});
-
-const userInitials = computed(() => {
-  if (userGivenName.value && userFamilyName.value) {
-    return (userGivenName.value[0] + userFamilyName.value[0]).toUpperCase();
-  }
-  if (userName.value) {
-    return userName.value.substring(0, 2).toUpperCase();
-  }
-  return '?';
-});
-const isAdmin = computed(() => store.settings.role === 'admin');
-
-const isOnline = ref(navigator.onLine);
-
-function handleOnline() { isOnline.value = true; }
-function handleOffline() { isOnline.value = false; }
-
-// Load OIDC user info
-onMounted(async () => {
-  window.addEventListener('online', handleOnline);
-  window.addEventListener('offline', handleOffline);
-  data_selected.value = props.selected;
-  try {
-    const user = await getUser();
-    if (user?.profile) {
-      userName.value = user.profile.preferred_username || user.profile.name || user.profile.sub;
-      userEmail.value = user.profile.email || null;
-      userGivenName.value = user.profile.given_name || null;
-      userFamilyName.value = user.profile.family_name || null;
-    }
-  } catch (e) {
-    console.warn('[Auth] Could not load user info:', e);
-  }
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener('online', handleOnline);
-  window.removeEventListener('offline', handleOffline);
-});
-
-const toggleMenu = () => {
-  isMenuOpen.value = !isMenuOpen.value;
-};
-
-const toggleUserDropdown = () => {
-  isUserDropdownOpen.value = !isUserDropdownOpen.value;
-};
-
-const doLogout = async () => {
-  try {
-    await logout();
-  } catch (e) {
-    console.error('[Auth] Logout failed:', e);
-    window.location.href = '/';
-  }
-};
-
-const toggleExpertMode = () => {
-  store.settings.expert_mode = !store.settings.expert_mode;
-};
-
-watch(data_selected, (value) => {
-  emit("update:selected", value);
-});
-
-watch(
-  () => route.path,
-  () => {
-    // Close mobile menu when route changes
-    isMenuOpen.value = false;
-    isUserDropdownOpen.value = false;
-  },
-);
-</script>
 
 <style scoped>
 .router-link-active {

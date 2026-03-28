@@ -1,3 +1,36 @@
+<script setup lang="ts">
+import { BButton } from "bootstrap-vue-next";
+
+const props = defineProps<{
+  yieldsValue: number;
+  yieldsUnit: string;
+  variant: "desktop" | "mobile-collapsed" | "mobile-expanded";
+}>();
+
+const emit = defineEmits<{
+  "update:yields": [value: number];
+}>();
+
+function increase() {
+  if (props.yieldsValue < 100) {
+    emit("update:yields", props.yieldsValue + 1);
+  }
+}
+
+function decrease() {
+  if (props.yieldsValue > 1) {
+    emit("update:yields", props.yieldsValue - 1);
+  }
+}
+
+function updateValue(value: string) {
+  const numValue = Number(value);
+  if (numValue >= 1 && numValue <= 100) {
+    emit("update:yields", numValue);
+  }
+}
+</script>
+
 <template>
   <!-- Desktop Variant -->
   <div v-if="variant === 'desktop'" class="portions-control-desktop">
@@ -90,39 +123,6 @@
     </BButton>
   </div>
 </template>
-
-<script setup lang="ts">
-import { BButton } from 'bootstrap-vue-next'
-
-const props = defineProps<{
-  yieldsValue: number
-  yieldsUnit: string
-  variant: 'desktop' | 'mobile-collapsed' | 'mobile-expanded'
-}>()
-
-const emit = defineEmits<{
-  'update:yields': [value: number]
-}>()
-
-function increase() {
-  if (props.yieldsValue < 100) {
-    emit('update:yields', props.yieldsValue + 1)
-  }
-}
-
-function decrease() {
-  if (props.yieldsValue > 1) {
-    emit('update:yields', props.yieldsValue - 1)
-  }
-}
-
-function updateValue(value: string) {
-  const numValue = Number(value)
-  if (numValue >= 1 && numValue <= 100) {
-    emit('update:yields', numValue)
-  }
-}
-</script>
 
 <style scoped>
 /* Desktop Variant */

@@ -1,3 +1,35 @@
+<script setup lang="ts">
+import { BButton } from "bootstrap-vue-next";
+
+defineProps<{
+  editMode?: boolean;
+  readOnly?: boolean;
+  expertMode?: boolean;
+  menuOpen?: boolean;
+}>();
+
+const emit = defineEmits<{
+  "toggle-menu": [];
+  "inline-edit": [];
+  edit: [];
+  copy: [];
+  delete: [];
+  share: [];
+  export: [];
+}>();
+
+function toggleMenu() {
+  emit("toggle-menu");
+}
+
+function handleAction(
+  action: "inline-edit" | "edit" | "copy" | "delete" | "share" | "export",
+) {
+  emit(action);
+  emit("toggle-menu");
+}
+</script>
+
 <template>
   <div
     v-if="!editMode && (!readOnly || expertMode)"
@@ -88,36 +120,6 @@
     </BButton>
   </div>
 </template>
-
-<script setup lang="ts">
-import { BButton } from 'bootstrap-vue-next'
-
-defineProps<{
-  editMode?: boolean
-  readOnly?: boolean
-  expertMode?: boolean
-  menuOpen?: boolean
-}>()
-
-const emit = defineEmits<{
-  'toggle-menu': []
-  'inline-edit': []
-  edit: []
-  copy: []
-  delete: []
-  share: []
-  export: []
-}>()
-
-function toggleMenu() {
-  emit('toggle-menu')
-}
-
-function handleAction(action: 'inline-edit' | 'edit' | 'copy' | 'delete' | 'share' | 'export') {
-  emit(action)
-  emit('toggle-menu')
-}
-</script>
 
 <style scoped>
 /* FAB Container and Menu */

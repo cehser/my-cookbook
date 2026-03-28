@@ -1,3 +1,50 @@
+<script setup lang="ts">
+import { computed } from "vue";
+import type { Recipe } from "@/types/recipe";
+
+const props = defineProps<{
+  show: boolean;
+  isMobile: boolean;
+  recipe: Recipe;
+  yieldsValue: number | null;
+  yieldsUnit: string | null;
+}>();
+
+defineEmits<{
+  close: [];
+}>();
+
+const hasTimeInfo = computed(
+  () =>
+    !!(
+      props.recipe.prep_time ||
+      props.recipe.cook_time ||
+      props.recipe.bake_time ||
+      props.recipe.total_time
+    ),
+);
+
+const difficultyLabel = computed(() => {
+  if (!props.recipe.difficulty) return "";
+  const difficulties: Record<string, string> = {
+    easy: "Einfach",
+    medium: "Mittel",
+    hard: "Schwer",
+  };
+  return difficulties[props.recipe.difficulty] || "";
+});
+
+const difficultyClass = computed(() => {
+  if (!props.recipe.difficulty) return "bg-secondary";
+  const classes: Record<string, string> = {
+    easy: "bg-success",
+    medium: "bg-warning",
+    hard: "bg-danger",
+  };
+  return classes[props.recipe.difficulty] || "bg-secondary";
+});
+</script>
+
 <template>
   <!-- Desktop: Sidebar Overlay -->
   <transition name="slide-in-right">
@@ -158,39 +205,6 @@
     </transition>
   </div>
 </template>
-
-<script setup lang="ts">
-import { computed } from 'vue'
-import type { Recipe } from '@/types/recipe'
-
-const props = defineProps<{
-  show: boolean
-  isMobile: boolean
-  recipe: Recipe
-  yieldsValue: number | null
-  yieldsUnit: string | null
-}>()
-
-defineEmits<{
-  close: []
-}>()
-
-const hasTimeInfo = computed(() =>
-  !!(props.recipe.prep_time || props.recipe.cook_time || props.recipe.bake_time || props.recipe.total_time)
-)
-
-const difficultyLabel = computed(() => {
-  if (!props.recipe.difficulty) return ''
-  const difficulties: Record<string, string> = { easy: 'Einfach', medium: 'Mittel', hard: 'Schwer' }
-  return difficulties[props.recipe.difficulty] || ''
-})
-
-const difficultyClass = computed(() => {
-  if (!props.recipe.difficulty) return 'bg-secondary'
-  const classes: Record<string, string> = { easy: 'bg-success', medium: 'bg-warning', hard: 'bg-danger' }
-  return classes[props.recipe.difficulty] || 'bg-secondary'
-})
-</script>
 
 <style scoped>
 /* Metadata Sidebar Overlay (Desktop/Tablet) */

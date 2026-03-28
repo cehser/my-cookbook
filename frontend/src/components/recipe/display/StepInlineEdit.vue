@@ -1,47 +1,3 @@
-<template>
-  <div
-    class="step-inline-edit"
-    :class="{ editing: isEditing, dirty: isDirty }"
-    @click="startEditing"
-  >
-    <div v-if="!isEditing" class="step-display">
-      <span class="step-number">{{ stepNumber }}.</span>
-      <span class="step-text">{{ step.step }}</span>
-      <span v-if="step.notes && step.notes.length" class="step-notes-indicator">
-        <i class="bi bi-sticky"></i>
-      </span>
-      <BButton
-        v-if="isDirty"
-        size="sm"
-        variant="link"
-        class="undo-button"
-        @click.stop="undoChanges"
-        title="Änderungen rückgängig machen"
-      >
-        <i class="bi bi-arrow-counterclockwise"></i>
-      </BButton>
-    </div>
-
-    <div v-else class="step-edit-form" @click.stop>
-      <div class="edit-header">
-        <span class="step-number">{{ stepNumber }}.</span>
-        <span class="edit-hint"
-          >ESC zum Abbrechen • Click außerhalb zum Speichern</span
-        >
-      </div>
-      <BFormTextarea
-        ref="textInput"
-        v-model="editText"
-        rows="3"
-        max-rows="10"
-        class="step-textarea"
-        placeholder="Zubereitungsschritt beschreiben..."
-        @update:model-value="markDirty"
-      />
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, nextTick, watch } from "vue";
 import type { ComponentPublicInstance } from "vue";
@@ -196,6 +152,50 @@ watch(
   },
 );
 </script>
+
+<template>
+  <div
+    class="step-inline-edit"
+    :class="{ editing: isEditing, dirty: isDirty }"
+    @click="startEditing"
+  >
+    <div v-if="!isEditing" class="step-display">
+      <span class="step-number">{{ stepNumber }}.</span>
+      <span class="step-text">{{ step.step }}</span>
+      <span v-if="step.notes && step.notes.length" class="step-notes-indicator">
+        <i class="bi bi-sticky"></i>
+      </span>
+      <BButton
+        v-if="isDirty"
+        size="sm"
+        variant="link"
+        class="undo-button"
+        @click.stop="undoChanges"
+        title="Änderungen rückgängig machen"
+      >
+        <i class="bi bi-arrow-counterclockwise"></i>
+      </BButton>
+    </div>
+
+    <div v-else class="step-edit-form" @click.stop>
+      <div class="edit-header">
+        <span class="step-number">{{ stepNumber }}.</span>
+        <span class="edit-hint"
+          >ESC zum Abbrechen • Click außerhalb zum Speichern</span
+        >
+      </div>
+      <BFormTextarea
+        ref="textInput"
+        v-model="editText"
+        rows="3"
+        max-rows="10"
+        class="step-textarea"
+        placeholder="Zubereitungsschritt beschreiben..."
+        @update:model-value="markDirty"
+      />
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .step-inline-edit {

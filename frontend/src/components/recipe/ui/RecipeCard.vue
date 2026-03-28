@@ -1,3 +1,162 @@
+<script setup lang="ts">
+import { computed, ref, watch, onBeforeUnmount } from "vue";
+import { useRecipeStore } from "@/store/recipeStore";
+import { useRouter } from "vue-router";
+import type { Recipe } from "@/types/recipe";
+import { recipeUrl, editUrl } from "@/js/slug";
+
+const props = defineProps<{
+  recipe: Recipe;
+  picture_src: string;
+  index: number;
+  highlight?: string;
+  read_only: boolean;
+}>();
+
+const emit = defineEmits<{
+  delete: [];
+  "update:recipe": [recipe: Recipe];
+}>();
+
+const store = useRecipeStore();
+const router = useRouter();
+const newTag = ref("");
+const showTagEditor = ref(false);
+const fabMenuOpen = ref(false);
+
+// Global ESC handler for tag editor
+const handleEscapeKey = (event: KeyboardEvent) => {
+  if (event.key === "Escape" && showTagEditor.value) {
+    showTagEditor.value = false;
+  }
+};
+
+// Setup/cleanup global ESC listener
+watch(showTagEditor, (isOpen) => {
+  if (isOpen) {
+    window.addEventListener("keydown", handleEscapeKey);
+  } else {
+    window.removeEventListener("keydown", handleEscapeKey);
+  }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", handleEscapeKey);
+});
+
+const isFavorite = computed(() => {
+  return store.favorites.includes(props.recipe.recipe_uuid);
+});
+
+const allTags = computed(() => {
+  const tags = new Set<string>();
+  const recipes = store.recipes;
+  recipes.forEach((recipe: Recipe) => {
+    if (recipe.tags) {
+      recipe.tags.forEach((tag: string) => tags.add(tag));
+    }
+  });
+  return Array.from(tags).sort();
+});
+
+const availableTags = computed(() => {
+  return allTags.value.filter((tag) => !props.recipe.tags?.includes(tag));
+});
+
+// Safe search highlighting without v-html (XSS protection)
+const highlightedNameParts = computed(() => {
+  if (!props.highlight || !props.recipe.recipe_name) {
+    return [{ text: props.recipe.recipe_name, highlight: false }];
+  }
+
+  const parts: Array<{ text: string; highlight: boolean }> = [];
+  const regex = new RegExp(`(${props.highlight})`, "gi");
+  let lastIndex = 0;
+  let match;
+
+  const text = props.recipe.recipe_name;
+
+  while ((match = regex.exec(text)) !== null) {
+    // Add text before match
+    if (match.index > lastIndex) {
+      parts.push({
+        text: text.substring(lastIndex, match.index),
+        highlight: false,
+      });
+    }
+    // Add highlighted match
+    parts.push({ text: match[0], highlight: true });
+    lastIndex = regex.lastIndex;
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push({ text: text.substring(lastIndex), highlight: false });
+  }
+
+  return parts.length > 0 ? parts : [{ text: text, highlight: false }];
+});
+
+const recipeLink = computed(() =>
+  recipeUrl(props.recipe.recipe_uuid, props.recipe.recipe_name),
+);
+
+const toggleFavorite = () => {
+  if (isFavorite.value) {
+    store.removeFavorite(props.recipe.recipe_uuid);
+  } else {
+    store.addFavorite(props.recipe.recipe_uuid);
+  }
+};
+
+const editRecipe = () => {
+  router.push(editUrl(props.recipe.recipe_uuid, props.recipe.recipe_name));
+};
+
+const deleteRecipe = () => {
+  if (
+    confirm(
+      `Möchten Sie das Rezept "${props.recipe.recipe_name}" wirklich löschen?`,
+    )
+  ) {
+    emit("delete");
+  }
+};
+
+const addTag = () => {
+  if (!newTag.value.trim()) return;
+
+  if (!props.recipe.tags) {
+    props.recipe.tags = [];
+  }
+
+  if (!props.recipe.tags.includes(newTag.value.trim())) {
+    props.recipe.tags.push(newTag.value.trim());
+    store.setRecipe({ index: props.index, recipe: props.recipe });
+  }
+
+  newTag.value = "";
+};
+
+const removeTag = (index: number) => {
+  if (props.recipe.tags) {
+    props.recipe.tags.splice(index, 1);
+    store.setRecipe({ index: props.index, recipe: props.recipe });
+  }
+};
+
+const addExistingTag = (tag: string) => {
+  if (!props.recipe.tags) {
+    props.recipe.tags = [];
+  }
+
+  if (!props.recipe.tags.includes(tag)) {
+    props.recipe.tags.push(tag);
+    store.setRecipe({ index: props.index, recipe: props.recipe });
+  }
+};
+</script>
+
 <template>
   <div class="card recipe_card_container">
     <router-link
@@ -181,163 +340,6 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { computed, ref, watch, onBeforeUnmount } from "vue";
-import { useRecipeStore } from "@/store/recipeStore";
-import { useRouter } from "vue-router";
-import type { Recipe } from "@/types/recipe";
-import { recipeUrl, editUrl } from "@/js/slug";
-
-const props = defineProps<{
-  recipe: Recipe;
-  picture_src: string;
-  index: number;
-  highlight?: string;
-  read_only: boolean;
-}>();
-
-const emit = defineEmits<{
-  delete: [];
-  "update:recipe": [recipe: Recipe];
-}>();
-
-const store = useRecipeStore();
-const router = useRouter();
-const newTag = ref("");
-const showTagEditor = ref(false);
-const fabMenuOpen = ref(false);
-
-// Global ESC handler for tag editor
-const handleEscapeKey = (event: KeyboardEvent) => {
-  if (event.key === "Escape" && showTagEditor.value) {
-    showTagEditor.value = false;
-  }
-};
-
-// Setup/cleanup global ESC listener
-watch(showTagEditor, (isOpen) => {
-  if (isOpen) {
-    window.addEventListener("keydown", handleEscapeKey);
-  } else {
-    window.removeEventListener("keydown", handleEscapeKey);
-  }
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("keydown", handleEscapeKey);
-});
-
-const isFavorite = computed(() => {
-  return store.favorites.includes(props.recipe.recipe_uuid);
-});
-
-const allTags = computed(() => {
-  const tags = new Set<string>();
-  const recipes = store.recipes;
-  recipes.forEach((recipe: Recipe) => {
-    if (recipe.tags) {
-      recipe.tags.forEach((tag: string) => tags.add(tag));
-    }
-  });
-  return Array.from(tags).sort();
-});
-
-const availableTags = computed(() => {
-  return allTags.value.filter((tag) => !props.recipe.tags?.includes(tag));
-});
-
-// Safe search highlighting without v-html (XSS protection)
-const highlightedNameParts = computed(() => {
-  if (!props.highlight || !props.recipe.recipe_name) {
-    return [{ text: props.recipe.recipe_name, highlight: false }];
-  }
-
-  const parts: Array<{ text: string; highlight: boolean }> = [];
-  const regex = new RegExp(`(${props.highlight})`, "gi");
-  let lastIndex = 0;
-  let match;
-
-  const text = props.recipe.recipe_name;
-
-  while ((match = regex.exec(text)) !== null) {
-    // Add text before match
-    if (match.index > lastIndex) {
-      parts.push({
-        text: text.substring(lastIndex, match.index),
-        highlight: false,
-      });
-    }
-    // Add highlighted match
-    parts.push({ text: match[0], highlight: true });
-    lastIndex = regex.lastIndex;
-  }
-
-  // Add remaining text
-  if (lastIndex < text.length) {
-    parts.push({ text: text.substring(lastIndex), highlight: false });
-  }
-
-  return parts.length > 0 ? parts : [{ text: text, highlight: false }];
-});
-
-const recipeLink = computed(() => recipeUrl(props.recipe.recipe_uuid, props.recipe.recipe_name));
-
-const toggleFavorite = () => {
-  if (isFavorite.value) {
-    store.removeFavorite(props.recipe.recipe_uuid);
-  } else {
-    store.addFavorite(props.recipe.recipe_uuid);
-  }
-};
-
-const editRecipe = () => {
-  router.push(editUrl(props.recipe.recipe_uuid, props.recipe.recipe_name));
-};
-
-const deleteRecipe = () => {
-  if (
-    confirm(
-      `Möchten Sie das Rezept "${props.recipe.recipe_name}" wirklich löschen?`,
-    )
-  ) {
-    emit("delete");
-  }
-};
-
-const addTag = () => {
-  if (!newTag.value.trim()) return;
-
-  if (!props.recipe.tags) {
-    props.recipe.tags = [];
-  }
-
-  if (!props.recipe.tags.includes(newTag.value.trim())) {
-    props.recipe.tags.push(newTag.value.trim());
-    store.setRecipe({ index: props.index, recipe: props.recipe });
-  }
-
-  newTag.value = "";
-};
-
-const removeTag = (index: number) => {
-  if (props.recipe.tags) {
-    props.recipe.tags.splice(index, 1);
-    store.setRecipe({ index: props.index, recipe: props.recipe });
-  }
-};
-
-const addExistingTag = (tag: string) => {
-  if (!props.recipe.tags) {
-    props.recipe.tags = [];
-  }
-
-  if (!props.recipe.tags.includes(tag)) {
-    props.recipe.tags.push(tag);
-    store.setRecipe({ index: props.index, recipe: props.recipe });
-  }
-};
-</script>
 
 <style scoped>
 .recipe-card-link {

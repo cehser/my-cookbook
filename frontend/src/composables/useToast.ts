@@ -1,11 +1,11 @@
-import { useToast as useBootstrapToast } from 'bootstrap-vue-next'
-import type { ColorVariant } from 'bootstrap-vue-next'
+import { useToast as useBootstrapToast } from "bootstrap-vue-next";
+import type { ColorVariant } from "bootstrap-vue-next";
 
 /**
  * Composable for showing toast notifications using bootstrap-vue-next
  */
 export function useToast() {
-  const { show } = useBootstrapToast()
+  const { show } = useBootstrapToast();
 
   /**
    * Show a toast notification
@@ -16,7 +16,7 @@ export function useToast() {
   const showToast = (
     title: string,
     message: string,
-    variant: ColorVariant = 'primary'
+    variant: ColorVariant = "primary",
   ): void => {
     show?.({
       props: {
@@ -25,11 +25,11 @@ export function useToast() {
         variant,
         solid: true,
       },
-    })
-  }
+    });
+  };
 
   return {
     showToast,
     toast: showToast,
-  }
+  };
 }

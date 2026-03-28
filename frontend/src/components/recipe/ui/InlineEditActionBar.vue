@@ -1,3 +1,17 @@
+<script setup lang="ts">
+import { BButton } from "bootstrap-vue-next";
+
+defineProps<{
+  show: boolean;
+  changedItemsCount: number;
+}>();
+
+defineEmits<{
+  save: [];
+  cancel: [];
+}>();
+</script>
+
 <template>
   <transition name="slide-down">
     <div v-if="show" class="inline-edit-action-bar">
@@ -35,20 +49,6 @@
     </div>
   </transition>
 </template>
-
-<script setup lang="ts">
-import { BButton } from "bootstrap-vue-next";
-
-defineProps<{
-  show: boolean;
-  changedItemsCount: number;
-}>();
-
-defineEmits<{
-  save: [];
-  cancel: [];
-}>();
-</script>
 
 <style scoped>
 .inline-edit-action-bar {

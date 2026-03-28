@@ -1,3 +1,16 @@
+<script setup lang="ts" generic="T">
+import { useRecipeHelper } from "@/composables/useRecipeHelper";
+import { ref } from "vue";
+
+defineProps<{
+  array: T[];
+  index: number;
+}>();
+
+const selectedRef = ref("");
+const { swapElements } = useRecipeHelper({ recipeId: selectedRef });
+</script>
+
 <template>
   <div class="btn-group-vertical">
     <BButton
@@ -14,19 +27,6 @@
     ></BButton>
   </div>
 </template>
-
-<script setup lang="ts" generic="T">
-import { useRecipeHelper } from "@/composables/useRecipeHelper";
-import { ref } from "vue";
-
-defineProps<{
-  array: T[];
-  index: number;
-}>();
-
-const selectedRef = ref('');
-const { swapElements } = useRecipeHelper({ recipeId: selectedRef });
-</script>
 
 <style scoped>
 .btn-group-xs > .btn,

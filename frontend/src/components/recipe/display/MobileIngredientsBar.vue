@@ -1,3 +1,34 @@
+<script setup lang="ts">
+import PortionControl from "./PortionControl.vue";
+import IngredientsSection from "./IngredientsSection.vue";
+import CloseButton from "@/components/common/CloseButton.vue";
+import { BButton } from "bootstrap-vue-next";
+import type { Ingredient, Section } from "@/types/recipe";
+
+defineProps<{
+  isExpanded: boolean;
+  yieldsValue: number;
+  yieldsUnit: string;
+  showOnlyCurrentSection: boolean;
+  visibleSections: Section[];
+  sections: Section[];
+  activeSection?: string;
+  ingredients: Ingredient[];
+  inlineEditable?: boolean;
+  dirtyItems?: Set<string>;
+}>();
+
+defineEmits<{
+  open: [];
+  close: [];
+  "update:yields": [value: number];
+  "update:showOnlyCurrentSection": [value: boolean];
+  "scroll-to-section": [section: string];
+  changed: [event: unknown];
+  unchanged: [event: unknown];
+}>();
+</script>
+
 <template>
   <div class="ingredients-bottom-bar" :class="{ expanded: isExpanded }">
     <!-- Collapsed State -->
@@ -85,37 +116,6 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import PortionControl from './PortionControl.vue'
-import IngredientsSection from './IngredientsSection.vue'
-import CloseButton from '@/components/common/CloseButton.vue'
-import { BButton } from 'bootstrap-vue-next'
-import type { Ingredient, Section } from '@/types/recipe'
-
-defineProps<{
-  isExpanded: boolean
-  yieldsValue: number
-  yieldsUnit: string
-  showOnlyCurrentSection: boolean
-  visibleSections: Section[]
-  sections: Section[]
-  activeSection?: string
-  ingredients: Ingredient[]
-  inlineEditable?: boolean
-  dirtyItems?: Set<string>
-}>()
-
-defineEmits<{
-  open: []
-  close: []
-  'update:yields': [value: number]
-  'update:showOnlyCurrentSection': [value: boolean]
-  'scroll-to-section': [section: string]
-  changed: [event: unknown]
-  unchanged: [event: unknown]
-}>()
-</script>
 
 <style scoped>
 /* ============================================

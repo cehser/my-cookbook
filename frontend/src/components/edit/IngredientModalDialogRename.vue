@@ -1,23 +1,3 @@
-<template>
-  <div>
-    <form>
-      <div class="form-group">
-        <label :for="'new-ingredient-name' + index" class="col-form-label"
-          >Neue Bezeichnung für {{ ingredient.name }}</label
-        >
-        <input
-          type="text"
-          class="form-control"
-          :id="'new-ingredient-name' + index"
-          v-model="newName"
-          @keydown.enter.prevent="renameIngredient"
-          ref="inputField"
-        />
-      </div>
-    </form>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from "vue";
 import type { Ingredient } from "@/types/recipe";
@@ -54,6 +34,26 @@ onMounted(() => {
   });
 });
 </script>
+
+<template>
+  <div>
+    <form>
+      <div class="form-group">
+        <label :for="'new-ingredient-name' + index" class="col-form-label"
+          >Neue Bezeichnung für {{ ingredient.name }}</label
+        >
+        <input
+          type="text"
+          class="form-control"
+          :id="'new-ingredient-name' + index"
+          v-model="newName"
+          @keydown.enter.prevent="renameIngredient"
+          ref="inputField"
+        />
+      </div>
+    </form>
+  </div>
+</template>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped></style>

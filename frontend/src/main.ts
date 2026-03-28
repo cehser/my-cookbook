@@ -1,27 +1,27 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
-import App from './App.vue'
+import { createApp } from "vue";
+import { createPinia } from "pinia";
+import App from "./App.vue";
 
-import router from './router'
+import router from "./router";
 
 // Import Bootstrap and BootstrapVueNext CSS files
-import 'bootstrap/dist/css/bootstrap.css'
-import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
-import 'bootstrap-icons/font/bootstrap-icons.css'
+import "bootstrap/dist/css/bootstrap.css";
+import "bootstrap-vue-next/dist/bootstrap-vue-next.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 
-const app = createApp(App)
+const app = createApp(App);
 
-app.use(router)
-app.use(createPinia())
+app.use(router);
+app.use(createPinia());
 
 // Global Vue error handler — prevents white screen on render errors
 app.config.errorHandler = (err, instance, info) => {
-  console.error(`[Vue Error] ${info}:`, err)
-}
+  console.error(`[Vue Error] ${info}:`, err);
+};
 
 // Catch unhandled promise rejections (e.g. forgotten API .catch())
-window.addEventListener('unhandledrejection', (event) => {
-  console.error('[Unhandled Promise]', event.reason)
-})
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("[Unhandled Promise]", event.reason);
+});
 
-app.mount('#app')
+app.mount("#app");

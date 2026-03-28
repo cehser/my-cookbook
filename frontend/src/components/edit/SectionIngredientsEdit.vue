@@ -1,3 +1,15 @@
+<script setup lang="ts">
+import IngredientEdit from "@/components/edit/IngredientEdit.vue";
+import type { Ingredient } from "@/types/recipe";
+
+defineProps<{
+  section: string;
+  sections: string[];
+}>();
+
+const ingredients = defineModel<Ingredient[]>({ required: true });
+</script>
+
 <template>
   <div>
     <h3>{{ section }}</h3>
@@ -17,15 +29,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import IngredientEdit from "@/components/edit/IngredientEdit.vue";
-import type { Ingredient } from "@/types/recipe";
-
-defineProps<{
-  section: string;
-  sections: string[];
-}>();
-
-const ingredients = defineModel<Ingredient[]>({ required: true });
-</script>

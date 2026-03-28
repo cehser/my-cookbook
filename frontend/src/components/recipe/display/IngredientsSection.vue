@@ -1,3 +1,54 @@
+<script setup lang="ts">
+import { ref } from "vue";
+import IngredientInlineEdit from "./IngredientInlineEdit.vue";
+import type { Ingredient, Section } from "@/types/recipe";
+
+const props = defineProps<{
+  sections: Section[];
+  activeSection: string | null;
+  ingredients: Ingredient[];
+  yieldsValue: number;
+  inlineEditable?: boolean;
+  dirtyItems?: Set<string>;
+}>();
+
+defineEmits<{
+  changed: [event: unknown];
+  unchanged: [event: unknown];
+}>();
+
+const currentEditingKey = ref<string | null>(null);
+
+function handleStartEdit(ingredientKey: string) {
+  currentEditingKey.value = ingredientKey;
+}
+
+function handleEndEdit() {
+  currentEditingKey.value = null;
+}
+
+function getSectionIngredients(sectionName: string) {
+  return props.ingredients.filter((x) => x.section === sectionName);
+}
+
+function getIngredientName(ingredient: Ingredient) {
+  return ingredient.name;
+}
+
+function getUnit(ingredient: Ingredient) {
+  return ingredient.amounts?.[0]?.unit || "";
+}
+
+function formatAmount(ingredient: Ingredient) {
+  const amount = ingredient.amounts?.[0]?.amount;
+  if (typeof amount !== "number") return amount;
+  return Number(amount).toLocaleString("de-DE", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
+</script>
+
 <template>
   <div class="ingredients-sections">
     <div
@@ -17,9 +68,7 @@
           :ingredient="ingredient"
           :yields-value="yieldsValue"
           :is-dirty="
-            dirtyItems.has(
-              `ingredient:${section.section}:${ingredient.name}`,
-            )
+            dirtyItems.has(`ingredient:${section.section}:${ingredient.name}`)
           "
           :is-editing-other="
             currentEditingKey !== null &&
@@ -52,57 +101,6 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-import IngredientInlineEdit from './IngredientInlineEdit.vue'
-import type { Ingredient, Section } from '@/types/recipe'
-
-const props = defineProps<{
-  sections: Section[]
-  activeSection: string | null
-  ingredients: Ingredient[]
-  yieldsValue: number
-  inlineEditable?: boolean
-  dirtyItems?: Set<string>
-}>()
-
-defineEmits<{
-  changed: [event: unknown]
-  unchanged: [event: unknown]
-}>()
-
-const currentEditingKey = ref<string | null>(null)
-
-function handleStartEdit(ingredientKey: string) {
-  currentEditingKey.value = ingredientKey
-}
-
-function handleEndEdit() {
-  currentEditingKey.value = null
-}
-
-function getSectionIngredients(sectionName: string) {
-  return props.ingredients.filter((x) => x.section === sectionName)
-}
-
-function getIngredientName(ingredient: Ingredient) {
-  return ingredient.name
-}
-
-function getUnit(ingredient: Ingredient) {
-  return ingredient.amounts?.[0]?.unit || ''
-}
-
-function formatAmount(ingredient: Ingredient) {
-  const amount = ingredient.amounts?.[0]?.amount
-  if (typeof amount !== 'number') return amount
-  return Number(amount).toLocaleString('de-DE', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })
-}
-</script>
 
 <style scoped>
 .ingredients-sections {

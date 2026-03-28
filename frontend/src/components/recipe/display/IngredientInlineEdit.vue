@@ -1,59 +1,3 @@
-<template>
-  <div
-    class="ingredient-inline-edit"
-    :class="{ editing: isEditing, dirty: isDirty }"
-    @click="startEditing"
-  >
-    <div v-if="!isEditing" class="ingredient-display">
-      <div class="ingredient-amount">{{ displayAmount }} {{ displayUnit }}</div>
-      <div class="ingredient-name">
-        {{ displayName }}
-      </div>
-      <BButton
-        v-if="isDirty"
-        size="sm"
-        variant="link"
-        class="undo-button"
-        @click.stop="undoChanges"
-        title="Änderungen rückgängig machen"
-      >
-        <i class="bi bi-arrow-counterclockwise"></i>
-      </BButton>
-    </div>
-
-    <div v-else class="ingredient-edit-form" @click.stop>
-      <div class="edit-fields">
-        <BFormInput
-          ref="amountInput"
-          v-model="editAmount"
-          type="text"
-          size="sm"
-          class="amount-input"
-          placeholder="Menge"
-          @update:model-value="markDirty"
-        />
-        <BFormInput
-          v-model="editUnit"
-          type="text"
-          size="sm"
-          class="unit-input"
-          placeholder="Einheit"
-          @update:model-value="markDirty"
-        />
-        <BFormInput
-          ref="nameInput"
-          v-model="editName"
-          type="text"
-          size="sm"
-          class="name-input flex-grow-1"
-          placeholder="Zutat"
-          @update:model-value="markDirty"
-        />
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, nextTick, watch } from "vue";
 import type { ComponentPublicInstance } from "vue";
@@ -294,6 +238,62 @@ watch(
   },
 );
 </script>
+
+<template>
+  <div
+    class="ingredient-inline-edit"
+    :class="{ editing: isEditing, dirty: isDirty }"
+    @click="startEditing"
+  >
+    <div v-if="!isEditing" class="ingredient-display">
+      <div class="ingredient-amount">{{ displayAmount }} {{ displayUnit }}</div>
+      <div class="ingredient-name">
+        {{ displayName }}
+      </div>
+      <BButton
+        v-if="isDirty"
+        size="sm"
+        variant="link"
+        class="undo-button"
+        @click.stop="undoChanges"
+        title="Änderungen rückgängig machen"
+      >
+        <i class="bi bi-arrow-counterclockwise"></i>
+      </BButton>
+    </div>
+
+    <div v-else class="ingredient-edit-form" @click.stop>
+      <div class="edit-fields">
+        <BFormInput
+          ref="amountInput"
+          v-model="editAmount"
+          type="text"
+          size="sm"
+          class="amount-input"
+          placeholder="Menge"
+          @update:model-value="markDirty"
+        />
+        <BFormInput
+          v-model="editUnit"
+          type="text"
+          size="sm"
+          class="unit-input"
+          placeholder="Einheit"
+          @update:model-value="markDirty"
+        />
+        <BFormInput
+          ref="nameInput"
+          v-model="editName"
+          type="text"
+          size="sm"
+          class="name-input flex-grow-1"
+          placeholder="Zutat"
+          @update:model-value="markDirty"
+        />
+      </div>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .ingredient-inline-edit {

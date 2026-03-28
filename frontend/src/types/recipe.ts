@@ -1,62 +1,62 @@
 export interface Amount {
-  amount: number | null
-  unit: string
+  amount: number | null;
+  unit: string;
 }
 
 export interface Ingredient {
-  name: string
-  amounts: Amount[]
-  section: string
-  notes?: string[]
-  processing?: string[]
-  substitutions?: unknown[]
+  name: string;
+  amounts: Amount[];
+  section: string;
+  notes?: string[];
+  processing?: string[];
+  substitutions?: unknown[];
 }
 
 export interface Step {
-  step: string
-  haccp?: Record<string, string>
-  notes?: string[]
-  section: string
+  step: string;
+  haccp?: Record<string, string>;
+  notes?: string[];
+  section: string;
 }
 
 export interface Section {
-  section: string
+  section: string;
 }
 
 export interface Yield {
-  unit: string
-  value: number
+  unit: string;
+  value: number;
 }
 
 export interface Recipe {
-  recipe_uuid: string
-  recipe_name: string
-  author?: string
-  source_url?: string | null
-  source_book?: string | null
-  prep_time?: string
-  cook_time?: string
-  total_time?: string
-  bake_time?: string
-  servings?: string
-  difficulty?: 'easy' | 'medium' | 'hard'
-  notes?: string
-  yields?: Yield[]
-  subtitle?: string
-  ingredients: Ingredient[]
-  steps: Step[]
-  imageurl?: string | null
-  recalc_exp?: number
-  sections: Section[]
-  lastUpdated: string
-  first_image_id?: string
-  tags?: string[]
+  recipe_uuid: string;
+  recipe_name: string;
+  author?: string;
+  source_url?: string | null;
+  source_book?: string | null;
+  prep_time?: string;
+  cook_time?: string;
+  total_time?: string;
+  bake_time?: string;
+  servings?: string;
+  difficulty?: "easy" | "medium" | "hard";
+  notes?: string;
+  yields?: Yield[];
+  subtitle?: string;
+  ingredients: Ingredient[];
+  steps: Step[];
+  imageurl?: string | null;
+  recalc_exp?: number;
+  sections: Section[];
+  lastUpdated: string;
+  first_image_id?: string;
+  tags?: string[];
 }
 
 export interface RecipePictures {
-  [recipe_uuid: string]: File[]  // ✅ Use File[] instead of (Blob | File)[]
+  [recipe_uuid: string]: File[]; // ✅ Use File[] instead of (Blob | File)[]
 }
 
 export interface RecipeImages {
-  [recipe_uuid: string]: File[]
+  [recipe_uuid: string]: File[];
 }
