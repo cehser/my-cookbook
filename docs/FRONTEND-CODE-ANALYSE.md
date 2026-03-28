@@ -29,8 +29,8 @@
 | Architektur & Komponentenschnitt | 🟡 | 12 Options API + 17 `<script setup>` — inkonsistenter Mix. 38 direkte `$store`-Zugriffe in Views. |
 | Code-Qualität & DRY | 🟢 | Nur 1,72% Duplikation (10 Clones). 7 ungenutzte Dateien, 5 ungenutzte Dependencies. |
 | TypeScript-Striktheit | 🟢 | `strict: true` ergibt 0 echte Fehler (nur 2 Deprecation-Warnings). 17× `any` im Code. |
-| Abhängigkeiten & Forward Compatibility | 🔴 | 16 Vulnerabilities (1 critical). `jsonpath` hat Arbitrary Code Injection. Vuex deprecated. |
-| Bundle & Performance | 🟡 | 138 kB gzipped Hauptbundle. 49 kB CSS. Edit-Chunk 36 kB. Bootstrap-Icons-Fonts 314 kB unkomprimiert. |
+| Abhängigkeiten & Forward Compatibility | � | ~~16~~ → 4 Vulnerabilities (Build-Tools, kein Runtime). `jsonpath` entfernt. Vuex deprecated. |
+| Bundle & Performance | � | 138 kB gzipped Hauptbundle. 49 kB CSS. Edit-Chunk ~~36~~ → 8 kB. Precache ~~1220~~ → 1138 kB. |
 | Testbarkeit | 🟡 | Keine Tests vorhanden. Composables testbar, Store-Actions mäßig, Options-API-Views schwer. |
 
 ---
@@ -210,31 +210,31 @@ Betrifft hauptsächlich:
 
 ## 🎯 Action Items (priorisiert)
 
-### Priorität 1 — Sicherheit (sofort)
+### Priorität 1 — Sicherheit ✅ erledigt (ea619b3)
 
-| # | Maßnahme | Aufwand | Impact |
-|---|----------|---------|--------|
-| **S1** | `jsonpath` entfernen oder ersetzen (Arbitrary Code Injection, Prototype Pollution) | Klein | 🔴 Kritisch |
-| **S2** | `npm audit fix` ausführen (behebt 14 von 16 Vulnerabilities) | Minimal | 🔴 Hoch |
-| **S3** | `json-url` entfernen (ungenutzt lt. knip, bringt transitive Deps mit) | Klein | 🟡 Mittel |
+| # | Maßnahme | Status |
+|---|----------|--------|
+| **S1** | `jsonpath` entfernt → native for-of-Loops in Edit.vue | ✅ |
+| **S2** | `npm audit fix` → 16 → 4 Vulnerabilities (Rest: Build-Tools, kein Runtime) | ✅ |
+| **S3** | `json-url` entfernt | ✅ |
 
-### Priorität 2 — Aufräumen (niedrig hängend)
+### Priorität 2 — Aufräumen (teilweise erledigt)
 
-| # | Maßnahme | Aufwand | Impact |
-|---|----------|---------|--------|
-| **C1** | Ungenutzte Dateien löschen: `babel.config.js`, `registerServiceWorker.js`, `sw.js`, `api/tags.ts` | Minimal | 🟢 Hygiene |
-| **C2** | Ungenutzte Dependencies entfernen: `core-js`, `json-url`, `@eslint/eslintrc` | Klein | 🟢 Kleinere node_modules |
-| **C3** | Prüfen ob `qr-scanner`, `qrcode`, `sortablejs` noch genutzt werden — ggf. entfernen | Klein | 🟢 Hygiene |
-| **C4** | Doppelte Exports bereinigen (5× Named + Default in API-Modulen) | Klein | 🟢 Konsistenz |
-| **C5** | `components.d.ts` in `.gitignore` (wird auto-generiert) | Minimal | 🟢 Hygiene |
+| # | Maßnahme | Status |
+|---|----------|--------|
+| **C1** | Dateien gelöscht: `babel.config.js`, `registerServiceWorker.js`, `sw.js`, `api/tags.ts` | ✅ |
+| **C2** | Dependencies entfernt: `core-js`, `json-url`, `@eslint/eslintrc` | ✅ |
+| **C3** | `qr-scanner`, `qrcode`, `sortablejs` entfernt (alle ungenutzt) | ✅ |
+| **C4** | Doppelte Exports bereinigen (5× Named + Default in API-Modulen) | ⬜ offen |
+| **C5** | `components.d.ts` in `.gitignore` (wird auto-generiert) | ⬜ offen |
 
-### Priorität 3 — TypeScript-Verbesserung (einfach, großer Effekt)
+### Priorität 3 — TypeScript-Verbesserung (teilweise erledigt)
 
-| # | Maßnahme | Aufwand | Impact |
-|---|----------|---------|--------|
-| **T1** | `strict: true` in `tsconfig.json` aktivieren (0 echte Fehler!) | Minimal | 🟡 Qualität |
-| **T2** | `moduleResolution: "bundler"` statt `"node"` (TS7-Kompatibilität) | Minimal | 🟡 Zukunftssicherheit |
-| **T3** | 17× `any` schrittweise durch konkrete Typen ersetzen | Klein | 🟢 Qualität |
+| # | Maßnahme | Status |
+|---|----------|--------|
+| **T1** | `strict: true` aktiviert | ✅ |
+| **T2** | `moduleResolution: "bundler"`, `baseUrl` entfernt (TS7-ready) | ✅ |
+| **T3** | 17× `any` schrittweise durch konkrete Typen ersetzen | ⬜ offen |
 
 ### Priorität 4 — Strategische Entscheidungen (Diskussion nötig)
 
