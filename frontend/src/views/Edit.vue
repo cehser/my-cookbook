@@ -448,7 +448,6 @@ import { useToast } from "@/composables/useToast";
 
 import jsyaml from "js-yaml";
 
-import jp from "jsonpath";
 import deepEqual from "deep-equal";
 
 import { mapState } from "vuex";
@@ -505,14 +504,12 @@ export default {
     },
     ingredient_units: function () {
       let units = new Set(["g", "ml", "Stück"]);
-      let dyn_units = jp.query(
-        this,
-        "recipes[*].ingredients[*].amounts[*].unit",
-      );
-      //console.log(dyn_units);
-
-      if (dyn_units) {
-        dyn_units.forEach((item) => units.add(item));
+      for (const recipe of this.recipes) {
+        for (const ingredient of recipe.ingredients || []) {
+          for (const amount of ingredient.amounts || []) {
+            if (amount.unit) units.add(amount.unit);
+          }
+        }
       }
       return [...units].sort(); //convert to array
     },
