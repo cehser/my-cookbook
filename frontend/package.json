@@ -7,7 +7,9 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --fix"
+    "lint": "eslint . --fix",
+    "lint:check": "eslint .",
+    "prepare": "cd .. && husky frontend/.husky"
   },
   "dependencies": {
     "bootstrap": "^5.3.2",
@@ -33,7 +35,9 @@
     "eslint": "^9.39.1",
     "eslint-plugin-vue": "^10.6.2",
     "globals": "^16.5.0",
+    "husky": "^9.1.7",
     "lightningcss": "^1.28.1",
+    "lint-staged": "^16.4.0",
     "sass": "^1.94.2",
     "typescript": "^5.3.3",
     "unplugin-vue-components": "^30.0.0",
@@ -44,5 +48,8 @@
     "> 1%",
     "last 2 versions",
     "not dead"
-  ]
+  ],
+  "lint-staged": {
+    "*.{vue,ts,js}": "eslint --fix"
+  }
 }

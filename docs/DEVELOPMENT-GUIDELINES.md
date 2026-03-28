@@ -1,7 +1,7 @@
 # Development Guidelines — my-cookbook Frontend
 
 > **Gültig ab:** 28.03.2026
-> **Durchsetzung:** ESLint (`npm run lint`), TypeScript (`vue-tsc --noEmit`), CI-Pipeline
+> **Durchsetzung:** ESLint (`npm run lint`), TypeScript (`vue-tsc --noEmit`), Pre-Commit Hook (husky + lint-staged)
 > **Scope:** Alle Dateien unter `frontend/src/`
 
 ---
@@ -267,7 +267,19 @@ Format: `<type>(<scope>): <description>`
 
 ## 10. Qualitätssicherung
 
-### 10.1 Vor jedem Commit
+### 10.1 Pre-Commit Hook (automatisch)
+
+Jeder `git commit` durchläuft automatisch lint-staged via husky:
+- **Geänderte `.vue`, `.ts`, `.js` Dateien** werden mit `eslint --fix` geprüft
+- Commit wird blockiert, wenn ESLint-Errors bestehen
+- Warnings werden angezeigt, blockieren aber nicht
+
+```bash
+# Hook wird bei `npm install` automatisch eingerichtet (prepare-Script)
+# Manuell: cd frontend && npm run prepare
+```
+
+### 10.2 Vor jedem Commit (manuell empfohlen)
 
 ```bash
 npm run lint          # ESLint + Auto-Fix
@@ -275,7 +287,7 @@ npx vue-tsc --noEmit  # TypeScript-Check
 npm run build         # Build-Verifizierung
 ```
 
-### 10.2 CI-Pipeline (Ziel)
+### 10.3 CI-Pipeline (Ziel)
 
 Jeder Push sollte automatisch folgende Checks durchlaufen:
 1. `npm run lint` (kein `--fix`, nur prüfen)
