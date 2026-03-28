@@ -73,5 +73,3 @@ export const api = {
   delete: <T>(path: string, options?: FetchOptions) =>
     apiFetch<T>(path, { ...options, method: 'DELETE' }),
 }
-
-export default api

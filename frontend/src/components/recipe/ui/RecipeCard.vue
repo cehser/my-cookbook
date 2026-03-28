@@ -236,7 +236,7 @@ const isFavorite = computed(() => {
 const allTags = computed(() => {
   const tags = new Set<string>();
   const recipes = store.state.recipes || [];
-  recipes.forEach((recipe: any) => {
+  recipes.forEach((recipe: Recipe) => {
     if (recipe.tags) {
       recipe.tags.forEach((tag: string) => tags.add(tag));
     }

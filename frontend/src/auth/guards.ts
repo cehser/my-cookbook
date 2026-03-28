@@ -4,7 +4,7 @@
 
 import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import { isAuthenticated, login, getUser } from '@/auth/oidc'
-import api from '@/api/client'
+import { api } from '@/api/client'
 
 interface MeResponse {
   oidc_sub: string

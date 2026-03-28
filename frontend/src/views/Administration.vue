@@ -370,7 +370,7 @@ export default {
     },
     async migrateImages() {
       try {
-        const { default: api } = await import('@/api/client');
+        const { api } = await import('@/api/client');
         const result = await api.post('/admin/migrate-images');
         this.toast(
           `Migration: ${result.migrated} Bilder gespeichert, ${result.failed} fehlgeschlagen.`,

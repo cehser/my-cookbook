@@ -193,8 +193,8 @@ import { useStore } from "vuex";
 import jsyaml from "js-yaml";
 import UUID from "@/js/uuid";
 import { initRecipe } from "@/js/recipes";
-import aiApi from "@/api/ai";
-import imageApi from "@/api/images";
+import { aiApi } from "@/api/ai";
+import { imageApi } from "@/api/images";
 import { isAuthenticated } from "@/auth/oidc";
 import type { Recipe } from "@/types/recipe";
 
@@ -240,8 +240,8 @@ const startCamera = async () => {
     }
     cameraActive.value = true;
     capturedImage.value = null;
-  } catch (err: any) {
-    error.value = "Kamera-Zugriff fehlgeschlagen: " + err.message;
+  } catch (err: unknown) {
+    error.value = "Kamera-Zugriff fehlgeschlagen: " + (err instanceof Error ? err.message : String(err));
   }
 };
 
@@ -303,8 +303,8 @@ const analyzeImage = async () => {
 
     rawYaml.value = cleanYaml;
     result.value = initRecipe(jsyaml.load(cleanYaml) as Partial<Recipe>);
-  } catch (err: any) {
-    error.value = "Fehler bei der Analyse: " + err.message;
+  } catch (err: unknown) {
+    error.value = "Fehler bei der Analyse: " + (err instanceof Error ? err.message : String(err));
   } finally {
     loading.value = false;
   }
@@ -331,8 +331,8 @@ const analyzeText = async () => {
 
     rawYaml.value = cleanYaml;
     result.value = initRecipe(jsyaml.load(cleanYaml) as Partial<Recipe>);
-  } catch (err: any) {
-    error.value = "Fehler bei der Analyse: " + err.message;
+  } catch (err: unknown) {
+    error.value = "Fehler bei der Analyse: " + (err instanceof Error ? err.message : String(err));
   } finally {
     loading.value = false;
   }
@@ -377,9 +377,9 @@ const downloadImageFromUrl = async (url: string, recipeUuid: string) => {
     }
 
     return filename;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Image download failed:", err);
-    throw new Error(`Bild konnte nicht heruntergeladen werden: ${err.message}`);
+    throw new Error(`Bild konnte nicht heruntergeladen werden: ${err instanceof Error ? err.message : String(err)}`);
   }
 };
 

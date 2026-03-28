@@ -2,7 +2,7 @@ import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
 import { useStore } from 'vuex'
 import { deepCopyYaml } from '@/js/deepCopy'
 import { isAuthenticated } from '@/auth/oidc'
-import imageApi from '@/api/images'
+import { imageApi } from '@/api/images'
 import type { Recipe, RecipePictures } from '@/types/recipe'
 
 interface RecipeHelperOptions {
@@ -21,7 +21,7 @@ interface RecipeHelperReturn {
   recipeThumbnailSrc: (recipe: Recipe) => string
   recipePictureSrc: (recipe: Recipe) => string
   loadRecipe: (recipe: Recipe) => void
-  swapElements: (array: any[], index1: number, index2: number) => void
+  swapElements: <T>(array: T[], index1: number, index2: number) => void
   calcNewAmounts: (oldYield: number) => void
   setYieldsUnit: (newUnit: string) => void
   setYieldsValue: (val: number) => void
@@ -204,7 +204,7 @@ export function useRecipeHelper(options: RecipeHelperOptions): RecipeHelperRetur
   /**
    * Swap two elements in an array
    */
-  function swapElements(array: any[], index1: number, index2: number): void {
+  function swapElements<T>(array: T[], index1: number, index2: number): void {
     const el1 = array.splice(index1, 1, array[index2])
     array.splice(index2, 1, el1[0])
   }

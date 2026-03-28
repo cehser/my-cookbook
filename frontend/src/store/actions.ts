@@ -17,15 +17,15 @@ import {
 import { loadYamlCookbook, loadSample } from '@/js/recipes'
 import { deepCopyJSON, deepCopyYaml } from '@/js/deepCopy'
 import { serializeRecipePictures, deserializeRecipePictures } from '@/js/fileStorage'
-import recipeApi from '@/api/recipes'
-import imageApi from '@/api/images'
+import { recipeApi } from '@/api/recipes'
+import { imageApi } from '@/api/images'
 import { isAuthenticated } from '@/auth/oidc'
 import type { Recipe, RecipePictures } from '@/types/recipe'
 import type { Settings } from '@/types/settings'
 
 interface ActionContext {
-  commit: (type: string, payload?: any) => void
-  dispatch: (type: string, payload?: any) => Promise<any>
+  commit: (type: string, payload?: unknown) => void
+  dispatch: (type: string, payload?: unknown) => Promise<unknown>
   state: StoreState
 }
 
@@ -34,7 +34,7 @@ export default {
     // Try to load settings from API if authenticated
     if (await isAuthenticated()) {
       try {
-        const { default: api } = await import('@/api/client')
+        const { api } = await import('@/api/client')
         const settings = await api.get<Settings>('/me/settings')
         commit(SET_SETTINGS, settings)
         // Cache in IDB for offline
@@ -91,7 +91,7 @@ export default {
 
   loadRecipePictures({ commit }: ActionContext) {
     console.log('Read recipe pictures from idb')
-    get('recipe_pictures').then((val: any) => {
+    get('recipe_pictures').then((val: unknown) => {
       if (val) {
         const pictures = deserializeRecipePictures(val)
         commit(SET_RECIPES_PICTURES, pictures)
@@ -102,7 +102,7 @@ export default {
   async loadFavorites({ commit }: ActionContext) {
     if (await isAuthenticated()) {
       try {
-        const { default: favoritesApi } = await import('@/api/favorites')
+        const { favoritesApi } = await import('@/api/favorites')
         const favorites = await favoritesApi.list()
         commit(SET_FAVORITES, favorites)
         // Cache in IDB for offline
@@ -123,7 +123,7 @@ export default {
     commit(ADD_FAVORITE, uuid)
     if (await isAuthenticated()) {
       try {
-        const { default: favoritesApi } = await import('@/api/favorites')
+        const { favoritesApi } = await import('@/api/favorites')
         await favoritesApi.add(uuid)
       } catch (e) {
         console.warn('Failed to add favorite via API', e)
@@ -139,7 +139,7 @@ export default {
     commit(REMOVE_FAVORITE, uuid)
     if (await isAuthenticated()) {
       try {
-        const { default: favoritesApi } = await import('@/api/favorites')
+        const { favoritesApi } = await import('@/api/favorites')
         await favoritesApi.remove(uuid)
       } catch (e) {
         console.warn('Failed to remove favorite via API', e)
@@ -162,7 +162,7 @@ export default {
     // Persist to API if authenticated
     if (await isAuthenticated()) {
       try {
-        const { default: api } = await import('@/api/client')
+        const { api } = await import('@/api/client')
         const updated = await api.put<Settings>('/me/settings', {
           read_only: settings.read_only,
           expert_mode: settings.expert_mode,

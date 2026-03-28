@@ -2,7 +2,7 @@
  * Favorites API service — server-side per-user favorites.
  */
 
-import api from '@/api/client'
+import { api } from '@/api/client'
 
 export const favoritesApi = {
   /** Get all favorited recipe UUIDs for the current user. */
@@ -20,5 +20,3 @@ export const favoritesApi = {
     await api.delete<void>(`/favorites/${encodeURIComponent(recipeId)}`)
   },
 }
-
-export default favoritesApi

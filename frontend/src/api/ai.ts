@@ -61,5 +61,3 @@ export const aiApi = {
     return response.json()
   },
 }
-
-export default aiApi

@@ -60,27 +60,27 @@ const mutations = {
 }
 
 const actions = {
-  setGalleryFilter({ commit, state }: any, filter: string) {
+  setGalleryFilter({ commit, state }: { commit: (t: string, p: string) => void; state: UIState }, filter: string) {
     commit('SET_GALLERY_FILTER', filter)
     saveToLocalStorage(state)
   },
-  setGallerySelectedTags({ commit, state }: any, tags: string[]) {
+  setGallerySelectedTags({ commit, state }: { commit: (t: string, p: string[]) => void; state: UIState }, tags: string[]) {
     commit('SET_GALLERY_SELECTED_TAGS', tags)
     saveToLocalStorage(state)
   },
-  setGalleryScrollPosition({ commit, state }: any, position: number) {
+  setGalleryScrollPosition({ commit, state }: { commit: (t: string, p: number) => void; state: UIState }, position: number) {
     commit('SET_GALLERY_SCROLL_POSITION', position)
     saveToLocalStorage(state)
   },
-  setGallerySortBy({ commit, state }: any, sortBy: string) {
+  setGallerySortBy({ commit, state }: { commit: (t: string, p: string) => void; state: UIState }, sortBy: string) {
     commit('SET_GALLERY_SORT_BY', sortBy)
     saveToLocalStorage(state)
   },
-  setRecipeShowIngredients({ commit, state }: any, show: boolean) {
+  setRecipeShowIngredients({ commit, state }: { commit: (t: string, p: boolean) => void; state: UIState }, show: boolean) {
     commit('SET_RECIPE_SHOW_INGREDIENTS', show)
     saveToLocalStorage(state)
   },
-  restoreUIState({ commit }: any) {
+  restoreUIState({ commit }: { commit: (t: string, p: Partial<UIState>) => void }) {
     const savedState = localStorage.getItem('my-cookbook-ui-state')
     if (savedState) {
       try {

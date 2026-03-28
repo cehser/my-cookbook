@@ -84,5 +84,3 @@ export const imageApi = {
     return `${API_BASE}/images/${encodeURIComponent(imageId)}/thumbnail`
   },
 }
-
-export default imageApi

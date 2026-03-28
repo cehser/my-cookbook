@@ -152,7 +152,7 @@ export function loadYamlRecipe(content: string): Recipe {
 export function mergeCookbooks(
   local: Recipe[],
   remote: Recipe[],
-  dispatch: (action: string, payload: any) => void
+  dispatch: (action: string, payload: unknown) => void
 ): Recipe[] {
   remote.forEach(remoteRecipe => {
     const localIndex = local.findIndex(x => x.recipe_uuid === remoteRecipe.recipe_uuid)

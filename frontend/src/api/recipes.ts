@@ -2,7 +2,7 @@
  * Recipe API service – typed wrappers around the generic API client.
  */
 
-import api from '@/api/client'
+import { api } from '@/api/client'
 
 // --- Response types (matching backend schemas) ---
 
@@ -110,5 +110,3 @@ export const recipeApi = {
     return api.post<string[]>(`/recipes/${encodeURIComponent(recipeId)}/tags`, tags)
   },
 }
-
-export default recipeApi
