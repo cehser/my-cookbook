@@ -1,8 +1,9 @@
 /**
  * Router guards for authentication and role-based access control.
+ * Uses return-based guards (Vue Router 5 pattern).
  */
 
-import type { NavigationGuardNext, RouteLocationNormalized } from "vue-router";
+import type { RouteLocationNormalized } from "vue-router";
 import { isAuthenticated, login } from "@/auth/oidc";
 import { api } from "@/api/client";
 
@@ -36,18 +37,13 @@ export function clearRoleCache(): void {
  * When offline, allows navigation with cached data (read-only mode).
  */
 export async function requireAuth(
-  to: RouteLocationNormalized,
+  _to: RouteLocationNormalized,
   _from: RouteLocationNormalized,
-  next: NavigationGuardNext,
-): Promise<void> {
-  if (await isAuthenticated()) {
-    next();
-  } else if (!navigator.onLine) {
-    // Offline: allow navigation with cached IDB data (read-only)
-    next();
-  } else {
-    await login();
-  }
+) {
+  if (await isAuthenticated()) return true;
+  if (!navigator.onLine) return true;
+  await login();
+  return false;
 }
 
 /**
@@ -55,24 +51,17 @@ export async function requireAuth(
  */
 export function requireRole(...roles: string[]) {
   return async (
-    to: RouteLocationNormalized,
+    _to: RouteLocationNormalized,
     _from: RouteLocationNormalized,
-    next: NavigationGuardNext,
-  ): Promise<void> => {
+  ) => {
     if (!(await isAuthenticated())) {
-      if (!navigator.onLine) {
-        next({ name: "Gallery" });
-        return;
-      }
+      if (!navigator.onLine) return { name: "Gallery" };
       await login();
-      return;
+      return false;
     }
 
     const userRole = await getUserRole();
-    if (userRole && roles.includes(userRole)) {
-      next();
-    } else {
-      next({ name: "Gallery" });
-    }
+    if (userRole && roles.includes(userRole)) return true;
+    return { name: "Gallery" };
   };
 }
