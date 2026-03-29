@@ -2,7 +2,6 @@
 import { ref, nextTick, watch } from "vue";
 import type { ComponentPublicInstance } from "vue";
 import type { Step } from "@/types/recipe";
-import { BFormTextarea, BButton } from "bootstrap-vue-next";
 
 const props = defineProps<{
   step: Step;

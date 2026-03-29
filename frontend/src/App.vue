@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
-import { BApp } from "bootstrap-vue-next";
 import { useRecipeStore } from "@/store/recipeStore";
 
 const store = useRecipeStore();

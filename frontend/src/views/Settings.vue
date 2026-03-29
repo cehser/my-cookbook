@@ -69,7 +69,7 @@ async function saveChanges() {
   await store.saveSettings(settings.value);
   settings.value = JSON.parse(JSON.stringify(store.settings));
   userEdited.value = false;
-  toast("Einstellungen", "Gespeichert.", "success");
+  toast("Einstellungen gespeichert.", "success");
 }
 </script>
 

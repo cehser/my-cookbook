@@ -2,7 +2,6 @@
 import { ref, computed, nextTick, watch } from "vue";
 import type { ComponentPublicInstance } from "vue";
 import type { Ingredient } from "@/types/recipe";
-import { BFormInput, BButton } from "bootstrap-vue-next";
 
 const props = defineProps<{
   ingredient: Ingredient;

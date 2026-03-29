@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { BButton } from "bootstrap-vue-next";
-
 const props = defineProps<{
   yieldsValue: number;
   yieldsUnit: string;

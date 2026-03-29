@@ -2,7 +2,6 @@
 import PortionControl from "./PortionControl.vue";
 import IngredientsSection from "./IngredientsSection.vue";
 import CloseButton from "@/components/common/CloseButton.vue";
-import { BButton } from "bootstrap-vue-next";
 import type { Ingredient, Section } from "@/types/recipe";
 
 defineProps<{

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { BFormInput, BFormTextarea } from "bootstrap-vue-next";
 import StepInlineEdit from "./StepInlineEdit.vue";
 import type { Step, Section } from "@/types/recipe";
 

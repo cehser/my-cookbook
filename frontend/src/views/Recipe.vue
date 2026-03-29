@@ -10,7 +10,7 @@ import RecipeFabMenu from "@/components/recipe/ui/RecipeFabMenu.vue";
 import InlineEditActionBar from "@/components/recipe/ui/InlineEditActionBar.vue";
 import ShareManager from "@/components/recipe/ui/ShareManager.vue";
 import jsyaml from "js-yaml";
-import { useToast } from "bootstrap-vue-next";
+import { useToast } from "@/composables/useToast";
 import { generateUUID } from "@/js/uuid";
 import { deepCopyYaml } from "@/js/deepCopy";
 import { recipeUrl, editUrl } from "@/js/slug";
@@ -20,7 +20,7 @@ const props = defineProps<{ id: string }>();
 const router = useRouter();
 const store = useRecipeStore();
 const uiStore = useUIStore();
-const bvnToast = useToast();
+const { toast: showToast } = useToast();
 
 const idRef = computed(() => props.id);
 const { current_recipe, selected, recipes_list, picture_src } = useRecipeHelper(
@@ -63,16 +63,6 @@ onMounted(() => {
 });
 
 // Methods
-function showToast(content: string, variant = "info") {
-  bvnToast?.show?.({
-    props: {
-      body: content,
-      variant,
-      pos: "bottom-left",
-    },
-  });
-}
-
 function navSelected(uuid: string) {
   const recipe = store.recipes.find((r) => r.recipe_uuid === uuid);
   router.push(recipeUrl(uuid, recipe?.recipe_name));
