@@ -10,7 +10,7 @@
 
 ### Scope
 - **Codebase:** `frontend/src/` — ~6.000+ Zeilen in ~40 Vue-Komponenten, 63 Dateien, ~9.900 Zeilen gesamt
-- **Stack:** Vue 3.5, Pinia 3, Vue Router 5, TypeScript 5.9, Vite 7.2, bootstrap-vue-next 0.40
+- **Stack:** Vue 3.5, Pinia 3, Vue Router 5, TypeScript 5.9, Vite 7.2, bootstrap-vue-next 0.44
 - **Infrastruktur:** PWA (Workbox), OIDC Auth, Custom API-Client, IndexedDB-Offline-Cache
 
 ### Nicht im Scope
@@ -43,7 +43,7 @@
 |-------|---------|--------|-------------|
 | **vue** | 3.4.15 | **3.5.31** | Minor ⬆️ |
 | **vue-router** | ~~4.2.5~~ **5.0.4** | **5.0.4** | ✅ Erledigt (D3) |
-| **bootstrap-vue-next** | 0.40.9 | **0.44.0** | Minor ⬆️ |
+| **bootstrap-vue-next** | ~~0.40.9~~ **0.44.0** | **0.44.0** | ✅ Erledigt (D4) |
 | bootstrap | 5.3.2 | 5.3.8 | Patch |
 | bootstrap-icons | 1.11.3 | 1.13.1 | Minor |
 | idb-keyval | 6.2.1 | 6.2.2 | Patch |
@@ -241,8 +241,8 @@ Betrifft hauptsächlich:
 | **D1** | **Vuex → Pinia** — Vuex entfernt, 2 Pinia-Stores (`useRecipeStore`, `useUIStore`) erstellt, alle Komponenten migriert. | — | ✅ Erledigt |
 | **D2** | **Options API → `<script setup>`** — Alle 12 Options-API-Komponenten konvertiert. 29/29 nutzen `<script setup lang="ts">`. | — | ✅ Erledigt |
 | **D3** | **vue-router 4 → 5** — Upgrade auf 5.0.4 durchgeführt. Navigation Guards von `next()`-Callback auf return-basiertes Pattern umgestellt. `NavigationGuardNext` Import entfernt. | — | ✅ Erledigt (22267bd) |
-| **D4** | **bootstrap-vue-next Audit** — 24 BVN-Komponenten in Nutzung (~218 Template-Stellen). Heaviest: `BButton` (64×), `BCol` (52×), `BRow` (30×), `BFormInput` (28×). Tree-Shaking via `unplugin-vue-components`. 1 Composable (`useToast`), 1 Direktive (`v-b-toggle`). 8 redundante manuelle Imports. | — | ✅ Auditiert — siehe D4-Detailbericht unten |
-| **D5** | **Major-Dependency-Upgrades.** TypeScript 5→6, ESLint 9→10, Vite 7→8, Vue Router 4→5, globals 16→17, unplugin-vue-components 30→32, bootstrap-vue-next 0.40→0.44. | Mittel–Hoch | 🟡 Einzeln angehen, Changelogs prüfen. Kein Batch-Upgrade. BVN und unplugin ggf. zuerst (kleinere Breaking Changes). TS 6 und Vite 8 erst wenn Ökosystem stabil. |
+| **D4** | **bootstrap-vue-next Audit + Upgrade** — 24 BVN-Komponenten (~218 Stellen). Upgrade 0.40→0.44 durchgeführt (keine Breaking Changes für unser Projekt). 8 redundante Imports entfernt. useToast-API-Bug gefixt. | — | ✅ Erledigt |
+| **D5** | **Major-Dependency-Upgrades.** TypeScript 5→6, ESLint 9→10, Vite 7→8, globals 16→17, unplugin-vue-components 30→32. | Mittel–Hoch | 🟡 Einzeln angehen, Changelogs prüfen. Kein Batch-Upgrade. TS 6 und Vite 8 erst wenn Ökosystem stabil. |
 
 ### Nicht empfohlen (Over-Engineering-Vermeidung)
 
@@ -261,7 +261,7 @@ Betrifft hauptsächlich:
 
 | Aspekt | Detail |
 |--------|--------|
-| Version | `^0.40.9` (Pre-1.0, Community-Projekt) |
+| Version | ~~0.40.9~~ **0.44.0** (Pre-1.0, Community-Projekt) |
 | Registrierung | **Tree-Shaking** via `unplugin-vue-components` + `BootstrapVueNextResolver()` |
 | CSS | Volles Bundle: `bootstrap-vue-next/dist/bootstrap-vue-next.css` (kein CSS-Tree-Shaking) |
 | Bootstrap | `bootstrap/dist/css/bootstrap.css` + `bootstrap-icons/font/bootstrap-icons.css` |
@@ -312,9 +312,9 @@ Betrifft hauptsächlich:
 
 **Empfehlung:**
 1. ✅ **Bei BVN bleiben** — Austausch wäre Over-Engineering
-2. 🟡 **Upgrade 0.40→0.44 separat angehen** (D5) — Changelogs prüfen, schrittweise
-3. 🟢 **Redundante manuelle Imports entfernen** (8 Dateien) — Quick Win
-4. 🟢 **`Recipe.vue` inkonsistenten `useToast`-Import** auf Wrapper umstellen
+2. ✅ **Upgrade 0.40→0.44** — Breaking Changes betreffen nur BTable (nicht genutzt) und entfernte Orchestrator-Komponenten (nutzen bereits BApp). Erledigt.
+3. ✅ **Redundante manuelle Imports entfernt** (8 Dateien) — e2e7b55
+4. ✅ **`Recipe.vue` useToast-Import** auf Wrapper umgestellt + **useToast-API-Bug gefixt** (Signatur war title/message/variant statt message/variant) — e2e7b55
 
 ---
 
