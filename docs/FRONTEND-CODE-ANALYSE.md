@@ -10,7 +10,7 @@
 
 ### Scope
 - **Codebase:** `frontend/src/` — ~6.000+ Zeilen in ~40 Vue-Komponenten, 63 Dateien, ~9.900 Zeilen gesamt
-- **Stack:** Vue 3.5, Pinia 3, Vue Router 4, TypeScript 5.9, Vite 7.2, bootstrap-vue-next 0.40
+- **Stack:** Vue 3.5, Pinia 3, Vue Router 5, TypeScript 5.9, Vite 7.2, bootstrap-vue-next 0.40
 - **Infrastruktur:** PWA (Workbox), OIDC Auth, Custom API-Client, IndexedDB-Offline-Cache
 
 ### Nicht im Scope
@@ -42,7 +42,7 @@
 | Paket | Aktuell | Latest | Upgrade-Typ |
 |-------|---------|--------|-------------|
 | **vue** | 3.4.15 | **3.5.31** | Minor ⬆️ |
-| **vue-router** | 4.2.5 | **5.0.4** | **Major** ⚠️ |
+| **vue-router** | ~~4.2.5~~ **5.0.4** | **5.0.4** | ✅ Erledigt (D3) |
 | **bootstrap-vue-next** | 0.40.9 | **0.44.0** | Minor ⬆️ |
 | bootstrap | 5.3.2 | 5.3.8 | Patch |
 | bootstrap-icons | 1.11.3 | 1.13.1 | Minor |
@@ -240,8 +240,8 @@ Betrifft hauptsächlich:
 |---|-------|---------|------------|
 | **D1** | **Vuex → Pinia** — Vuex entfernt, 2 Pinia-Stores (`useRecipeStore`, `useUIStore`) erstellt, alle Komponenten migriert. | — | ✅ Erledigt |
 | **D2** | **Options API → `<script setup>`** — Alle 12 Options-API-Komponenten konvertiert. 29/29 nutzen `<script setup lang="ts">`. | — | ✅ Erledigt |
-| **D3** | **vue-router 4 → 5?** Major-Upgrade verfügbar. | Mittel | 🟢 Kann warten. Router-Nutzung ist Standard, Upgrade sollte überschaubar sein. |
-| **D4** | **bootstrap-vue-next Stabilität?** Pre-1.0 Community-Projekt (v0.40). | — | 🟡 Beobachten. Welche BVN-Komponenten werden konkret genutzt? Falls nur wenige → eigene Wrapper erwägen. |
+| **D3** | **vue-router 4 → 5** — Upgrade auf 5.0.4 durchgeführt. Navigation Guards von `next()`-Callback auf return-basiertes Pattern umgestellt. `NavigationGuardNext` Import entfernt. | — | ✅ Erledigt (22267bd) |
+| **D4** | **bootstrap-vue-next Audit** — 24 BVN-Komponenten in Nutzung (~218 Template-Stellen). Heaviest: `BButton` (64×), `BCol` (52×), `BRow` (30×), `BFormInput` (28×). Tree-Shaking via `unplugin-vue-components`. 1 Composable (`useToast`), 1 Direktive (`v-b-toggle`). 8 redundante manuelle Imports. | — | ✅ Auditiert — siehe D4-Detailbericht unten |
 | **D5** | **Major-Dependency-Upgrades.** TypeScript 5→6, ESLint 9→10, Vite 7→8, Vue Router 4→5, globals 16→17, unplugin-vue-components 30→32, bootstrap-vue-next 0.40→0.44. | Mittel–Hoch | 🟡 Einzeln angehen, Changelogs prüfen. Kein Batch-Upgrade. BVN und unplugin ggf. zuerst (kleinere Breaking Changes). TS 6 und Vite 8 erst wenn Ökosystem stabil. |
 
 ### Nicht empfohlen (Over-Engineering-Vermeidung)
@@ -252,6 +252,69 @@ Betrifft hauptsächlich:
 | MetadataOverlay Desktop/Mobile-Refactoring | 1,72% Duplikation ist niedrig, Pattern ist verständlich |
 | ~~Sofortige Migration aller Options-API-Komponenten~~ | ✅ Erledigt (D2) |
 | Test-Suite aufsetzen | Zuerst Architektur stabilisieren, dann testen |
+
+---
+
+## 📦 D4 — bootstrap-vue-next Audit (29.03.2026)
+
+### Setup
+
+| Aspekt | Detail |
+|--------|--------|
+| Version | `^0.40.9` (Pre-1.0, Community-Projekt) |
+| Registrierung | **Tree-Shaking** via `unplugin-vue-components` + `BootstrapVueNextResolver()` |
+| CSS | Volles Bundle: `bootstrap-vue-next/dist/bootstrap-vue-next.css` (kein CSS-Tree-Shaking) |
+| Bootstrap | `bootstrap/dist/css/bootstrap.css` + `bootstrap-icons/font/bootstrap-icons.css` |
+
+### Komponenten-Inventar (24 Komponenten, ~218 Stellen)
+
+| Komponente | Anzahl | Hauptnutzer |
+|---|---|---|
+| `BButton` | 64 | Edit, Gallery, Administration, RecipeDisplay, RecipeCard, … |
+| `BCol` | 52 | Edit, IngredientEdit, StepEdit |
+| `BRow` | 30 | Edit, IngredientEdit, StepEdit |
+| `BFormInput` | 28 | Recipe, Edit, IngredientEdit, Gallery, … |
+| `BContainer` | 7 | Administration, Recipe, Edit, Settings, Gallery |
+| `BFormSelect` | 6 | Edit, IngredientEdit, StepEdit, Gallery |
+| `BFormTextarea` | 5 | Edit, StepSection, StepInlineEdit, AIRecipeImport |
+| `BDropdownItem` | 4 | Gallery |
+| `BTabs` / `BTab` | 4 | AIRecipeImport |
+| `BFormCheckbox` | 3 | Settings, AIRecipeImport |
+| `BFormFile` | 2 | Edit, AIRecipeImport |
+| `BInputGroup(Text)` | 3 | Edit, Gallery |
+| `BModal` | 2 | Gallery, IngredientEdit |
+| `BListGroup(Item)` | 2 | Administration |
+| `BCollapse` | 1 | IngredientEdit |
+| `BDropdown(Divider)` | 2 | Gallery |
+| `BAlert` | 1 | Settings |
+| `BCard(Body/Header)` | 3 | AIRecipeImport |
+| `BApp` | 1 | App.vue |
+
+### Composables & Direktiven
+
+| Typ | Name | Nutzung |
+|-----|------|---------|
+| Composable | `useToast` | Wrapper in `composables/useToast.ts`, 6 Dateien |
+| Direktive | `v-b-toggle` | 1 Stelle (IngredientEdit) |
+
+### Befund & Bewertung
+
+**Abhängigkeitstiefe: HOCH.** 24 Komponenten mit 218 Stellen machen einen Austausch unrealistisch aufwändig. BVN ist de facto eine Kernabhängigkeit.
+
+**Risikobewertung:**
+
+| Risiko | Einschätzung |
+|--------|-------------|
+| Projekt-Health | 🟡 Pre-1.0, aktiv, aber langsam: Releases alle 2-3 Monate |
+| Breaking Changes | 🟡 0.40→0.44 enthält API-Änderungen (Props, Events) |
+| Alternative | 🔴 Kein direkter Drop-in-Ersatz für Vue 3 + Bootstrap 5 |
+| Eigene Wrapper | 🔴 Unrealistisch: 24 Komponenten selbst bauen = Rewrite |
+
+**Empfehlung:**
+1. ✅ **Bei BVN bleiben** — Austausch wäre Over-Engineering
+2. 🟡 **Upgrade 0.40→0.44 separat angehen** (D5) — Changelogs prüfen, schrittweise
+3. 🟢 **Redundante manuelle Imports entfernen** (8 Dateien) — Quick Win
+4. 🟢 **`Recipe.vue` inkonsistenten `useToast`-Import** auf Wrapper umstellen
 
 ---
 
