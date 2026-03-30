@@ -1668,7 +1668,7 @@ Ablauf:
 - [x] **Domain**: ✅ Kein Risiko bei Domain-Wechsel — Backend ist einzige Datenquelle, Share-Links nutzen `window.location.origin` (dynamisch), PWA-Cache ist nur Read-Cache. Bei Wechsel: `CORS_ORIGINS` + IdP Redirect-URIs anpassen, fertig.
 - [x] **Parallel-Betrieb**: ✅ Erledigt — WebDAV komplett entfernt (B4), Big-Bang-Umstellung durchgeführt.
 - [x] **Backup**: ✅ `scripts/backup.sh` vorhanden, Cronjob muss auf Host eingerichtet werden.
-- [ ] **HTTPS**: Traefik/Caddy als Reverse Proxy vor nginx, oder bereits vorhanden?
+- [x] **HTTPS**: ✅ Reverse Proxy extern gepflegt (nicht Teil dieses Projekts).
 
 ---
 
