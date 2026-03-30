@@ -28,7 +28,7 @@ const userManager = new UserManager({
   silent_redirect_uri: `${window.location.origin}/silent-renew.html`,
   post_logout_redirect_uri: window.location.origin,
   response_type: "code",
-  scope: "openid profile email",
+  scope: "openid profile email offline_access",
   automaticSilentRenew: true,
   // Keep user session alive: check token 60s before expiry
   accessTokenExpiringNotificationTimeInSeconds: 60,
