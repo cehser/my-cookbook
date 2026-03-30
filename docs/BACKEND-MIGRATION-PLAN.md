@@ -1665,9 +1665,9 @@ Ablauf:
 ### Offene Fragen
 
 - [ ] **IdP-Entscheidung**: Keycloak (vorhanden) oder alternativer OIDC IdP? (Architektur ist IdP-agnostisch)
-- [ ] **Domain**: Bleibt die URL gleich? (Wichtig für PWA-Installation, Service Worker)
-- [ ] **Parallel-Betrieb**: Übergangsphase mit WebDAV + API gleichzeitig, oder Big-Bang-Umstellung?
-- [ ] **Backup**: ~~pg_dump reicht → aber wie oft? Cronjob in Docker?~~ ✅ `scripts/backup.sh` vorhanden, Cronjob muss auf Host eingerichtet werden
+- [x] **Domain**: ✅ Kein Risiko bei Domain-Wechsel — Backend ist einzige Datenquelle, Share-Links nutzen `window.location.origin` (dynamisch), PWA-Cache ist nur Read-Cache. Bei Wechsel: `CORS_ORIGINS` + IdP Redirect-URIs anpassen, fertig.
+- [x] **Parallel-Betrieb**: ✅ Erledigt — WebDAV komplett entfernt (B4), Big-Bang-Umstellung durchgeführt.
+- [x] **Backup**: ✅ `scripts/backup.sh` vorhanden, Cronjob muss auf Host eingerichtet werden.
 - [ ] **HTTPS**: Traefik/Caddy als Reverse Proxy vor nginx, oder bereits vorhanden?
 
 ---
