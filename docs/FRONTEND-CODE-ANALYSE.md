@@ -2,7 +2,8 @@
 
 > **Ziel:** Wartbarkeit, Erweiterbarkeit und Planungssicherheit des Frontends bewerten.
 > **Erstellt:** 28.03.2026  
-> **Status:** ✅ Phase 1 abgeschlossen (automatisierte Analyse)
+> **Abgeschlossen:** 30.03.2026  
+> **Status:** ✅ Frontend-Modernisierung abgeschlossen (S1-S3, C1-C5, T1-T3, D1-D4 erledigt, D5 zurückgestellt)
 
 ---
 
@@ -242,7 +243,7 @@ Betrifft hauptsächlich:
 | **D2** | **Options API → `<script setup>`** — Alle 12 Options-API-Komponenten konvertiert. 29/29 nutzen `<script setup lang="ts">`. | — | ✅ Erledigt |
 | **D3** | **vue-router 4 → 5** — Upgrade auf 5.0.4 durchgeführt. Navigation Guards von `next()`-Callback auf return-basiertes Pattern umgestellt. `NavigationGuardNext` Import entfernt. | — | ✅ Erledigt (22267bd) |
 | **D4** | **bootstrap-vue-next Audit + Upgrade** — 24 BVN-Komponenten (~218 Stellen). Upgrade 0.40→0.44 durchgeführt (keine Breaking Changes für unser Projekt). 8 redundante Imports entfernt. useToast-API-Bug gefixt. | — | ✅ Erledigt |
-| **D5** | **Major-Dependency-Upgrades.** TypeScript 5→6, ESLint 9→10, Vite 7→8, globals 16→17, unplugin-vue-components 30→32. | Mittel–Hoch | 🟡 Einzeln angehen, Changelogs prüfen. Kein Batch-Upgrade. TS 6 und Vite 8 erst wenn Ökosystem stabil. |
+| **D5** | **Major-Dependency-Upgrades.** TypeScript 5→6, ESLint 9→10, Vite 7→8, globals 16→17, unplugin-vue-components 30→32. | Mittel–Hoch | ⏸️ Zurückgestellt — kein Blocker. Erst wenn Ökosystem stabil. Reguläre Wartung. |
 
 ### Nicht empfohlen (Over-Engineering-Vermeidung)
 
