@@ -7,7 +7,9 @@
 
 import { UserManager, WebStorageStateStore, type User } from "oidc-client-ts";
 
-const cfg = (window as unknown as Record<string, Record<string, string>>).__CONFIG__ || {};
+const cfg =
+  (window as unknown as Record<string, Record<string, string>>).__CONFIG__ ||
+  {};
 const authority =
   cfg.OIDC_AUTHORITY || (import.meta.env.VITE_OIDC_AUTHORITY as string);
 const clientId =
@@ -35,12 +37,11 @@ const userManager = new UserManager({
 
 // --- Event handlers for token lifecycle ---
 
-// When silent renew fails, try a full re-login (only when online)
+// When silent renew fails, log the error but do NOT immediately redirect.
+// The 401-retry in the API client will call refreshToken() explicitly,
+// and only if that also fails will the user see an error or re-login.
 userManager.events.addSilentRenewError((error) => {
   console.warn("[Auth] Silent renew failed:", error);
-  if (navigator.onLine) {
-    userManager.signinRedirect();
-  }
 });
 
 // When the access token is about to expire, log for debugging
@@ -85,6 +86,17 @@ export async function getAccessToken(): Promise<string | null> {
     return null;
   }
   return user.access_token;
+}
+
+/** Try to silently refresh the token. Returns new token or null on failure. */
+export async function refreshToken(): Promise<string | null> {
+  try {
+    const user = await userManager.signinSilent();
+    return user?.access_token ?? null;
+  } catch (e) {
+    console.warn("[Auth] Token refresh failed:", e);
+    return null;
+  }
 }
 
 /** Check whether the user is authenticated */

@@ -1,8 +1,13 @@
 /**
  * API Client with automatic Bearer token injection.
+ *
+ * On 401 responses, attempts a silent token renewal and retries once
+ * before throwing — prevents unnecessary full-page redirects when the
+ * access token just expired between the client-side check and the
+ * server-side validation.
  */
 
-import { getAccessToken } from "@/auth/oidc";
+import { getAccessToken, refreshToken } from "@/auth/oidc";
 
 const API_BASE = "/api/v1";
 
@@ -13,6 +18,7 @@ interface FetchOptions extends globalThis.RequestInit {
 async function apiFetch<T>(
   path: string,
   options: FetchOptions = {},
+  _isRetry = false,
 ): Promise<T> {
   const { skipAuth, ...fetchOptions } = options;
   const headers = new Headers(fetchOptions.headers);
@@ -36,6 +42,14 @@ async function apiFetch<T>(
     ...fetchOptions,
     headers,
   });
+
+  // On 401: try silent token renewal once, then retry
+  if (response.status === 401 && !skipAuth && !_isRetry) {
+    const newToken = await refreshToken();
+    if (newToken) {
+      return apiFetch<T>(path, options, true);
+    }
+  }
 
   if (!response.ok) {
     const detail = await response.text().catch(() => response.statusText);
