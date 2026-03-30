@@ -25,7 +25,7 @@ async def list_tags(
     _user: AppUser = Depends(require_readonly),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return all tags with recipe count, sorted alphabetically.""
+    """Return all tags with recipe count, sorted alphabetically."""
     result = await db.execute(
         select(Tag.name, func.count(RecipeTag.recipe_id).label("count"))
         .join(RecipeTag, RecipeTag.tag_id == Tag.id)
