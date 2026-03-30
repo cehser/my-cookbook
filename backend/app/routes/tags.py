@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import require_readonly
 from app.database import get_db
 from app.models.tag import RecipeTag, Tag
 from app.models.user import AppUser
@@ -22,10 +22,10 @@ class TagWithCount(BaseModel):
 
 @router.get("/tags", response_model=list[TagWithCount])
 async def list_tags(
-    _user: AppUser = Depends(get_current_user),
+    _user: AppUser = Depends(require_readonly),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return all tags with recipe count, sorted alphabetically."""
+    """Return all tags with recipe count, sorted alphabetically.""
     result = await db.execute(
         select(Tag.name, func.count(RecipeTag.recipe_id).label("count"))
         .join(RecipeTag, RecipeTag.tag_id == Tag.id)

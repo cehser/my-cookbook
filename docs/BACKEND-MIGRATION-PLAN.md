@@ -1,8 +1,8 @@
 # Backend-Migrationsplan: WebDAV → Python/FastAPI
 
 > **Planungsnotizen:** Entstanden aus Architektur-Diskussion (März 2026)  
-> **Letzte Aktualisierung:** 25. März 2026  
-> **Status:** ✅ Sprint B5 vollständig abgeschlossen — Share-Links, Offline-Cache, Refactoring
+> **Letzte Aktualisierung:** 30. März 2026  
+> **Status:** ✅ B0–B5 abgeschlossen, B6 Hardening (Sanitization-Audit ✅, Rate Limiting + Logging zurückgestellt, README offen)
 
 ---
 
@@ -1610,15 +1610,21 @@ Ablauf:
 - [x] **Runtime-Config für Frontend:** ✅ `VITE_OIDC_AUTHORITY` + `VITE_OIDC_CLIENT_ID` von Compile-Time auf Runtime umgestellt. Umsetzung: `.docker/nginx/docker-entrypoint.sh` führt `envsubst` auf `.docker/nginx/config.js.template` aus → generiert `/usr/share/nginx/html/config.js` mit `window.__CONFIG__` beim Container-Start. `src/auth/oidc.ts` liest `window.__CONFIG__` mit Fallback auf `import.meta.env.VITE_*` für lokale Entwicklung. `index.html` lädt `<script src="/config.js">` vor dem App-Bundle. Build-Args `VITE_OIDC_*` aus Dockerfile entfernt, `docker-compose.yml` nutzt nur noch `environment`.
 - [x] **Runtime-konfigurierbarer AI System-Prompt:** ✅ Prompt aus `ai.py` extrahiert nach `backend/prompts/system_prompt.md`. Backend lädt Prompt per `_load_system_prompt()` aus `settings.prompt_dir` (Default: `/app/prompts`). Docker-Volume `recipe_prompts:/app/prompts` ermöglicht Prompt-Anpassungen ohne Rebuild. Default-Prompt wird beim Image-Build nach `/app/prompts/` kopiert. Frontend-Duplikat `src/prompts/SYSTEM_PROMPT.ts` gelöscht (via `git rm`).
 - [x] **Error Handling:** ✅ Backend: Globaler Exception Handler in `main.py` — loggt Fehler server-seitig, Client bekommt nur `{"detail": "Internal server error"}`. Frontend: `app.config.errorHandler` + `unhandledrejection`-Listener in `main.ts` — verhindert weißen Bildschirm bei Vue-Render-Fehlern.
-- [ ] Rate Limiting (AI-Endpunkte)
-- [ ] Request-Logging (strukturiert)
-- [ ] Input-Sanitization prüfen (bereits durch Pydantic, aber doppelt-checken)
+- [ ] Rate Limiting (AI-Endpunkte) — ⏸️ Zurückgestellt (bei Familien-App hinter OIDC nicht kritisch)
+- [ ] Request-Logging (strukturiert) — ⏸️ Zurückgestellt (uvicorn-Standard reicht)
+- [x] **Input-Sanitization Audit (30. März 2026):** ✅ Vollständiger Security-Audit durchgeführt. Ergebnisse:
+  - SQL Injection: ✅ Alle Queries über SQLAlchemy ORM, parametrisiert. `plainto_tsquery` sicher.
+  - File-Upload: ✅ MIME-Whitelist, Size-Limit, UUID-Dateinamen (kein User-kontrollierter Pfad).
+  - Pydantic-Validierung: ✅ `recipe_name` min/max_length, `UserSettings` extra="forbid", Role-Whitelist.
+  - **Fix: `pending`-Rolle im Backend durchgesetzt:** `require_readonly` Dependency eingeführt — alle Lese-Endpoints (`recipes`, `favorites`, `tags`, `images`, `shares`) blockieren jetzt `pending`-User serverseitig (vorher nur Frontend). AI-Import-Endpoints nutzen jetzt `require_editor` (statt nur Auth-Check).
+  - **Fix: Error-Detail-Leakage entfernt:** `images.py` gibt keine Pillow-/Pfad-Details mehr aus, `dependencies.py` gibt keine JWT-Fehlerdetails mehr aus.
+  - **Fix: CheckConstraint:** `pending` in `app_users.role` CHECK-Constraint ergänzt (fehlte im Model).
 - [x] **CORS nur für erlaubte Origins:** ✅ War bereits korrekt implementiert — `settings.cors_origins` wird aus `CORS_ORIGINS` in `.env` gelesen.
 - [x] **Backup-Strategie:** ✅ `scripts/backup.sh` — `pg_dump` via `docker compose exec`, zeitgestempelte `.sql.gz`-Dateien, automatische Rotation (behält letzte 30).
 - [ ] README aktualisieren
 - [x] **.env.example + Deployment-Doku:** ✅ Zentrales `.env` im Root, `.env.example` mit allen Variablen (`OIDC_AUTHORITY`, `OIDC_CLIENT_ID`, `DB_*`, `OPENAI_API_KEY`, `CORS_ORIGINS`).
 - [x] **Projektstruktur bereinigt:** ✅ Frontend nach `frontend/` verschoben (Dockerfile, src/, public/, configs). Root enthält nur noch: `.env`, `docker-compose.yml`, `README.md`, `docs/`, `frontend/`, `backend/`, `scripts/`.
-- [ ] UI-ROADMAP-FINAL.md aktualisieren
+- [ ] UI-ROADMAP-FINAL.md aktualisieren — ⏸️ Erst bei nächster UI-Feature-Planung
 
 **Ergebnis:** Production-ready Backend
 

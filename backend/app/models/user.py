@@ -29,6 +29,6 @@ class AppUser(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "role IN ('readonly', 'editor', 'admin')", name="valid_role"
+            "role IN ('pending', 'readonly', 'editor', 'admin')", name="valid_role"
         ),
     )

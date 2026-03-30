@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_admin, require_editor
+from app.auth.dependencies import require_admin, require_editor, require_readonly
 from app.database import get_db
 from app.models.image import RecipeImage
 from app.models.recipe import Recipe
@@ -148,7 +148,7 @@ async def list_recipes(
     order: str = Query("desc", description="asc oder desc"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    user: AppUser = Depends(get_current_user),
+    user: AppUser = Depends(require_readonly),
     db: AsyncSession = Depends(get_db),
 ):
     query = select(Recipe)
@@ -223,7 +223,7 @@ async def list_recipes(
 @router.get("/recipes/{recipe_id}", response_model=RecipeResponse)
 async def get_recipe(
     recipe_id: uuid.UUID,
-    user: AppUser = Depends(get_current_user),
+    user: AppUser = Depends(require_readonly),
     db: AsyncSession = Depends(get_db),
 ):
     recipe = await _get_recipe_or_404(recipe_id, db)
@@ -323,7 +323,7 @@ async def delete_recipe(
 
 @router.get("/tags", response_model=list[TagResponse])
 async def list_tags(
-    user: AppUser = Depends(get_current_user),
+    user: AppUser = Depends(require_readonly),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Tag).order_by(Tag.name))

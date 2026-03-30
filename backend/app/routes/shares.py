@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_editor
+from app.auth.dependencies import require_editor, require_readonly
 from app.database import get_db
 from app.models.image import RecipeImage
 from app.models.recipe import Recipe
@@ -75,7 +75,7 @@ public_router = APIRouter(prefix="/v1", tags=["public-shares"])
 
 @router.get("/shares/config", response_model=ShareConfigResponse)
 async def get_share_config(
-    user: AppUser = Depends(get_current_user),
+    user: AppUser = Depends(require_readonly),
     db: AsyncSession = Depends(get_db),
 ):
     """Return share configuration (max expiry days)."""
@@ -126,7 +126,7 @@ async def create_share_link(
 @router.get("/recipes/{recipe_id}/shares", response_model=list[ShareResponse])
 async def list_share_links(
     recipe_id: uuid.UUID,
-    user: AppUser = Depends(get_current_user),
+    user: AppUser = Depends(require_readonly),
     db: AsyncSession = Depends(get_db),
 ):
     """List all active share links for a recipe."""

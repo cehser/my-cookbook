@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import require_editor
 from app.config import settings
 from app.models.user import AppUser
 
@@ -59,7 +59,7 @@ _URL_PATTERN = re.compile(r"^\s*https?://\S+\s*$", re.IGNORECASE)
 @router.post("/import")
 async def ai_import_text(
     body: AITextRequest,
-    _user: AppUser = Depends(get_current_user),
+    _user: AppUser = Depends(require_editor),
 ):
     """Send recipe text to OpenAI and return the raw YAML response."""
     api_key = _require_openai_key()
@@ -100,7 +100,7 @@ async def ai_import_text(
 async def ai_import_image(
     file: UploadFile,
     model: str = Query("gpt-4o", description="OpenAI model to use"),
-    _user: AppUser = Depends(get_current_user),
+    _user: AppUser = Depends(require_editor),
 ):
     """Send a photo to OpenAI Vision and return the raw YAML response."""
     api_key = _require_openai_key()

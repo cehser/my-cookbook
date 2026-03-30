@@ -68,14 +68,26 @@ async def get_current_user(
     """Verify OIDC token and return the authenticated user."""
     try:
         payload = verify_oidc_token(credentials.credentials)
-    except PyJWTError as e:
+    except PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token ungültig: {e}",
+            detail="Token ungültig oder abgelaufen",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
     user = await get_or_create_user(db, payload)
+    return user
+
+
+async def require_readonly(
+    user: AppUser = Depends(get_current_user),
+) -> AppUser:
+    """Require at least 'readonly' role (blocks 'pending' users)."""
+    if user.role not in ("readonly", "editor", "admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Dein Account wurde registriert. Ein Admin muss dir noch Zugriff gewähren.",
+        )
     return user
 
 

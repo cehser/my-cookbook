@@ -13,7 +13,7 @@ from PIL import Image as PILImage
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_admin, require_editor
+from app.auth.dependencies import require_admin, require_editor, require_readonly
 from app.config import settings
 from app.database import get_db
 from app.models.image import RecipeImage
@@ -197,14 +197,15 @@ async def upload_image(
 
     try:
         _process_image(original_path, thumb_path, optimised_path)
-    except Exception as e:
+    except Exception:
         # Clean up on failure
         original_path.unlink(missing_ok=True)
         thumb_path.unlink(missing_ok=True)
         optimised_path.unlink(missing_ok=True)
+        log.exception("Image processing failed for recipe %s", recipe_id)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Bildverarbeitung fehlgeschlagen: {e}",
+            detail="Bildverarbeitung fehlgeschlagen. Bitte ein anderes Format versuchen.",
         )
 
     # Store in DB
@@ -242,7 +243,7 @@ async def upload_image(
 async def list_images(
     recipe_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    _user: AppUser = Depends(get_current_user),
+    _user: AppUser = Depends(require_readonly),
 ):
     """List all images for a recipe."""
     await _get_recipe_or_404(recipe_id, db)

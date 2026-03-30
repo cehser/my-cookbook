@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import require_readonly
 from app.database import get_db
 from app.models.favorite import Favorite
 from app.models.recipe import Recipe
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/v1", tags=["favorites"])
 
 @router.get("/favorites", response_model=list[str])
 async def list_favorites(
-    user: AppUser = Depends(get_current_user),
+    user: AppUser = Depends(require_readonly),
     db: AsyncSession = Depends(get_db),
 ):
     """Return list of recipe UUIDs the current user has favorited."""
@@ -30,7 +30,7 @@ async def list_favorites(
 @router.post("/favorites/{recipe_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def add_favorite(
     recipe_id: uuid.UUID,
-    user: AppUser = Depends(get_current_user),
+    user: AppUser = Depends(require_readonly),
     db: AsyncSession = Depends(get_db),
 ):
     """Add a recipe to the current user's favorites."""
@@ -51,7 +51,7 @@ async def add_favorite(
 @router.delete("/favorites/{recipe_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_favorite(
     recipe_id: uuid.UUID,
-    user: AppUser = Depends(get_current_user),
+    user: AppUser = Depends(require_readonly),
     db: AsyncSession = Depends(get_db),
 ):
     """Remove a recipe from the current user's favorites."""
