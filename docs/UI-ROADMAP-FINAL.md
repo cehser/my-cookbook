@@ -1,7 +1,6 @@
 # UI-Roadmap - my-cookbook
 
-> **Planungsnotizen:** Siehe `PLANNING-NOTES.md` für den Entstehungsprozess  
-> **Letzte Aktualisierung:** 28. Dezember 2025
+> **Letzte Aktualisierung:** 6. April 2026
 
 ---
 
@@ -15,30 +14,7 @@
 
 ## 🐛 Known Issues
 
-### Tag-Editor in Galerie (RecipeCard)
-**Status:** 🔴 Bug | **Priorität:** Mittel
-
-**Problem:**
-- ESC-Taste und Toggle-Button zum Schließen des Tag-Editors funktionieren nicht zuverlässig
-- Nur der X-Button schließt den Editor konsistent
-- Vermutlich Focus-Management und Event-Propagation Issues
-
-**Betroffene Datei:** `src/components/RecipeCard.vue`
-
-**Technische Details:**
-- Event-Listener auf window-Ebene für ESC
-- Toggle-Button mit @click.prevent.stop
-- Focus-Management nach Öffnen des Editors
-
-### Metadaten-Anzeige UI-Qualität
-**Status:** ✅ Behoben in Sprint 1 | **Priorität:** Hoch
-
-**Ursprüngliche Probleme:**
-- ~~Metadaten-Toggle-Button zu prominent~~ → Icon-only Button auf Rezeptbild
-- ~~Metadaten-Overlay zusammenhanglos~~ → Desktop: Sidebar, Mobile: Bottom Sheet
-- Keine Bearbeitungsmöglichkeit → wird in Sprint 5 (Editor-Überarbeitung) implementiert
-
-**Betroffene Dateien:** `src/views/Recipe.vue` ✅, `src/views/Edit.vue` (Sprint 5)
+Keine bekannten Bugs.
 
 ---
 
@@ -110,7 +86,7 @@
 
 **Implementierte Features:**
 - ✅ Koch-fokussierte Navbar (Galerie, Favoriten, Suche prominent)
-- ✅ Admin-Features im Dropdown (Einstellungen, Verwaltung, Cloud-Sync)
+- ✅ Admin-Features im Dropdown (Einstellungen, Verwaltung)
 - ✅ Experten-Modus für YAML Import/Export (Toggle, Standard: AUS)
 - ✅ Galerie & Verwaltung fusioniert (eine Ansicht)
 - ✅ Suche & Filter (Suche, Autor, Schwierigkeit, Tags)
@@ -119,24 +95,14 @@
 - ✅ Quick Actions auf Recipe Cards (Tags, Edit, Delete)
 - ✅ Favoriten mit IndexedDB Persistenz
 - ✅ AI-Import als Modal
-- ✅ Tag-Editor in RecipeCard (⚠️ mit Known Issue, siehe oben)
-- 🟡 Metadaten-Anzeige implementiert, aber UI-Qualität unzureichend → Sprint 1
+- ✅ Tag-Editor in RecipeCard
+- ✅ Metadaten-Anzeige (Sprint 1: Overlay, Sprint 4: Editor in Edit.vue)
 
 **Implementierte Navbar-Struktur:**
 ```
 🍳 Kochbuch                     [⚙️▼]
 [🏠 Galerie] [⭐ Favoriten] [🔍 Suche]
 ```
-
-**Betroffene Dateien:**
-- `src/components/Navbar.vue` (komplette Neugestaltung)
-- `src/views/Gallery.vue` (Suche/Filter, Sorting, Quick Actions, AI-Import Modal)
-- `src/views/Recipe.vue` (Metadaten-Anzeige mit Toggle, FAB)
-- `src/components/RecipeCard.vue` (Quick Actions + Tag-Editor)
-- `src/types/recipe.ts` (Interfaces erweitert)
-- `src/store/modules/settings.ts` (expert_mode)
-- `src/store/modules/uiState.ts` (Sortierung persistent)
-- `src/store/actions.ts` (Favoriten-Persistenz)
 
 ---
 
@@ -168,15 +134,7 @@
 - ✅ **Computed Properties:** hasTimeInfo, difficultyLabel, difficultyClass
 - ✅ **Responsive Design:** 44px Touch-Targets auf Mobile, separate Layouts für Desktop/Mobile
 
-**Editor-Integration verschoben:**
-- Metadaten-Bearbeitung wird in **Sprint 5** (Editor-Überarbeitung) implementiert
-- Grund: Passt besser zur kompletten Editor-Neugestaltung
-
-**Betroffene Dateien:**
-- `src/views/Recipe.vue` ✅ (Split-View + Metadaten-Anzeige komplett)
-- `src/composables/useViewport.ts` ✅ (bereits vorhanden)
-- `src/composables/useRecipeHelper.ts` ✅ (Yields-Logik)
-- CSS: Split-View + Portionen + Metadaten-Overlay Styles ✅
+**Metadaten-Editor:** ✅ Inzwischen in Edit.vue vollständig implementiert (Autor, Quellen, Zeiten, Schwierigkeit, Notizen).
 
 ---
 
@@ -213,15 +171,6 @@
 - ✅ **Änderungszähler:** Action Bar zeigt Anzahl geänderter Items
 - ✅ **FAB Integration:** "Inline-Edit" Button aktiviert den Modus
 
-**Betroffene Dateien:**
-- `src/views/Recipe.vue` (inlineEditMode State, dirtyItems tracking)
-- `src/components/recipe/ui/InlineEditActionBar.vue` (neu)
-- `src/components/recipe/display/IngredientInlineEdit.vue` (refactored)
-- `src/components/recipe/display/StepInlineEdit.vue` (refactored)
-- `src/components/recipe/display/IngredientsSection.vue` (Koordination)
-- `src/components/recipe/display/StepSection.vue` (Koordination)
-- `src/components/recipe/display/MobileIngredientsBar.vue` (Event-Weiterleitung)
-
 ---
 
 ### Phase B: Editor-Neugestaltung (Kritisch)
@@ -235,14 +184,10 @@
 3. Erster Abschnitt (Zutaten + Schritte)
 4. Weitere Abschnitte oder Fertig → Vorschau → Speichern
 
-**Betroffene Dateien:**
-- `src/components/RecipeWizard.vue` (neu)
-- `src/views/Edit.vue` (Wizard-Integration)
-
 ---
 
 #### Sprint 4: Editor-Überarbeitung (2-3 Wochen)
-**Ziel:** Intuitive Bearbeitung auf allen Geräten + Metadaten-Integration
+**Ziel:** Intuitive Bearbeitung auf allen Geräten
 
 **Lösungen:**
 - **Card-Layout:** Ein Abschnitt = Karte (Zutaten + Schritte zusammen)
@@ -252,10 +197,7 @@
 - **Keyboard-Shortcuts** (Enter, Tab, Shift+↑↓)
 - **Drag & Drop reparieren** (Touch-Support, visuelles Feedback)
 - **Inline-Buttons:** +/− direkt bei Zutat/Schritt
-- **Metadaten-Section:** Einklappbare Card mit Autor, Quellen, Zeiten, Schwierigkeit, Notizen
-  - Auto-Berechnung Gesamtzeit (prep + cook + bake)
-  - URL-Validierung (Warnings, keine Blocker)
-  - Touch-optimierte Formular-Felder
+- ~~**Metadaten-Section:**~~ ✅ Bereits implementiert in Edit.vue
 - **Optional:** Live-Preview, Collapse/Expand Abschnitte
 
 **Mock-up:**
@@ -275,13 +217,6 @@
 │ [+ Neuer Abschnitt]                    │
 └─────────────────────────────────────────┘
 ```
-
-**Betroffene Dateien:**
-- `src/views/Edit.vue` (Komplett-Überarbeitung)
-- `src/components/SectionEdit.vue` (neu - Card)
-- `src/components/IngredientEdit.vue` (vereinfachen)
-- `src/components/StepEdit.vue` (vereinfachen)
-- Vuedraggable aktualisieren oder SortableJS
 
 ---
 
@@ -324,13 +259,6 @@
 - [ ] Router Guards für automatisches Speichern
 - [ ] Validation (Rezept existiert noch, kein Edit-Modus)
 
-**Betroffene Dateien:**
-- `src/App.vue` (Session Restore beim Mount)
-- `src/components/RecipeTabBar.vue` (neu)
-- `src/store/modules/navigation.ts` (neu - Tab + Session State)
-- `src/router/index.ts` (Guards für Auto-Save, Validation)
-- `src/types/navigation.ts` (neu - Interfaces)
-
 ---
 
 #### Sprint 6: Einkaufsliste-Export (1-2 Tage) ⚡ Quick Win
@@ -342,11 +270,6 @@
 - **Clipboard API:** Kopiert als formatierten Text
 - **Native Share API:** Teilen per iOS Notizen, WhatsApp, E-Mail
 - Kein Abhaken (bewusst simpel)
-
-**Betroffene Dateien:**
-- `src/views/Recipe.vue`
-- `src/components/ShoppingListModal.vue` (neu)
-- `src/composables/useClipboard.ts` (neu)
 
 ---
 
@@ -364,45 +287,15 @@
 
 **Browser-Support:** Chrome ✅ | Safari ✅ | Firefox ❌
 
-**Betroffene Dateien:**
-- `src/views/Recipe.vue`
-- `src/components/CookingNotes.vue` (neu)
-- `src/components/VoiceInput.vue` (neu)
-- `src/composables/useSpeechRecognition.ts` (neu)
-- `src/store/modules/cookingNotes.ts` (neu)
-
 ---
 
-#### Sprint 8: URL-Rezept-Sharing (1-2 Tage) ⚡ Quick Win
-**Ziel:** Rezepte via Link teilen, ohne WebDAV-Zugriff
+#### ~~Sprint 8: URL-Rezept-Sharing~~ ✅ **Obsolet**
 
-**Features:**
-- Rezept komprimieren via `json-url` (lzma codec)
-- URL-Parameter: `https://my-cookbook.app/?r=XQA...`
-- Share-Button in Recipe.vue (Native Share API)
-- Deep Link Handler: URL → Parse → LocalStorage → Anzeige
-- Fallback: Clipboard Copy
-- Bild-URL statt Base64 (Größenlimit)
-- Toast: "Rezept aus Link importiert" ✓
-
-**Technische Details:**
-- Kompression: ~60-80% Reduktion (5KB → 1-2KB)
-- Browser-Limit: ~2000 Zeichen (IE), 8000+ (modern)
-- Keine Bilder inline (URL-Referenz oder weglassen)
-
-**Flow:**
-```
-[Teilen] → Rezept → JSON → compress → URL
-         → navigator.share() oder clipboard.writeText()
-
-Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
-```
-
-**Betroffene Dateien:**
-- `src/views/Recipe.vue` (Share-Button)
-- `src/composables/useRecipeShare.ts` (neu)
-- `src/router/index.ts` (Deep Link Handler)
-- `src/App.vue` (URL-Parameter beim Start prüfen)
+Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
+- `POST /v1/recipes/{id}/share` — zeitlich begrenzter Token-Link
+- `GET /v1/shared/{token}` — öffentliche Rezeptansicht
+- ShareManager-Komponente mit Erstellen/Widerrufen/Kopieren
+- Admin-Übersicht aller Share-Links
 
 ---
 
@@ -434,7 +327,7 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 | 5 | Workflow | Tabbed Interface + Session Restore | 3-4 Tage | 🟢 Optional | 📋 Geplant |
 | 6 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional | 📋 Geplant |
 | 7 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional | 📋 Geplant |
-| 8 | Workflow | URL-Rezept-Sharing | 1-2 Tage | 🟢 Optional | 📋 Geplant |
+| ~~8~~ | ~~Workflow~~ | ~~URL-Rezept-Sharing~~ | — | — | ✅ Obsolet (Share-Links via Backend) |
 | 9 | Design | Design-System | variabel | 🔵 Parallel | 📋 Geplant |
 
 **Geschätzte Gesamtdauer:**
@@ -442,7 +335,7 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 - **Sprint 1 (Abgeschlossen):** ✅ 4 Tage (24.-27.12.2025)
 - **Sprint 2 (Abgeschlossen):** ✅ 2 Tage (28.-29.12.2025)
 - **Kritische Sprints (3-4):** 3-4 Wochen (Rezept-Wizard + Editor-Neugestaltung)
-- **Optionale Sprints (5-8):** +2-3 Wochen
+- **Optionale Sprints (5-7):** +2 Wochen
 - **Design-Polish (9):** Parallel zu Sprint 4
 
 ---
@@ -463,14 +356,14 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 - [x] Favoriten mit Persistenz
 - [x] AI-Import als Modal
 - [x] Tag-Editor in RecipeCard
-- [x] Metadaten-Typen definiert und Grundanzeige (⚠️ UI-Qualität → Sprint 1)
+- [x] Metadaten-Typen definiert und Anzeige (Overlay + Editor)
 
 ### Neue Features - Sprint 1 (Split-View + Metadaten): ✅ Abgeschlossen
 - [x] Split-View (Desktop/Tablet, sticky Zutaten + Mobile Bottom Bar)
 - [x] Portionen-Skalierung prominent (Zutaten-Header/Bottom Bar)
 - [x] Metadaten-Button dezent (icon-only, auf Rezeptbild)
 - [x] Metadaten-Overlay visuell integriert (Desktop Sidebar, Mobile Bottom Sheet)
-- [ ] Metadaten-Editor → verschoben zu Sprint 5 (Editor-Überarbeitung)
+- [x] Metadaten-Editor ✅ (in Edit.vue implementiert)
 
 ### Neue Features - Phase A (Koch-Ansicht):
 - [x] Split-View Desktop/Tablet (Sprint 1)
@@ -483,15 +376,15 @@ Empfänger: URL öffnen → Parse → "Rezept hinzufügen?" → LocalStorage
 ### Neue Features - Phase B (Editor):
 - [ ] Rezept-Erstellungs-Wizard (4 Schritte, guided) → Sprint 3
 - [ ] Editor-Neugestaltung (Card-Layout, Touch, Drag & Drop) → Sprint 4
-- [ ] Metadaten-Editor (vollständig) → Sprint 4
+- [x] Metadaten-Editor ✅ (bereits in Edit.vue implementiert)
 
 ### Neue Features - Phase C (Workflow, Optional):
 - [ ] Tabbed Interface (Multi-Rezept, Position merken)
 - [ ] Session State Restoration (iOS PWA Fix - letzte Route wiederherstellen)
 - [ ] Einkaufsliste-Export (Clipboard + Native Share)
 - [ ] Koch-Notizen (Text + Spracheingabe)
-- [ ] URL-Rezept-Sharing (Link-basiert, ohne WebDAV)
-- [ ] Error-Boundary-Komponente (Retry-Seite bei kritischen Vue-Render-Fehlern)
+- [x] ~~URL-Rezept-Sharing~~ → Ersetzt durch serverseitige Share-Links (Backend B5)
+- [x] Error-Handler (globaler `app.config.errorHandler` + `unhandledrejection`) — keine User-sichtbare Recovery-UI
 
 ### Neue Features - Phase D (Design):
 - [ ] Design-System
