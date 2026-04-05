@@ -20,7 +20,7 @@ const store = useRecipeStore();
 const { toast } = useToast();
 
 const recipeId = ref("");
-const { recipes_list, current_recipe } = useRecipeHelper({ recipeId });
+const { recipes_list } = useRecipeHelper({ recipeId });
 
 // Data
 interface UserEntry {
@@ -55,8 +55,6 @@ const fileInput = ref<HTMLInputElement | null>(null);
 
 // Computed
 const settings = computed(() => store.settings);
-const recipes = computed(() => store.recipes);
-const recipe_pictures = computed(() => store.recipe_pictures);
 
 const pendingUsers = computed(() =>
   users.value.filter((u) => u.role === "pending"),

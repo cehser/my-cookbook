@@ -170,15 +170,7 @@ export function mergeCookbooks(
     ) {
       local.splice(localIndex, 1, remoteRecipe);
       dispatch("downloadSingleRecipePictures", { recipe: remoteRecipe });
-      console.log(localRecipe.lastUpdated);
-      console.log(remoteRecipe.lastUpdated);
-      console.log(
-        "Local not newer: " +
-          !(localRecipe.lastUpdated > remoteRecipe.lastUpdated),
-      );
-      console.log("Local replaced");
     } else if (localIndex === -1) {
-      console.log("remote pushed");
       local.push(remoteRecipe);
     }
   });

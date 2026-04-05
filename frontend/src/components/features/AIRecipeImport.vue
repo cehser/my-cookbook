@@ -5,8 +5,6 @@ import jsyaml from "js-yaml";
 import { generateUUID } from "@/js/uuid";
 import { initRecipe } from "@/js/recipes";
 import { aiApi } from "@/api/ai";
-import { imageApi } from "@/api/images";
-import { isAuthenticated } from "@/auth/oidc";
 import type { Recipe } from "@/types/recipe";
 
 const emit = defineEmits<{
@@ -156,55 +154,6 @@ const analyzeText = async () => {
       (err instanceof Error ? err.message : String(err));
   } finally {
     loading.value = false;
-  }
-};
-
-const downloadImageFromUrl = async (url: string, recipeUuid: string) => {
-  try {
-    // Download via fetch (same-origin or CORS proxy fallback)
-    const proxies = [
-      url, // Try direct first
-      `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    ];
-
-    let response: Response | null = null;
-    let lastError: Error | null = null;
-
-    for (const proxyUrl of proxies) {
-      try {
-        response = await fetch(proxyUrl, {
-          cache: "no-cache",
-          signal: AbortSignal.timeout(10000),
-        });
-        if (response.ok) break;
-      } catch (err) {
-        lastError = err as Error;
-        continue;
-      }
-    }
-
-    if (!response || !response.ok) {
-      throw lastError || new Error("Bild konnte nicht heruntergeladen werden");
-    }
-
-    const blob = await response.blob();
-    const ext = blob.type?.split("/")[1]?.split(";")[0] || "jpg";
-    const filename = `${recipeUuid}.${ext}`;
-    const file = new File([blob], filename, {
-      type: blob.type || "image/jpeg",
-    });
-
-    // Upload to backend API
-    if (await isAuthenticated()) {
-      await imageApi.upload(recipeUuid, file);
-    }
-
-    return filename;
-  } catch (err: unknown) {
-    console.error("Image download failed:", err);
-    throw new Error(
-      `Bild konnte nicht heruntergeladen werden: ${err instanceof Error ? err.message : String(err)}`,
-    );
   }
 };
 

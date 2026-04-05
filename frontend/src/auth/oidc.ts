@@ -46,14 +46,14 @@ userManager.events.addSilentRenewError((error) => {
 
 // When the access token is about to expire, log for debugging
 userManager.events.addAccessTokenExpiring(() => {
-  console.info(
+  console.warn(
     "[Auth] Access token expiring soon, silent renew should trigger automatically.",
   );
 });
 
 // When the user session ends unexpectedly (e.g. IdP session timeout)
 userManager.events.addUserSignedOut(() => {
-  console.info("[Auth] User signed out from IdP.");
+  console.warn("[Auth] User signed out from IdP.");
   if (navigator.onLine) {
     userManager.signinRedirect();
   }

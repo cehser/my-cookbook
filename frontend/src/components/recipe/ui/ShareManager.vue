@@ -8,7 +8,7 @@ const props = defineProps<{
   recipeId: string;
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
   close: [];
 }>();
 

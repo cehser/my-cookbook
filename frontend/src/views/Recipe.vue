@@ -42,7 +42,6 @@ const recipeDisplay = ref<InstanceType<typeof RecipeDisplay> | null>(null);
 
 // Computed
 const settings = computed(() => store.settings);
-const recipes = computed(() => store.recipes);
 
 const isFavorite = computed(() => {
   if (!current_recipe.value?.recipe_uuid) return false;
@@ -80,20 +79,6 @@ function exportRecipe() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-}
-
-function prevRecipe() {
-  if (selected.value > 0) {
-    const prev = store.recipes[selected.value - 1];
-    router.push(recipeUrl(prev.recipe_uuid, prev.recipe_name));
-  }
-}
-
-function nextRecipe() {
-  if (selected.value < store.recipes.length - 1) {
-    const next = store.recipes[selected.value + 1];
-    router.push(recipeUrl(next.recipe_uuid, next.recipe_name));
-  }
 }
 
 function copyRecipe() {
@@ -169,25 +154,6 @@ function toggleEditMode() {
   }
 }
 
-async function saveRecipe() {
-  if (!current_recipe.value) {
-    showToast("Rezept konnte nicht gespeichert werden", "danger");
-    return;
-  }
-  try {
-    await store.setRecipe({
-      index: selected.value,
-      recipe: current_recipe.value,
-    });
-    editMode.value = false;
-    originalRecipe.value = null;
-    showToast("Rezept gespeichert", "success");
-  } catch (error) {
-    console.error("Error saving recipe:", error);
-    showToast("Fehler beim Speichern des Rezepts", "danger");
-  }
-}
-
 function handleIngredientChanged(ingredientKey: string) {
   dirtyItems.value.add(ingredientKey);
 }
@@ -232,14 +198,6 @@ function cancelInlineEdit() {
   originalRecipe.value = null;
   dirtyItems.value.clear();
   showToast("Änderungen verworfen", "info");
-}
-
-function cancelEdit() {
-  if (originalRecipe.value) {
-    current_recipe.value = deepCopyYaml(originalRecipe.value);
-  }
-  editMode.value = false;
-  originalRecipe.value = null;
 }
 </script>
 

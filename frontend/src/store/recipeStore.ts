@@ -73,7 +73,7 @@ export const useRecipeStore = defineStore("recipe", {
     // --- Recipes ---
     async loadRecipes() {
       if (await isAuthenticated()) {
-        console.log("Authenticated – loading recipes from API");
+        console.warn("Authenticated – loading recipes from API");
         try {
           await this.loadRecipesFromApi();
           return;
@@ -82,12 +82,12 @@ export const useRecipeStore = defineStore("recipe", {
         }
       }
 
-      console.log("Read recipes from idb");
+      console.warn("Read recipes from idb");
       get("recipes").then((val: Recipe[] | undefined) => {
         if (val) {
           this.recipes = val;
         } else {
-          console.log("Fallback to localstorage");
+          console.warn("Fallback to localstorage");
           let recipes: Recipe[];
           const recipesStr = localStorage.getItem("recipes");
 
@@ -95,11 +95,10 @@ export const useRecipeStore = defineStore("recipe", {
             recipes = loadYamlCookbook(recipesStr);
             localStorage.removeItem("recipes");
           } else {
-            console.log("Fallback to sample");
+            console.warn("Fallback to sample");
             recipes = [loadSample()];
           }
 
-          console.log(recipes);
           set("recipes", recipes);
           this.recipes = recipes;
         }
@@ -194,7 +193,7 @@ export const useRecipeStore = defineStore("recipe", {
 
     // --- Recipe Pictures ---
     loadRecipePictures() {
-      console.log("Read recipe pictures from idb");
+      console.warn("Read recipe pictures from idb");
       get("recipe_pictures").then((val: unknown) => {
         if (val) {
           this.recipe_pictures = deserializeRecipePictures(val);
@@ -375,7 +374,7 @@ export const useRecipeStore = defineStore("recipe", {
           }),
         );
       }
-      console.log(
+      console.warn(
         `Prefetched ${fetched}/${recipes.length} recipe details for offline use`,
       );
     },

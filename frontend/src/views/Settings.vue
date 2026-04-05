@@ -20,7 +20,6 @@ const settings = ref(JSON.parse(JSON.stringify(store.settings)));
 const userEdited = ref(false);
 
 const store_settings = computed(() => store.settings);
-const recipes = computed(() => store.recipes);
 
 // Watch store settings — update local copy unless user is editing
 watch(

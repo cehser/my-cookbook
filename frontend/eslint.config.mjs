@@ -1,16 +1,26 @@
-import { defineConfig } from "eslint/config";
 import globals from "globals";
 import js from "@eslint/js";
 import pluginVue from "eslint-plugin-vue";
-import vueParser from "vue-eslint-parser";
-import tsParser from "@typescript-eslint/parser";
-import tsPlugin from "@typescript-eslint/eslint-plugin";
+import tseslint from "typescript-eslint";
 import prettierConfig from "@vue/eslint-config-prettier";
 
-export default defineConfig([
+export default [
+  { ignores: ["dist/**", "public/**", "*.d.ts"] },
+
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   ...pluginVue.configs["flat/essential"],
   prettierConfig,
+
+  // ─── Vue files: TypeScript parser for <script> blocks ───
+  {
+    files: ["**/*.vue"],
+    languageOptions: {
+      parserOptions: {
+        parser: tseslint.parser,
+      },
+    },
+  },
 
   // ─── Global rules for all source files ───
   {
@@ -19,29 +29,14 @@ export default defineConfig([
         ...globals.node,
         ...globals.browser,
       },
-
       ecmaVersion: "latest",
       sourceType: "module",
-      parser: vueParser,
-      parserOptions: {
-        parser: tsParser,
-        extraFileExtensions: [".vue"],
-        ecmaVersion: "latest",
-        sourceType: "module",
-      },
-    },
-
-    plugins: {
-      "@typescript-eslint": tsPlugin,
     },
 
     rules: {
       // --- Vue: Composition API / <script setup> only ---
       "vue/component-api-style": ["error", ["script-setup"]],
-      "vue/block-order": [
-        "error",
-        { order: ["script", "template", "style"] },
-      ],
+      "vue/block-order": ["error", { order: ["script", "template", "style"] }],
       "vue/no-v-html": "warn",
       "vue/no-mutating-props": "off",
 
@@ -53,9 +48,20 @@ export default defineConfig([
         "error",
         {
           paths: [
-            { name: "vuex", message: "Vuex ist entfernt. Verwende Pinia (useRecipeStore / useUIStore)." },
-            { name: "jsonpath", message: "jsonpath hat eine Code-Injection-Schwachstelle. Verwende native JS." },
-            { name: "lodash", message: "lodash ist nicht installiert. Verwende native JS/TS." },
+            {
+              name: "vuex",
+              message:
+                "Vuex ist entfernt. Verwende Pinia (useRecipeStore / useUIStore).",
+            },
+            {
+              name: "jsonpath",
+              message:
+                "jsonpath hat eine Code-Injection-Schwachstelle. Verwende native JS.",
+            },
+            {
+              name: "lodash",
+              message: "lodash ist nicht installiert. Verwende native JS/TS.",
+            },
           ],
         },
       ],
@@ -103,4 +109,4 @@ export default defineConfig([
       },
     },
   },
-]);
+];

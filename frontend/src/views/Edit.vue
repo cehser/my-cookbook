@@ -28,7 +28,6 @@ const {
   yields_unit,
   yields_value,
   section_names,
-  deepCopyYaml,
   setYieldsUnit,
   setYieldsValue,
 } = useRecipeHelper({ recipeId: idRef });
@@ -59,8 +58,6 @@ const ingredient_units = computed(() => {
 });
 
 const settings = computed(() => store.settings);
-const recipes = computed(() => store.recipes);
-const recipe_pictures = computed(() => store.recipe_pictures);
 
 // Watch
 watch(file, (newFile) => {
@@ -150,14 +147,6 @@ function saveRecipe() {
       .catch(() => toast("Fehler.", "danger"));
   } else {
     toast("Unverändert.", "success");
-  }
-}
-
-function updateCurrentRecipe() {
-  const replace_recipe = store.recipes[selected.value];
-  if (replace_recipe) {
-    document.title = "Kochbuch: " + replace_recipe.recipe_name;
-    current_recipe.value = deepCopyYaml(replace_recipe);
   }
 }
 

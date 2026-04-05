@@ -30,7 +30,7 @@ const props = withDefaults(
   },
 );
 
-const emit = defineEmits<{
+defineEmits<{
   "ingredient-changed": [key: string];
   "ingredient-unchanged": [key: string];
   "step-changed": [idx: number];
