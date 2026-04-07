@@ -7,20 +7,20 @@ Branch: `feat-ui-editor`
 
 ## Übersicht der Phasen
 
-| Phase | Beschreibung | Teilschritte | Risiko |
-|-------|-------------|-------------|--------|
-| **0** | Dependencies & Infrastruktur | 0.1 – 0.2 | Gering |
-| **1** | Composables (Draft, UnsavedGuard, Undo/Redo) | 1.1 – 1.4 | Gering |
-| **2** | Basis-Komponenten | 2.1 – 2.2 | Mittel |
-| **3** | SectionCard + Editor-Umbau | 3.1 – 3.6 | **Hoch** |
-| **4** | Drag & Drop | 4.1 – 4.4 | Mittel |
-| **5** | Recovery, Preview & Polish | 5.1 – 5.8 | Gering |
+| Phase | Beschreibung | Teilschritte | Risiko | Status |
+|-------|-------------|-------------|--------|--------|
+| **0** | Dependencies & Infrastruktur | 0.1 – 0.2 | Gering | ✅ `9088b08` |
+| **1** | Composables (Draft, UnsavedGuard, Undo/Redo) | 1.1 – 1.4 | Gering | |
+| **2** | Basis-Komponenten | 2.1 – 2.2 | Mittel | |
+| **3** | SectionCard + Editor-Umbau | 3.1 – 3.6 | **Hoch** | |
+| **4** | Drag & Drop | 4.1 – 4.4 | Mittel | |
+| **5** | Recovery, Preview & Polish | 5.1 – 5.8 | Gering | |
 
 ---
 
-## Phase 0: Dependencies & Infrastruktur
+## Phase 0: Dependencies & Infrastruktur ✅
 
-### 0.1 — Dependencies installieren
+### 0.1 — Dependencies installieren ✅
 ```bash
 npm install @vueuse/core @vueuse/integrations sortablejs
 npm install -D @types/sortablejs
@@ -37,7 +37,7 @@ npm install -D @types/sortablejs
 - `@vueuse/integrations` = `useSortable` Composable (tree-shakeable)
 - `sortablejs` = DnD-Engine
 
-### 0.2 — Commit: `chore: add @vueuse/core, @vueuse/integrations, sortablejs`
+### 0.2 — Commit: `chore: add @vueuse/core, @vueuse/integrations, sortablejs` ✅ `9088b08`
 
 ---
 
