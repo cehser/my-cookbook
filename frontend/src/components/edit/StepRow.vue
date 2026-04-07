@@ -110,4 +110,13 @@ function onInput(event: Event) {
   flex-shrink: 0;
   margin-top: 2px;
 }
+
+@media (max-width: 768px) {
+  .drag-handle {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 1.3em;
+  }
+}
 </style>

@@ -301,6 +301,18 @@ onBeforeUnmount(() => {
   cursor: grabbing;
 }
 
+@media (max-width: 768px) {
+  .drag-handle,
+  .section-drag-handle {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3em;
+  }
+}
+
 .ingredient-list,
 .step-list {
   min-height: 20px;

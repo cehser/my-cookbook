@@ -12,6 +12,7 @@ import { onKeyStroke } from "@vueuse/core";
 import { useDebouncedRefHistory } from "@vueuse/core";
 import Sortable from "sortablejs";
 import SectionCard from "@/components/edit/SectionCard.vue";
+import RecipeDisplay from "@/components/recipe/display/RecipeDisplay.vue";
 import AppNavbar from "@/components/layout/AppNavbar.vue";
 import { editUrl } from "@/js/slug";
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
@@ -21,6 +22,7 @@ import { useUnsavedGuard } from "@/composables/useUnsavedGuard";
 import { useRecipeStore } from "@/store/recipeStore";
 import jsyaml from "js-yaml";
 import deepEqual from "deep-equal";
+import { deepCopyYaml } from "@/js/deepCopy";
 import type { Ingredient } from "@/types/recipe";
 
 const props = defineProps<{ id: string }>();
@@ -46,9 +48,9 @@ const {
 do_recalc.value = false;
 
 // --- Draft & Unsaved Guard ---
-const { hasDraft, restoreDraft, discardDraft } = useDraft(
-  current_recipe,
+const { hasDraft, restoreDraft, discardDraft, clearDraft } = useDraft(
   idRef,
+  current_recipe,
 );
 
 const isDirty = computed(() => {
@@ -78,6 +80,7 @@ const delete_image = ref(false);
 const newTag = ref("");
 const inputFoto = ref<{ reset: () => void } | null>(null);
 const showYaml = ref(false);
+const showPreview = ref(false);
 
 // Computed — JSON roundtrip forces Vue to track all nested properties
 const yaml = computed(() =>
@@ -165,10 +168,25 @@ function saveRecipe() {
         index: selected.value,
         recipe: current_recipe.value,
       })
-      .then(() => toast("Gespeichert.", "success"))
+      .then(() => {
+        clearDraft();
+        toast("Gespeichert.", "success");
+      })
       .catch(() => toast("Fehler.", "danger"));
   } else {
     toast("Unverändert.", "success");
+  }
+}
+
+function revertRecipe() {
+  if (!current_recipe.value) return;
+  if (!isDirty.value) return;
+  if (!window.confirm("Alle Änderungen verwerfen?")) return;
+  const original = store.recipes[selected.value];
+  if (original) {
+    current_recipe.value = deepCopyYaml(original);
+    discardDraft();
+    toast("Zurückgesetzt.", "info");
   }
 }
 
@@ -413,6 +431,24 @@ onBeforeUnmount(() => {
           @click="redo()"
         >
           <i class="bi bi-arrow-clockwise"></i>
+        </BButton>
+        <BButton
+          size="sm"
+          variant="outline-danger"
+          :disabled="!isDirty"
+          title="Änderungen verwerfen"
+          @click="revertRecipe"
+        >
+          <i class="bi bi-arrow-counterclockwise"></i>
+          <i class="bi bi-x"></i>
+        </BButton>
+        <BButton
+          size="sm"
+          variant="outline-info"
+          title="Vorschau"
+          @click="showPreview = true"
+        >
+          <i class="bi bi-eye"></i>
         </BButton>
         <BButton @click="saveRecipe" title="Speichern (Ctrl+S)">
           <i class="bi bi-archive-fill"></i>
@@ -800,5 +836,20 @@ onBeforeUnmount(() => {
         />
       </div>
     </BContainer>
+
+    <!-- Preview Modal -->
+    <BModal
+      v-model="showPreview"
+      title="Vorschau"
+      size="xl"
+      hide-footer
+      scrollable
+    >
+      <RecipeDisplay
+        v-if="current_recipe"
+        :recipe="current_recipe"
+        :image-src="picture_src"
+      />
+    </BModal>
   </div>
 </template>

@@ -169,4 +169,27 @@ function updateIngredient(ingredient: Ingredient) {
   margin-top: 4px;
   margin-bottom: 8px;
 }
+
+@media (max-width: 768px) {
+  .drag-handle {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 1.3em;
+  }
+
+  .ingredient-row-main {
+    flex-wrap: wrap;
+  }
+
+  .ingredient-name {
+    flex-basis: calc(100% - 50px);
+  }
+
+  .ingredient-amount,
+  .ingredient-unit {
+    width: auto;
+    flex: 1;
+  }
+}
 </style>
