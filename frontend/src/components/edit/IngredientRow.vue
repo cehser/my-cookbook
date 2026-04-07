@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import InlineEditField from "@/components/edit/InlineEditField.vue";
-import ArrayReorderBtnGroup from "@/components/common/ArrayReorderBtnGroup.vue";
-import IngredientNotesFormRow from "@/components/edit/IngredientNotesFormRow.vue";
 import type { Ingredient } from "@/types/recipe";
 
 const props = defineProps<{
   ingredient: Ingredient;
-  ingredients: Ingredient[];
   index: number;
   ingredientUnits: string[];
 }>();
@@ -17,32 +14,48 @@ const emit = defineEmits<{
   update: [value: Ingredient];
 }>();
 
-const showNotes = ref(false);
+const notesText = computed(() => (props.ingredient.notes ?? []).join("\n"));
+const hasNotes = computed(() => notesText.value.length > 0);
 
-const hasNotes = computed(
-  () => props.ingredient.notes && props.ingredient.notes.length > 0,
-);
+function clone(): Ingredient {
+  return JSON.parse(JSON.stringify(props.ingredient));
+}
 
 function updateName(newName: string) {
-  const updated = JSON.parse(JSON.stringify(props.ingredient)) as Ingredient;
-  updated.name = newName;
-  emit("update", updated);
+  const u = clone();
+  u.name = newName;
+  emit("update", u);
 }
 
 function updateAmount(newAmount: number) {
-  const updated = JSON.parse(JSON.stringify(props.ingredient)) as Ingredient;
-  updated.amounts[0].amount = Number(newAmount);
-  emit("update", updated);
+  const u = clone();
+  u.amounts[0].amount = Number(newAmount);
+  emit("update", u);
 }
 
 function updateUnit(newUnit: string) {
-  const updated = JSON.parse(JSON.stringify(props.ingredient)) as Ingredient;
-  updated.amounts[0].unit = newUnit;
-  emit("update", updated);
+  const u = clone();
+  u.amounts[0].unit = newUnit;
+  emit("update", u);
 }
 
-function updateIngredient(ingredient: Ingredient) {
-  emit("update", ingredient);
+function addNote() {
+  const u = clone();
+  u.notes = u.notes ?? [];
+  u.notes.push("");
+  emit("update", u);
+}
+
+function updateNotes(text: string) {
+  const u = clone();
+  u.notes = text ? text.split("\n") : [];
+  emit("update", u);
+}
+
+function removeNotes() {
+  const u = clone();
+  u.notes = [];
+  emit("update", u);
 }
 </script>
 
@@ -87,11 +100,11 @@ function updateIngredient(ingredient: Ingredient) {
 
       <div class="ingredient-actions">
         <BButton
+          v-if="!hasNotes"
           size="sm"
           variant="outline-secondary"
-          :class="{ active: hasNotes }"
-          title="Notizen"
-          @click="showNotes = !showNotes"
+          title="Notiz hinzufügen"
+          @click="addNote"
         >
           <i class="bi bi-chat-square-text"></i>
         </BButton>
@@ -103,16 +116,25 @@ function updateIngredient(ingredient: Ingredient) {
         >
           <i class="bi bi-trash"></i>
         </BButton>
-        <ArrayReorderBtnGroup :array="ingredients" :index="index" />
       </div>
     </div>
 
-    <div v-if="showNotes" class="ingredient-notes">
-      <IngredientNotesFormRow
-        :ingredient="ingredient"
-        :index="index"
-        @update="updateIngredient($event)"
-      />
+    <!-- Inline-Notiz: nur wenn gefüllt -->
+    <div v-if="hasNotes" class="ingredient-notes">
+      <textarea
+        class="form-control form-control-sm"
+        rows="1"
+        placeholder="Notiz..."
+        :value="notesText"
+        @input="updateNotes(($event.target as HTMLTextAreaElement).value)"
+      ></textarea>
+      <button
+        class="btn-note-remove"
+        title="Notiz entfernen"
+        @click="removeNotes"
+      >
+        <i class="bi bi-x"></i>
+      </button>
     </div>
   </div>
 </template>
@@ -165,9 +187,33 @@ function updateIngredient(ingredient: Ingredient) {
 }
 
 .ingredient-notes {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
   margin-left: 26px;
-  margin-top: 4px;
-  margin-bottom: 8px;
+  margin-top: 2px;
+  margin-bottom: 4px;
+}
+
+.ingredient-notes textarea {
+  resize: none;
+  font-size: 0.82em;
+  color: #666;
+  flex: 1;
+}
+
+.btn-note-remove {
+  background: none;
+  border: none;
+  color: #999;
+  padding: 2px 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  line-height: 1;
+}
+
+.btn-note-remove:hover {
+  color: #dc3545;
 }
 
 @media (max-width: 768px) {
@@ -184,12 +230,31 @@ function updateIngredient(ingredient: Ingredient) {
 
   .ingredient-name {
     flex-basis: calc(100% - 50px);
+    order: 1;
   }
 
-  .ingredient-amount,
+  .drag-handle {
+    order: 0;
+  }
+
+  .ingredient-amount {
+    width: auto;
+    flex: 1;
+    order: 2;
+  }
+
   .ingredient-unit {
     width: auto;
     flex: 1;
+    order: 3;
+  }
+
+  .ingredient-actions {
+    order: 4;
+  }
+
+  .ingredient-notes {
+    margin-left: 44px;
   }
 }
 </style>

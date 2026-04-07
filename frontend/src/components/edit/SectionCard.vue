@@ -26,6 +26,7 @@ const emit = defineEmits<{
   "update-ingredient": [index: number, ingredient: Ingredient];
   "delete-step": [index: number];
   "update-step-text": [index: number, text: string];
+  "update-step-notes": [index: number, notes: string[]];
   "reorder-ingredient": [oldLocalIdx: number, newLocalIdx: number];
   "reorder-step": [oldLocalIdx: number, newLocalIdx: number];
   "cross-move-ingredient": [
@@ -195,7 +196,6 @@ onBeforeUnmount(() => {
             :key="'ing-' + item.originalIndex"
             :data-original-index="item.originalIndex"
             :ingredient="item.ingredient"
-            :ingredients="ingredients"
             :index="item.originalIndex"
             :ingredient-units="ingredientUnits"
             @delete="emit('delete-ingredient', item.originalIndex)"
@@ -225,11 +225,13 @@ onBeforeUnmount(() => {
             :key="'step-' + item.originalIndex"
             :data-original-index="item.originalIndex"
             :step="item.step"
-            :steps="steps"
             :index="item.originalIndex"
             :number="localIdx + 1"
             @delete="emit('delete-step', item.originalIndex)"
             @update:step="emit('update-step-text', item.originalIndex, $event)"
+            @update:notes="
+              emit('update-step-notes', item.originalIndex, $event)
+            "
           />
         </div>
 

@@ -11,10 +11,11 @@ Branch: `feat-ui-editor`
 |-------|-------------|-------------|--------|--------|
 | **0** | Dependencies & Infrastruktur | 0.1 – 0.2 | Gering | ✅ `9088b08` |
 | **1** | Composables (Draft, UnsavedGuard, Undo/Redo) | 1.1 – 1.4 | Gering | ✅ `a99440b` |
-| **2** | Basis-Komponenten | 2.1 – 2.2 | Mittel | |
-| **3** | SectionCard + Editor-Umbau | 3.1 – 3.6 | **Hoch** | |
-| **4** | Drag & Drop | 4.1 – 4.4 | Mittel | |
-| **5** | Recovery, Preview & Polish | 5.1 – 5.8 | Gering | |
+| **2** | Basis-Komponenten | 2.1 – 2.2 | Mittel | ✅ `7480965` |
+| **3** | SectionCard + Editor-Umbau | 3.1 – 3.6 | **Hoch** | ✅ `7607ff9` |
+| **4** | Drag & Drop | 4.1 – 4.4 | Mittel | ✅ `095d968` |
+| **5** | Recovery, Preview & Polish | 5.1 – 5.8 | Gering | ✅ `e759a07` |
+| **6** | Draft-Markierung in Galerie | 6.1 – 6.4 | Gering | |
 
 ---
 
@@ -99,9 +100,9 @@ Keyboard: `onKeyStroke('z', handler, { ctrl: true })` für Ctrl+Z/Ctrl+Y.
 
 ---
 
-## Phase 2: Basis-Komponenten
+## Phase 2: Basis-Komponenten ✅
 
-### 2.1 — `InlineEditField.vue`
+### 2.1 — `InlineEditField.vue` ✅
 **Datei:** `src/components/edit/InlineEditField.vue`
 
 Click-to-Edit Muster für Zutatnamen (ersetzt das Rename-Modal):
@@ -128,11 +129,11 @@ const { textarea, input } = useTextareaAutosize({ input: props.modelValue })
 ```
 Wird direkt in `StepRow.vue` verwendet, keine eigene Komponente nötig.
 
-### 2.2 — Commit: `feat(editor): add InlineEditField component`
+### 2.2 — Commit: `feat(editor): add InlineEditField component` ✅ `7480965`
 
 ---
 
-## Phase 3: SectionCard + Editor-Umbau ⚠️ Kernphase
+## Phase 3: SectionCard + Editor-Umbau ✅
 
 ### 3.1 — `SectionCard.vue`
 **Datei:** `src/components/edit/SectionCard.vue`
@@ -295,7 +296,7 @@ Neue Komponenten werden parallel dazu erstellt.
 
 ---
 
-## Phase 4: Drag & Drop
+## Phase 4: Drag & Drop ✅
 
 ### 4.1 — DnD innerhalb einer SectionCard
 **In:** `SectionCard.vue`
@@ -356,7 +357,7 @@ useSortable(sectionContainerRef, current_recipe.sections, {
 
 ---
 
-## Phase 5: Recovery, Preview & Polish
+## Phase 5: Recovery, Preview & Polish ✅
 
 ### 5.1 — Crash Recovery Dialog
 **In:** `EditV2.vue` (onMounted)
@@ -405,6 +406,44 @@ onMounted(() => {
 
 ### 5.7 — Commit: `feat(editor): crash recovery, revert, preview, expert YAML toggle`
 ### 5.8 — Commit: `refactor(editor): replace legacy editor, cleanup old components`
+
+---
+
+## Phase 6: Draft-Markierung in Galerie
+
+### 6.1 — `useDraftIndex` Composable
+**Datei:** `src/composables/useDraftIndex.ts`
+
+Scannt LocalStorage nach allen `draft:*`-Keys und liefert ein reaktives Set der UUIDs zurück:
+
+```typescript
+useDraftIndex() → {
+  draftUuids: ComputedRef<Set<string>>   // UUIDs mit Draft
+  hasDraft: (uuid: string) => boolean    // Prüfhilfe
+  clearDraft: (uuid: string) => void     // Draft für einzelnes Rezept löschen
+  clearAllDrafts: () => void             // Alle Drafts löschen
+}
+```
+
+- Scannt `localStorage` nach Keys mit Prefix `draft:`
+- `useEventListener(window, 'storage', rescan)` für Tab-Sync
+- Lightweight — kein Parsing der Draft-Inhalte, nur Key-Existenz
+
+### 6.2 — Galerie-Card: Draft-Badge
+**In:** `Gallery.vue` / RecipeCard-Komponente
+
+- Kleines Badge/Icon (z.B. ✏️ oder 🔄) auf Rezeptkarten mit Draft
+- `v-if="hasDraft(recipe.recipe_uuid)"` über `useDraftIndex`
+- Klick auf Badge → direkt zum Editor navigieren
+
+### 6.3 — Galerie-Filter: "Ungespeicherte Entwürfe"
+**In:** `Gallery.vue`
+
+- Neuer Filterchip/Button: „Entwürfe" neben bestehenden Filtern
+- Filtert `recipes_list` → nur Rezepte deren UUID in `draftUuids` vorkommt
+- Zeigt Anzahl: „Entwürfe (3)"
+
+### 6.4 — Commit: `feat(gallery): show draft badge and filter for unsaved drafts`
 
 ---
 

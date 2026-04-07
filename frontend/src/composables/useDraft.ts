@@ -1,5 +1,5 @@
 import { ref, watch, onBeforeUnmount, type Ref, type ComputedRef } from "vue";
-import { watchDebounced } from "@vueuse/core";
+import { watchDebounced, useEventListener } from "@vueuse/core";
 import type { Recipe } from "@/types/recipe";
 
 interface UseDraftReturn {
@@ -7,6 +7,8 @@ interface UseDraftReturn {
   restoreDraft: () => void;
   discardDraft: () => void;
   clearDraft: () => void;
+  pauseDraft: () => void;
+  resumeDraft: () => void;
 }
 
 export function useDraft(
@@ -17,6 +19,7 @@ export function useDraft(
 
   const hasDraft = ref(false);
   let pendingFlush: (() => void) | null = null;
+  let paused = false;
 
   // Check for existing draft on init
   const key = DRAFT_PREFIX + recipeUuid.value;
@@ -27,17 +30,17 @@ export function useDraft(
   const { stop: stopWatch } = watchDebounced(
     recipe,
     (val) => {
-      if (!val) return;
+      if (!val || paused) return;
       const draftKey = DRAFT_PREFIX + recipeUuid.value;
       localStorage.setItem(draftKey, JSON.stringify(val));
-      hasDraft.value = true;
+      // Don't show banner for drafts written by the current session
     },
     { deep: true, debounce: 2000 },
   );
 
   // Immediate flush function for beforeUnmount
   function flushNow() {
-    if (!recipe.value) return;
+    if (!recipe.value || paused) return;
     const draftKey = DRAFT_PREFIX + recipeUuid.value;
     localStorage.setItem(draftKey, JSON.stringify(recipe.value));
   }
@@ -61,6 +64,14 @@ export function useDraft(
     stopSyncWatch();
   });
 
+  // Also flush on page reload/close (Vue lifecycle doesn't fire on F5/close)
+  useEventListener(window, "beforeunload", () => {
+    if (pendingFlush) {
+      pendingFlush();
+      pendingFlush = null;
+    }
+  });
+
   // Watch UUID changes (navigation to different recipe)
   watch(
     () => recipeUuid.value,
@@ -82,6 +93,7 @@ export function useDraft(
         discardDraft();
       }
     }
+    hasDraft.value = false;
   }
 
   function discardDraft() {
@@ -94,10 +106,20 @@ export function useDraft(
     discardDraft();
   }
 
+  function pauseDraft() {
+    paused = true;
+  }
+
+  function resumeDraft() {
+    paused = false;
+  }
+
   return {
     hasDraft,
     restoreDraft,
     discardDraft,
     clearDraft,
+    pauseDraft,
+    resumeDraft,
   };
 }

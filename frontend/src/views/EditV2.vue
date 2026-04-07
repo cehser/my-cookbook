@@ -18,11 +18,8 @@ import { editUrl } from "@/js/slug";
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useToast } from "@/composables/useToast";
 import { useDraft } from "@/composables/useDraft";
-import { useUnsavedGuard } from "@/composables/useUnsavedGuard";
 import { useRecipeStore } from "@/store/recipeStore";
 import jsyaml from "js-yaml";
-import deepEqual from "deep-equal";
-import { deepCopyYaml } from "@/js/deepCopy";
 import type { Ingredient } from "@/types/recipe";
 
 const props = defineProps<{ id: string }>();
@@ -42,28 +39,70 @@ const {
   yields_value,
   setYieldsUnit,
   setYieldsValue,
+  loadRecipe,
 } = useRecipeHelper({ recipeId: idRef });
 
 // Override do_recalc default
 do_recalc.value = false;
 
 // --- Draft & Unsaved Guard ---
-const { hasDraft, restoreDraft, discardDraft, clearDraft } = useDraft(
-  idRef,
-  current_recipe,
-);
+const {
+  hasDraft,
+  restoreDraft,
+  discardDraft,
+  clearDraft,
+  pauseDraft,
+  resumeDraft,
+} = useDraft(idRef, current_recipe);
+
+// Snapshot of loaded state for dirty-checking
+const loadedSnapshot = ref<string>("");
 
 const isDirty = computed(() => {
-  if (selected.value < 0) return false;
-  return !deepEqual(store.recipes[selected.value], current_recipe.value);
+  if (!current_recipe.value || !loadedSnapshot.value) return false;
+  return JSON.stringify(current_recipe.value) !== loadedSnapshot.value;
 });
 
-useUnsavedGuard(isDirty);
-
 // --- Undo / Redo ---
-const { undo, redo, canUndo, canRedo } = useDebouncedRefHistory(
+const { undo, redo, canUndo, canRedo, pause, resume, clear } =
+  useDebouncedRefHistory(current_recipe, {
+    deep: true,
+    debounce: 500,
+    capacity: 50,
+  });
+
+// Pause history until recipe is fully loaded, then snapshot + reset
+pause();
+let initDone = false;
+watch(
   current_recipe,
-  { deep: true, debounce: 500, capacity: 50 },
+  () => {
+    if (initDone || !current_recipe.value) return;
+    // loadRecipe sets safeCopy first (empty ingredients), then API detail.
+    // Wait for the version with ingredients (or a recipe that truly has none after a tick).
+    if (current_recipe.value.ingredients.length > 0) {
+      initDone = true;
+      loadedSnapshot.value = JSON.stringify(current_recipe.value);
+      clear();
+      resume();
+    }
+  },
+  { deep: false },
+);
+// Fallback: if the recipe genuinely has no ingredients, settle after a short delay
+watch(
+  current_recipe,
+  () => {
+    if (initDone || !current_recipe.value) return;
+    setTimeout(() => {
+      if (initDone) return;
+      initDone = true;
+      loadedSnapshot.value = JSON.stringify(current_recipe.value);
+      clear();
+      resume();
+    }, 500);
+  },
+  { once: true },
 );
 
 // --- Ctrl+S ---
@@ -77,7 +116,6 @@ onKeyStroke("s", (e) => {
 // Data
 const file = ref<File | null>(null);
 const delete_image = ref(false);
-const newTag = ref("");
 const inputFoto = ref<{ reset: () => void } | null>(null);
 const showYaml = ref(false);
 const showPreview = ref(false);
@@ -101,28 +139,33 @@ const ingredient_units = computed(() => {
 
 const settings = computed(() => store.settings);
 
+// Combined source field — heuristic: starts with http → source_url, else → source_book
+const source = computed({
+  get() {
+    return (
+      current_recipe.value?.source_url ||
+      current_recipe.value?.source_book ||
+      ""
+    );
+  },
+  set(val: string) {
+    if (!current_recipe.value) return;
+    if (val.match(/^https?:\/\//i)) {
+      current_recipe.value.source_url = val;
+      current_recipe.value.source_book = "";
+    } else {
+      current_recipe.value.source_book = val;
+      current_recipe.value.source_url = "";
+    }
+  },
+});
+
 // Watch
 watch(file, (newFile) => {
   preview_image(newFile);
 });
 
 // Methods
-function addTag() {
-  if (!newTag.value.trim()) return;
-  if (!current_recipe.value) return;
-  if (!current_recipe.value.tags) {
-    current_recipe.value.tags = [];
-  }
-  if (!current_recipe.value.tags.includes(newTag.value.trim())) {
-    current_recipe.value.tags.push(newTag.value.trim());
-  }
-  newTag.value = "";
-}
-
-function removeTag(index: number) {
-  current_recipe.value?.tags?.splice(index, 1);
-}
-
 function clearFile() {
   inputFoto.value?.reset();
 }
@@ -138,11 +181,7 @@ function preview_image(f: File | null) {
 
 function saveRecipe() {
   if (!current_recipe.value) return;
-  if (
-    !deepEqual(store.recipes[selected.value], current_recipe.value) ||
-    file.value ||
-    delete_image.value
-  ) {
+  if (isDirty.value || file.value || delete_image.value) {
     current_recipe.value.lastUpdated = new Date().toISOString();
 
     if (file.value) {
@@ -170,6 +209,7 @@ function saveRecipe() {
       })
       .then(() => {
         clearDraft();
+        loadedSnapshot.value = JSON.stringify(current_recipe.value);
         toast("Gespeichert.", "success");
       })
       .catch(() => toast("Fehler.", "danger"));
@@ -178,14 +218,20 @@ function saveRecipe() {
   }
 }
 
-function revertRecipe() {
+async function revertRecipe() {
   if (!current_recipe.value) return;
   if (!isDirty.value) return;
   if (!window.confirm("Alle Änderungen verwerfen?")) return;
   const original = store.recipes[selected.value];
   if (original) {
-    current_recipe.value = deepCopyYaml(original);
+    pause();
+    pauseDraft();
+    await loadRecipe(original);
     discardDraft();
+    loadedSnapshot.value = JSON.stringify(current_recipe.value);
+    clear();
+    resume();
+    resumeDraft();
     toast("Zurückgesetzt.", "info");
   }
 }
@@ -264,6 +310,11 @@ function deleteStep(index: number) {
 function updateStepText(index: number, text: string) {
   if (!current_recipe.value) return;
   current_recipe.value.steps[index].step = text;
+}
+
+function updateStepNotes(index: number, notes: string[]) {
+  if (!current_recipe.value) return;
+  current_recipe.value.steps[index].notes = notes;
 }
 
 // --- DnD: Reorder within section ---
@@ -456,7 +507,7 @@ onBeforeUnmount(() => {
       </li>
     </AppNavbar>
 
-    <BContainer v-if="current_recipe" class="mt-3">
+    <BContainer v-if="current_recipe" class="mt-3 mb-5">
       <!-- Draft Recovery Banner -->
       <BAlert v-if="hasDraft" variant="warning" :model-value="true">
         Es gibt einen ungespeicherten Entwurf.
@@ -476,10 +527,10 @@ onBeforeUnmount(() => {
         ></option>
       </datalist>
 
-      <!-- Titel & Untertitel -->
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-name">Titel:</label></BCol>
-        <BCol sm="10">
+      <!-- Titel & Untertitel — nebeneinander auf lg+ -->
+      <BRow class="mb-2">
+        <BCol lg="6">
+          <label for="v2-name" class="form-label mb-0">Titel</label>
           <BFormInput
             id="v2-name"
             size="sm"
@@ -487,10 +538,8 @@ onBeforeUnmount(() => {
             v-model="current_recipe.recipe_name"
           />
         </BCol>
-      </BRow>
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-subtitle">Untertitel:</label></BCol>
-        <BCol sm="10">
+        <BCol lg="6">
+          <label for="v2-subtitle" class="form-label mb-0">Untertitel</label>
           <BFormInput
             id="v2-subtitle"
             size="sm"
@@ -500,286 +549,224 @@ onBeforeUnmount(() => {
         </BCol>
       </BRow>
 
-      <!-- Metadaten-Sektion -->
-      <h3 class="mt-4 mb-3">Metadaten</h3>
+      <!-- Metadaten-Sektion (einklappbar) -->
+      <details class="mt-3 mb-2">
+        <summary class="h3-summary">
+          <h3 class="d-inline">Metadaten</h3>
+        </summary>
 
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-author">Autor:</label></BCol>
-        <BCol sm="10">
-          <BFormInput
-            id="v2-author"
-            size="sm"
-            placeholder="Autor eingeben"
-            v-model="current_recipe.author"
-          />
-        </BCol>
-      </BRow>
-
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-source-url">Quelle (URL):</label></BCol>
-        <BCol sm="10">
-          <BFormInput
-            id="v2-source-url"
-            size="sm"
-            placeholder="https://..."
-            v-model="current_recipe.source_url"
-          />
-        </BCol>
-      </BRow>
-
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-source-book">Quelle (Buch):</label></BCol>
-        <BCol sm="10">
-          <BFormInput
-            id="v2-source-book"
-            size="sm"
-            placeholder="Buchtitel, Seite"
-            v-model="current_recipe.source_book"
-          />
-        </BCol>
-      </BRow>
-
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-servings">Portionen:</label></BCol>
-        <BCol sm="10">
-          <BFormInput
-            id="v2-servings"
-            size="sm"
-            placeholder="z.B. 4 Personen"
-            v-model="current_recipe.servings"
-          />
-        </BCol>
-      </BRow>
-
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-prep-time">Vorbereitungszeit:</label></BCol>
-        <BCol sm="10">
-          <BFormInput
-            id="v2-prep-time"
-            size="sm"
-            placeholder="z.B. 15 Minuten"
-            v-model="current_recipe.prep_time"
-          />
-        </BCol>
-      </BRow>
-
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-cook-time">Koch-/Bratzeit:</label></BCol>
-        <BCol sm="10">
-          <BFormInput
-            id="v2-cook-time"
-            size="sm"
-            placeholder="z.B. 30 Minuten"
-            v-model="current_recipe.cook_time"
-          />
-        </BCol>
-      </BRow>
-
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-bake-time">Backzeit:</label></BCol>
-        <BCol sm="10">
-          <BFormInput
-            id="v2-bake-time"
-            size="sm"
-            placeholder="z.B. 45 Minuten"
-            v-model="current_recipe.bake_time"
-          />
-        </BCol>
-      </BRow>
-
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-total-time">Gesamtzeit:</label></BCol>
-        <BCol sm="10">
-          <BFormInput
-            id="v2-total-time"
-            size="sm"
-            placeholder="z.B. 1 Stunde 30 Minuten"
-            v-model="current_recipe.total_time"
-          />
-        </BCol>
-      </BRow>
-
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-difficulty">Schwierigkeit:</label></BCol>
-        <BCol sm="10">
-          <BFormSelect
-            id="v2-difficulty"
-            size="sm"
-            v-model="current_recipe.difficulty"
-          >
-            <option :value="undefined">-- Bitte wählen --</option>
-            <option value="easy">Einfach</option>
-            <option value="medium">Mittel</option>
-            <option value="hard">Schwer</option>
-          </BFormSelect>
-        </BCol>
-      </BRow>
-
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-notes">Notizen:</label></BCol>
-        <BCol sm="10">
-          <BFormTextarea
-            id="v2-notes"
-            size="sm"
-            rows="3"
-            placeholder="Zusätzliche Notizen zum Rezept..."
-            v-model="current_recipe.notes"
-          />
-        </BCol>
-      </BRow>
-
-      <!-- Portionen / Yields -->
-      <h3 class="mt-4 mb-3">Portionen</h3>
-
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-yields-value">Ergibt Menge:</label></BCol>
-        <BCol sm="10">
-          <BFormInput
-            id="v2-yields-value"
-            size="sm"
-            type="number"
-            min="0.001"
-            step="0.001"
-            placeholder="100.0"
-            :model-value="yields_value"
-            @update:model-value="setYieldsValue"
-          />
-          <div class="form-check form-switch mt-1">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              id="v2-recalc-switch"
-              v-model="do_recalc"
-            />
-            <label class="form-check-label" for="v2-recalc-switch"
-              >Umrechnen</label
-            >
-          </div>
-        </BCol>
-      </BRow>
-      <BRow class="my-1">
-        <BCol sm="2"
-          ><label for="v2-yields-unit">Ergibt Einheiten:</label></BCol
-        >
-        <BCol sm="10">
-          <BFormInput
-            id="v2-yields-unit"
-            size="sm"
-            placeholder="Enter a name"
-            :model-value="yields_unit"
-            @update:model-value="setYieldsUnit"
-          />
-        </BCol>
-      </BRow>
-      <BRow class="my-1">
-        <BCol sm="2"
-          ><label for="v2-recalc-exp">Umrechnungsexponent:</label></BCol
-        >
-        <BCol sm="10">
-          <BFormInput
-            id="v2-recalc-exp"
-            type="number"
-            min="1"
-            step="1"
-            size="sm"
-            placeholder="1"
-            v-model.number="current_recipe.recalc_exp"
-          />
-        </BCol>
-      </BRow>
-
-      <!-- Tags -->
-      <h3 class="mt-4 mb-3">Tags</h3>
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-tags">Tags:</label></BCol>
-        <BCol sm="10">
-          <div class="d-flex flex-wrap gap-2 mb-2">
-            <span
-              v-for="(tag, index) in current_recipe.tags"
-              :key="index"
-              class="badge bg-primary"
-            >
-              {{ tag }}
-              <i
-                class="bi bi-x-circle ms-1"
-                @click="removeTag(index)"
-                style="cursor: pointer"
-              ></i>
-            </span>
-          </div>
-          <div class="input-group input-group-sm">
+        <BRow class="mt-2">
+          <BCol lg="6">
+            <label for="v2-author" class="form-label mb-0">Autor</label>
             <BFormInput
-              id="v2-tags"
+              id="v2-author"
               size="sm"
-              placeholder="Tag hinzufügen..."
-              v-model="newTag"
-              @keyup.enter="addTag"
+              placeholder="Autor eingeben"
+              v-model="current_recipe.author"
             />
-            <BButton @click="addTag" size="sm"
-              ><i class="bi bi-plus"></i
-            ></BButton>
-          </div>
-        </BCol>
-      </BRow>
+          </BCol>
+          <BCol lg="6">
+            <label for="v2-source" class="form-label mb-0">Quelle</label>
+            <BFormInput
+              id="v2-source"
+              size="sm"
+              placeholder="URL oder Buchtitel"
+              v-model="source"
+            />
+          </BCol>
+        </BRow>
 
-      <!-- Bild -->
-      <h3 class="mt-4 mb-3">Bild</h3>
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-imageurl">Web-Foto:</label></BCol>
-        <BCol sm="10">
-          <BFormInput
-            id="v2-imageurl"
-            size="sm"
-            placeholder="https://..."
-            v-model="current_recipe.imageurl"
-          />
-        </BCol>
-      </BRow>
-      <BRow
-        class="my-1"
-        v-if="store.recipe_pictures[current_recipe.recipe_uuid]"
-      >
-        <BCol sm="2"><label>Gespeichertes Foto:</label></BCol>
-        <BCol sm="10">
-          <img :src="picture_src" height="100" />
-          <div class="form-check form-switch mt-1">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              id="v2-delete-image"
-              v-model="delete_image"
-            />
-            <label class="form-check-label" for="v2-delete-image"
-              >Löschen</label
+        <BRow class="mt-2">
+          <BCol sm="6" lg="3">
+            <label for="v2-prep-time" class="form-label mb-0"
+              >Vorbereitung</label
             >
+            <BFormInput
+              id="v2-prep-time"
+              size="sm"
+              placeholder="15 Min."
+              v-model="current_recipe.prep_time"
+            />
+          </BCol>
+          <BCol sm="6" lg="3">
+            <label for="v2-cook-time" class="form-label mb-0"
+              >Koch-/Bratzeit</label
+            >
+            <BFormInput
+              id="v2-cook-time"
+              size="sm"
+              placeholder="30 Min."
+              v-model="current_recipe.cook_time"
+            />
+          </BCol>
+          <BCol sm="6" lg="3">
+            <label for="v2-bake-time" class="form-label mb-0">Backzeit</label>
+            <BFormInput
+              id="v2-bake-time"
+              size="sm"
+              placeholder="45 Min."
+              v-model="current_recipe.bake_time"
+            />
+          </BCol>
+          <BCol sm="6" lg="3">
+            <label for="v2-total-time" class="form-label mb-0"
+              >Gesamtzeit</label
+            >
+            <BFormInput
+              id="v2-total-time"
+              size="sm"
+              placeholder="1h 30 Min."
+              v-model="current_recipe.total_time"
+            />
+          </BCol>
+        </BRow>
+
+        <BRow class="mt-2 mb-2">
+          <BCol sm="6" lg="3">
+            <label for="v2-difficulty" class="form-label mb-0"
+              >Schwierigkeit</label
+            >
+            <BFormSelect
+              id="v2-difficulty"
+              size="sm"
+              v-model="current_recipe.difficulty"
+            >
+              <option :value="undefined">-- wählen --</option>
+              <option value="easy">Einfach</option>
+              <option value="medium">Mittel</option>
+              <option value="hard">Schwer</option>
+            </BFormSelect>
+          </BCol>
+          <BCol sm="6" lg="9">
+            <label for="v2-notes" class="form-label mb-0">Notizen</label>
+            <BFormTextarea
+              id="v2-notes"
+              size="sm"
+              rows="2"
+              placeholder="Zusätzliche Notizen..."
+              v-model="current_recipe.notes"
+            />
+          </BCol>
+        </BRow>
+      </details>
+
+      <!-- Portionen + Bild — nebeneinander auf lg+ -->
+      <BRow class="mt-3">
+        <BCol lg="6">
+          <h3 class="mb-2">Portionen</h3>
+          <BRow>
+            <BCol sm="6">
+              <label for="v2-yields-value" class="form-label mb-0">Menge</label>
+              <BFormInput
+                id="v2-yields-value"
+                size="sm"
+                type="number"
+                min="0.001"
+                step="0.001"
+                placeholder="100.0"
+                :model-value="yields_value"
+                @update:model-value="setYieldsValue"
+              />
+              <div class="form-check form-switch mt-1">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="v2-recalc-switch"
+                  v-model="do_recalc"
+                />
+                <label class="form-check-label" for="v2-recalc-switch"
+                  >Umrechnen</label
+                >
+              </div>
+            </BCol>
+            <BCol sm="6">
+              <label for="v2-yields-unit" class="form-label mb-0"
+                >Einheit</label
+              >
+              <BFormInput
+                id="v2-yields-unit"
+                size="sm"
+                placeholder="Portionen"
+                :model-value="yields_unit"
+                @update:model-value="setYieldsUnit"
+              />
+              <label for="v2-recalc-exp" class="form-label mb-0 mt-2"
+                >Exponent</label
+              >
+              <BFormInput
+                id="v2-recalc-exp"
+                type="number"
+                min="1"
+                step="1"
+                size="sm"
+                placeholder="1"
+                v-model.number="current_recipe.recalc_exp"
+              />
+            </BCol>
+          </BRow>
+        </BCol>
+
+        <BCol lg="6">
+          <h3 class="mb-2">Bild</h3>
+          <div class="image-upload-area">
+            <div
+              v-if="picture_src || file"
+              class="current-image-wrapper position-relative d-inline-block"
+            >
+              <img
+                :src="file ? '' : picture_src"
+                id="image-preview"
+                class="rounded"
+                style="max-height: 160px; max-width: 100%; object-fit: cover"
+              />
+              <BButton
+                v-if="picture_src && !file"
+                size="sm"
+                variant="danger"
+                class="position-absolute top-0 end-0 m-1"
+                title="Bild entfernen"
+                @click="delete_image = true"
+              >
+                <i class="bi bi-trash"></i>
+              </BButton>
+              <BAlert
+                v-if="delete_image"
+                variant="warning"
+                :model-value="true"
+                class="mt-2 py-1 px-2"
+              >
+                Wird beim Speichern entfernt.
+                <BButton
+                  size="sm"
+                  variant="link"
+                  class="p-0 ms-2"
+                  @click="delete_image = false"
+                  >Abbrechen</BButton
+                >
+              </BAlert>
+            </div>
+            <div class="mt-2">
+              <BFormFile
+                size="sm"
+                id="v2-foto"
+                ref="inputFoto"
+                accept="image/*"
+                placeholder="Foto auswählen oder hierher ziehen..."
+                drop-placeholder="Hier ablegen"
+                browse-text="Durchsuchen"
+                v-model="file"
+              />
+              <BButton
+                v-if="file"
+                size="sm"
+                variant="link"
+                class="p-0 mt-1"
+                @click="clearFile"
+                ><i class="bi bi-x"></i> Auswahl aufheben</BButton
+              >
+            </div>
           </div>
         </BCol>
-      </BRow>
-      <BRow class="my-1">
-        <BCol sm="2"><label for="v2-foto">Foto-Upload:</label></BCol>
-        <BCol sm="10">
-          <BInputGroup size="sm">
-            <template #prepend>
-              <BButton size="sm" @click="clearFile"
-                ><i class="bi bi-x"></i
-              ></BButton>
-            </template>
-            <BFormFile
-              size="sm"
-              id="v2-foto"
-              ref="inputFoto"
-              accept="image/*"
-              placeholder="Datei auswählen oder ablegen"
-              drop-placeholder="Hier ablegen"
-              browse-text="Durchsuchen"
-              v-model="file"
-            />
-          </BInputGroup>
-        </BCol>
-      </BRow>
-      <BRow>
-        <BCol sm="2">Upload-Vorschau</BCol>
-        <BCol sm="10"><img id="image-preview" height="100" /></BCol>
       </BRow>
 
       <!-- ===== Rezept-Inhalt: SectionCards ===== -->
@@ -805,6 +792,7 @@ onBeforeUnmount(() => {
           @update-ingredient="(i, ing) => updateIngredient(i, ing)"
           @delete-step="deleteStep"
           @update-step-text="(i, txt) => updateStepText(i, txt)"
+          @update-step-notes="(i, notes) => updateStepNotes(i, notes)"
           @reorder-ingredient="(o, n) => reorderIngredientInSection(idx, o, n)"
           @reorder-step="(o, n) => reorderStepInSection(idx, o, n)"
           @cross-move-ingredient="
@@ -822,8 +810,8 @@ onBeforeUnmount(() => {
         <i class="bi bi-plus"></i> Abschnitt hinzufügen
       </BButton>
 
-      <!-- YAML-Debug -->
-      <div class="mt-4 mb-4">
+      <!-- YAML-Debug (nur im Expertenmodus) -->
+      <div v-if="settings.expert_mode" class="mt-4 mb-4">
         <BButton size="sm" variant="link" @click="showYaml = !showYaml">
           {{ showYaml ? "YAML verbergen" : "YAML anzeigen" }}
         </BButton>
@@ -853,3 +841,18 @@ onBeforeUnmount(() => {
     </BModal>
   </div>
 </template>
+
+<style scoped>
+.h3-summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+details[open] > .h3-summary::after {
+  content: " ▾";
+}
+
+details:not([open]) > .h3-summary::after {
+  content: " ▸";
+}
+</style>

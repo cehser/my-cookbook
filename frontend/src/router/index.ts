@@ -32,15 +32,8 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/edit/:id/:slug?",
     name: "Edit",
-    component: () => import(/* webpackChunkName: "edit" */ "../views/Edit.vue"),
-    beforeEnter: requireRole("editor", "admin"),
-    props: (route) => ({ id: route.params.id as string }),
-  },
-  {
-    path: "/edit-v2/:id/:slug?",
-    name: "EditV2",
     component: () =>
-      import(/* webpackChunkName: "edit-v2" */ "../views/EditV2.vue"),
+      import(/* webpackChunkName: "edit" */ "../views/EditV2.vue"),
     beforeEnter: requireRole("editor", "admin"),
     props: (route) => ({ id: route.params.id as string }),
   },
