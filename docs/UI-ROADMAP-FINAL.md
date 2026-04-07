@@ -175,20 +175,9 @@ Keine bekannten Bugs.
 
 ### Phase B: Editor-Neugestaltung (Kritisch)
 
-#### Sprint 3: Rezept-Erstellungs-Wizard (1 Woche)
-**Ziel:** Guided Recipe Creation statt leerer Editor
-
-**4-Schritte-Assistent:**
-1. Grunddaten (Titel, Bild, Beschreibung, Portionen, Zeiten)
-2. Metadaten (Autor, Quelle, Tags) - überspringbar
-3. Erster Abschnitt (Zutaten + Schritte)
-4. Weitere Abschnitte oder Fertig → Vorschau → Speichern
-
----
-
-#### Sprint 4: Editor-Überarbeitung (2-3 Wochen)
+#### Sprint 3: Editor-Überarbeitung (2-3 Wochen)
 **Ziel:** Intuitive Bearbeitung auf allen Geräten
-
+**Priorität:** 🟡 Wichtig | **Status:** 📋 Nächster Sprint
 **Lösungen:**
 - **Card-Layout:** Ein Abschnitt = Karte (Zutaten + Schritte zusammen)
 - **Responsive:** 1 Spalte (Mobile), 2 Spalten (Desktop)
@@ -222,7 +211,7 @@ Keine bekannten Bugs.
 
 ### Phase C: Koch-Workflow-Features (Optional)
 
-#### Sprint 5: Tabbed Recipe Interface + Session Restore (3-4 Tage)
+#### Sprint 4: Tabbed Recipe Interface + Session Restore (3-4 Tage)
 **Ziel:** Multi-Rezept Navigation ohne Positionsverlust + PWA Session Restoration
 
 **Teil 1: Tabbed Interface**
@@ -261,7 +250,7 @@ Keine bekannten Bugs.
 
 ---
 
-#### Sprint 6: Einkaufsliste-Export (1-2 Tage) ⚡ Quick Win
+#### Sprint 5: Einkaufsliste-Export (1-2 Tage) ⚡ Quick Win
 **Ziel:** Zutaten für Einkauf ohne Abtippen
 
 **Features:**
@@ -273,7 +262,7 @@ Keine bekannten Bugs.
 
 ---
 
-#### Sprint 7: Koch-Notizen + Spracheingabe (4-5 Tage)
+#### Sprint 6: Koch-Notizen + Spracheingabe (4-5 Tage)
 **Ziel:** Hands-free Notizen während des Kochens
 
 **Features:**
@@ -286,6 +275,18 @@ Keine bekannten Bugs.
 - LocalStorage (temporär, nicht im Rezept)
 
 **Browser-Support:** Chrome ✅ | Safari ✅ | Firefox ❌
+
+---
+
+#### Sprint 7: Rezept-Erstellungs-Wizard (1 Woche)
+**Ziel:** Guided Recipe Creation statt leerer Editor
+**Priorität:** 🟢 Optional
+
+**4-Schritte-Assistent:**
+1. Grunddaten (Titel, Bild, Beschreibung, Portionen, Zeiten)
+2. Metadaten (Autor, Quelle, Tags) - überspringbar
+3. Erster Abschnitt (Zutaten + Schritte)
+4. Weitere Abschnitte oder Fertig → Vorschau → Speichern
 
 ---
 
@@ -322,11 +323,11 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 | 1 | Koch-Ansicht | Split-View + Metadaten-UX | 4-6 Tage | 🔴 Kritisch | ✅ Abgeschlossen (27.12.) |
 | ~~2~~ | ~~Koch-Ansicht~~ | ~~Mobile FAB + Slide-In~~ | ~~2-3 Tage~~ | ⏭️ Übersprungen | ✅ Feature-Set ausreichend |
 | 2 | Koch-Ansicht | Inline-Editing | 3-4 Tage | 🔴 Kritisch | ✅ Abgeschlossen (29.12.) |
-| 3 | Editor | Rezept-Wizard | 1 Woche | 🔴 Kritisch | 📋 Geplant |
-| 4 | Editor | Editor-Neugestaltung | 2-3 Wochen | 🔴 Kritisch | 📋 Geplant |
-| 5 | Workflow | Tabbed Interface + Session Restore | 3-4 Tage | 🟢 Optional | 📋 Geplant |
-| 6 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional | 📋 Geplant |
-| 7 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional | 📋 Geplant |
+| 3 | Editor | Editor-Neugestaltung | 2-3 Wochen | 🟡 Wichtig | 📋 Nächster Sprint |
+| 4 | Workflow | Tabbed Interface + Session Restore | 3-4 Tage | 🟢 Optional | 📋 Geplant |
+| 5 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional | 📋 Geplant |
+| 6 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional | 📋 Geplant |
+| 7 | Editor | Rezept-Wizard | 1 Woche | 🟢 Optional | 📋 Geplant |
 | ~~8~~ | ~~Workflow~~ | ~~URL-Rezept-Sharing~~ | — | — | ✅ Obsolet (Share-Links via Backend) |
 | 9 | Design | Design-System | variabel | 🔵 Parallel | 📋 Geplant |
 
@@ -334,8 +335,8 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 - **Sprint 0 (Abgeschlossen):** ✅ 4 Tage (19.-23.12.2025)
 - **Sprint 1 (Abgeschlossen):** ✅ 4 Tage (24.-27.12.2025)
 - **Sprint 2 (Abgeschlossen):** ✅ 2 Tage (28.-29.12.2025)
-- **Kritische Sprints (3-4):** 3-4 Wochen (Rezept-Wizard + Editor-Neugestaltung)
-- **Optionale Sprints (5-7):** +2 Wochen
+- **Sprint 3 (Editor):** 2-3 Wochen (Editor-Neugestaltung)
+- **Optionale Sprints (4-7):** +2-3 Wochen
 - **Design-Polish (9):** Parallel zu Sprint 4
 
 ---
@@ -374,15 +375,15 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 - [x] Inline-Editing (Manual Save, Dirty Tracking, Click-Outside) → Sprint 2
 
 ### Neue Features - Phase B (Editor):
-- [ ] Rezept-Erstellungs-Wizard (4 Schritte, guided) → Sprint 3
-- [ ] Editor-Neugestaltung (Card-Layout, Touch, Drag & Drop) → Sprint 4
+- [ ] Editor-Neugestaltung (Card-Layout, Touch, Drag & Drop) → Sprint 3
+- [ ] Rezept-Erstellungs-Wizard (4 Schritte, guided) → Sprint 7 (Optional)
 - [x] Metadaten-Editor ✅ (bereits in Edit.vue implementiert)
 
 ### Neue Features - Phase C (Workflow, Optional):
-- [ ] Tabbed Interface (Multi-Rezept, Position merken)
-- [ ] Session State Restoration (iOS PWA Fix - letzte Route wiederherstellen)
-- [ ] Einkaufsliste-Export (Clipboard + Native Share)
-- [ ] Koch-Notizen (Text + Spracheingabe)
+- [ ] Tabbed Interface (Multi-Rezept, Position merken) → Sprint 4
+- [ ] Session State Restoration (iOS PWA Fix) → Sprint 4
+- [ ] Einkaufsliste-Export (Clipboard + Native Share) → Sprint 5
+- [ ] Koch-Notizen (Text + Spracheingabe) → Sprint 6
 - [x] ~~URL-Rezept-Sharing~~ → Ersetzt durch serverseitige Share-Links (Backend B5)
 - [x] Error-Handler (globaler `app.config.errorHandler` + `unhandledrejection`) — keine User-sichtbare Recovery-UI
 
