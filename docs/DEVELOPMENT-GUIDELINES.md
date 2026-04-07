@@ -132,7 +132,21 @@ Folgende Packages dürfen nicht importiert werden:
 |---------|-------|
 | `vuex` | Ersetzt durch Pinia |
 | `jsonpath` | Sicherheitslücke (Arbitrary Code Injection) |
-| `lodash` | Nicht installiert, native JS bevorzugen |
+| `lodash` | Nicht installiert, native JS oder `@vueuse/core` bevorzugen |
+
+### 4.3 Bevorzugte Utility-Quelle: VueUse
+
+Bevor eine Utility-Funktion selbst geschrieben wird, prüfen ob `@vueuse/core` ein passendes Composable anbietet (z.B. `useLocalStorage`, `watchDebounced`, `onClickOutside`, `useTextareaAutosize`).
+
+```ts
+// ✅ Richtig — VueUse-Composable nutzen
+import { useLocalStorage, watchDebounced } from '@vueuse/core'
+
+// ❌ Vermeiden — eigene Implementierung wenn VueUse es schon hat
+function useMyLocalStorage(key: string) { /* ... */ }
+```
+
+**Regel:** `@vueuse/core` ist die bevorzugte Quelle für reaktive Browser-APIs, DOM-Utilities und Watch-Helfer. Eigene Implementierungen nur, wenn VueUse keine passende Lösung bietet.
 
 **ESLint:** `no-restricted-imports`
 
@@ -229,12 +243,28 @@ src/
 ### 8.1 Keine neuen Dependencies ohne Review
 
 Vor dem Hinzufügen einer neuen Dependency:
-1. Prüfen ob native JS/TS ausreicht
+1. Prüfen ob native JS/TS oder `@vueuse/core` ausreicht
 2. Bundle-Size-Impact prüfen (`npm pack --dry-run` oder bundlephobia.com)
 3. Maintenance-Status prüfen (letzte Updates, open Issues)
 4. `npm audit` nach Installation ausführen
 
-### 8.2 Regelmäßiger Dependency-Audit
+### 8.2 Approved Dependencies
+
+Folgende Packages sind geprüft und dürfen verwendet werden:
+
+| Package | Zweck |
+|---------|-------|
+| `@vueuse/core` | Reaktive Composables (LocalStorage, DOM, Watch-Helfer, etc.) |
+| `@vueuse/integrations` | Composables für Drittanbieter-Libs (useSortable, etc.) |
+| `sortablejs` | Drag & Drop Engine |
+| `bootstrap-vue-next` | UI-Komponenten |
+| `pinia` | State Management |
+| `vue-router` | Routing |
+| `js-yaml` | YAML Parsing |
+| `deep-equal` | Deep-Vergleich |
+| `oidc-client-ts` | OIDC Authentication |
+
+### 8.3 Regelmäßiger Dependency-Audit
 
 - `npm outdated` und `npm audit` mindestens monatlich ausführen
 - Patch/Minor-Updates zeitnah einspielen
