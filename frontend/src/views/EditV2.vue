@@ -79,8 +79,10 @@ const newTag = ref("");
 const inputFoto = ref<{ reset: () => void } | null>(null);
 const showYaml = ref(false);
 
-// Computed
-const yaml = computed(() => jsyaml.dump(current_recipe.value));
+// Computed — JSON roundtrip forces Vue to track all nested properties
+const yaml = computed(() =>
+  jsyaml.dump(JSON.parse(JSON.stringify(current_recipe.value))),
+);
 
 const ingredient_units = computed(() => {
   const units = new Set(["g", "ml", "Stück"]);
@@ -346,26 +348,37 @@ function crossMoveStep(
 const sectionContainerRef = ref<HTMLElement>();
 let sectionSortable: Sortable | null = null;
 
+function initSectionSortable() {
+  sectionSortable?.destroy();
+  sectionSortable = null;
+  if (sectionContainerRef.value) {
+    sectionSortable = Sortable.create(sectionContainerRef.value, {
+      handle: ".section-drag-handle",
+      animation: 150,
+      ghostClass: "sortable-ghost",
+      dragClass: "sortable-drag",
+      onUpdate(evt) {
+        if (!current_recipe.value) return;
+        const { item, from, oldIndex, newIndex } = evt;
+        // Revert DOM — let Vue re-render
+        from.removeChild(item);
+        from.insertBefore(item, from.children[oldIndex!] || null);
+        const [moved] = current_recipe.value.sections.splice(oldIndex!, 1);
+        current_recipe.value.sections.splice(newIndex!, 0, moved);
+      },
+    });
+  }
+}
+
+// Re-init when recipe becomes available (ref is inside v-if)
+watch(current_recipe, (val) => {
+  if (val) {
+    nextTick(() => initSectionSortable());
+  }
+});
+
 onMounted(() => {
-  nextTick(() => {
-    if (sectionContainerRef.value) {
-      sectionSortable = Sortable.create(sectionContainerRef.value, {
-        handle: ".section-drag-handle",
-        animation: 150,
-        ghostClass: "sortable-ghost",
-        dragClass: "sortable-drag",
-        onUpdate(evt) {
-          if (!current_recipe.value) return;
-          const { item, from, oldIndex, newIndex } = evt;
-          // Revert DOM — let Vue re-render
-          from.removeChild(item);
-          from.insertBefore(item, from.children[oldIndex!] || null);
-          const [moved] = current_recipe.value.sections.splice(oldIndex!, 1);
-          current_recipe.value.sections.splice(newIndex!, 0, moved);
-        },
-      });
-    }
-  });
+  nextTick(() => initSectionSortable());
 });
 
 onBeforeUnmount(() => {
@@ -782,7 +795,7 @@ onBeforeUnmount(() => {
           v-if="showYaml"
           readonly
           rows="10"
-          :value="yaml"
+          :model-value="yaml"
           class="mt-2"
         />
       </div>
