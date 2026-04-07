@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+} from "vue";
 import { useRouter } from "vue-router";
 import { onKeyStroke } from "@vueuse/core";
 import { useDebouncedRefHistory } from "@vueuse/core";
+import Sortable from "sortablejs";
 import SectionCard from "@/components/edit/SectionCard.vue";
 import AppNavbar from "@/components/layout/AppNavbar.vue";
 import { editUrl } from "@/js/slug";
@@ -237,6 +245,133 @@ function updateStepText(index: number, text: string) {
   if (!current_recipe.value) return;
   current_recipe.value.steps[index].step = text;
 }
+
+// --- DnD: Reorder within section ---
+function reorderIngredientInSection(
+  sectionIndex: number,
+  oldLocalIdx: number,
+  newLocalIdx: number,
+) {
+  if (!current_recipe.value) return;
+  const section = current_recipe.value.sections[sectionIndex].section;
+  const arr = current_recipe.value.ingredients;
+  const flatIndices: number[] = [];
+  const items: Ingredient[] = [];
+  arr.forEach((ing, i) => {
+    if (ing.section === section) {
+      flatIndices.push(i);
+      items.push(ing);
+    }
+  });
+  const [moved] = items.splice(oldLocalIdx, 1);
+  items.splice(newLocalIdx, 0, moved);
+  flatIndices.forEach((flatIdx, i) => {
+    arr[flatIdx] = items[i];
+  });
+}
+
+function reorderStepInSection(
+  sectionIndex: number,
+  oldLocalIdx: number,
+  newLocalIdx: number,
+) {
+  if (!current_recipe.value) return;
+  const section = current_recipe.value.sections[sectionIndex].section;
+  const arr = current_recipe.value.steps;
+  const flatIndices: number[] = [];
+  const items: typeof arr = [];
+  arr.forEach((step, i) => {
+    if (step.section === section) {
+      flatIndices.push(i);
+      items.push(step);
+    }
+  });
+  const [moved] = items.splice(oldLocalIdx, 1);
+  items.splice(newLocalIdx, 0, moved);
+  flatIndices.forEach((flatIdx, i) => {
+    arr[flatIdx] = items[i];
+  });
+}
+
+// --- DnD: Cross-card (move between sections) ---
+function crossMoveIngredient(
+  originalFlatIdx: number,
+  targetLocalIdx: number,
+  targetSection: string,
+) {
+  if (!current_recipe.value) return;
+  const arr = current_recipe.value.ingredients;
+  // Remove from old position
+  const [item] = arr.splice(originalFlatIdx, 1);
+  item.section = targetSection;
+  // Find insert position: after the targetLocalIdx-th item in target section
+  let insertAt = arr.length; // default: append
+  let count = 0;
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i].section === targetSection) {
+      if (count === targetLocalIdx) {
+        insertAt = i;
+        break;
+      }
+      count++;
+    }
+  }
+  arr.splice(insertAt, 0, item);
+}
+
+function crossMoveStep(
+  originalFlatIdx: number,
+  targetLocalIdx: number,
+  targetSection: string,
+) {
+  if (!current_recipe.value) return;
+  const arr = current_recipe.value.steps;
+  const [item] = arr.splice(originalFlatIdx, 1);
+  item.section = targetSection;
+  let insertAt = arr.length;
+  let count = 0;
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i].section === targetSection) {
+      if (count === targetLocalIdx) {
+        insertAt = i;
+        break;
+      }
+      count++;
+    }
+  }
+  arr.splice(insertAt, 0, item);
+}
+
+// --- DnD: Section reorder ---
+const sectionContainerRef = ref<HTMLElement>();
+let sectionSortable: Sortable | null = null;
+
+onMounted(() => {
+  nextTick(() => {
+    if (sectionContainerRef.value) {
+      sectionSortable = Sortable.create(sectionContainerRef.value, {
+        handle: ".section-drag-handle",
+        animation: 150,
+        ghostClass: "sortable-ghost",
+        dragClass: "sortable-drag",
+        onUpdate(evt) {
+          if (!current_recipe.value) return;
+          const { item, from, oldIndex, newIndex } = evt;
+          // Revert DOM — let Vue re-render
+          from.removeChild(item);
+          from.insertBefore(item, from.children[oldIndex!] || null);
+          const [moved] = current_recipe.value.sections.splice(oldIndex!, 1);
+          current_recipe.value.sections.splice(newIndex!, 0, moved);
+        },
+      });
+    }
+  });
+});
+
+onBeforeUnmount(() => {
+  sectionSortable?.destroy();
+  sectionSortable = null;
+});
 </script>
 
 <template>
@@ -601,26 +736,38 @@ function updateStepText(index: number, text: string) {
       <!-- ===== Rezept-Inhalt: SectionCards ===== -->
       <h3 class="mt-4 mb-3">Rezept-Inhalt</h3>
 
-      <SectionCard
-        v-for="(section, idx) in current_recipe.sections"
-        :key="'sec-' + idx"
-        :section="section"
-        :ingredients="current_recipe.ingredients"
-        :steps="current_recipe.steps"
-        :section-index="idx"
-        :total-sections="current_recipe.sections.length"
-        :show-header="current_recipe.sections.length > 1"
-        :ingredient-units="ingredient_units"
-        @update:section-name="updateSectionName(idx, $event)"
-        @delete-section="deleteSection(idx)"
-        @move-section="moveSection(idx, $event)"
-        @add-ingredient="addIngredient($event)"
-        @add-step="addStep($event)"
-        @delete-ingredient="deleteIngredient"
-        @update-ingredient="(i, ing) => updateIngredient(i, ing)"
-        @delete-step="deleteStep"
-        @update-step-text="(i, txt) => updateStepText(i, txt)"
-      />
+      <div ref="sectionContainerRef">
+        <SectionCard
+          v-for="(section, idx) in current_recipe.sections"
+          :key="'sec-' + idx"
+          :section="section"
+          :ingredients="current_recipe.ingredients"
+          :steps="current_recipe.steps"
+          :section-index="idx"
+          :total-sections="current_recipe.sections.length"
+          :show-header="current_recipe.sections.length > 1"
+          :ingredient-units="ingredient_units"
+          @update:section-name="updateSectionName(idx, $event)"
+          @delete-section="deleteSection(idx)"
+          @move-section="moveSection(idx, $event)"
+          @add-ingredient="addIngredient($event)"
+          @add-step="addStep($event)"
+          @delete-ingredient="deleteIngredient"
+          @update-ingredient="(i, ing) => updateIngredient(i, ing)"
+          @delete-step="deleteStep"
+          @update-step-text="(i, txt) => updateStepText(i, txt)"
+          @reorder-ingredient="(o, n) => reorderIngredientInSection(idx, o, n)"
+          @reorder-step="(o, n) => reorderStepInSection(idx, o, n)"
+          @cross-move-ingredient="
+            (origIdx, targetLocal, targetSec) =>
+              crossMoveIngredient(origIdx, targetLocal, targetSec)
+          "
+          @cross-move-step="
+            (origIdx, targetLocal, targetSec) =>
+              crossMoveStep(origIdx, targetLocal, targetSec)
+          "
+        />
+      </div>
 
       <BButton variant="outline-secondary" class="mt-2" @click="addSection">
         <i class="bi bi-plus"></i> Abschnitt hinzufügen

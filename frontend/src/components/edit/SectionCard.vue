@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, onMounted, onBeforeUnmount, nextTick } from "vue";
+import Sortable from "sortablejs";
 import InlineEditField from "@/components/edit/InlineEditField.vue";
 import IngredientRow from "@/components/edit/IngredientRow.vue";
 import StepRow from "@/components/edit/StepRow.vue";
@@ -25,6 +26,18 @@ const emit = defineEmits<{
   "update-ingredient": [index: number, ingredient: Ingredient];
   "delete-step": [index: number];
   "update-step-text": [index: number, text: string];
+  "reorder-ingredient": [oldLocalIdx: number, newLocalIdx: number];
+  "reorder-step": [oldLocalIdx: number, newLocalIdx: number];
+  "cross-move-ingredient": [
+    originalIndex: number,
+    targetLocalIdx: number,
+    targetSection: string,
+  ];
+  "cross-move-step": [
+    originalIndex: number,
+    targetLocalIdx: number,
+    targetSection: string,
+  ];
 }>();
 
 const sectionName = computed(() => props.section.section);
@@ -40,6 +53,86 @@ const filteredSteps = computed(() => {
   return props.steps
     .map((step, idx) => ({ step, originalIndex: idx }))
     .filter((item) => item.step.section === sectionName.value);
+});
+
+// --- Drag & Drop ---
+const ingredientListRef = ref<HTMLElement>();
+const stepListRef = ref<HTMLElement>();
+
+let ingredientSortable: Sortable | null = null;
+let stepSortable: Sortable | null = null;
+
+function revertDom(evt: Sortable.SortableEvent) {
+  const { item, from, oldIndex } = evt;
+  from.removeChild(item);
+  from.insertBefore(item, from.children[oldIndex!] || null);
+}
+
+function initSortables() {
+  destroySortables();
+  if (ingredientListRef.value) {
+    ingredientSortable = Sortable.create(ingredientListRef.value, {
+      group: "ingredients",
+      handle: ".drag-handle",
+      animation: 150,
+      ghostClass: "sortable-ghost",
+      dragClass: "sortable-drag",
+      onUpdate(evt) {
+        revertDom(evt);
+        emit("reorder-ingredient", evt.oldIndex!, evt.newIndex!);
+      },
+      onAdd(evt) {
+        const origIdx = parseInt(evt.item.dataset.originalIndex!);
+        // Revert: move item back to source list (let Vue re-render)
+        evt.from.insertBefore(
+          evt.item,
+          evt.from.children[evt.oldIndex!] || null,
+        );
+        emit(
+          "cross-move-ingredient",
+          origIdx,
+          evt.newIndex!,
+          sectionName.value,
+        );
+      },
+    });
+  }
+  if (stepListRef.value) {
+    stepSortable = Sortable.create(stepListRef.value, {
+      group: "steps",
+      handle: ".drag-handle",
+      animation: 150,
+      ghostClass: "sortable-ghost",
+      dragClass: "sortable-drag",
+      onUpdate(evt) {
+        revertDom(evt);
+        emit("reorder-step", evt.oldIndex!, evt.newIndex!);
+      },
+      onAdd(evt) {
+        const origIdx = parseInt(evt.item.dataset.originalIndex!);
+        evt.from.insertBefore(
+          evt.item,
+          evt.from.children[evt.oldIndex!] || null,
+        );
+        emit("cross-move-step", origIdx, evt.newIndex!, sectionName.value);
+      },
+    });
+  }
+}
+
+function destroySortables() {
+  ingredientSortable?.destroy();
+  ingredientSortable = null;
+  stepSortable?.destroy();
+  stepSortable = null;
+}
+
+onMounted(() => {
+  nextTick(() => initSortables());
+});
+
+onBeforeUnmount(() => {
+  destroySortables();
 });
 </script>
 
@@ -96,10 +189,11 @@ const filteredSteps = computed(() => {
       <div class="section-col section-ingredients">
         <h6 class="section-col-title"><i class="bi bi-basket"></i> Zutaten</h6>
 
-        <div class="ingredient-list">
+        <div ref="ingredientListRef" class="ingredient-list">
           <IngredientRow
             v-for="item in filteredIngredients"
             :key="'ing-' + item.originalIndex"
+            :data-original-index="item.originalIndex"
             :ingredient="item.ingredient"
             :ingredients="ingredients"
             :index="item.originalIndex"
@@ -125,10 +219,11 @@ const filteredSteps = computed(() => {
           <i class="bi bi-list-ol"></i> Schritte
         </h6>
 
-        <div class="step-list">
+        <div ref="stepListRef" class="step-list">
           <StepRow
             v-for="(item, localIdx) in filteredSteps"
             :key="'step-' + item.originalIndex"
+            :data-original-index="item.originalIndex"
             :step="item.step"
             :steps="steps"
             :index="item.originalIndex"
@@ -204,5 +299,25 @@ const filteredSteps = computed(() => {
 
 .drag-handle:active {
   cursor: grabbing;
+}
+
+.ingredient-list,
+.step-list {
+  min-height: 20px;
+}
+</style>
+
+<!-- Sortable ghost/drag classes must be unscoped -->
+<style>
+.sortable-ghost {
+  opacity: 0.4;
+  background-color: #e3f2fd;
+  border-radius: 4px;
+}
+
+.sortable-drag {
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
 }
 </style>
