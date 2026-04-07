@@ -31,6 +31,7 @@ const { toast } = useToast();
 const idRef = computed(() => props.id);
 const {
   current_recipe,
+  isLoaded,
   do_recalc,
   selected,
   recipes_list,
@@ -45,16 +46,6 @@ const {
 // Override do_recalc default
 do_recalc.value = false;
 
-// --- Draft & Unsaved Guard ---
-const {
-  hasDraft,
-  restoreDraft,
-  discardDraft,
-  clearDraft,
-  pauseDraft,
-  resumeDraft,
-} = useDraft(idRef, current_recipe);
-
 // Snapshot of loaded state for dirty-checking
 const loadedSnapshot = ref<string>("");
 
@@ -63,46 +54,36 @@ const isDirty = computed(() => {
   return JSON.stringify(current_recipe.value) !== loadedSnapshot.value;
 });
 
+// --- Draft & Unsaved Guard ---
+const { hasDraft, restoreDraft, discardDraft } = useDraft(
+  idRef,
+  current_recipe,
+  isDirty,
+);
+
 // --- Undo / Redo ---
-const { undo, redo, canUndo, canRedo, pause, resume, clear } =
+const { undo, redo, canUndo, canRedo, pause, resume, clear, commit } =
   useDebouncedRefHistory(current_recipe, {
     deep: true,
     debounce: 500,
     capacity: 50,
   });
 
-// Pause history until recipe is fully loaded, then snapshot + reset
+// Settle history when recipe finishes loading
 pause();
-let initDone = false;
 watch(
-  current_recipe,
-  () => {
-    if (initDone || !current_recipe.value) return;
-    // loadRecipe sets safeCopy first (empty ingredients), then API detail.
-    // Wait for the version with ingredients (or a recipe that truly has none after a tick).
-    if (current_recipe.value.ingredients.length > 0) {
-      initDone = true;
+  isLoaded,
+  (ready) => {
+    if (ready && current_recipe.value) {
       loadedSnapshot.value = JSON.stringify(current_recipe.value);
+      commit();
       clear();
       resume();
+    } else {
+      pause();
     }
   },
-  { deep: false },
-);
-// Fallback: if the recipe genuinely has no ingredients, settle after a short delay
-watch(
-  current_recipe,
-  () => {
-    if (initDone || !current_recipe.value) return;
-    setTimeout(() => {
-      if (initDone) return;
-      initDone = true;
-      loadedSnapshot.value = JSON.stringify(current_recipe.value);
-      clear();
-      resume();
-    }, 500);
-  },
-  { once: true },
+  { immediate: true },
 );
 
 // --- Ctrl+S ---
@@ -208,7 +189,7 @@ function saveRecipe() {
         recipe: current_recipe.value,
       })
       .then(() => {
-        clearDraft();
+        discardDraft();
         loadedSnapshot.value = JSON.stringify(current_recipe.value);
         toast("Gespeichert.", "success");
       })
@@ -224,14 +205,9 @@ async function revertRecipe() {
   if (!window.confirm("Alle Änderungen verwerfen?")) return;
   const original = store.recipes[selected.value];
   if (original) {
-    pause();
-    pauseDraft();
+    // loadRecipe sets isLoaded=false → watch pauses, then isLoaded=true → watch resumes
     await loadRecipe(original);
     discardDraft();
-    loadedSnapshot.value = JSON.stringify(current_recipe.value);
-    clear();
-    resume();
-    resumeDraft();
     toast("Zurückgesetzt.", "info");
   }
 }
@@ -501,7 +477,11 @@ onBeforeUnmount(() => {
         >
           <i class="bi bi-eye"></i>
         </BButton>
-        <BButton @click="saveRecipe" title="Speichern (Ctrl+S)">
+        <BButton
+          @click="saveRecipe"
+          title="Speichern (Ctrl+S)"
+          :disabled="!isDirty && !file && !delete_image"
+        >
           <i class="bi bi-archive-fill"></i>
         </BButton>
       </li>
@@ -511,7 +491,14 @@ onBeforeUnmount(() => {
       <!-- Draft Recovery Banner -->
       <BAlert v-if="hasDraft" variant="warning" :model-value="true">
         Es gibt einen ungespeicherten Entwurf.
-        <BButton size="sm" variant="warning" @click="restoreDraft"
+        <BButton
+          size="sm"
+          variant="warning"
+          @click="
+            restoreDraft();
+            commit();
+            clear();
+          "
           >Wiederherstellen</BButton
         >
         <BButton size="sm" variant="outline-secondary" @click="discardDraft"

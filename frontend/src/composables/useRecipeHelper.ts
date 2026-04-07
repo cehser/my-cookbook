@@ -11,6 +11,7 @@ interface RecipeHelperOptions {
 
 interface RecipeHelperReturn {
   current_recipe: Ref<Recipe | null>;
+  isLoaded: Ref<boolean>;
   do_recalc: Ref<boolean>;
   selected: ComputedRef<number>;
   recipes_list: ComputedRef<Array<{ value: string; text: string }>>;
@@ -20,7 +21,7 @@ interface RecipeHelperReturn {
   section_names: ComputedRef<string[]>;
   recipeThumbnailSrc: (recipe: Recipe) => string;
   recipePictureSrc: (recipe: Recipe) => string;
-  loadRecipe: (recipe: Recipe) => void;
+  loadRecipe: (recipe: Recipe) => Promise<void>;
   swapElements: <T>(array: T[], index1: number, index2: number) => void;
   calcNewAmounts: (oldYield: number) => void;
   setYieldsUnit: (newUnit: string) => void;
@@ -36,6 +37,7 @@ export function useRecipeHelper(
 ): RecipeHelperReturn {
   const store = useRecipeStore();
   const current_recipe = ref<Recipe | null>(null);
+  const isLoaded = ref(false);
   const do_recalc = ref(true); // enable amounts recalculation
 
   // Computed properties from Pinia store
@@ -163,6 +165,8 @@ export function useRecipeHelper(
    * fetch the full detail from the backend, with IDB fallback for offline.
    */
   async function loadRecipe(recipe: Recipe): Promise<void> {
+    isLoaded.value = false;
+
     // Set immediately with safe defaults so the template never sees null
     const safeCopy = deepCopyYaml(recipe);
     safeCopy.ingredients = safeCopy.ingredients || [];
@@ -182,6 +186,7 @@ export function useRecipeHelper(
             recipe.recipe_uuid,
           );
           current_recipe.value = deepCopyYaml(detail);
+          isLoaded.value = true;
           return;
         } catch {
           // API unreachable — fall through to IDB
@@ -198,6 +203,8 @@ export function useRecipeHelper(
         // IDB also unavailable
       }
     }
+
+    isLoaded.value = true;
   }
 
   /**
@@ -266,6 +273,7 @@ export function useRecipeHelper(
 
   return {
     current_recipe,
+    isLoaded,
     do_recalc,
     selected,
     recipes_list,

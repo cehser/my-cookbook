@@ -6,79 +6,52 @@ interface UseDraftReturn {
   hasDraft: Ref<boolean>;
   restoreDraft: () => void;
   discardDraft: () => void;
-  clearDraft: () => void;
-  pauseDraft: () => void;
-  resumeDraft: () => void;
 }
 
 export function useDraft(
   recipeUuid: Ref<string> | ComputedRef<string>,
   recipe: Ref<Recipe | null>,
+  isDirty: Ref<boolean> | ComputedRef<boolean>,
 ): UseDraftReturn {
   const DRAFT_PREFIX = "draft:";
 
   const hasDraft = ref(false);
-  let pendingFlush: (() => void) | null = null;
-  let paused = false;
 
   // Check for existing draft on init
   const key = DRAFT_PREFIX + recipeUuid.value;
-  const stored = localStorage.getItem(key);
-  hasDraft.value = stored !== null;
+  hasDraft.value = localStorage.getItem(key) !== null;
 
-  // Debounced auto-save to LocalStorage
+  // Debounced auto-save — only when user actually changed something
   const { stop: stopWatch } = watchDebounced(
     recipe,
-    (val) => {
-      if (!val || paused) return;
+    () => {
+      if (!recipe.value || !isDirty.value) return;
       const draftKey = DRAFT_PREFIX + recipeUuid.value;
-      localStorage.setItem(draftKey, JSON.stringify(val));
-      // Don't show banner for drafts written by the current session
+      localStorage.setItem(draftKey, JSON.stringify(recipe.value));
     },
     { deep: true, debounce: 2000 },
   );
 
-  // Immediate flush function for beforeUnmount
-  function flushNow() {
-    if (!recipe.value || paused) return;
+  // Flush on unmount or page close — only if dirty
+  function flushIfDirty() {
+    if (!recipe.value || !isDirty.value) return;
     const draftKey = DRAFT_PREFIX + recipeUuid.value;
     localStorage.setItem(draftKey, JSON.stringify(recipe.value));
   }
 
-  // Track pending flush via sync watch (fires before debounced)
-  const stopSyncWatch = watch(
-    recipe,
-    () => {
-      pendingFlush = flushNow;
-    },
-    { deep: true },
-  );
-
   onBeforeUnmount(() => {
-    // Flush any pending debounced save
-    if (pendingFlush) {
-      pendingFlush();
-      pendingFlush = null;
-    }
+    flushIfDirty();
     stopWatch();
-    stopSyncWatch();
   });
 
-  // Also flush on page reload/close (Vue lifecycle doesn't fire on F5/close)
-  useEventListener(window, "beforeunload", () => {
-    if (pendingFlush) {
-      pendingFlush();
-      pendingFlush = null;
-    }
-  });
+  useEventListener(window, "beforeunload", flushIfDirty);
 
   // Watch UUID changes (navigation to different recipe)
   watch(
     () => recipeUuid.value,
     () => {
       const draftKey = DRAFT_PREFIX + recipeUuid.value;
-      const existing = localStorage.getItem(draftKey);
-      hasDraft.value = existing !== null;
+      hasDraft.value = localStorage.getItem(draftKey) !== null;
     },
   );
 
@@ -87,8 +60,7 @@ export function useDraft(
     const stored = localStorage.getItem(draftKey);
     if (stored && recipe.value) {
       try {
-        const parsed = JSON.parse(stored) as Recipe;
-        Object.assign(recipe.value, parsed);
+        recipe.value = JSON.parse(stored) as Recipe;
       } catch {
         discardDraft();
       }
@@ -102,24 +74,5 @@ export function useDraft(
     hasDraft.value = false;
   }
 
-  function clearDraft() {
-    discardDraft();
-  }
-
-  function pauseDraft() {
-    paused = true;
-  }
-
-  function resumeDraft() {
-    paused = false;
-  }
-
-  return {
-    hasDraft,
-    restoreDraft,
-    discardDraft,
-    clearDraft,
-    pauseDraft,
-    resumeDraft,
-  };
+  return { hasDraft, restoreDraft, discardDraft };
 }
