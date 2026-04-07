@@ -10,7 +10,7 @@ Branch: `feat-ui-editor`
 | Phase | Beschreibung | Teilschritte | Risiko | Status |
 |-------|-------------|-------------|--------|--------|
 | **0** | Dependencies & Infrastruktur | 0.1 – 0.2 | Gering | ✅ `9088b08` |
-| **1** | Composables (Draft, UnsavedGuard, Undo/Redo) | 1.1 – 1.4 | Gering | |
+| **1** | Composables (Draft, UnsavedGuard, Undo/Redo) | 1.1 – 1.4 | Gering | ✅ `a99440b` |
 | **2** | Basis-Komponenten | 2.1 – 2.2 | Mittel | |
 | **3** | SectionCard + Editor-Umbau | 3.1 – 3.6 | **Hoch** | |
 | **4** | Drag & Drop | 4.1 – 4.4 | Mittel | |
@@ -41,9 +41,9 @@ npm install -D @types/sortablejs
 
 ---
 
-## Phase 1: Composables
+## Phase 1: Composables ✅
 
-### 1.1 — `useDraft` Composable
+### 1.1 — `useDraft` Composable ✅
 **Datei:** `src/composables/useDraft.ts`
 
 ```typescript
@@ -64,7 +64,7 @@ useDraft(recipeUuid: Ref<string>, recipe: Ref<Recipe | null>) → {
 - `onBeforeUnmount`: sofortiger Flush des pending Debounce
 - Beim Initialisieren: `hasDraft` prüfen
 
-### 1.2 — `useUnsavedGuard` Composable
+### 1.2 — `useUnsavedGuard` Composable ✅
 **Datei:** `src/composables/useUnsavedGuard.ts`
 
 ```typescript
@@ -95,7 +95,7 @@ const { undo, redo, canUndo, canRedo } = useDebouncedRefHistory(current_recipe, 
 Buttons: `↶ Undo` + `↷ Redo` in der Navbar neben Save/Revert.
 Keyboard: `onKeyStroke('z', handler, { ctrl: true })` für Ctrl+Z/Ctrl+Y.
 
-### 1.4 — Commit: `feat(editor): add useDraft + useUnsavedGuard composables`
+### 1.4 — Commit: `feat(editor): add useDraft + useUnsavedGuard composables` ✅ `a99440b`
 
 ---
 
