@@ -175,37 +175,24 @@ Keine bekannten Bugs.
 
 ### Phase B: Editor-Neugestaltung (Kritisch)
 
-#### Sprint 3: Editor-Überarbeitung (2-3 Wochen)
+#### Sprint 3: Editor-Überarbeitung ✅ **Abgeschlossen (04/2026)**
 **Ziel:** Intuitive Bearbeitung auf allen Geräten
-**Priorität:** 🟡 Wichtig | **Status:** 📋 Nächster Sprint
-**Lösungen:**
-- **Card-Layout:** Ein Abschnitt = Karte (Zutaten + Schritte zusammen)
-- **Responsive:** 1 Spalte (Mobile), 2 Spalten (Desktop)
-- **Touch-optimiert:** Min. 44x44px Buttons, großzügige Abstände
-- **Größere Input-Felder** (besonders Zutaten)
-- **Keyboard-Shortcuts** (Enter, Tab, Shift+↑↓)
-- **Drag & Drop reparieren** (Touch-Support, visuelles Feedback)
-- **Inline-Buttons:** +/− direkt bei Zutat/Schritt
-- ~~**Metadaten-Section:**~~ ✅ Bereits implementiert in Edit.vue
-- **Optional:** Live-Preview, Collapse/Expand Abschnitte
+**Priorität:** 🟡 Wichtig | **Status:** ✅ Abgeschlossen
 
-**Mock-up:**
-```
-┌─────────────────────────────────────────┐
-│ [← Zurück] Rezept bearbeiten [💾 Speichern] │
-├─────────────────────────────────────────┤
-│ 📸 [Bild] Titel: [Apfelkuchen_____]    │
-│ Portionen: [4_] Zeit: [60_] Min        │
-├─────────────────────────────────────────┤
-│ ┌─ 📦 TEIG ──────────── [▲][▼][✕]      │
-│ │ ZUTATEN    │  SCHRITTE              │
-│ │ [200]g     │  1. [Mehl und...]      │
-│ │ [Mehl___]  │  [+ Schritt]           │
-│ │ [+ Zutat]  │                        │
-│ └────────────────────────────────────  │
-│ [+ Neuer Abschnitt]                    │
-└─────────────────────────────────────────┘
-```
+**Implementierte Features:**
+- ✅ **Card-Layout:** Ein Abschnitt = Karte (Zutaten + Schritte zusammen)
+- ✅ **Responsive:** 1 Spalte (Mobile), 2 Spalten (Desktop)
+- ✅ **Touch-optimiert:** Min. 44x44px Buttons, großzügige Abstände
+- ✅ **Größere Input-Felder** (besonders Zutaten)
+- ✅ **Keyboard-Shortcuts** (Ctrl+Z Undo, Ctrl+Y Redo, Ctrl+S Speichern)
+- ✅ **Drag & Drop** (SortableJS, Touch-Support, visuelles Feedback)
+- ✅ **Inline-Buttons:** +/− direkt bei Zutat/Schritt
+- ✅ **Metadaten-Section** in Edit.vue
+- ✅ **Live-Preview** (Vorschau-Button → RecipeDisplay Modal)
+- ✅ **Draft Auto-Save** (localStorage, Debounced)
+- ✅ **Undo/Redo** (useDebouncedRefHistory)
+- ✅ **Composable-Extraktion:** useIngredientEditor, useStepEditor, useSectionEditor
+- ✅ **Legacy-Editor entfernt** (EditV2 → Edit umbenannt)
 
 ---
 
@@ -300,6 +287,54 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 
 ---
 
+### Phase X: UX-Gesamtkonzept (vor weiterer Umsetzung)
+
+#### Sprint UX: UX-Konzept erarbeiten
+**Ziel:** Stimmiges Gesamtkonzept für Navigation, Startseite und Informationsarchitektur — bevor einzelne Features isoliert umgesetzt werden.
+**Priorität:** 🔴 Kritisch (Blocker für Sprint 4–7) | **Status:** 📋 Nächster Schritt
+
+**Hintergrund:** Mehrere geplante Features greifen ineinander und beeinflussen dieselben UI-Bereiche (Navbar, Galerie, Router). Ohne ein abgestimmtes Konzept entstehen Inkonsistenzen.
+
+**Usability-Ziele (was der User können soll):**
+
+1. **Schnell zum richtigen Rezept finden** — egal ob Favorit, kürzlich geöffnet oder neu
+2. **Auf einen Blick sehen, wo ungespeicherte Änderungen liegen** (Draft-Indikator)
+3. **Zwischen mehreren Rezepten wechseln, ohne den Kontext zu verlieren** (Position, Zustand)
+4. **Nach einem App-Neustart dort weitermachen, wo man aufgehört hat** (besonders iOS PWA)
+5. **Favoriten schnell und intuitiv erreichen** — ohne Umwege
+6. **Klare, aufgeräumte Navigation** — nur das Nötigste sichtbar, kein Feature-Overload
+7. **Auf dem Smartphone in der Küche gut bedienbar** — große Buttons, erreichbare Zonen
+
+**Was heute existiert — Bestandsaufnahme:**
+
+| Bereich | Ist-Zustand |
+|---|---|
+| Startseite | Galerie mit Card-Grid, Filter (Text, Autor, Schwierigkeit, Tags), 5 Sortier-Optionen |
+| Favoriten | Backend ✅, Stern auf Cards ✅, Sortierung „Favoriten zuerst" ✅ — aber kein dedizierter Zugang |
+| Drafts | `useDraft` speichert in localStorage ✅ — aber nur im Editor sichtbar, nicht in der Galerie |
+| Navigation | Top-Navbar mit Galerie, Favoriten, Suche + User-Dropdown (Einstellungen, Admin, Logout) |
+| Rezept-Wechsel | Jedes Rezept = voller Seitenwechsel, kein Zustand bleibt erhalten |
+| Session | Gallery-State (Filter, Scroll) wird persistiert ✅ — Route/Rezept-Kontext nicht |
+| Editor-Aktionen | Undo/Redo/Speichern im Navbar-Slot (Edit.vue) |
+| Navbar-Props | `recipes_list` und `read_only` werden übergeben, aber nicht genutzt (Dead Code) |
+
+**Design-Entscheidungen, die getroffen werden müssen:**
+
+- Wie sieht die Startseite aus und wie findet der User seine Rezepte?
+- Wie werden Favoriten und Entwürfe im Gesamtkonzept sichtbar?
+- Wie funktioniert das Wechseln zwischen Rezepten (und zurück zur Übersicht)?
+- Was gehört in die globale Navigation, was ist kontextspezifisch?
+- Wie funktioniert das alles auf dem Smartphone?
+
+**Ergebnis dieses Sprints:**
+- [ ] Navigationsstruktur (Sitemap: welche Views gibt es, wie hängen sie zusammen)
+- [ ] Wireframes für Startseite, Rezeptansicht, Editor (Desktop + Mobile)
+- [ ] Konzept für Favoriten- und Draft-Sichtbarkeit
+- [ ] Konzept für Rezept-Wechsel und Session-Wiederherstellung
+- [ ] Navbar/Navigation-Redesign
+
+---
+
 ### Phase D: Design-Modernisierung
 
 #### Sprint 9: Design-System & Visual Polish
@@ -323,8 +358,9 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 | 1 | Koch-Ansicht | Split-View + Metadaten-UX | 4-6 Tage | 🔴 Kritisch | ✅ Abgeschlossen (27.12.) |
 | ~~2~~ | ~~Koch-Ansicht~~ | ~~Mobile FAB + Slide-In~~ | ~~2-3 Tage~~ | ⏭️ Übersprungen | ✅ Feature-Set ausreichend |
 | 2 | Koch-Ansicht | Inline-Editing | 3-4 Tage | 🔴 Kritisch | ✅ Abgeschlossen (29.12.) |
-| 3 | Editor | Editor-Neugestaltung | 2-3 Wochen | 🟡 Wichtig | 📋 Nächster Sprint |
-| 4 | Workflow | Tabbed Interface + Session Restore | 3-4 Tage | 🟢 Optional | 📋 Geplant |
+| 3 | Editor | Editor-Neugestaltung | 2-3 Wochen | 🟡 Wichtig | ✅ Abgeschlossen (04/2026) |
+| **UX** | **Konzept** | **UX-Gesamtkonzept** | **2-3 Tage** | **🔴 Kritisch** | **📋 Nächster Schritt** |
+| 4 | Workflow | Tabbed Interface + Session Restore | 3-4 Tage | 🟢 Optional | ⏸️ Wartet auf UX-Konzept |
 | 5 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional | 📋 Geplant |
 | 6 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional | 📋 Geplant |
 | 7 | Editor | Rezept-Wizard | 1 Woche | 🟢 Optional | 📋 Geplant |
@@ -335,8 +371,9 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 - **Sprint 0 (Abgeschlossen):** ✅ 4 Tage (19.-23.12.2025)
 - **Sprint 1 (Abgeschlossen):** ✅ 4 Tage (24.-27.12.2025)
 - **Sprint 2 (Abgeschlossen):** ✅ 2 Tage (28.-29.12.2025)
-- **Sprint 3 (Editor):** 2-3 Wochen (Editor-Neugestaltung)
-- **Optionale Sprints (4-7):** +2-3 Wochen
+- **Sprint 3 (Abgeschlossen):** ✅ Editor-Neugestaltung (04/2026)
+- **Sprint UX (Konzept):** 2-3 Tage — Blocker für Sprint 4-7
+- **Optionale Sprints (4-7):** +2-3 Wochen (nach UX-Konzept)
 - **Design-Polish (9):** Parallel zu Sprint 4
 
 ---
@@ -392,14 +429,43 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 - [ ] Visual Consistency
 - [ ] Optional: Dark Mode
 
-### Code Cleanup (Backlog):
-- [ ] VueUse `useEventListener`/`onKeyStroke` statt manueller addEventListener in:
-  - `useViewport.ts` (resize, orientationchange)
-  - `AppNavbar.vue` (online, offline)
-  - `IngredientInlineEdit.vue` (click, keydown → `onClickOutside` + `onKeyStroke`)
-  - `StepInlineEdit.vue` (click, keydown → `onClickOutside` + `onKeyStroke`)
-  - `RecipeCard.vue` (keydown Escape → `onKeyStroke`)
-  - `Administration.vue` (keydown → `onKeyStroke`)
+### Code Cleanup (Backlog) — VueUse Migration:
+
+**Hoher Impact (viel Boilerplate eliminierbar):**
+- [ ] `useViewport.ts` — gesamte Datei ersetzbar durch `useWindowSize()` (~25 → ~5 Zeilen)
+- [ ] `AppNavbar.vue` — `navigator.onLine` + manuelle Listener → `useOnline()` (~15 → 1 Zeile)
+- [ ] `IngredientInlineEdit.vue` — manuelle click/keydown Listener + Cleanup an 3 Stellen → `onClickOutside` + `onKeyStroke` (~30 Zeilen)
+- [ ] `StepInlineEdit.vue` — identisches Pattern → `onClickOutside` + `onKeyStroke` (~30 Zeilen)
+- [ ] `RecipeDisplay.vue` — manueller `IntersectionObserver` + setTimeout-Debounce → `useIntersectionObserver` + `useDebounceFn` (~30 Zeilen)
+
+**Mittlerer Impact:**
+- [ ] `RecipeCard.vue` — manueller keydown-Listener in watch → `onKeyStroke("Escape", ...)`
+- [ ] `Administration.vue` — manueller keydown + `navigator.clipboard` → `useEventListener` + `useClipboard`
+- [ ] `ShareManager.vue` — `navigator.clipboard.writeText` → `useClipboard` (+ `copied` State für UI-Feedback)
+- [ ] `Gallery.vue` — manuelles `swUpdated` Event + Service Worker Listener → `useEventListener`
+
+**Niedriger Impact (optional):**
+- [ ] `Recipe.vue` — `window.scrollTo(0,0)` — Einzeiler, VueUse wäre Overkill
+
+### UX-Prüfung: Navbar-Überarbeitung (Backlog)
+
+Die Navbar enthält aktuell viele Features, die möglicherweise besser woanders aufgehoben wären.
+
+**Aktuelle Navbar-Elemente:**
+- Brand-Link "Kochbuch", Galerie, Favoriten, Suche
+- User-Avatar + Dropdown (Einstellungen, Verwaltung, Experten-Modus, Abmelden)
+- Offline-Banner
+- Default-Slot (Edit.vue: Undo/Redo/Speichern, Gallery.vue: Update-Button)
+- Unused Props: `recipes_list` und `read_only` werden übergeben, aber nicht genutzt
+
+**Zu klärende Fragen:**
+- [ ] Gehören Undo/Redo/Speichern in die Navbar oder besser in eine eigene Editor-Toolbar?
+- [ ] Ist "Experten-Modus" im User-Dropdown sinnvoll oder besser in den Einstellungen?
+- [ ] Favoriten als eigener Nav-Link oder als Filter in der Galerie (Toggle/Tab)?
+- [ ] Suche als eigener Nav-Link oder als Suchfeld direkt in der Navbar?
+- [ ] Offline-Banner: Ist die Navbar der richtige Ort oder besser ein globaler Toast/Banner?
+- [ ] Unused Props `recipes_list` / `read_only` entfernen (Dead Code)
+- [ ] Loading-Spinner (`d-none`, nur per DOM-ID steuerbar) — entfernen oder durch reaktiven State ersetzen?
 
 ---
 
