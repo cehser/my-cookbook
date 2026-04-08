@@ -18,9 +18,11 @@ import { editUrl } from "@/js/slug";
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useToast } from "@/composables/useToast";
 import { useDraft } from "@/composables/useDraft";
+import { useSectionEditor } from "@/composables/useSectionEditor";
+import { useIngredientEditor } from "@/composables/useIngredientEditor";
+import { useStepEditor } from "@/composables/useStepEditor";
 import { useRecipeStore } from "@/store/recipeStore";
 import jsyaml from "js-yaml";
-import type { Ingredient } from "@/types/recipe";
 
 const props = defineProps<{ id: string }>();
 
@@ -42,6 +44,26 @@ const {
   setYieldsValue,
   loadRecipe,
 } = useRecipeHelper({ recipeId: idRef });
+
+// --- Editor CRUD Composables ---
+const { addSection, updateSectionName, deleteSection, moveSection } =
+  useSectionEditor(current_recipe);
+const {
+  ingredient_units,
+  addIngredient,
+  deleteIngredient,
+  updateIngredient,
+  reorderIngredientInSection,
+  crossMoveIngredient,
+} = useIngredientEditor(current_recipe);
+const {
+  addStep,
+  deleteStep,
+  updateStepText,
+  updateStepNotes,
+  reorderStepInSection,
+  crossMoveStep,
+} = useStepEditor(current_recipe);
 
 // Override do_recalc default
 do_recalc.value = false;
@@ -86,11 +108,29 @@ watch(
   { immediate: true },
 );
 
-// --- Ctrl+S ---
+// --- Keyboard Shortcuts ---
 onKeyStroke("s", (e) => {
   if (e.ctrlKey || e.metaKey) {
     e.preventDefault();
     saveRecipe();
+  }
+});
+onKeyStroke("z", (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && canUndo.value) {
+    e.preventDefault();
+    undo();
+  }
+});
+onKeyStroke("y", (e) => {
+  if ((e.ctrlKey || e.metaKey) && canRedo.value) {
+    e.preventDefault();
+    redo();
+  }
+});
+onKeyStroke("z", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && canRedo.value) {
+    e.preventDefault();
+    redo();
   }
 });
 
@@ -105,18 +145,6 @@ const showPreview = ref(false);
 const yaml = computed(() =>
   jsyaml.dump(JSON.parse(JSON.stringify(current_recipe.value))),
 );
-
-const ingredient_units = computed(() => {
-  const units = new Set(["g", "ml", "Stück"]);
-  for (const recipe of store.recipes) {
-    for (const ingredient of recipe.ingredients || []) {
-      for (const amount of ingredient.amounts || []) {
-        if (amount.unit) units.add(amount.unit);
-      }
-    }
-  }
-  return [...units].sort();
-});
 
 const settings = computed(() => store.settings);
 
@@ -219,176 +247,6 @@ function navSelected(uuid: string) {
   }
 }
 
-// --- Section/Ingredient/Step helpers ---
-function addSection() {
-  current_recipe.value?.sections.push({ section: "" });
-}
-
-function updateSectionName(sectionIndex: number, name: string) {
-  if (!current_recipe.value) return;
-  const oldName = current_recipe.value.sections[sectionIndex].section;
-  current_recipe.value.sections[sectionIndex].section = name;
-  // Rename in ingredients & steps
-  for (const ing of current_recipe.value.ingredients) {
-    if (ing.section === oldName) ing.section = name;
-  }
-  for (const step of current_recipe.value.steps) {
-    if (step.section === oldName) step.section = name;
-  }
-}
-
-function deleteSection(sectionIndex: number) {
-  if (!current_recipe.value) return;
-  const name = current_recipe.value.sections[sectionIndex].section;
-  current_recipe.value.sections.splice(sectionIndex, 1);
-  // Remove orphaned items
-  current_recipe.value.ingredients = current_recipe.value.ingredients.filter(
-    (i) => i.section !== name,
-  );
-  current_recipe.value.steps = current_recipe.value.steps.filter(
-    (s) => s.section !== name,
-  );
-}
-
-function moveSection(sectionIndex: number, direction: "up" | "down") {
-  if (!current_recipe.value) return;
-  const arr = current_recipe.value.sections;
-  const target = direction === "up" ? sectionIndex - 1 : sectionIndex + 1;
-  if (target < 0 || target >= arr.length) return;
-  [arr[sectionIndex], arr[target]] = [arr[target], arr[sectionIndex]];
-}
-
-function addIngredient(section: string) {
-  current_recipe.value?.ingredients.push({
-    name: "Neue Zutat",
-    amounts: [{ amount: null, unit: "" }],
-    section,
-  });
-}
-
-function deleteIngredient(index: number) {
-  current_recipe.value?.ingredients.splice(index, 1);
-}
-
-function updateIngredient(index: number, ingredient: Ingredient) {
-  if (!current_recipe.value) return;
-  current_recipe.value.ingredients[index] = ingredient;
-}
-
-function addStep(section: string) {
-  current_recipe.value?.steps.push({ step: "", section });
-}
-
-function deleteStep(index: number) {
-  current_recipe.value?.steps.splice(index, 1);
-}
-
-function updateStepText(index: number, text: string) {
-  if (!current_recipe.value) return;
-  current_recipe.value.steps[index].step = text;
-}
-
-function updateStepNotes(index: number, notes: string[]) {
-  if (!current_recipe.value) return;
-  current_recipe.value.steps[index].notes = notes;
-}
-
-// --- DnD: Reorder within section ---
-function reorderIngredientInSection(
-  sectionIndex: number,
-  oldLocalIdx: number,
-  newLocalIdx: number,
-) {
-  if (!current_recipe.value) return;
-  const section = current_recipe.value.sections[sectionIndex].section;
-  const arr = current_recipe.value.ingredients;
-  const flatIndices: number[] = [];
-  const items: Ingredient[] = [];
-  arr.forEach((ing, i) => {
-    if (ing.section === section) {
-      flatIndices.push(i);
-      items.push(ing);
-    }
-  });
-  const [moved] = items.splice(oldLocalIdx, 1);
-  items.splice(newLocalIdx, 0, moved);
-  flatIndices.forEach((flatIdx, i) => {
-    arr[flatIdx] = items[i];
-  });
-}
-
-function reorderStepInSection(
-  sectionIndex: number,
-  oldLocalIdx: number,
-  newLocalIdx: number,
-) {
-  if (!current_recipe.value) return;
-  const section = current_recipe.value.sections[sectionIndex].section;
-  const arr = current_recipe.value.steps;
-  const flatIndices: number[] = [];
-  const items: typeof arr = [];
-  arr.forEach((step, i) => {
-    if (step.section === section) {
-      flatIndices.push(i);
-      items.push(step);
-    }
-  });
-  const [moved] = items.splice(oldLocalIdx, 1);
-  items.splice(newLocalIdx, 0, moved);
-  flatIndices.forEach((flatIdx, i) => {
-    arr[flatIdx] = items[i];
-  });
-}
-
-// --- DnD: Cross-card (move between sections) ---
-function crossMoveIngredient(
-  originalFlatIdx: number,
-  targetLocalIdx: number,
-  targetSection: string,
-) {
-  if (!current_recipe.value) return;
-  const arr = current_recipe.value.ingredients;
-  // Remove from old position
-  const [item] = arr.splice(originalFlatIdx, 1);
-  item.section = targetSection;
-  // Find insert position: after the targetLocalIdx-th item in target section
-  let insertAt = arr.length; // default: append
-  let count = 0;
-  for (let i = 0; i < arr.length; i++) {
-    if (arr[i].section === targetSection) {
-      if (count === targetLocalIdx) {
-        insertAt = i;
-        break;
-      }
-      count++;
-    }
-  }
-  arr.splice(insertAt, 0, item);
-}
-
-function crossMoveStep(
-  originalFlatIdx: number,
-  targetLocalIdx: number,
-  targetSection: string,
-) {
-  if (!current_recipe.value) return;
-  const arr = current_recipe.value.steps;
-  const [item] = arr.splice(originalFlatIdx, 1);
-  item.section = targetSection;
-  let insertAt = arr.length;
-  let count = 0;
-  for (let i = 0; i < arr.length; i++) {
-    if (arr[i].section === targetSection) {
-      if (count === targetLocalIdx) {
-        insertAt = i;
-        break;
-      }
-      count++;
-    }
-  }
-  arr.splice(insertAt, 0, item);
-}
-
 // --- DnD: Section reorder ---
 const sectionContainerRef = ref<HTMLElement>();
 let sectionSortable: Sortable | null = null;
@@ -454,7 +312,7 @@ onBeforeUnmount(() => {
           size="sm"
           variant="outline-secondary"
           :disabled="!canRedo"
-          title="Wiederherstellen"
+          title="Wiederherstellen (Ctrl+Y)"
           @click="redo()"
         >
           <i class="bi bi-arrow-clockwise"></i>

@@ -375,7 +375,7 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 - [x] Inline-Editing (Manual Save, Dirty Tracking, Click-Outside) → Sprint 2
 
 ### Neue Features - Phase B (Editor):
-- [ ] Editor-Neugestaltung (Card-Layout, Touch, Drag & Drop) → Sprint 3
+- [x] Editor-Neugestaltung (Card-Layout, Touch, Drag & Drop) → Sprint 3 ✅
 - [ ] Rezept-Erstellungs-Wizard (4 Schritte, guided) → Sprint 7 (Optional)
 - [x] Metadaten-Editor ✅ (bereits in Edit.vue implementiert)
 
@@ -391,6 +391,15 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 - [ ] Design-System
 - [ ] Visual Consistency
 - [ ] Optional: Dark Mode
+
+### Code Cleanup (Backlog):
+- [ ] VueUse `useEventListener`/`onKeyStroke` statt manueller addEventListener in:
+  - `useViewport.ts` (resize, orientationchange)
+  - `AppNavbar.vue` (online, offline)
+  - `IngredientInlineEdit.vue` (click, keydown → `onClickOutside` + `onKeyStroke`)
+  - `StepInlineEdit.vue` (click, keydown → `onClickOutside` + `onKeyStroke`)
+  - `RecipeCard.vue` (keydown Escape → `onKeyStroke`)
+  - `Administration.vue` (keydown → `onKeyStroke`)
 
 ---
 
