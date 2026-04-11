@@ -1,19 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { useRouter } from "vue-router";
-import AppNavbar from "@/components/layout/AppNavbar.vue";
-import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useRecipeStore } from "@/store/recipeStore";
 import { useToast } from "@/composables/useToast";
 import deepEqual from "deep-equal";
-import { recipeUrl } from "@/js/slug";
 
-const router = useRouter();
 const store = useRecipeStore();
 const { toast } = useToast();
-
-const recipeId = ref("");
-const { recipes_list } = useRecipeHelper({ recipeId });
 
 // Local copy of settings for editing
 const settings = ref(JSON.parse(JSON.stringify(store.settings)));
@@ -59,11 +51,6 @@ const roleLabel = computed(() => {
   return "Nur Lesen";
 });
 
-function navSelected(uuid: string) {
-  const recipe = store.recipes.find((r) => r.recipe_uuid === uuid);
-  router.push(recipeUrl(uuid, recipe?.recipe_name));
-}
-
 async function saveChanges() {
   await store.saveSettings(settings.value);
   settings.value = JSON.parse(JSON.stringify(store.settings));
@@ -74,14 +61,8 @@ async function saveChanges() {
 
 <template>
   <div id="settings">
-    <AppNavbar
-      @input="navSelected"
-      :recipes_list="recipes_list"
-      selected=""
-      :read_only="store_settings.read_only"
-    />
     <BContainer>
-      <h2>Einstellungen</h2>
+      <h2 class="mt-3">Einstellungen</h2>
 
       <!-- Role badge -->
       <div class="mb-3">

@@ -13,8 +13,6 @@ import { useDebouncedRefHistory } from "@vueuse/core";
 import Sortable from "sortablejs";
 import SectionCard from "@/components/edit/SectionCard.vue";
 import RecipeDisplay from "@/components/recipe/display/RecipeDisplay.vue";
-import AppNavbar from "@/components/layout/AppNavbar.vue";
-import { editUrl } from "@/js/slug";
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useToast } from "@/composables/useToast";
 import { useDraft } from "@/composables/useDraft";
@@ -36,7 +34,6 @@ const {
   isLoaded,
   do_recalc,
   selected,
-  recipes_list,
   picture_src,
   yields_unit,
   yields_value,
@@ -240,13 +237,6 @@ async function revertRecipe() {
   }
 }
 
-function navSelected(uuid: string) {
-  const r = store.recipes.find((r) => r.recipe_uuid === uuid);
-  if (r) {
-    router.push(editUrl(r.recipe_uuid, r.recipe_name));
-  }
-}
-
 // --- DnD: Section reorder ---
 const sectionContainerRef = ref<HTMLElement>();
 let sectionSortable: Sortable | null = null;
@@ -292,58 +282,49 @@ onBeforeUnmount(() => {
 
 <template>
   <div id="edit-v2">
-    <AppNavbar
-      @update:selected="navSelected"
-      :recipes_list="recipes_list"
-      :selected="id"
-      :read_only="settings.read_only"
-    >
-      <li class="d-flex align-items-center gap-1">
-        <BButton
-          size="sm"
-          variant="outline-secondary"
+    <div class="view-header">
+      <button class="btn-icon" @click="router.back()" title="Abbrechen">
+        <i class="bi bi-x-lg"></i>
+      </button>
+      <span class="view-header-title">Bearbeiten</span>
+      <div class="view-header-actions">
+        <button
+          class="btn-icon"
           :disabled="!canUndo"
           title="Rückgängig (Ctrl+Z)"
           @click="undo()"
         >
           <i class="bi bi-arrow-counterclockwise"></i>
-        </BButton>
-        <BButton
-          size="sm"
-          variant="outline-secondary"
+        </button>
+        <button
+          class="btn-icon"
           :disabled="!canRedo"
           title="Wiederherstellen (Ctrl+Y)"
           @click="redo()"
         >
           <i class="bi bi-arrow-clockwise"></i>
-        </BButton>
-        <BButton
-          size="sm"
-          variant="outline-danger"
+        </button>
+        <button
+          class="btn-icon"
           :disabled="!isDirty"
           title="Änderungen verwerfen"
           @click="revertRecipe"
         >
-          <i class="bi bi-arrow-counterclockwise"></i>
-          <i class="bi bi-x"></i>
-        </BButton>
-        <BButton
-          size="sm"
-          variant="outline-info"
-          title="Vorschau"
-          @click="showPreview = true"
-        >
+          <i class="bi bi-x-circle"></i>
+        </button>
+        <button class="btn-icon" title="Vorschau" @click="showPreview = true">
           <i class="bi bi-eye"></i>
-        </BButton>
-        <BButton
+        </button>
+        <button
+          class="btn-icon"
           @click="saveRecipe"
           title="Speichern (Ctrl+S)"
           :disabled="!isDirty && !file && !delete_image"
         >
-          <i class="bi bi-archive-fill"></i>
-        </BButton>
-      </li>
-    </AppNavbar>
+          <i class="bi bi-check-lg"></i>
+        </button>
+      </div>
+    </div>
 
     <BContainer v-if="current_recipe" class="mt-3 mb-5">
       <!-- Draft Recovery Banner -->

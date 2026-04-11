@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useRouter } from "vue-router";
-import AppNavbar from "@/components/layout/AppNavbar.vue";
 import { adminApi } from "@/api/admin";
-import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useToast } from "@/composables/useToast";
 import { useRecipeStore } from "@/store/recipeStore";
 import { generateUUID } from "@/js/uuid";
@@ -13,14 +10,9 @@ import {
   loadSample as createSampleRecipe,
 } from "@/js/recipes";
 import jsyaml from "js-yaml";
-import { recipeUrl } from "@/js/slug";
 
-const router = useRouter();
 const store = useRecipeStore();
 const { toast } = useToast();
-
-const recipeId = ref("");
-const { recipes_list } = useRecipeHelper({ recipeId });
 
 // Data
 interface UserEntry {
@@ -190,11 +182,6 @@ async function saveSiteSettings() {
   }
 }
 
-function navSelected(uuid: string) {
-  const recipe = store.recipes.find((r) => r.recipe_uuid === uuid);
-  router.push(recipeUrl(uuid, recipe?.recipe_name));
-}
-
 function deleteRecipe(index: number) {
   store.deleteRecipe(index);
 }
@@ -276,15 +263,8 @@ function exportRecipe(index: number) {
 
 <template>
   <div id="administration">
-    <AppNavbar
-      @update:selected="navSelected"
-      :recipes_list="recipes_list"
-      selected=""
-      :read_only="settings.read_only"
-    >
-    </AppNavbar>
     <BContainer>
-      <h2>Verwaltung</h2>
+      <h2 class="mt-3">Verwaltung</h2>
 
       <!-- User Management Section -->
       <div class="mb-4">

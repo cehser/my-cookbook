@@ -2,24 +2,33 @@ import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import Gallery from "@/views/Gallery.vue";
 import { requireAuth, requireRole } from "@/auth/guards";
 
+declare module "vue-router" {
+  interface RouteMeta {
+    mode?: "browsing" | "cook" | "edit";
+  }
+}
+
 const routes: RouteRecordRaw[] = [
   {
     path: "/",
     name: "Gallery",
     component: Gallery,
     beforeEnter: requireAuth,
+    meta: { mode: "browsing" },
   },
   {
     path: "/favorites",
     name: "Favorites",
     component: Gallery, // Temporär: Nutzt Gallery-Komponente, später eigene View oder Query-Parameter
     beforeEnter: requireAuth,
+    meta: { mode: "browsing" },
   },
   {
     path: "/search",
     name: "Search",
     component: Gallery, // Temporär: Nutzt Gallery-Komponente mit Fokus auf Suchleiste
     beforeEnter: requireAuth,
+    meta: { mode: "browsing" },
   },
   {
     path: "/recipe/:id/:slug?",
@@ -28,6 +37,7 @@ const routes: RouteRecordRaw[] = [
       import(/* webpackChunkName: "recipe" */ "../views/Recipe.vue"),
     beforeEnter: requireAuth,
     props: (route) => ({ id: route.params.id as string }),
+    meta: { mode: "cook" },
   },
   {
     path: "/edit/:id/:slug?",
@@ -35,6 +45,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import(/* webpackChunkName: "edit" */ "../views/Edit.vue"),
     beforeEnter: requireRole("editor", "admin"),
     props: (route) => ({ id: route.params.id as string }),
+    meta: { mode: "edit" },
   },
   {
     path: "/settings",
@@ -42,6 +53,7 @@ const routes: RouteRecordRaw[] = [
     component: () =>
       import(/* webpackChunkName: "settings" */ "../views/Settings.vue"),
     beforeEnter: requireAuth,
+    meta: { mode: "browsing" },
   },
   {
     path: "/administration",
@@ -49,6 +61,7 @@ const routes: RouteRecordRaw[] = [
     component: () =>
       import(/* webpackChunkName: "settings" */ "../views/Administration.vue"),
     beforeEnter: requireRole("admin"),
+    meta: { mode: "browsing" },
   },
   {
     path: "/callback",

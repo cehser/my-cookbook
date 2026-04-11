@@ -4,7 +4,6 @@ import { useRouter } from "vue-router";
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useRecipeStore } from "@/store/recipeStore";
 import { useUIStore } from "@/store/uiStore";
-import AppNavbar from "@/components/layout/AppNavbar.vue";
 import RecipeDisplay from "@/components/recipe/display/RecipeDisplay.vue";
 import RecipeFabMenu from "@/components/recipe/ui/RecipeFabMenu.vue";
 import InlineEditActionBar from "@/components/recipe/ui/InlineEditActionBar.vue";
@@ -23,9 +22,9 @@ const uiStore = useUIStore();
 const { toast: showToast } = useToast();
 
 const idRef = computed(() => props.id);
-const { current_recipe, selected, recipes_list, picture_src } = useRecipeHelper(
-  { recipeId: idRef },
-);
+const { current_recipe, selected, picture_src } = useRecipeHelper({
+  recipeId: idRef,
+});
 
 // FAB Menu State
 const fabMenuOpen = ref(false);
@@ -62,11 +61,6 @@ onMounted(() => {
 });
 
 // Methods
-function navSelected(uuid: string) {
-  const recipe = store.recipes.find((r) => r.recipe_uuid === uuid);
-  router.push(recipeUrl(uuid, recipe?.recipe_name));
-}
-
 function exportRecipe() {
   if (!current_recipe.value) return;
   const yaml = jsyaml.dump(current_recipe.value);
@@ -203,12 +197,14 @@ function cancelInlineEdit() {
 
 <template>
   <div id="recipe" :class="{ 'inline-edit-active': inlineEditMode }">
-    <AppNavbar
-      @update:selected="navSelected"
-      :recipes_list="recipes_list"
-      :selected="id"
-      :read_only="settings.read_only"
-    />
+    <div class="view-header">
+      <button class="btn-icon" @click="router.back()" title="Zurück">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+      <span class="view-header-title">{{
+        current_recipe?.recipe_name || "Rezept"
+      }}</span>
+    </div>
 
     <!-- Pending user hint -->
     <BContainer v-if="settings.role === 'pending'" class="mt-5">

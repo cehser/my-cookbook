@@ -7,12 +7,10 @@ import {
   onBeforeUnmount,
   nextTick,
 } from "vue";
-import { useRouter } from "vue-router";
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useToast } from "@/composables/useToast";
 import { useRecipeStore } from "@/store/recipeStore";
 import { useUIStore } from "@/store/uiStore";
-import AppNavbar from "@/components/layout/AppNavbar.vue";
 import RecipeCard from "@/components/recipe/ui/RecipeCard.vue";
 import AIRecipeImport from "@/components/features/AIRecipeImport.vue";
 import {
@@ -20,23 +18,14 @@ import {
   loadSample as createSampleRecipe,
 } from "@/js/recipes";
 import jsyaml from "js-yaml";
-import { recipeUrl } from "@/js/slug";
 
-const router = useRouter();
 const store = useRecipeStore();
 const uiStore = useUIStore();
 const { toast } = useToast();
 
 const recipeId = ref("");
-const { recipes_list, recipeThumbnailSrc } = useRecipeHelper({ recipeId });
+const { recipeThumbnailSrc } = useRecipeHelper({ recipeId });
 const picture_src = recipeThumbnailSrc;
-
-// Data
-const refreshing = ref(false);
-const registration = ref<{
-  waiting?: { postMessage: (msg: string) => void };
-} | null>(null);
-const updateExists = ref(false);
 const filter = ref("");
 const selectedTags = ref<string[]>([]);
 const selectedAuthor = ref<string | null>(null);
@@ -140,22 +129,6 @@ const filteredRecipes = computed(() => {
   return sorted;
 });
 
-// Service Worker
-document.addEventListener(
-  "swUpdated",
-  showRefreshUI as Parameters<typeof document.addEventListener>[1],
-  {
-    once: true,
-  },
-);
-if (navigator.serviceWorker) {
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (refreshing.value) return;
-    refreshing.value = true;
-    window.location.reload();
-  });
-}
-
 // Watchers
 watch(filter, (newFilter) => {
   uiStore.setGalleryFilter(newFilter);
@@ -199,11 +172,6 @@ onBeforeUnmount(() => {
 });
 
 // Methods
-function navSelected(uuid: string) {
-  const recipe = store.recipes.find((r) => r.recipe_uuid === uuid);
-  router.push(recipeUrl(uuid, recipe?.recipe_name));
-}
-
 function toggleTag(tag: string) {
   const index = selectedTags.value.indexOf(tag);
   if (index > -1) {
@@ -218,17 +186,6 @@ function clearAllFilters() {
   selectedTags.value = [];
   selectedAuthor.value = null;
   selectedDifficulty.value = null;
-}
-
-function showRefreshUI(e: Event) {
-  registration.value = (e as CustomEvent).detail;
-  updateExists.value = true;
-}
-
-function refreshApp() {
-  updateExists.value = false;
-  if (!registration.value?.waiting) return;
-  registration.value.waiting.postMessage("skipWaiting");
 }
 
 function handleDeleteRecipe(uuid: string) {
@@ -278,16 +235,6 @@ function importRecipe(ev: Event) {
 
 <template>
   <div id="recipe">
-    <AppNavbar
-      @update:selected="navSelected"
-      :recipes_list="recipes_list"
-      selected=""
-      :read_only="settings.read_only"
-    >
-      <BButton v-if="updateExists" @click="refreshApp">
-        New version available! Click to update
-      </BButton>
-    </AppNavbar>
     <BContainer fluid>
       <!-- AI Import Modal -->
       <BModal
