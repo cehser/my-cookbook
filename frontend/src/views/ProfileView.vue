@@ -71,6 +71,7 @@ async function saveChanges() {
 }
 
 async function handleLogout() {
+  if (!window.confirm("Möchtest du dich wirklich abmelden?")) return;
   await logout();
 }
 </script>

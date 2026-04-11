@@ -210,7 +210,7 @@ function saveRecipe() {
           uuid: current_recipe.value.recipe_uuid,
           picture: file.value,
         })
-        .catch(() => toast("Bildfehler.", "danger"));
+        .catch(() => toast("Bild konnte nicht hochgeladen werden.", "danger"));
     }
 
     if (delete_image.value) {
@@ -220,7 +220,7 @@ function saveRecipe() {
           picture: null,
         })
         .then(() => (delete_image.value = false))
-        .catch(() => toast("Bildfehler.", "danger"));
+        .catch(() => toast("Bild konnte nicht entfernt werden.", "danger"));
     }
     store
       .setRecipe({
@@ -232,7 +232,7 @@ function saveRecipe() {
         loadedSnapshot.value = JSON.stringify(current_recipe.value);
         toast("Gespeichert.", "success");
       })
-      .catch(() => toast("Fehler.", "danger"));
+      .catch(() => toast("Rezept konnte nicht gespeichert werden.", "danger"));
   } else {
     toast("Unverändert.", "success");
   }
@@ -297,7 +297,12 @@ onBeforeUnmount(() => {
 <template>
   <div id="edit-v2">
     <div class="view-header">
-      <button class="btn-icon" @click="router.back()" title="Abbrechen">
+      <button
+        class="btn-icon"
+        @click="router.back()"
+        title="Abbrechen"
+        aria-label="Abbrechen"
+      >
         <i class="bi bi-x-lg"></i>
       </button>
       <span class="view-header-title">Bearbeiten</span>
@@ -306,6 +311,7 @@ onBeforeUnmount(() => {
           class="btn-icon"
           :disabled="!canUndo"
           title="Rückgängig (Ctrl+Z)"
+          aria-label="Rückgängig"
           @click="undo()"
         >
           <i class="bi bi-arrow-counterclockwise"></i>
@@ -314,6 +320,7 @@ onBeforeUnmount(() => {
           class="btn-icon"
           :disabled="!canRedo"
           title="Wiederherstellen (Ctrl+Y)"
+          aria-label="Wiederherstellen"
           @click="redo()"
         >
           <i class="bi bi-arrow-clockwise"></i>
@@ -322,6 +329,7 @@ onBeforeUnmount(() => {
           class="btn-icon"
           :disabled="!isDirty"
           title="Änderungen verwerfen"
+          aria-label="Änderungen verwerfen"
           @click="revertRecipe"
         >
           <i class="bi bi-x-circle"></i>
@@ -330,17 +338,24 @@ onBeforeUnmount(() => {
           v-if="hasDraft"
           class="btn-icon text-warning"
           title="Entwurf löschen"
+          aria-label="Entwurf löschen"
           @click="discardDraft()"
         >
           <i class="bi bi-trash"></i>
         </button>
-        <button class="btn-icon" title="Vorschau" @click="showPreview = true">
+        <button
+          class="btn-icon"
+          title="Vorschau"
+          aria-label="Vorschau"
+          @click="showPreview = true"
+        >
           <i class="bi bi-eye"></i>
         </button>
         <button
           class="btn-icon"
           @click="saveRecipe"
           title="Speichern (Ctrl+S)"
+          aria-label="Speichern"
           :disabled="!isDirty && !file && !delete_image"
         >
           <i class="bi bi-check-lg"></i>

@@ -185,6 +185,10 @@ const addExistingTag = (tag: string) => {
         <div
           v-if="!read_only && !compact"
           class="favorite-star"
+          role="button"
+          :aria-label="
+            isFavorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'
+          "
           @click.prevent="toggleFavorite"
         >
           <i
@@ -255,6 +259,7 @@ const addExistingTag = (tag: string) => {
             size="sm"
             :class="{ 'fab-open': fabMenuOpen }"
             title="Aktionen"
+            aria-label="Aktionen"
           >
             <i
               class="bi"
@@ -321,6 +326,7 @@ const addExistingTag = (tag: string) => {
         class="tag-editor-close"
         @click.prevent.stop="showTagEditor = false"
         title="Schließen (ESC)"
+        aria-label="Schließen"
       >
         <i class="bi bi-x-lg"></i>
       </BButton>

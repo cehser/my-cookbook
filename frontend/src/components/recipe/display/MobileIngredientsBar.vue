@@ -27,7 +27,12 @@ defineEmits<{
 <template>
   <div class="ingredients-bottom-bar" :class="{ expanded: isExpanded }">
     <!-- Collapsed State -->
-    <div v-if="!isExpanded" class="bottom-bar-collapsed" @click="$emit('open')">
+    <button
+      v-if="!isExpanded"
+      class="bottom-bar-collapsed"
+      aria-label="Zutaten öffnen"
+      @click="$emit('open')"
+    >
       <!-- Portionen-Kontrolle (Mobile Collapsed) -->
       <PortionControl
         :yields-value="yieldsValue"
@@ -42,7 +47,7 @@ defineEmits<{
       <i class="bi bi-list-ul"></i>
       <span class="bar-title">Zutaten</span>
       <i class="bi bi-chevron-up"></i>
-    </div>
+    </button>
 
     <!-- Expanded State -->
     <div v-else class="bottom-bar-expanded">
@@ -134,6 +139,10 @@ defineEmits<{
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-md);
   color: var(--color-primary);
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
 }
 
 .bottom-bar-collapsed .bar-title {

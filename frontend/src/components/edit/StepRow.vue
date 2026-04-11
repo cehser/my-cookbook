@@ -69,6 +69,7 @@ function removeNotes() {
           size="sm"
           variant="outline-secondary"
           title="Notiz hinzufügen"
+          aria-label="Notiz hinzufügen"
           @click="addNote"
         >
           <i class="bi bi-chat-square-text"></i>
@@ -77,6 +78,7 @@ function removeNotes() {
           size="sm"
           variant="outline-danger"
           title="Schritt löschen"
+          aria-label="Schritt löschen"
           @click="emit('delete')"
         >
           <i class="bi bi-trash"></i>
@@ -96,6 +98,7 @@ function removeNotes() {
       <button
         class="btn-note-remove"
         title="Notiz entfernen"
+        aria-label="Notiz entfernen"
         @click="removeNotes"
       >
         <i class="bi bi-x"></i>
@@ -115,7 +118,7 @@ function removeNotes() {
 .drag-handle {
   cursor: grab;
   padding: 4px;
-  color: #999;
+  color: var(--color-text-muted);
   font-size: 1.1em;
   min-width: 20px;
   display: flex;
@@ -132,7 +135,7 @@ function removeNotes() {
   min-width: 24px;
   text-align: right;
   margin-top: 6px;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 .step-text {
@@ -164,14 +167,14 @@ function removeNotes() {
 .step-notes textarea {
   resize: none;
   font-size: 0.82em;
-  color: #666;
+  color: var(--color-text-muted);
   flex: 1;
 }
 
 .btn-note-remove {
   background: none;
   border: none;
-  color: #999;
+  color: var(--color-text-muted);
   padding: 2px 4px;
   cursor: pointer;
   font-size: 0.9em;
@@ -179,7 +182,7 @@ function removeNotes() {
 }
 
 .btn-note-remove:hover {
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 .step-row-wrapper {

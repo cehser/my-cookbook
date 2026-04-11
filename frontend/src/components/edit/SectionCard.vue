@@ -159,6 +159,7 @@ onBeforeUnmount(() => {
           size="sm"
           variant="outline-secondary"
           title="Nach oben"
+          aria-label="Nach oben"
           :disabled="sectionIndex === 0"
           @click="emit('move-section', 'up')"
         >
@@ -168,6 +169,7 @@ onBeforeUnmount(() => {
           size="sm"
           variant="outline-secondary"
           title="Nach unten"
+          aria-label="Nach unten"
           :disabled="sectionIndex >= totalSections - 1"
           @click="emit('move-section', 'down')"
         >
@@ -177,6 +179,7 @@ onBeforeUnmount(() => {
           size="sm"
           variant="outline-danger"
           title="Abschnitt löschen"
+          aria-label="Abschnitt löschen"
           @click="emit('delete-section')"
         >
           <i class="bi bi-trash"></i>
@@ -250,7 +253,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .section-card {
-  border: 1px solid rgba(0, 0, 0, 0.125);
+  border: 1px solid var(--color-border);
 }
 
 .section-header {
@@ -258,7 +261,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: var(--color-divider);
 }
 
 .section-actions {
@@ -286,16 +289,16 @@ onBeforeUnmount(() => {
   font-size: 0.85em;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #666;
+  color: var(--color-text-muted);
   margin-bottom: 8px;
   padding-bottom: 4px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .drag-handle {
   cursor: grab;
   padding: 4px;
-  color: #999;
+  color: var(--color-text-muted);
   font-size: 1.1em;
 }
 

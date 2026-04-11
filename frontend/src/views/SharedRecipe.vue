@@ -77,7 +77,7 @@ onMounted(async () => {
 <template>
   <div id="recipe" :class="{ 'shared-mode': true }">
     <!-- Minimale Navbar -->
-    <nav class="navbar navbar-dark bg-dark sticky-top">
+    <nav class="shared-navbar sticky-top">
       <div class="container-fluid">
         <span class="navbar-brand">Kochbuch</span>
         <span class="badge bg-secondary"
@@ -116,3 +116,26 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.shared-navbar {
+  display: flex;
+  align-items: center;
+  height: var(--view-header-height);
+  padding: 0 var(--space-3);
+  background: var(--color-chrome);
+  color: var(--color-chrome-text);
+}
+
+.shared-navbar .container-fluid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.shared-navbar .navbar-brand {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-lg);
+  color: var(--color-chrome-text);
+}
+</style>
