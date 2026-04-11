@@ -206,6 +206,7 @@ function importRecipe(ev: Event) {
                   )
                 "
                 :read_only="settings.read_only"
+                compact
                 @delete="handleDeleteRecipe(recipe.recipe_uuid)"
               />
             </div>

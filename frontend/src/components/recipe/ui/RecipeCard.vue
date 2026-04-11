@@ -12,6 +12,7 @@ const props = defineProps<{
   index: number;
   highlight?: string;
   read_only: boolean;
+  compact?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -182,7 +183,7 @@ const addExistingTag = (tag: string) => {
 
         <!-- Favoriten-Stern (immer sichtbar, linke obere Ecke) -->
         <div
-          v-if="!read_only"
+          v-if="!read_only && !compact"
           class="favorite-star"
           @click.prevent="toggleFavorite"
         >
@@ -198,7 +199,11 @@ const addExistingTag = (tag: string) => {
         </div>
 
         <!-- FAB mit Menü (rechts unten in der Karte) -->
-        <div v-if="!read_only" class="card-fab-container" @click.stop>
+        <div
+          v-if="!read_only && !compact"
+          class="card-fab-container"
+          @click.stop
+        >
           <transition name="fab-items">
             <div v-if="fabMenuOpen" class="card-fab-menu">
               <BButton
@@ -259,7 +264,10 @@ const addExistingTag = (tag: string) => {
         </div>
       </div>
 
-      <div class="card-body recipe_title">
+      <div
+        class="card-body recipe_title"
+        :class="{ 'card-body-compact': compact }"
+      >
         <h2
           class="card-title d-flex flex-row flex-wrap justify-content-between"
         >
@@ -272,26 +280,28 @@ const addExistingTag = (tag: string) => {
             </template>
           </span>
         </h2>
-        <p class="card-text">{{ recipe.subtitle }}</p>
-        <div v-if="displayTime || isDraft" class="recipe-badges mt-1 mb-1">
-          <span v-if="displayTime" class="badge bg-light text-muted me-1">
-            <i class="bi bi-clock"></i> {{ displayTime }}
-          </span>
-          <span
-            v-if="isDraft"
-            class="badge bg-warning-subtle text-warning-emphasis me-1"
-          >
-            <i class="bi bi-pencil"></i> Entwurf
-          </span>
-        </div>
-        <div v-if="recipe.tags && recipe.tags.length" class="mt-2">
-          <span
-            v-for="(tag, idx) in recipe.tags"
-            :key="idx"
-            class="badge bg-secondary me-1"
-            >{{ tag }}</span
-          >
-        </div>
+        <template v-if="!compact">
+          <p class="card-text">{{ recipe.subtitle }}</p>
+          <div v-if="displayTime || isDraft" class="recipe-badges mt-1 mb-1">
+            <span v-if="displayTime" class="badge bg-light text-muted me-1">
+              <i class="bi bi-clock"></i> {{ displayTime }}
+            </span>
+            <span
+              v-if="isDraft"
+              class="badge bg-warning-subtle text-warning-emphasis me-1"
+            >
+              <i class="bi bi-pencil"></i> Entwurf
+            </span>
+          </div>
+          <div v-if="recipe.tags && recipe.tags.length" class="mt-2">
+            <span
+              v-for="(tag, idx) in recipe.tags"
+              :key="idx"
+              class="badge bg-secondary me-1"
+              >{{ tag }}</span
+            >
+          </div>
+        </template>
       </div>
     </router-link>
 
@@ -394,6 +404,16 @@ const addExistingTag = (tag: string) => {
   bottom: 0;
   background-color: rgba(230, 230, 230, 0.6);
   /*color: black;*/
+}
+
+.card-body-compact {
+  padding: 0.35rem 0.5rem;
+}
+
+.card-body-compact .card-title {
+  font-size: 0.78rem;
+  margin-bottom: 0;
+  line-height: 1.2;
 }
 
 .quick-actions {

@@ -101,8 +101,18 @@ watch(
       resume();
 
       // Auto-restore draft when navigated with ?draft=1
-      if (route.query.draft === "1" && hasDraft.value) {
-        restoreDraft();
+      if (route.query.draft === "1") {
+        const draftKey = `draft:${props.id}`;
+        const stored = localStorage.getItem(draftKey);
+        if (stored && current_recipe.value) {
+          try {
+            current_recipe.value = JSON.parse(
+              stored,
+            ) as typeof current_recipe.value;
+          } catch {
+            /* ignore corrupt draft */
+          }
+        }
         commit();
         clear();
         router.replace({ ...route, query: {} });
