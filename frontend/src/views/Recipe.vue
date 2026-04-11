@@ -277,7 +277,7 @@ function exportRecipe() {
 .header-menu-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1040;
+  z-index: 1029;
 }
 
 /* Menu transition */
