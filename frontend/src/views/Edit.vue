@@ -100,21 +100,16 @@ watch(
       clear();
       resume();
 
-      // Auto-restore draft when navigated with ?draft=1
-      if (route.query.draft === "1") {
-        const draftKey = `draft:${props.id}`;
-        const stored = localStorage.getItem(draftKey);
-        if (stored && current_recipe.value) {
-          try {
-            current_recipe.value = JSON.parse(
-              stored,
-            ) as typeof current_recipe.value;
-          } catch {
-            /* ignore corrupt draft */
-          }
-        }
+      // Auto-restore draft if one exists
+      if (hasDraft.value) {
+        restoreDraft();
         commit();
         clear();
+        toast("Entwurf wiederhergestellt.", "info");
+      }
+
+      // Clean up ?draft=1 query param if present
+      if (route.query.draft) {
         router.replace({ ...route, query: {} });
       }
     } else {
@@ -354,24 +349,6 @@ onBeforeUnmount(() => {
     </div>
 
     <BContainer v-if="current_recipe" class="mt-3 mb-5">
-      <!-- Draft Recovery Banner -->
-      <BAlert v-if="hasDraft" variant="warning" :model-value="true">
-        Es gibt einen ungespeicherten Entwurf.
-        <BButton
-          size="sm"
-          variant="warning"
-          @click="
-            restoreDraft();
-            commit();
-            clear();
-          "
-          >Wiederherstellen</BButton
-        >
-        <BButton size="sm" variant="outline-secondary" @click="discardDraft"
-          >Verwerfen</BButton
-        >
-      </BAlert>
-
       <datalist id="ingredient-units-list">
         <option
           v-for="unit in ingredient_units"

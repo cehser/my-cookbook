@@ -65,7 +65,6 @@ export function useDraft(
         discardDraft();
       }
     }
-    hasDraft.value = false;
   }
 
   function discardDraft() {
