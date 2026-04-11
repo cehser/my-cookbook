@@ -387,7 +387,7 @@ KOCH-MODUS                   EDIT-MODUS
 | UX-4 | Inline-Edit entfernt (−1233 Zeilen, −18 KiB) | UX-1 | ✅ Abgeschlossen (04/2026) |
 | UX-5 | ProfileView (Settings/Admin/Logout) | UX-1 | ✅ Abgeschlossen (04/2026) |
 | UX-6 | PWA Auto-Update + Session Restore + Sort-Persist | UX-1 | 📋 Geplant |
-| UX-7 | RecipeGrid-Komponente kapseln (Infinite Scroll Vorb.) | UX-2 | 📋 Geplant |
+| UX-7 | RecipeGrid-Komponente kapseln (Infinite Scroll Vorb.) | UX-2 | ✅ Abgeschlossen (04/2026) |
 
 UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind unabhängig voneinander).
 
@@ -424,7 +424,7 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 | **UX-4** | **UX-Umbau** | **Inline-Edit entfernt** | **1 Tag** | **🟡 Wichtig** | **✅ Abgeschlossen (04/2026)** |
 | **UX-5** | **UX-Umbau** | **ProfileView** | **1 Tag** | **🟡 Wichtig** | **✅ Abgeschlossen (04/2026)** |
 | **UX-6** | **UX-Umbau** | **PWA Auto-Update + Session Restore** | **1-2 Tage** | **🟢 Optional** | **📋 Nächster Schritt** |
-| UX-7 | UX-Umbau | RecipeGrid kapseln (Infinite Scroll Vorb.) | 0.5 Tage | 🟢 Optional | 📋 Geplant |
+| UX-7 | UX-Umbau | RecipeGrid kapseln (Infinite Scroll Vorb.) | 0.5 Tage | 🟢 Optional | ✅ Abgeschlossen (04/2026) |
 | ~~4~~ | ~~Workflow~~ | ~~Tabbed Interface + Session Restore~~ | — | — | ✅ Ersetzt durch UX-Konzept |
 | 5 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional | 📋 Geplant |
 | 6 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional | 📋 Geplant |
@@ -506,7 +506,7 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 - [x] ProfileView (Settings/Admin/Logout) → UX-5 ✅
 - [ ] PWA Auto-Update beim Seitenwechsel → UX-6
 - [ ] Session Restore (Route + Timestamp) → UX-6
-- [ ] RecipeGrid-Komponente kapseln → UX-7
+- [x] RecipeGrid-Komponente kapseln → UX-7 ✅
 
 ### Neue Features - Phase D (Design):
 - [ ] Design-System
