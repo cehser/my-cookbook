@@ -53,7 +53,7 @@ const routes: RouteRecordRaw[] = [
     path: "/settings",
     name: "Settings",
     component: () =>
-      import(/* webpackChunkName: "settings" */ "../views/Settings.vue"),
+      import(/* webpackChunkName: "profile" */ "../views/ProfileView.vue"),
     beforeEnter: requireAuth,
     meta: { mode: "browsing" },
   },
