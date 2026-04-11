@@ -181,47 +181,38 @@ async function handleLogout() {
 </template>
 
 <style scoped>
-.section-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #6c757d;
-  margin-bottom: 0.5rem;
-}
-
 .profile-avatar {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
-  background: var(--bs-tertiary-bg, #f0f0f0);
-  font-size: 1.5rem;
-  color: var(--bs-secondary-color, #6c757d);
+  border-radius: var(--radius-circle);
+  background: var(--color-divider);
+  font-size: var(--font-size-xl);
+  color: var(--color-text-muted);
 }
 
 .settings-card {
-  background: var(--bs-body-bg, #fff);
-  border: 1px solid var(--bs-border-color, #dee2e6);
-  border-radius: var(--radius-md, 8px);
-  padding: 12px 14px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
 }
 
 .profile-link-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--bs-border-color, #dee2e6);
-  border-radius: var(--radius-md, 8px);
-  background: var(--bs-body-bg, #fff);
-  font-size: 0.9rem;
-  color: var(--bs-body-color);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
   cursor: pointer;
   text-align: left;
 }
 
 .profile-link-item:hover {
-  background: var(--bs-tertiary-bg, #f8f9fa);
+  background: var(--color-divider);
 }
 </style>

@@ -54,9 +54,9 @@ const activeTab = computed(() => {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  height: 56px;
-  background: var(--bs-dark, #212529);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  height: var(--bottom-nav-height);
+  background: var(--color-chrome);
+  border-top: 1px solid var(--color-chrome-border);
   z-index: 1040;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
@@ -68,9 +68,9 @@ const activeTab = computed(() => {
   justify-content: center;
   flex: 1;
   height: 100%;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-chrome-muted);
   text-decoration: none;
-  font-size: 0.65rem;
+  font-size: var(--font-size-xs);
   gap: 2px;
   transition: color var(--transition-fast);
   -webkit-tap-highlight-color: transparent;
@@ -82,11 +82,11 @@ const activeTab = computed(() => {
 }
 
 .bottom-nav-item.active {
-  color: #ffffff;
+  color: var(--color-chrome-text);
 }
 
 .bottom-nav-item:hover {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-chrome-text);
 }
 
 .bottom-nav-item.active .bi {

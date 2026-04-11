@@ -217,7 +217,7 @@ const difficultyClass = computed(() => {
   background: rgba(0, 0, 0, 0.92);
   backdrop-filter: blur(12px);
   color: white;
-  padding: 1.5rem;
+  padding: var(--space-5);
   overflow-y: auto;
   z-index: 20;
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.4);
@@ -227,15 +227,15 @@ const difficultyClass = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 1rem;
-  margin-bottom: 1.5rem;
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .metadata-header h6 {
   margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
 }
 
 /* Close button uses shared CloseButton component */
@@ -243,28 +243,28 @@ const difficultyClass = computed(() => {
 .metadata-content {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .meta-row {
   display: flex;
-  gap: 1rem;
-  padding: 1rem;
+  gap: var(--space-4);
+  padding: var(--space-4);
   background: rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   align-items: start;
 }
 
 .meta-row i {
-  font-size: 1.5rem;
+  font-size: var(--font-size-xl);
   opacity: 0.8;
   min-width: 24px;
 }
 
 .meta-row strong {
   display: block;
-  margin-bottom: 0.25rem;
-  font-size: 0.9rem;
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-base);
   opacity: 0.7;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -272,7 +272,7 @@ const difficultyClass = computed(() => {
 
 .meta-row p {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--font-size-md);
 }
 
 .meta-row a {
@@ -289,8 +289,8 @@ const difficultyClass = computed(() => {
 .slide-in-right-enter-active,
 .slide-in-right-leave-active {
   transition:
-    transform 0.3s ease,
-    opacity 0.3s ease;
+    transform var(--transition-normal),
+    opacity var(--transition-normal);
 }
 
 .slide-in-right-enter-from {
@@ -310,10 +310,10 @@ const difficultyClass = computed(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 100;
+  background: var(--color-surface-overlay);
+  z-index: var(--z-mobile-bar);
   backdrop-filter: blur(4px);
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn var(--transition-normal);
 }
 
 @keyframes fadeIn {
@@ -334,8 +334,8 @@ const difficultyClass = computed(() => {
   background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(20px);
   color: white;
-  border-radius: 20px 20px 0 0;
-  padding: 1.5rem;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--space-5);
   overflow-y: auto;
   z-index: 101;
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
@@ -346,7 +346,7 @@ const difficultyClass = computed(() => {
   height: 4px;
   background: rgba(255, 255, 255, 0.3);
   border-radius: 2px;
-  margin: 0 auto 1rem;
+  margin: 0 auto var(--space-4);
 }
 
 /* Slide-up Animation */

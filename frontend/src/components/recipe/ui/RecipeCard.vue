@@ -389,10 +389,10 @@ const addExistingTag = (tag: string) => {
 
 .recipe_card_container img {
   position: absolute;
-  border-radius: calc(0.25rem - 1px);
+  border-radius: var(--radius-sm);
 
-  object-fit: cover; /* Do not scale the image */
-  object-position: center; /* Center the image within the element */
+  object-fit: cover;
+  object-position: center;
   width: 100%;
   height: 100%;
   margin: auto;
@@ -403,32 +403,35 @@ const addExistingTag = (tag: string) => {
   position: absolute;
   bottom: 0;
   background-color: rgba(230, 230, 230, 0.6);
-  /*color: black;*/
+}
+
+[data-bs-theme="dark"] .recipe_title {
+  background-color: rgba(30, 28, 26, 0.75);
 }
 
 .card-body-compact {
-  padding: 0.35rem 0.5rem;
+  padding: var(--space-1) var(--space-2);
 }
 
 .card-body-compact .card-title {
-  font-size: 0.78rem;
+  font-size: var(--font-size-xs);
   margin-bottom: 0;
-  line-height: 1.2;
+  line-height: var(--line-height-tight);
 }
 
 .quick-actions {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: var(--space-2);
+  right: var(--space-2);
   display: flex;
-  gap: 0.25rem;
-  z-index: 10;
+  gap: var(--space-1);
+  z-index: var(--z-actions);
 }
 
 /* Edit und Delete buttons nur beim Hover zeigen */
 .quick-actions .action-btn {
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--transition-fast);
 }
 
 .recipe_card_container:hover .quick-actions .action-btn {
@@ -438,9 +441,9 @@ const addExistingTag = (tag: string) => {
 /* FAB Container in der Karte (rechts oben) */
 .card-fab-container {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 10;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: var(--z-actions);
   display: flex;
   flex-direction: column-reverse;
   align-items: flex-end;
@@ -449,16 +452,16 @@ const addExistingTag = (tag: string) => {
 .card-fab-menu {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
   align-items: flex-end;
 }
 
 .card-fab-menu-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  gap: var(--space-2);
+  box-shadow: var(--shadow-md);
   white-space: nowrap;
   min-width: 120px;
   justify-content: flex-start;
@@ -520,13 +523,13 @@ const addExistingTag = (tag: string) => {
 /* Favoriten-Stern in der oberen linken Ecke */
 .favorite-star {
   position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  z-index: 10;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: var(--z-actions);
   cursor: pointer;
-  font-size: 1.5rem;
+  font-size: var(--font-size-xl);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  transition: transform 0.2s ease;
+  transition: transform var(--transition-fast);
 }
 
 .favorite-star:hover {
@@ -535,16 +538,16 @@ const addExistingTag = (tag: string) => {
 
 /* Tag-Editor */
 .tag-editor {
-  background: rgba(255, 255, 255, 0.95);
-  padding: 0.5rem;
-  padding-top: 2rem;
-  border-radius: 0.25rem;
+  background: var(--color-surface-raised);
+  padding: var(--space-2);
+  padding-top: var(--space-6);
+  border-radius: var(--radius-sm);
   position: absolute;
   bottom: 3.5rem;
-  left: 0.5rem;
-  right: 0.5rem;
+  left: var(--space-2);
+  right: var(--space-2);
   z-index: 11;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md);
 }
 
 .tag-editor:focus {
@@ -553,16 +556,16 @@ const addExistingTag = (tag: string) => {
 
 .tag-editor-close {
   position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  color: #6c757d;
-  padding: 0.25rem 0.5rem;
+  top: var(--space-1);
+  right: var(--space-1);
+  color: var(--color-text-muted);
+  padding: var(--space-1) var(--space-2);
   line-height: 1;
   z-index: 12;
 }
 
 .tag-editor-close:hover {
-  color: #000;
+  color: var(--color-text);
 }
 
 .recipe_card_container:hover .tag-editor {
@@ -584,7 +587,7 @@ const addExistingTag = (tag: string) => {
 }
 
 .action-btn.btn-light:hover {
-  background-color: #e2e6ea;
+  background-color: var(--color-divider);
 }
 .recipe_title p {
   -webkit-line-clamp: 1;

@@ -30,8 +30,8 @@ defineEmits<{
   border: none;
   font-size: 1.25rem;
   cursor: pointer;
-  padding: 0.25rem;
-  color: var(--bs-secondary);
+  padding: var(--space-1);
+  color: var(--color-text-muted);
   transition: var(--transition-transform);
 }
 

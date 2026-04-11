@@ -62,32 +62,32 @@ function formatAmount(ingredient: Ingredient) {
 .ingredients-sections {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-5);
 }
 
 .ingredients-section {
-  padding: 1rem;
-  background: var(--bs-body-bg);
-  border-radius: 8px;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
   border-left: 3px solid transparent;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .ingredients-section.active {
-  border-left-color: var(--bs-primary);
-  background: rgba(var(--bs-primary-rgb), 0.05);
+  border-left-color: var(--color-primary);
+  background: var(--color-primary-subtle);
 }
 
 .ingredients-section h5 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: var(--bs-primary);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-4);
+  color: var(--color-primary);
 }
 
 .ingredient-row {
-  padding: 0.35rem 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .ingredient-row:last-child {
@@ -95,11 +95,11 @@ function formatAmount(ingredient: Ingredient) {
 }
 
 .ingredient-amount {
-  font-weight: 600;
-  color: var(--bs-secondary);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
 }
 
 .ingredient-name {
-  color: var(--bs-body-color);
+  color: var(--color-text);
 }
 </style>

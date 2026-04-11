@@ -49,11 +49,5 @@ function handleDeleteRecipe(uuid: string) {
 </template>
 
 <style scoped>
-.section-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #6c757d;
-}
+/* section-label is global in App.vue */
 </style>

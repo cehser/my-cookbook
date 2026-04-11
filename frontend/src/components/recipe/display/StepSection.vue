@@ -64,26 +64,26 @@ function getStepNumber(sectionName: string, stepIndex: number) {
 
 <style scoped>
 .step-section {
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-6);
 }
 
 .step-section h4 {
   font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: var(--bs-dark);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-4);
+  color: var(--color-text);
 }
 
 .list-group-item {
-  padding: 1rem;
+  padding: var(--space-4);
   font-size: 1.05rem;
-  line-height: 1.5;
+  line-height: var(--line-height-base);
 }
 
 @media (max-width: 767px) {
   .list-group-item {
-    padding: 1rem;
-    font-size: 1.1rem;
+    padding: var(--space-4);
+    font-size: var(--font-size-lg);
   }
 }
 </style>

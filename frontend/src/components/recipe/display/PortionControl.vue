@@ -128,23 +128,23 @@ function updateValue(value: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: rgba(var(--bs-light-rgb), 0.5);
-  border-radius: 50px;
-  margin-top: 1rem;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-divider);
+  border-radius: var(--radius-pill);
+  margin-top: var(--space-4);
 }
 
 .portion-btn {
-  width: 40px;
-  height: 40px;
+  width: var(--action-btn-size-small);
+  height: var(--action-btn-size-small);
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   border: none;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .portion-btn:hover:not(:disabled) {
@@ -154,7 +154,7 @@ function updateValue(value: string) {
 .portions-display {
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .portions-input-desktop {
@@ -162,11 +162,11 @@ function updateValue(value: string) {
   height: 40px;
   text-align: center;
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   border: none;
-  background: white;
-  border-radius: 8px;
-  padding: 0.25rem;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-md);
+  padding: var(--space-1);
   -webkit-appearance: none;
   -moz-appearance: textfield;
   appearance: textfield;
@@ -184,9 +184,9 @@ function updateValue(value: string) {
 }
 
 .portions-display .unit {
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--bs-body-color);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -197,10 +197,10 @@ function updateValue(value: string) {
 .portions-control-mobile {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem 0.5rem;
-  background: rgba(var(--bs-light-rgb), 0.3);
-  border-radius: 20px;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-divider);
+  border-radius: var(--radius-pill);
 }
 
 .portion-btn-mobile {
@@ -210,23 +210,23 @@ function updateValue(value: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: var(--bs-primary);
+  border-radius: var(--radius-circle);
+  background: var(--color-primary);
   border: none;
-  color: white;
-  font-size: 0.875rem;
+  color: var(--color-text-on-primary);
+  font-size: var(--font-size-sm);
 }
 
 .portions-input-mobile {
   width: 40px;
   height: 28px;
   text-align: center;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
   border: none;
-  background: white;
-  border-radius: 6px;
-  padding: 0.15rem;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-sm);
+  padding: 2px;
   -webkit-appearance: none;
   -moz-appearance: textfield;
   appearance: textfield;
@@ -244,8 +244,8 @@ function updateValue(value: string) {
 }
 
 .portions-unit-mobile {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -258,29 +258,29 @@ function updateValue(value: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: rgba(var(--bs-light-rgb), 0.5);
-  border-radius: 50px;
-  margin-bottom: 1rem;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-divider);
+  border-radius: var(--radius-pill);
+  margin-bottom: var(--space-4);
 }
 
 .portions-display-expanded {
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .portions-input-expanded {
   width: 70px;
   height: 44px;
   text-align: center;
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
   border: none;
-  background: white;
-  border-radius: 10px;
-  padding: 0.35rem;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-md);
+  padding: var(--space-1);
   -webkit-appearance: none;
   -moz-appearance: textfield;
   appearance: textfield;
@@ -298,9 +298,9 @@ function updateValue(value: string) {
 }
 
 .portions-display-expanded .unit {
-  font-size: 1.1rem;
-  font-weight: 500;
-  color: var(--bs-body-color);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

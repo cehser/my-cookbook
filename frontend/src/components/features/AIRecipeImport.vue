@@ -388,14 +388,14 @@ onBeforeUnmount(() => {
 .camera-preview {
   width: 100%;
   max-width: 500px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: #000;
 }
 
 .recipe-preview {
-  padding: 1rem;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  background: #f8f9fa;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-divider);
 }
 </style>

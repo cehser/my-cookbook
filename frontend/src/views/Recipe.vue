@@ -244,34 +244,34 @@ function exportRecipe() {
   top: 100%;
   right: 0;
   min-width: 180px;
-  background: var(--bs-body-bg, #fff);
-  border: 1px solid var(--bs-border-color, #dee2e6);
-  border-radius: var(--radius-md, 8px);
-  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
-  padding: 4px 0;
-  z-index: 1050;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-1) 0;
+  z-index: var(--z-overlay);
 }
 
 .header-dropdown-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   width: 100%;
-  padding: 8px 14px;
+  padding: var(--space-2) var(--space-3);
   border: none;
   background: none;
-  font-size: 0.9rem;
-  color: var(--bs-body-color);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
   cursor: pointer;
   text-align: left;
 }
 
 .header-dropdown-item:hover {
-  background: var(--bs-tertiary-bg, #f8f9fa);
+  background: var(--color-divider);
 }
 
 .header-dropdown .dropdown-divider {
-  margin: 4px 0;
+  margin: var(--space-1) 0;
 }
 
 .header-menu-backdrop {
@@ -283,7 +283,7 @@ function exportRecipe() {
 /* Menu transition */
 .header-menu-enter-active,
 .header-menu-leave-active {
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .header-menu-enter-from,

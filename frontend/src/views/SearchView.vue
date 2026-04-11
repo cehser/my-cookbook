@@ -221,7 +221,7 @@ onMounted(() => {
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 1.1rem;
   z-index: 1;
   pointer-events: none;
@@ -230,13 +230,13 @@ onMounted(() => {
 .search-input {
   padding-left: 42px;
   padding-right: 42px;
-  border-radius: var(--radius-md, 12px);
-  border: 2px solid #dee2e6;
-  transition: border-color var(--transition-fast, 0.2s ease);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  transition: border-color var(--transition-fast);
 }
 
 .search-input:focus {
-  border-color: var(--bs-primary, #0d6efd);
+  border-color: var(--color-primary);
   box-shadow: none;
 }
 
@@ -247,22 +247,22 @@ onMounted(() => {
   transform: translateY(-50%);
   border: none;
   background: transparent;
-  color: #6c757d;
-  padding: 8px;
+  color: var(--color-text-muted);
+  padding: var(--space-2);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: var(--font-size-base);
 }
 
 .tag-chip {
-  font-size: 0.8rem;
-  padding: 0.3rem 0.6rem;
+  font-size: var(--font-size-xs);
+  padding: var(--space-1) var(--space-2);
   cursor: pointer;
-  transition: all 0.15s ease;
-  font-weight: 400;
+  transition: all var(--transition-fast);
+  font-weight: var(--font-weight-normal);
 }
 
 .tag-chip:hover {
   transform: translateY(-1px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xs);
 }
 </style>

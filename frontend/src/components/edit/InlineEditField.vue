@@ -106,8 +106,8 @@ onClickOutside(wrapperRef, () => {
 .inline-edit-input {
   font: inherit;
   padding: 2px 6px;
-  border: 1px solid var(--bs-primary, #0d6efd);
-  border-radius: 4px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
   outline: none;
   width: 100%;
 }

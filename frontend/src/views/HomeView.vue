@@ -339,20 +339,12 @@ function importRecipe(ev: Event) {
 </template>
 
 <style scoped>
-.section-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #6c757d;
-}
-
 /* Horizontal scroll for recent recipes */
 .recent-scroll {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   overflow-x: auto;
-  padding-bottom: 8px;
+  padding-bottom: var(--space-2);
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
 }
@@ -362,7 +354,7 @@ function importRecipe(ev: Event) {
 }
 
 .recent-scroll::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--color-border);
   border-radius: 2px;
 }
 
@@ -385,9 +377,9 @@ function importRecipe(ev: Event) {
 /* Horizontal scroll for drafts */
 .draft-scroll {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: var(--space-1);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -396,7 +388,7 @@ function importRecipe(ev: Event) {
 }
 
 .draft-scroll::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--color-border);
   border-radius: 2px;
 }
 
@@ -404,89 +396,88 @@ function importRecipe(ev: Event) {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  background: var(--bs-warning-bg-subtle, #fff3cd);
-  color: var(--bs-warning-text-emphasis, #664d03);
-  font-size: 0.82rem;
-  font-weight: 500;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   white-space: nowrap;
   text-decoration: none;
-  transition: background var(--transition-fast, 0.2s ease);
+  transition: background var(--transition-fast);
 }
 
 .draft-chip:hover {
-  background: var(--bs-warning-border-subtle, #ffe69c);
-  color: var(--bs-warning-text-emphasis, #664d03);
+  filter: brightness(0.95);
   text-decoration: none;
 }
 
 /* FAB */
 .fab-container {
   position: fixed;
-  bottom: calc(var(--bottom-nav-height, 56px) + 16px);
-  right: 16px;
-  z-index: var(--z-fab, 1000);
+  bottom: calc(var(--bottom-nav-height) + var(--space-4));
+  right: var(--space-4);
+  z-index: var(--z-fab);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .fab-button {
-  width: var(--fab-size, 56px);
-  height: var(--fab-size, 56px);
-  border-radius: var(--radius-circle, 50%);
+  width: var(--fab-size);
+  height: var(--fab-size);
+  border-radius: var(--radius-circle);
   border: none;
-  background: var(--bs-primary, #0d6efd);
-  color: #fff;
-  font-size: 1.5rem;
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+  font-size: var(--font-size-xl);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-fab, 0 4px 8px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--shadow-fab);
   cursor: pointer;
   transition:
-    transform var(--transition-fast, 0.2s ease),
-    box-shadow var(--transition-fast, 0.2s ease);
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .fab-button:hover {
-  box-shadow: var(--shadow-fab-hover, 0 6px 12px rgba(0, 0, 0, 0.4));
+  box-shadow: var(--shadow-fab-hover);
   transform: scale(1.05);
 }
 
 .fab-button.open {
-  background: var(--bs-secondary, #6c757d);
+  background: var(--color-text-muted);
   transform: rotate(90deg);
 }
 
 .fab-menu {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1);
   align-items: flex-end;
 }
 
 .fab-menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-radius: var(--radius-md, 12px);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
   border: none;
-  background: var(--bs-dark, #212529);
-  color: #fff;
-  font-size: 0.85rem;
+  background: var(--color-chrome);
+  color: var(--color-chrome-text);
+  font-size: var(--font-size-sm);
   white-space: nowrap;
-  box-shadow: var(--shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.15));
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: background var(--transition-fast, 0.2s ease);
+  transition: background var(--transition-fast);
 }
 
 .fab-menu-item:hover {
-  background: #343a40;
+  background: var(--color-chrome-hover);
 }
 
 .fab-items-enter-active,

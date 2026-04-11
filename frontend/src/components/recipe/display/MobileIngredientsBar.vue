@@ -117,10 +117,10 @@ defineEmits<{
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 100;
-  background: white;
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
+  z-index: var(--z-mobile-bar);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: 0 -2px 12px rgba(60, 50, 40, 0.15);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -128,12 +128,12 @@ defineEmits<{
 .bottom-bar-collapsed {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   cursor: pointer;
-  font-weight: 600;
-  font-size: 1rem;
-  color: var(--bs-primary);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-md);
+  color: var(--color-primary);
 }
 
 .bottom-bar-collapsed .bar-title {
@@ -141,15 +141,15 @@ defineEmits<{
 }
 
 .bottom-bar-collapsed .active-section-chip {
-  font-size: 0.85rem;
-  color: var(--bs-secondary);
-  font-weight: 400;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-normal);
 }
 
 .divider-vertical {
   width: 1px;
   height: 28px;
-  background: var(--bs-border-color);
+  background: var(--color-border);
   flex-shrink: 0;
 }
 
@@ -163,27 +163,27 @@ defineEmits<{
   display: flex;
   flex-direction: column;
   max-height: 60vh;
-  padding: 1rem;
+  padding: var(--space-4);
 }
 
 .bar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--bs-border-color);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .bar-header h6 {
   margin: 0;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* Filter Toggle */
 .filter-toggle {
   display: flex;
-  gap: 0.5rem;
-  margin: 1rem 0;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
 }
 
 .filter-toggle .btn {
@@ -194,17 +194,17 @@ defineEmits<{
 .ingredients-content {
   overflow-y: auto;
   flex: 1;
-  padding: 0.5rem 0;
-  margin-bottom: 1rem;
+  padding: var(--space-2) 0;
+  margin-bottom: var(--space-4);
 }
 
 /* Section Quick-Jump Chips */
 .section-chips {
   display: flex;
-  gap: 0.5rem;
-  padding: 0.75rem 0 0.5rem;
+  gap: var(--space-2);
+  padding: var(--space-3) 0 var(--space-2);
   overflow-x: auto;
-  border-top: 1px solid var(--bs-border-color);
+  border-top: 1px solid var(--color-border);
   flex-wrap: nowrap;
   scrollbar-width: none;
 }
