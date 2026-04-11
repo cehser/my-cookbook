@@ -381,8 +381,8 @@ KOCH-MODUS                   EDIT-MODUS
 
 | Phase | Thema | Abhängigkeiten | Status |
 |---|---|---|---|
-| UX-1 | Bottom Nav + Modi-System (Foundation) | — | 📋 Nächster Schritt |
-| UX-2 | Gallery → HomeView, SearchView, FavoritesView | UX-1 | 📋 Geplant |
+| UX-1 | Bottom Nav + Modi-System (Foundation) | — | ✅ Abgeschlossen (04/2026) |
+| UX-2 | Gallery → HomeView, SearchView, FavoritesView | UX-1 | 📋 Nächster Schritt |
 | UX-3 | Koch-Modus Header (Navbar → Minimal-Header) | UX-1 | 📋 Geplant |
 | UX-4 | Edit-Modus Header + Inline-Edit entfernen | UX-1 | 📋 Geplant |
 | UX-5 | Profil-Tab (Settings/Admin/Logout) | UX-1 | 📋 Geplant |
@@ -418,8 +418,8 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 | 2 | Koch-Ansicht | Inline-Editing | 3-4 Tage | 🔴 Kritisch | ✅ Abgeschlossen (29.12.) |
 | 3 | Editor | Editor-Neugestaltung | 2-3 Wochen | 🟡 Wichtig | ✅ Abgeschlossen (04/2026) |
 | **UX** | **Konzept** | **UX-Gesamtkonzept** | **2-3 Tage** | **🔴 Kritisch** | **✅ Bestätigt (04/2026)** |
-| **UX-1** | **UX-Umbau** | **Bottom Nav + Modi-System** | **2-3 Tage** | **🔴 Kritisch** | **📋 Nächster Schritt** |
-| UX-2 | UX-Umbau | Gallery → Home/Suche/Favoriten | 3-4 Tage | 🔴 Kritisch | 📋 Geplant |
+| **UX-1** | **UX-Umbau** | **Bottom Nav + Modi-System** | **2-3 Tage** | **🔴 Kritisch** | **✅ Abgeschlossen (04/2026)** |
+| **UX-2** | **UX-Umbau** | **Gallery → Home/Suche/Favoriten** | **3-4 Tage** | **🔴 Kritisch** | **📋 Nächster Schritt** |
 | UX-3 | UX-Umbau | Koch-Modus Header | 1 Tag | 🟡 Wichtig | 📋 Geplant |
 | UX-4 | UX-Umbau | Edit-Header + Inline-Edit entfernen | 1-2 Tage | 🟡 Wichtig | 📋 Geplant |
 | UX-5 | UX-Umbau | Profil-Tab | 1 Tag | 🟡 Wichtig | 📋 Geplant |
@@ -491,8 +491,8 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 - [x] Error-Handler (globaler `app.config.errorHandler` + `unhandledrejection`) — keine User-sichtbare Recovery-UI
 
 ### Neue Features - UX-Umbau "Immersive + Bottom Nav":
-- [ ] Bottom Nav (4 Tabs: Home, Suche, Favoriten, Profil) → UX-1
-- [ ] Top-Navbar entfernen → UX-1
+- [x] Bottom Nav (4 Tabs: Home, Suche, Favoriten, Profil) → UX-1 ✅
+- [x] Top-Navbar entfernen → UX-1 ✅
 - [ ] HomeView mit "Zuletzt geöffnet" + "Entwürfe" Sektionen → UX-2
 - [ ] SearchView mit Volltextsuche + Filter → UX-2
 - [ ] FavoritesView → UX-2
@@ -500,8 +500,8 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 - [ ] FAB (+) für Neues Rezept / AI-Import → UX-2
 - [ ] useDraftIndex Composable → UX-2
 - [ ] useRecentRecipes Composable → UX-2
-- [ ] Koch-Modus Minimal-Header (← ⭐ ⋮) → UX-3
-- [ ] Edit-Modus eigener Header (✕ 💾 ↩↪) → UX-4
+- [x] Koch-Modus View-Header (← Rezeptname) → UX-1 ✅ (⭐ ⋮ → UX-3)
+- [x] Edit-Modus View-Header (✕ Bearbeiten 💾 ↩↪) → UX-1 ✅ (Inline-Edit entfernen → UX-4)
 - [ ] Inline-Edit entfernen → UX-4
 - [ ] ProfileView (Settings/Admin/Logout) → UX-5
 - [ ] PWA Auto-Update beim Seitenwechsel → UX-6
@@ -558,18 +558,20 @@ Alle Fragen sind durch das "Immersive + Bottom Nav"-Konzept beantwortet:
 - ✅ Keyboard Shortcuts Ctrl+Z/Y/S (Sprint 3)
 - ✅ Composable-Architektur (useIngredientEditor, useStepEditor, useSectionEditor)
 - ✅ Globales Error-Handling
+- ✅ Bottom Nav + Modi-System (UX-1)
+- ✅ View-Header für Koch- und Edit-Modus (UX-1)
 
 **Bekannte Probleme (werden durch UX-Umbau gelöst):**
-- 🔴 `/favorites` und `/search` Routen sind nicht funktional (Attrappen)
-- 🟡 Kein Rezept-zu-Rezept-Wechsel ohne Gallery-Return
-- 🟡 Kein Zurück-Button in Recipe/Edit
-- 🟡 Doppelter Edit-Modus (Inline vs. Full) verwirrend
-- 🟡 RecipeCards zeigen keine Zeit/Schwierigkeit
-- 🟠 Suche nur nach Titel, nicht nach Zutaten
-- 🟠 Drafts unsichtbar in der Gallery
-- 🟠 PWA-Update-Code ist toter Code (swUpdated Event wird nie gefeuert)
+- 🔴 `/favorites` und `/search` Routen sind nicht funktional (Attrappen) → UX-2
+- 🟡 Kein Rezept-zu-Rezept-Wechsel ohne Gallery-Return → UX-2
+- ✅ ~~Kein Zurück-Button in Recipe/Edit~~ → UX-1 gelöst
+- 🟡 Doppelter Edit-Modus (Inline vs. Full) verwirrend → UX-4
+- 🟡 RecipeCards zeigen keine Zeit/Schwierigkeit → UX-2
+- 🟠 Suche nur nach Titel, nicht nach Zutaten → UX-2
+- 🟠 Drafts unsichtbar in der Gallery → UX-2
+- ✅ ~~PWA-Update-Code ist toter Code~~ → UX-1 gelöst (Gallery.vue bereinigt)
 
-**Nächster Schritt:** Phase UX-1 — Bottom Nav + Modi-System
+**Nächster Schritt:** Phase UX-2 — Gallery-Umbau (HomeView, SearchView, FavoritesView)
 
 **Hinweis:** Frontend-Code liegt seit B6 unter `frontend/` (nicht mehr im Root). Alle `src/`-Pfade in dieser Roadmap beziehen sich auf `frontend/src/`.
 

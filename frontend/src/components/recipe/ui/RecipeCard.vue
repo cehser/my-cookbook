@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { useRecipeStore } from "@/store/recipeStore";
+import { useDraftIndex } from "@/composables/useDraftIndex";
 import { useRouter } from "vue-router";
 import type { Recipe } from "@/types/recipe";
 import { recipeUrl, editUrl } from "@/js/slug";
@@ -19,6 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const store = useRecipeStore();
+const { hasDraft } = useDraftIndex();
 const router = useRouter();
 const newTag = ref("");
 const showTagEditor = ref(false);
@@ -100,6 +102,17 @@ const highlightedNameParts = computed(() => {
 const recipeLink = computed(() =>
   recipeUrl(props.recipe.recipe_uuid, props.recipe.recipe_name),
 );
+
+const isDraft = computed(() => hasDraft(props.recipe.recipe_uuid));
+
+const displayTime = computed(() => {
+  return (
+    props.recipe.total_time ||
+    props.recipe.cook_time ||
+    props.recipe.prep_time ||
+    null
+  );
+});
 
 const toggleFavorite = () => {
   if (isFavorite.value) {
@@ -260,6 +273,17 @@ const addExistingTag = (tag: string) => {
           </span>
         </h2>
         <p class="card-text">{{ recipe.subtitle }}</p>
+        <div v-if="displayTime || isDraft" class="recipe-badges mt-1 mb-1">
+          <span v-if="displayTime" class="badge bg-light text-muted me-1">
+            <i class="bi bi-clock"></i> {{ displayTime }}
+          </span>
+          <span
+            v-if="isDraft"
+            class="badge bg-warning-subtle text-warning-emphasis me-1"
+          >
+            <i class="bi bi-pencil"></i> Entwurf
+          </span>
+        </div>
         <div v-if="recipe.tags && recipe.tags.length" class="mt-2">
           <span
             v-for="(tag, idx) in recipe.tags"

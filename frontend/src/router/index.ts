@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
-import Gallery from "@/views/Gallery.vue";
+import HomeView from "@/views/HomeView.vue";
 import { requireAuth, requireRole } from "@/auth/guards";
 
 declare module "vue-router" {
@@ -12,21 +12,23 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/",
     name: "Gallery",
-    component: Gallery,
+    component: HomeView,
     beforeEnter: requireAuth,
     meta: { mode: "browsing" },
   },
   {
     path: "/favorites",
     name: "Favorites",
-    component: Gallery, // Temporär: Nutzt Gallery-Komponente, später eigene View oder Query-Parameter
+    component: () =>
+      import(/* webpackChunkName: "favorites" */ "../views/FavoritesView.vue"),
     beforeEnter: requireAuth,
     meta: { mode: "browsing" },
   },
   {
     path: "/search",
     name: "Search",
-    component: Gallery, // Temporär: Nutzt Gallery-Komponente mit Fokus auf Suchleiste
+    component: () =>
+      import(/* webpackChunkName: "search" */ "../views/SearchView.vue"),
     beforeEnter: requireAuth,
     meta: { mode: "browsing" },
   },

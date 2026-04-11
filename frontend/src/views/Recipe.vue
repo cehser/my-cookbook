@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
+import { useRecentRecipes } from "@/composables/useRecentRecipes";
 import { useRecipeStore } from "@/store/recipeStore";
 import { useUIStore } from "@/store/uiStore";
 import RecipeDisplay from "@/components/recipe/display/RecipeDisplay.vue";
@@ -20,6 +21,7 @@ const router = useRouter();
 const store = useRecipeStore();
 const uiStore = useUIStore();
 const { toast: showToast } = useToast();
+const { trackRecipe } = useRecentRecipes();
 
 const idRef = computed(() => props.id);
 const { current_recipe, selected, picture_src } = useRecipeHelper({
@@ -58,6 +60,7 @@ watch(
 // Lifecycle
 onMounted(() => {
   uiStore.restoreUIState();
+  if (props.id) trackRecipe(props.id);
 });
 
 // Methods
