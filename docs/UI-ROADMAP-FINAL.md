@@ -295,7 +295,7 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 
 **Hintergrund:** Mehrere geplante Features greifen ineinander und beeinflussen dieselben UI-Bereiche (Navbar, Galerie, Router). Ohne ein abgestimmtes Konzept entstehen Inkonsistenzen.
 
-**Usability-Ziele (was der User können soll):**
+**Usability-Ziele:**
 
 1. **Schnell zum richtigen Rezept finden** — egal ob Favorit, kürzlich geöffnet oder neu
 2. **Auf einen Blick sehen, wo ungespeicherte Änderungen liegen** (Draft-Indikator)
@@ -305,33 +305,91 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 6. **Klare, aufgeräumte Navigation** — nur das Nötigste sichtbar, kein Feature-Overload
 7. **Auf dem Smartphone in der Küche gut bedienbar** — große Buttons, erreichbare Zonen
 
-**Was heute existiert — Bestandsaufnahme:**
+**Konzept: "Immersive + Bottom Nav"** ✅ Bestätigt (04/2026)
 
-| Bereich | Ist-Zustand |
-|---|---|
-| Startseite | Galerie mit Card-Grid, Filter (Text, Autor, Schwierigkeit, Tags), 5 Sortier-Optionen |
-| Favoriten | Backend ✅, Stern auf Cards ✅, Sortierung „Favoriten zuerst" ✅ — aber kein dedizierter Zugang |
-| Drafts | `useDraft` speichert in localStorage ✅ — aber nur im Editor sichtbar, nicht in der Galerie |
-| Navigation | Top-Navbar mit Galerie, Favoriten, Suche + User-Dropdown (Einstellungen, Admin, Logout) |
-| Rezept-Wechsel | Jedes Rezept = voller Seitenwechsel, kein Zustand bleibt erhalten |
-| Session | Gallery-State (Filter, Scroll) wird persistiert ✅ — Route/Rezept-Kontext nicht |
-| Editor-Aktionen | Undo/Redo/Speichern im Navbar-Slot (Edit.vue) |
-| Navbar-Props | `recipes_list` und `read_only` werden übergeben, aber nicht genutzt (Dead Code) |
+Drei klar getrennte Modi mit einer einzigen Bottom Nav. Kein Top-Navbar mehr.
 
-**Design-Entscheidungen, die getroffen werden müssen:**
+**Drei Modi:**
 
-- Wie sieht die Startseite aus und wie findet der User seine Rezepte?
-- Wie werden Favoriten und Entwürfe im Gesamtkonzept sichtbar?
-- Wie funktioniert das Wechseln zwischen Rezepten (und zurück zur Übersicht)?
-- Was gehört in die globale Navigation, was ist kontextspezifisch?
-- Wie funktioniert das alles auf dem Smartphone?
+| Modus | Bottom Nav | View-Header | Zweck |
+|---|---|---|---|
+| **Browsing** | ✅ sichtbar | View-spezifisch (Titel, Sort) | Rezepte finden, stöbern |
+| **Koch-Modus** | ❌ versteckt | `← Rezeptname ⭐ ⋮` (minimal) | Kochen, max. Inhaltsfläche |
+| **Edit-Modus** | ❌ versteckt | `✕ Bearbeiten 💾 [↩↪]` | Bearbeiten, eigene Toolbar |
 
-**Ergebnis dieses Sprints:**
-- [ ] Navigationsstruktur (Sitemap: welche Views gibt es, wie hängen sie zusammen)
-- [ ] Wireframes für Startseite, Rezeptansicht, Editor (Desktop + Mobile)
-- [ ] Konzept für Favoriten- und Draft-Sichtbarkeit
-- [ ] Konzept für Rezept-Wechsel und Session-Wiederherstellung
-- [ ] Navbar/Navigation-Redesign
+**Bottom Nav — 4 Tabs:**
+
+| Tab | Funktion | View |
+|---|---|---|
+| 🏠 Home | Card-Grid + Zuletzt + Drafts | HomeView (ehem. Gallery) |
+| 🔍 Suche | Suchfeld + Filter (Tags, Autor, Schwierigkeit) | SearchView |
+| ⭐ Favoriten | Nur favorisierte Rezepte | FavoritesView |
+| 👤 Profil | Einstellungen, Admin, Experten, Logout | ProfileView |
+
+**Wireframes:**
+
+```
+🏠 HOME                     🔍 SUCHE
+┌──────────────────────┐    ┌──────────────────────┐
+│ 🕐 Zuletzt geöffnet  │    │ 🔍 [Suche...      ✕] │
+│ [Karte] [Karte]    → │    │ [Tag1] [Tag2] [Tag3] │
+├──────────────────────┤    │ Autor: [Alle ▼]      │
+│ ✏️ 2 Entwürfe anzeig.│    │ Schwierigk.: [Alle ▼]│
+├──────────────────────┤    ├──────────────────────┤
+│ Alle Rezepte (142)[↕]│    │ 3 Ergebnisse         │
+│ ┌────┐ ┌────┐ ┌────┐│    │ ┌────┐ ┌────┐ ┌────┐│
+│ │Bild│ │Bild│ │Bild││    │ │    │ │    │ │    ││
+│ │Name│ │Name│ │Name││    │ └────┘ └────┘ └────┘│
+│ │⭐⏱30│ │✏️⏱45│ │ ⏱20││    │                      │
+│ └────┘ └────┘ └────┘│    │                      │
+│            [+]       │    │                      │
+├──────────────────────┤    ├──────────────────────┤
+│ 🏠    🔍    ⭐    👤 │    │ 🏠    🔍    ⭐    👤 │
+└──────────────────────┘    └──────────────────────┘
+
+KOCH-MODUS                   EDIT-MODUS
+┌──────────────────────┐    ┌──────────────────────┐
+│ ← Apfelkuchen  ⭐  ⋮│    │ ✕ Bearbeiten  💾 ↩ ↪ │
+│                      │    │                      │
+│ [Rezeptbild]         │    │ [Bild ändern]        │
+│                      │    │ Titel: [Apfelkuchen] │
+│ Schritt 1...         │    │ ┌─ TEIG ── [▲][▼][✕]│
+│ Schritt 2...         │    │ │ Zutaten │ Schritte │
+│ ...                  │    │ │ [200g]  │ [Mehl..]│
+│                      │    │ │ [Mehl_] │ [+Schri]│
+│ [🥕 Zutaten ▲]      │    │ │ [+Zutat]│         │
+└──────────────────────┘    │ └────────────────────┤
+ Kein Bottom Nav!            │ [+ Abschnitt]        │
+                             └──────────────────────┘
+                              Kein Bottom Nav!
+```
+
+**Design-Entscheidungen (bestätigt):**
+- **Home-Tab:** "Zuletzt geöffnet" + "Entwürfe" Sektionen adaptiv (nur wenn Daten vorhanden)
+- **Neues Rezept:** FAB (+) im Home-Tab (Long-Press: AI-Import, YAML-Import)
+- **Edit-Modi vereinheitlicht:** Kein separates Inline-Edit. Nur Full-Editor.
+- **Rezept-Wechsel:** ← Zurück zum letzten Tab → neues Rezept wählen
+- **RecipeCards angereichert:** + ⏱ Gesamtzeit, + ✏️ Draft-Badge
+- **Suche:** Volltextsuche (auch Zutaten/Schritte), nicht nur Titel
+- **PWA-Update:** Automatisch beim nächsten Seitenwechsel, kein User-Prompt
+- **Session Restore:** Route + Timestamp in localStorage, < 30 Min → Koch-Modus wiederherstellen
+- **Tablet:** Gleiches Interaktionsmodell, mehr Spalten + Split-View
+- **Desktop:** Bottom Nav bleibt unten (konsistentes Layout)
+- **Infinite Scroll:** Card-Grid als Komponente kapseln (Vorbereitung), nicht sofort implementieren
+
+**Umsetzungsphasen:**
+
+| Phase | Thema | Abhängigkeiten | Status |
+|---|---|---|---|
+| UX-1 | Bottom Nav + Modi-System (Foundation) | — | 📋 Nächster Schritt |
+| UX-2 | Gallery → HomeView, SearchView, FavoritesView | UX-1 | 📋 Geplant |
+| UX-3 | Koch-Modus Header (Navbar → Minimal-Header) | UX-1 | 📋 Geplant |
+| UX-4 | Edit-Modus Header + Inline-Edit entfernen | UX-1 | 📋 Geplant |
+| UX-5 | Profil-Tab (Settings/Admin/Logout) | UX-1 | 📋 Geplant |
+| UX-6 | PWA Auto-Update + Session Restore | UX-1 | 📋 Geplant |
+| UX-7 | RecipeGrid-Komponente kapseln (Infinite Scroll Vorb.) | UX-2 | 📋 Geplant |
+
+UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind unabhängig voneinander).
 
 ---
 
@@ -359,8 +417,15 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 | ~~2~~ | ~~Koch-Ansicht~~ | ~~Mobile FAB + Slide-In~~ | ~~2-3 Tage~~ | ⏭️ Übersprungen | ✅ Feature-Set ausreichend |
 | 2 | Koch-Ansicht | Inline-Editing | 3-4 Tage | 🔴 Kritisch | ✅ Abgeschlossen (29.12.) |
 | 3 | Editor | Editor-Neugestaltung | 2-3 Wochen | 🟡 Wichtig | ✅ Abgeschlossen (04/2026) |
-| **UX** | **Konzept** | **UX-Gesamtkonzept** | **2-3 Tage** | **🔴 Kritisch** | **📋 Nächster Schritt** |
-| 4 | Workflow | Tabbed Interface + Session Restore | 3-4 Tage | 🟢 Optional | ⏸️ Wartet auf UX-Konzept |
+| **UX** | **Konzept** | **UX-Gesamtkonzept** | **2-3 Tage** | **🔴 Kritisch** | **✅ Bestätigt (04/2026)** |
+| **UX-1** | **UX-Umbau** | **Bottom Nav + Modi-System** | **2-3 Tage** | **🔴 Kritisch** | **📋 Nächster Schritt** |
+| UX-2 | UX-Umbau | Gallery → Home/Suche/Favoriten | 3-4 Tage | 🔴 Kritisch | 📋 Geplant |
+| UX-3 | UX-Umbau | Koch-Modus Header | 1 Tag | 🟡 Wichtig | 📋 Geplant |
+| UX-4 | UX-Umbau | Edit-Header + Inline-Edit entfernen | 1-2 Tage | 🟡 Wichtig | 📋 Geplant |
+| UX-5 | UX-Umbau | Profil-Tab | 1 Tag | 🟡 Wichtig | 📋 Geplant |
+| UX-6 | UX-Umbau | PWA Auto-Update + Session Restore | 1-2 Tage | 🟢 Optional | 📋 Geplant |
+| UX-7 | UX-Umbau | RecipeGrid kapseln (Infinite Scroll Vorb.) | 0.5 Tage | 🟢 Optional | 📋 Geplant |
+| ~~4~~ | ~~Workflow~~ | ~~Tabbed Interface + Session Restore~~ | — | — | ✅ Ersetzt durch UX-Konzept |
 | 5 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional | 📋 Geplant |
 | 6 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional | 📋 Geplant |
 | 7 | Editor | Rezept-Wizard | 1 Woche | 🟢 Optional | 📋 Geplant |
@@ -372,9 +437,10 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 - **Sprint 1 (Abgeschlossen):** ✅ 4 Tage (24.-27.12.2025)
 - **Sprint 2 (Abgeschlossen):** ✅ 2 Tage (28.-29.12.2025)
 - **Sprint 3 (Abgeschlossen):** ✅ Editor-Neugestaltung (04/2026)
-- **Sprint UX (Konzept):** 2-3 Tage — Blocker für Sprint 4-7
-- **Optionale Sprints (4-7):** +2-3 Wochen (nach UX-Konzept)
-- **Design-Polish (9):** Parallel zu Sprint 4
+- **UX-Konzept (Abgeschlossen):** ✅ Bestätigt (04/2026)
+- **UX-Umbau (UX-1 bis UX-7):** ~10-12 Tage (UX-1 Blocker, Rest teilweise parallel)
+- **Optionale Sprints (5-7):** +2-3 Wochen
+- **Design-Polish (9):** Parallel möglich
 
 ---
 
@@ -417,12 +483,30 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 - [x] Metadaten-Editor ✅ (bereits in Edit.vue implementiert)
 
 ### Neue Features - Phase C (Workflow, Optional):
-- [ ] Tabbed Interface (Multi-Rezept, Position merken) → Sprint 4
-- [ ] Session State Restoration (iOS PWA Fix) → Sprint 4
+- [x] ~~Tabbed Interface~~ → Ersetzt durch UX-Konzept "Immersive + Bottom Nav" (Modi-System)
+- [ ] Session State Restoration (iOS PWA Fix) → UX-6
 - [ ] Einkaufsliste-Export (Clipboard + Native Share) → Sprint 5
 - [ ] Koch-Notizen (Text + Spracheingabe) → Sprint 6
 - [x] ~~URL-Rezept-Sharing~~ → Ersetzt durch serverseitige Share-Links (Backend B5)
 - [x] Error-Handler (globaler `app.config.errorHandler` + `unhandledrejection`) — keine User-sichtbare Recovery-UI
+
+### Neue Features - UX-Umbau "Immersive + Bottom Nav":
+- [ ] Bottom Nav (4 Tabs: Home, Suche, Favoriten, Profil) → UX-1
+- [ ] Top-Navbar entfernen → UX-1
+- [ ] HomeView mit "Zuletzt geöffnet" + "Entwürfe" Sektionen → UX-2
+- [ ] SearchView mit Volltextsuche + Filter → UX-2
+- [ ] FavoritesView → UX-2
+- [ ] RecipeCards anreichern (⏱ Zeit, ✏️ Draft-Badge) → UX-2
+- [ ] FAB (+) für Neues Rezept / AI-Import → UX-2
+- [ ] useDraftIndex Composable → UX-2
+- [ ] useRecentRecipes Composable → UX-2
+- [ ] Koch-Modus Minimal-Header (← ⭐ ⋮) → UX-3
+- [ ] Edit-Modus eigener Header (✕ 💾 ↩↪) → UX-4
+- [ ] Inline-Edit entfernen → UX-4
+- [ ] ProfileView (Settings/Admin/Logout) → UX-5
+- [ ] PWA Auto-Update beim Seitenwechsel → UX-6
+- [ ] Session Restore (Route + Timestamp) → UX-6
+- [ ] RecipeGrid-Komponente kapseln → UX-7
 
 ### Neue Features - Phase D (Design):
 - [ ] Design-System
@@ -433,88 +517,61 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 
 **Hoher Impact (viel Boilerplate eliminierbar):**
 - [ ] `useViewport.ts` — gesamte Datei ersetzbar durch `useWindowSize()` (~25 → ~5 Zeilen)
-- [ ] `AppNavbar.vue` — `navigator.onLine` + manuelle Listener → `useOnline()` (~15 → 1 Zeile)
-- [ ] `IngredientInlineEdit.vue` — manuelle click/keydown Listener + Cleanup an 3 Stellen → `onClickOutside` + `onKeyStroke` (~30 Zeilen)
-- [ ] `StepInlineEdit.vue` — identisches Pattern → `onClickOutside` + `onKeyStroke` (~30 Zeilen)
 - [ ] `RecipeDisplay.vue` — manueller `IntersectionObserver` + setTimeout-Debounce → `useIntersectionObserver` + `useDebounceFn` (~30 Zeilen)
 
 **Mittlerer Impact:**
 - [ ] `RecipeCard.vue` — manueller keydown-Listener in watch → `onKeyStroke("Escape", ...)`
 - [ ] `Administration.vue` — manueller keydown + `navigator.clipboard` → `useEventListener` + `useClipboard`
 - [ ] `ShareManager.vue` — `navigator.clipboard.writeText` → `useClipboard` (+ `copied` State für UI-Feedback)
-- [ ] `Gallery.vue` — manuelles `swUpdated` Event + Service Worker Listener → `useEventListener`
 
-**Niedriger Impact (optional):**
-- [ ] `Recipe.vue` — `window.scrollTo(0,0)` — Einzeiler, VueUse wäre Overkill
+**Entfällt durch UX-Umbau:**
+- ~~`AppNavbar.vue`~~ → wird komplett entfernt (UX-1)
+- ~~`IngredientInlineEdit.vue`~~ → wird komplett entfernt (UX-4)
+- ~~`StepInlineEdit.vue`~~ → wird komplett entfernt (UX-4)
+- ~~`Gallery.vue` swUpdated~~ → toter Code, wird entfernt (UX-2)
 
-### UX-Prüfung: Navbar-Überarbeitung (Backlog)
+### ~~UX-Prüfung: Navbar-Überarbeitung~~ ✅ Geklärt durch UX-Konzept
 
-Die Navbar enthält aktuell viele Features, die möglicherweise besser woanders aufgehoben wären.
-
-**Aktuelle Navbar-Elemente:**
-- Brand-Link "Kochbuch", Galerie, Favoriten, Suche
-- User-Avatar + Dropdown (Einstellungen, Verwaltung, Experten-Modus, Abmelden)
-- Offline-Banner
-- Default-Slot (Edit.vue: Undo/Redo/Speichern, Gallery.vue: Update-Button)
-- Unused Props: `recipes_list` und `read_only` werden übergeben, aber nicht genutzt
-
-**Zu klärende Fragen:**
-- [ ] Gehören Undo/Redo/Speichern in die Navbar oder besser in eine eigene Editor-Toolbar?
-- [ ] Ist "Experten-Modus" im User-Dropdown sinnvoll oder besser in den Einstellungen?
-- [ ] Favoriten als eigener Nav-Link oder als Filter in der Galerie (Toggle/Tab)?
-- [ ] Suche als eigener Nav-Link oder als Suchfeld direkt in der Navbar?
-- [ ] Offline-Banner: Ist die Navbar der richtige Ort oder besser ein globaler Toast/Banner?
-- [ ] Unused Props `recipes_list` / `read_only` entfernen (Dead Code)
-- [ ] Loading-Spinner (`d-none`, nur per DOM-ID steuerbar) — entfernen oder durch reaktiven State ersetzen?
+Alle Fragen sind durch das "Immersive + Bottom Nav"-Konzept beantwortet:
+- Navbar wird komplett durch Bottom Nav ersetzt (UX-1)
+- Undo/Redo/Speichern → eigener Edit-Header (UX-4)
+- Experten-Modus → Profil-Tab (UX-5)
+- Favoriten → eigener Tab (UX-2)
+- Suche → eigener Tab (UX-2)
+- Dead Code (Props, Loading-Spinner) → entfällt mit Navbar-Entfernung (UX-1)
 
 ---
 
 ## 🚀 Aktueller Stand & Nächste Schritte
 
-**Sprint 2 Status:** ✅ Abgeschlossen (29.12.2025)  
+**Sprint 3 Status:** ✅ Abgeschlossen (04/2026)
+**UX-Konzept:** ✅ Bestätigt — "Immersive + Bottom Nav" (04/2026)
 **Code Quality Session:** ✅ Abgeschlossen (27.-28.12.2025)
 
 **Was funktioniert:**
-- ✅ Koch-fokussierte Navbar mit Galerie/Favoriten/Suche (Sprint 0)
-- ✅ Vollständige Filter- und Sortier-Funktionen (Sprint 0)
-- ✅ Admin-Features im Dropdown (Sprint 0)
-- ✅ Quick Actions in RecipeCards (Sprint 0)
-- ✅ FAB in Rezeptansicht (Sprint 0)
-- ✅ Favoriten mit IndexedDB-Persistenz (Sprint 0)
-- ✅ AI-Import als Modal (Sprint 0)
-- ✅ **Split-View Desktop/Tablet** (Sprint 1)
-- ✅ **Mobile Bottom Bar** mit Zutaten (Sprint 1)
-- ✅ **Intersection Observer** für Abschnitts-Synchronisation (Sprint 1)
-- ✅ **Portionen-Skalierung** prominent mit Manual Input (Sprint 1)
-- ✅ **Metadaten-Overlay** dezent und visuell integriert (Sprint 1)
-- ✅ **Recipe.vue Refactoring** 51% Code-Reduktion (Post-Sprint 1)
-- ✅ **Design System** mit 42 CSS Custom Properties (Post-Sprint 1)
-- ✅ **Type Safety & Error Handling** verbessert (Post-Sprint 1)
-- ✅ **Security** XSS-Schwachstelle behoben (Post-Sprint 1)
-- ✅ **Code Quality** Full ESLint/Prettier Compliance (Post-Sprint 1)
-- ✅ **Inline-Editing** mit Manual Save und Dirty Tracking (Sprint 2)
-- ✅ **Globales Error-Handling** (app.config.errorHandler + unhandledrejection) verhindert weiße Bildschirme
+- ✅ Split-View Desktop/Tablet + Mobile Bottom Bar (Sprint 1)
+- ✅ Intersection Observer Abschnitts-Synchronisation (Sprint 1)
+- ✅ Portionen-Skalierung + Metadaten-Overlay (Sprint 1)
+- ✅ Inline-Editing mit Manual Save und Dirty Tracking (Sprint 2)
+- ✅ Card-Layout Editor mit SortableJS Drag & Drop (Sprint 3)
+- ✅ Draft Auto-Save + Undo/Redo (Sprint 3)
+- ✅ Keyboard Shortcuts Ctrl+Z/Y/S (Sprint 3)
+- ✅ Composable-Architektur (useIngredientEditor, useStepEditor, useSectionEditor)
+- ✅ Globales Error-Handling
 
-**Codebase Status:**
-- 🟢 Production-ready: Keine ESLint-Fehler, keine Warnungen
-- 🟢 Security: XSS-Schwachstelle in RecipeCard gefixt
-- 🟢 Maintainability: 51% weniger Code in Recipe.vue, 9+ reusable components
-- 🟢 Type Safety: Generic types, zentralisierte interfaces
-- 🟢 Design System: 42 CSS Custom Properties für Konsistenz
-- 🟢 UX: Inline-Editing mit präziser Kontrolle (Manual Save, nur eine Zeile gleichzeitig, Click-Outside)
-- 🟢 Error-Handling: Global Error Handler (Vue + unhandled rejections), Backend Exception Handler
-- 🟢 Projektstruktur: Saubere Trennung `frontend/` + `backend/` + zentrales `.env`
+**Bekannte Probleme (werden durch UX-Umbau gelöst):**
+- 🔴 `/favorites` und `/search` Routen sind nicht funktional (Attrappen)
+- 🟡 Kein Rezept-zu-Rezept-Wechsel ohne Gallery-Return
+- 🟡 Kein Zurück-Button in Recipe/Edit
+- 🟡 Doppelter Edit-Modus (Inline vs. Full) verwirrend
+- 🟡 RecipeCards zeigen keine Zeit/Schwierigkeit
+- 🟠 Suche nur nach Titel, nicht nach Zutaten
+- 🟠 Drafts unsichtbar in der Gallery
+- 🟠 PWA-Update-Code ist toter Code (swUpdated Event wird nie gefeuert)
 
-**Was noch verbessert werden muss:**
-- Tag-Editor Close-Funktionalität (ESC, Toggle) → siehe Known Issues
-- Metadaten-Bearbeitung im Editor → Sprint 4 (Editor-Überarbeitung)
-- Optional: [+ Zutat] / [+ Schritt] Buttons im Inline-Edit Modus
-- Error-Boundary-Komponente (Retry-Seite bei totalem Crash) → Phase C
+**Nächster Schritt:** Phase UX-1 — Bottom Nav + Modi-System
 
 **Hinweis:** Frontend-Code liegt seit B6 unter `frontend/` (nicht mehr im Root). Alle `src/`-Pfade in dieser Roadmap beziehen sich auf `frontend/src/`.
-
-**Nächster Schritt:** Sprint 3 (Rezept-Wizard) - Geschätzt 1 Woche  
-**Focus:** Guided Recipe Creation für bessere User Experience beim Rezept-Anlegen
 
 ---
 
