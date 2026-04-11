@@ -383,10 +383,10 @@ KOCH-MODUS                   EDIT-MODUS
 |---|---|---|---|
 | UX-1 | Bottom Nav + Modi-System (Foundation) | — | ✅ Abgeschlossen (04/2026) |
 | UX-2 | Gallery → HomeView, SearchView, FavoritesView | UX-1 | ✅ Abgeschlossen (04/2026) |
-| UX-3 | Koch-Modus Header (Navbar → Minimal-Header) | UX-1 | 📋 Geplant |
-| UX-4 | Edit-Modus Header + Inline-Edit entfernen | UX-1 | 📋 Geplant |
-| UX-5 | Profil-Tab (Settings/Admin/Logout) | UX-1 | 📋 Geplant |
-| UX-6 | PWA Auto-Update + Session Restore | UX-1 | 📋 Geplant |
+| UX-3 | Koch-Modus Header (⭐ Favorit + ⋮ Menü) | UX-1 | ✅ Abgeschlossen (04/2026) |
+| UX-4 | Inline-Edit entfernt (−1233 Zeilen, −18 KiB) | UX-1 | ✅ Abgeschlossen (04/2026) |
+| UX-5 | ProfileView (Settings/Admin/Logout) | UX-1 | ✅ Abgeschlossen (04/2026) |
+| UX-6 | PWA Auto-Update + Session Restore + Sort-Persist | UX-1 | 📋 Geplant |
 | UX-7 | RecipeGrid-Komponente kapseln (Infinite Scroll Vorb.) | UX-2 | 📋 Geplant |
 
 UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind unabhängig voneinander).
@@ -420,10 +420,10 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 | **UX** | **Konzept** | **UX-Gesamtkonzept** | **2-3 Tage** | **🔴 Kritisch** | **✅ Bestätigt (04/2026)** |
 | **UX-1** | **UX-Umbau** | **Bottom Nav + Modi-System** | **2-3 Tage** | **🔴 Kritisch** | **✅ Abgeschlossen (04/2026)** |
 | **UX-2** | **UX-Umbau** | **Gallery → Home/Suche/Favoriten** | **3-4 Tage** | **🔴 Kritisch** | **✅ Abgeschlossen (04/2026)** |
-| **UX-3** | **UX-Umbau** | **Koch-Modus Header** | **1 Tag** | **🟡 Wichtig** | **📋 Nächster Schritt** |
-| UX-4 | UX-Umbau | Edit-Header + Inline-Edit entfernen | 1-2 Tage | 🟡 Wichtig | 📋 Geplant |
-| UX-5 | UX-Umbau | Profil-Tab | 1 Tag | 🟡 Wichtig | 📋 Geplant |
-| UX-6 | UX-Umbau | PWA Auto-Update + Session Restore | 1-2 Tage | 🟢 Optional | 📋 Geplant |
+| **UX-3** | **UX-Umbau** | **Koch-Modus Header (⭐ + ⋮)** | **1 Tag** | **🟡 Wichtig** | **✅ Abgeschlossen (04/2026)** |
+| **UX-4** | **UX-Umbau** | **Inline-Edit entfernt** | **1 Tag** | **🟡 Wichtig** | **✅ Abgeschlossen (04/2026)** |
+| **UX-5** | **UX-Umbau** | **ProfileView** | **1 Tag** | **🟡 Wichtig** | **✅ Abgeschlossen (04/2026)** |
+| **UX-6** | **UX-Umbau** | **PWA Auto-Update + Session Restore** | **1-2 Tage** | **🟢 Optional** | **📋 Nächster Schritt** |
 | UX-7 | UX-Umbau | RecipeGrid kapseln (Infinite Scroll Vorb.) | 0.5 Tage | 🟢 Optional | 📋 Geplant |
 | ~~4~~ | ~~Workflow~~ | ~~Tabbed Interface + Session Restore~~ | — | — | ✅ Ersetzt durch UX-Konzept |
 | 5 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional | 📋 Geplant |
@@ -502,8 +502,8 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 - [x] useRecentRecipes Composable → UX-2 ✅
 - [x] Koch-Modus View-Header (← Rezeptname) → UX-1 ✅ (⭐ ⋮ → UX-3)
 - [x] Edit-Modus View-Header (✕ Bearbeiten 💾 ↩↪) → UX-1 ✅ (Inline-Edit entfernen → UX-4)
-- [ ] Inline-Edit entfernen → UX-4
-- [ ] ProfileView (Settings/Admin/Logout) → UX-5
+- [x] Inline-Edit entfernt (−1233 Zeilen, 4 Komponenten gelöscht) → UX-4 ✅
+- [x] ProfileView (Settings/Admin/Logout) → UX-5 ✅
 - [ ] PWA Auto-Update beim Seitenwechsel → UX-6
 - [ ] Session Restore (Route + Timestamp) → UX-6
 - [ ] RecipeGrid-Komponente kapseln → UX-7
@@ -564,17 +564,20 @@ Alle Fragen sind durch das "Immersive + Bottom Nav"-Konzept beantwortet:
 - ✅ SearchView mit Volltextsuche + Tag/Autor/Schwierigkeit-Filter (UX-2)
 - ✅ FavoritesView mit Empty-State (UX-2)
 - ✅ RecipeCard Badges: Zeitanzeige + Draft-Indikator (UX-2)
+- ✅ Koch-Modus Header: ⭐ Favorit-Toggle + ⋮ Dropdown (UX-3)
+- ✅ Inline-Edit entfernt, −1233 Zeilen, −18 KiB Bundle (UX-4)
+- ✅ ProfileView: Settings, Admin-Link, Logout (UX-5)
 
 **Bekannte Probleme (werden durch UX-Umbau gelöst):**
 - ✅ ~~/favorites und /search Routen nicht funktional~~ → UX-2 gelöst (eigene Views)
 - ✅ ~~Kein Zurück-Button in Recipe/Edit~~ → UX-1 gelöst
-- 🟡 Doppelter Edit-Modus (Inline vs. Full) verwirrend → UX-4
+- ✅ ~~Doppelter Edit-Modus (Inline vs. Full) verwirrend~~ → UX-4 gelöst (Inline-Edit entfernt)
 - ✅ ~~RecipeCards zeigen keine Zeit/Schwierigkeit~~ → UX-2 gelöst (Badges)
 - ✅ ~~Suche nur nach Titel, nicht nach Zutaten~~ → UX-2 gelöst (Volltextsuche)
 - ✅ ~~Drafts unsichtbar in der Gallery~~ → UX-2 gelöst (Entwürfe-Sektion + Badge)
 - ✅ ~~PWA-Update-Code ist toter Code~~ → UX-1 gelöst (Gallery.vue bereinigt)
 
-**Nächster Schritt:** Phase UX-3 — Koch-Modus Header (⭐ Favorit + ⋮ Kontextmenü)
+**Nächster Schritt:** Phase UX-6 — PWA Auto-Update + Session Restore + Sortierung persistieren
 
 **Hinweis:** Frontend-Code liegt seit B6 unter `frontend/` (nicht mehr im Root). Alle `src/`-Pfade in dieser Roadmap beziehen sich auf `frontend/src/`.
 

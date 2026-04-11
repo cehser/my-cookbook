@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useOnline } from "@vueuse/core";
 import { useRecipeStore } from "@/store/recipeStore";
+import { restoreSession } from "@/router";
 import BottomNav from "@/components/layout/BottomNav.vue";
 
 const route = useRoute();
+const router = useRouter();
 const store = useRecipeStore();
 const isOnline = useOnline();
 
@@ -16,6 +18,14 @@ onMounted(() => {
   store.loadRecipes();
   store.loadRecipePictures();
   store.loadFavorites();
+
+  // Session Restore: redirect to last recipe if cold-starting on home
+  if (route.path === "/") {
+    const savedPath = restoreSession();
+    if (savedPath) {
+      router.replace(savedPath);
+    }
+  }
 });
 </script>
 

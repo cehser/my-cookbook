@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
+import {
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+  watch,
+} from "vue";
 import { useRouter } from "vue-router";
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useRecentRecipes } from "@/composables/useRecentRecipes";
@@ -109,6 +116,11 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   uiStore.setGalleryScrollPosition(window.scrollY);
+});
+
+// Persist sort selection
+watch(sortBy, (val) => {
+  uiStore.setGallerySortBy(val);
 });
 
 // Methods

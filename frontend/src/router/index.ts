@@ -102,4 +102,42 @@ router.onError((error, to) => {
   }
 });
 
+// --- Session Restore (iOS PWA Fix) ---
+const SESSION_KEY = "my-cookbook-session";
+const SESSION_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
+
+interface SessionState {
+  path: string;
+  timestamp: number;
+}
+
+// Save route on every navigation (except edit mode and callback)
+router.afterEach((to) => {
+  if (to.meta?.mode === "edit" || to.name === "Callback") return;
+  try {
+    const state: SessionState = { path: to.fullPath, timestamp: Date.now() };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(state));
+  } catch {
+    // quota exceeded — ignore
+  }
+});
+
+/**
+ * Attempt to restore last session on cold start.
+ * Only restores cook-mode routes (Recipe view) within 30 min.
+ */
+export function restoreSession(): string | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const state: SessionState = JSON.parse(raw);
+    if (Date.now() - state.timestamp > SESSION_MAX_AGE_MS) return null;
+    // Only restore recipe (cook) routes — not edit, not browsing
+    if (!state.path.startsWith("/recipe/")) return null;
+    return state.path;
+  } catch {
+    return null;
+  }
+}
+
 export default router;
