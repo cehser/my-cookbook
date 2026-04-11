@@ -129,7 +129,7 @@ function updateValue(value: string) {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   background: var(--color-divider);
   border-radius: var(--radius-pill);
   margin-top: var(--space-4);
@@ -138,12 +138,14 @@ function updateValue(value: string) {
 .portion-btn {
   width: var(--action-btn-size-small);
   height: var(--action-btn-size-small);
+  min-width: var(--action-btn-size-small);
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-circle);
   border: none;
+  flex-shrink: 0;
   transition: all var(--transition-fast);
 }
 
@@ -158,8 +160,9 @@ function updateValue(value: string) {
 }
 
 .portions-input-desktop {
-  width: 60px;
+  width: 50px;
   height: 40px;
+  min-width: 40px;
   text-align: center;
   font-size: 1.25rem;
   font-weight: var(--font-weight-semibold);

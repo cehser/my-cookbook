@@ -23,7 +23,8 @@ function getUnit(ingredient: Ingredient) {
 function formatAmount(ingredient: Ingredient) {
   const amount = ingredient.amounts?.[0]?.amount;
   if (typeof amount !== "number") return amount;
-  return Number(amount).toLocaleString("de-DE", {
+  const rounded = parseFloat(amount.toPrecision(2));
+  return rounded.toLocaleString("de-DE", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
