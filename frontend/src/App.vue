@@ -160,16 +160,16 @@ onMounted(() => {
 }
 
 /* --- Dark Mode Colors -------------------- */
-[data-bs-theme="dark"] {
+html[data-bs-theme="dark"] {
   --color-primary: #8fa85c;
   --color-primary-hover: #a3bc70;
   --color-primary-subtle: #2e3425;
 
-  --color-surface: #1e1b18; /* Warmes Dunkelbraun statt Blaugrau */
-  --color-surface-raised: #2a2622; /* Warmer Raised-Ton */
+  --color-surface: #1e1b18;
+  --color-surface-raised: #2a2622;
   --color-surface-overlay: rgba(0, 0, 0, 0.65);
 
-  --color-chrome: #161311; /* Dunkleres Chrome für Kontrast */
+  --color-chrome: #161311;
   --color-chrome-text: #e8e2db;
   --color-chrome-muted: rgba(232, 226, 219, 0.45);
   --color-chrome-hover: rgba(232, 226, 219, 0.1);
@@ -191,35 +191,53 @@ onMounted(() => {
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
   --shadow-fab: 0 4px 12px rgba(0, 0, 0, 0.45);
   --shadow-fab-hover: 0 6px 16px rgba(0, 0, 0, 0.55);
+
+  /* Bootstrap Overrides – warm statt blaugrau */
+  --bs-body-bg: #1e1b18;
+  --bs-body-bg-rgb: 30, 27, 24;
+  --bs-body-color: #ece6df;
+  --bs-body-color-rgb: 236, 230, 223;
+  --bs-emphasis-color: #ece6df;
+  --bs-emphasis-color-rgb: 236, 230, 223;
+  --bs-secondary-color: rgba(236, 230, 223, 0.75);
+  --bs-secondary-color-rgb: 236, 230, 223;
+  --bs-secondary-bg: #2a2622;
+  --bs-secondary-bg-rgb: 42, 38, 34;
+  --bs-tertiary-color: rgba(236, 230, 223, 0.5);
+  --bs-tertiary-color-rgb: 236, 230, 223;
+  --bs-tertiary-bg: #322d29;
+  --bs-tertiary-bg-rgb: 50, 45, 41;
+  --bs-border-color: #3d3733;
+  --bs-border-color-translucent: rgba(255, 248, 240, 0.15);
+  --bs-primary: #8fa85c;
+  --bs-primary-rgb: 143, 168, 92;
+  --bs-link-color: #8fa85c;
+  --bs-link-hover-color: #a3bc70;
+  --bs-link-color-rgb: 143, 168, 92;
+  --bs-link-hover-color-rgb: 163, 188, 112;
+  --bs-heading-color: inherit;
 }
 
 /* --- Bootstrap Overrides (cascade) ------- */
 :root {
   --bs-font-sans-serif: var(--font-family);
   --bs-body-font-size: var(--font-size-base);
-  --bs-body-bg: var(--color-surface);
-  --bs-body-color: var(--color-text);
-  --bs-border-color: var(--color-border);
-  --bs-tertiary-bg: var(--color-divider);
-  --bs-secondary-color: var(--color-text-muted);
-  --bs-primary: var(--color-primary);
+  --bs-body-bg: #f7f4ef;
+  --bs-body-bg-rgb: 247, 244, 239;
+  --bs-body-color: #2c2520;
+  --bs-body-color-rgb: 44, 37, 32;
+  --bs-border-color: #e0dbd5;
+  --bs-tertiary-bg: #ede9e3;
+  --bs-secondary-color: #7a716a;
+  --bs-primary: #6b7f3b;
   --bs-primary-rgb: 107, 127, 59;
-  --bs-link-color: var(--color-primary);
-  --bs-link-hover-color: var(--color-primary-hover);
+  --bs-link-color: #6b7f3b;
+  --bs-link-hover-color: #5a6c32;
+  --bs-link-color-rgb: 107, 127, 59;
+  --bs-link-hover-color-rgb: 90, 108, 50;
 }
 
-[data-bs-theme="dark"] {
-  --bs-body-bg: var(--color-surface);
-  --bs-body-color: var(--color-text);
-  --bs-body-bg-rgb: 30, 27, 24;
-  --bs-border-color: var(--color-border);
-  --bs-tertiary-bg: var(--color-divider);
-  --bs-secondary-bg: var(--color-surface-raised);
-  --bs-secondary-color: var(--color-text-muted);
-  --bs-emphasis-color: var(--color-text);
-  --bs-primary: var(--color-primary);
-  --bs-primary-rgb: 143, 168, 92;
-}
+/* Dark BS overrides handled in html[data-bs-theme="dark"] above */
 
 /* --- Base Styles ------------------------- */
 body {
