@@ -386,7 +386,7 @@ KOCH-MODUS                   EDIT-MODUS
 | UX-3 | Koch-Modus Header (⭐ Favorit + ⋮ Menü) | UX-1 | ✅ Abgeschlossen (04/2026) |
 | UX-4 | Inline-Edit entfernt (−1233 Zeilen, −18 KiB) | UX-1 | ✅ Abgeschlossen (04/2026) |
 | UX-5 | ProfileView (Settings/Admin/Logout) | UX-1 | ✅ Abgeschlossen (04/2026) |
-| UX-6 | PWA Auto-Update + Session Restore + Sort-Persist | UX-1 | 📋 Geplant |
+| UX-6 | PWA Auto-Update + Session Restore + Sort-Persist | UX-1 | ✅ Abgeschlossen (04/2026) |
 | UX-7 | RecipeGrid-Komponente kapseln (Infinite Scroll Vorb.) | UX-2 | ✅ Abgeschlossen (04/2026) |
 
 UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind unabhängig voneinander).
@@ -395,16 +395,18 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 
 ### Phase D: Design-Modernisierung
 
-#### Sprint 9: Design-System & Visual Polish
+#### Sprint 9: Design-System & Visual Polish ✅ **Abgeschlossen (04/2026)**
 **Ziel:** Konsistentes, professionelles Erscheinungsbild
 
 **Themen:**
-- Farbschema (gedeckt, gute Kontraste)
-- Typografie (gut lesbar in Küche, größere Schrift)
-- Touch-Targets (min. 44x44px)
-- Spacing-System
-- Animationen & Transitions
-- Optional: Dark Mode
+- ✅ Farbschema: Olivgrün Primary (#6b7f3b), warmes Off-White Surface (#faf8f5), warmes Dunkelbraun Chrome (#3b3531)
+- ✅ Typografie-Skala (xs–xl, gut lesbar in Küche)
+- ✅ Touch-Targets (min. 44x44px)
+- ✅ Spacing-System (4px–48px, 7 Stufen)
+- ✅ Animationen & Transitions (schneller: 0.15s/0.25s)
+- ✅ Dark Mode (vollständig, automatische System-Erkennung)
+- ✅ 17 Dateien migriert, Bootstrap-Overrides via Tokens
+- ✅ Seiten-Transition (page-enter/leave)
 
 ---
 
@@ -423,14 +425,14 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 | **UX-3** | **UX-Umbau** | **Koch-Modus Header (⭐ + ⋮)** | **1 Tag** | **🟡 Wichtig** | **✅ Abgeschlossen (04/2026)** |
 | **UX-4** | **UX-Umbau** | **Inline-Edit entfernt** | **1 Tag** | **🟡 Wichtig** | **✅ Abgeschlossen (04/2026)** |
 | **UX-5** | **UX-Umbau** | **ProfileView** | **1 Tag** | **🟡 Wichtig** | **✅ Abgeschlossen (04/2026)** |
-| **UX-6** | **UX-Umbau** | **PWA Auto-Update + Session Restore** | **1-2 Tage** | **🟢 Optional** | **📋 Nächster Schritt** |
+| **UX-6** | **UX-Umbau** | **PWA Auto-Update + Session Restore** | **1-2 Tage** | **🟢 Optional** | **✅ Abgeschlossen (04/2026)** |
 | UX-7 | UX-Umbau | RecipeGrid kapseln (Infinite Scroll Vorb.) | 0.5 Tage | 🟢 Optional | ✅ Abgeschlossen (04/2026) |
 | ~~4~~ | ~~Workflow~~ | ~~Tabbed Interface + Session Restore~~ | — | — | ✅ Ersetzt durch UX-Konzept |
 | 5 | Workflow | Einkaufsliste-Export | 1-2 Tage | 🟢 Optional | 📋 Geplant |
 | 6 | Workflow | Koch-Notizen + Sprache | 4-5 Tage | 🟢 Optional | 📋 Geplant |
 | 7 | Editor | Rezept-Wizard | 1 Woche | 🟢 Optional | 📋 Geplant |
 | ~~8~~ | ~~Workflow~~ | ~~URL-Rezept-Sharing~~ | — | — | ✅ Obsolet (Share-Links via Backend) |
-| 9 | Design | Design-System | variabel | 🔵 Parallel | 📋 Geplant |
+| 9 | Design | Design-System | variabel | 🔵 Parallel | ✅ Abgeschlossen (04/2026) |
 
 **Geschätzte Gesamtdauer:**
 - **Sprint 0 (Abgeschlossen):** ✅ 4 Tage (19.-23.12.2025)
