@@ -529,16 +529,16 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 - [x] RecipeCard Redesign (Tags, kompakter Titel, Recent-Cards vereinheitlicht) → Sprint 9 ✅
 - [x] Accessibility (ARIA-Labels, semantische Elemente) → Sprint 9 ✅
 
-### Code Cleanup (Backlog) — VueUse Migration:
+### Code Cleanup (Backlog) — VueUse Migration: ✅ Abgeschlossen (11.04.2026)
 
 **Hoher Impact (viel Boilerplate eliminierbar):**
-- [ ] `useViewport.ts` — gesamte Datei ersetzbar durch `useWindowSize()` (~25 → ~5 Zeilen)
-- [ ] `RecipeDisplay.vue` — manueller `IntersectionObserver` + setTimeout-Debounce → `useIntersectionObserver` + `useDebounceFn` (~30 Zeilen)
+- [x] `useViewport.ts` — resize/orientationchange Listener → `useWindowSize()` (45 → 29 Zeilen)
+- [x] `RecipeDisplay.vue` — setTimeout-Debounce → `useDebounceFn()`, sectionTimeout entfernt
 
 **Mittlerer Impact:**
-- [ ] `RecipeCard.vue` — manueller keydown-Listener in watch → `onKeyStroke("Escape", ...)`
-- [ ] `Administration.vue` — manueller keydown + `navigator.clipboard` → `useEventListener` + `useClipboard`
-- [ ] `ShareManager.vue` — `navigator.clipboard.writeText` → `useClipboard` (+ `copied` State für UI-Feedback)
+- [x] `RecipeCard.vue` — manueller keydown watch+cleanup → `onKeyStroke("Escape")`
+- [x] `Administration.vue` — addEventListener/removeEventListener → `useEventListener`, navigator.clipboard → `useClipboard`
+- [x] `ShareManager.vue` — `navigator.clipboard.writeText` → `useClipboard`
 
 **Entfällt durch UX-Umbau:**
 - ~~`AppNavbar.vue`~~ → wird komplett entfernt (UX-1)
