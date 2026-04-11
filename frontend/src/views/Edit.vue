@@ -7,7 +7,7 @@ import {
   onBeforeUnmount,
   nextTick,
 } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { onKeyStroke } from "@vueuse/core";
 import { useDebouncedRefHistory } from "@vueuse/core";
 import Sortable from "sortablejs";
@@ -25,6 +25,7 @@ import jsyaml from "js-yaml";
 const props = defineProps<{ id: string }>();
 
 const router = useRouter();
+const route = useRoute();
 const store = useRecipeStore();
 const { toast } = useToast();
 
@@ -98,6 +99,14 @@ watch(
       commit();
       clear();
       resume();
+
+      // Auto-restore draft when navigated with ?draft=1
+      if (route.query.draft === "1" && hasDraft.value) {
+        restoreDraft();
+        commit();
+        clear();
+        router.replace({ ...route, query: {} });
+      }
     } else {
       pause();
     }

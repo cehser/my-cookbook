@@ -31,8 +31,11 @@ const { hasDraft, refresh: refreshDrafts } = useDraftIndex();
 const sortBy = ref("name-asc");
 const showAIImport = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
-const showDrafts = ref(true);
 const fabOpen = ref(false);
+
+function editUrlWithDraft(uuid: string, name: string) {
+  return editUrl(uuid, name) + "?draft=1";
+}
 
 // Computed
 const settings = computed(() => store.settings);
@@ -192,7 +195,7 @@ function importRecipe(ev: Event) {
             <div
               v-for="recipe in recentRecipes"
               :key="'recent-' + recipe.recipe_uuid"
-              class="recent-card"
+              class="recent-card cardAspect"
             >
               <RecipeCard
                 :recipe="recipe"
@@ -211,42 +214,22 @@ function importRecipe(ev: Event) {
 
         <!-- Drafts -->
         <section v-if="draftRecipes.length" class="mb-3">
-          <h6
-            class="section-label"
-            style="cursor: pointer"
-            @click="showDrafts = !showDrafts"
-          >
+          <h6 class="section-label">
             <i class="bi bi-pencil-square"></i>
             {{ draftRecipes.length }} Entwürf{{
               draftRecipes.length === 1 ? "" : "e"
             }}
-            <i
-              class="bi ms-1"
-              :class="showDrafts ? 'bi-chevron-up' : 'bi-chevron-down'"
-            ></i>
           </h6>
-          <div
-            v-if="showDrafts"
-            class="row row-cols-2 row-cols-sm-3 row-cols-lg-4 row-cols-xl-5 g-2"
-          >
-            <div
+          <div class="draft-scroll">
+            <router-link
               v-for="recipe in draftRecipes"
               :key="'draft-' + recipe.recipe_uuid"
-              class="col"
+              :to="editUrlWithDraft(recipe.recipe_uuid, recipe.recipe_name)"
+              class="draft-chip"
             >
-              <RecipeCard
-                class="cardAspect"
-                :recipe="recipe"
-                :picture_src="picture_src(recipe)"
-                :index="
-                  store.recipes.findIndex(
-                    (r) => r.recipe_uuid === recipe.recipe_uuid,
-                  )
-                "
-                :read_only="settings.read_only"
-                @delete="handleDeleteRecipe(recipe.recipe_uuid)"
-              />
-            </div>
+              <i class="bi bi-pencil"></i>
+              {{ recipe.recipe_name }}
+            </router-link>
           </div>
         </section>
 
@@ -418,6 +401,46 @@ function importRecipe(ev: Event) {
   .recent-card {
     flex: 0 0 200px;
   }
+}
+
+/* Horizontal scroll for drafts */
+.draft-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.draft-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.draft-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+
+.draft-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--bs-warning-bg-subtle, #fff3cd);
+  color: var(--bs-warning-text-emphasis, #664d03);
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background var(--transition-fast, 0.2s ease);
+}
+
+.draft-chip:hover {
+  background: var(--bs-warning-border-subtle, #ffe69c);
+  color: var(--bs-warning-text-emphasis, #664d03);
+  text-decoration: none;
 }
 
 /* FAB */
