@@ -1,6 +1,6 @@
 # UI-Roadmap - my-cookbook
 
-> **Letzte Aktualisierung:** 6. April 2026
+> **Letzte Aktualisierung:** 11. April 2026
 
 ---
 
@@ -408,6 +408,17 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 - ✅ 17 Dateien migriert, Bootstrap-Overrides via Tokens
 - ✅ Seiten-Transition (page-enter/leave)
 
+**Visual Polish (11.04.2026):**
+- ✅ Dark-Mode-Toggle: 3-Wege (Hell/Dunkel/System) in ProfileView
+- ✅ App-Shell: `max-width: 1200px`, zentriert, `box-shadow` auf breiten Screens
+- ✅ Body-/Surface-Farbdifferenzierung (Light: `#ffffff`/`#f5f1eb`, Dark: `#2a2622`/`#1e1b18`)
+- ✅ RecipeCard Redesign: Tags über Overlay, kompakter Titel, Draft-Icon inline, `drop-shadow` für Icon-Kontrast
+- ✅ RecipeGrid: max 3 Spalten
+- ✅ Recent-Cards: gleiche Optik wie Grid-Cards (compact nutzt identische Styles)
+- ✅ Mobile (<575px): Subtitle, Badges, Tags ausgeblendet
+- ✅ Zutaten-Mengen: Rundung auf 2 signifikante Stellen (`toPrecision(2)`)
+- ✅ Accessibility: ARIA-Labels auf alle Icon-Only-Buttons, `button` statt `div` für klickbare Elemente
+
 ---
 
 ## 📋 Sprint-Übersicht (Reihenfolge)
@@ -486,7 +497,7 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 
 ### Neue Features - Phase C (Workflow, Optional):
 - [x] ~~Tabbed Interface~~ → Ersetzt durch UX-Konzept "Immersive + Bottom Nav" (Modi-System)
-- [ ] Session State Restoration (iOS PWA Fix) → UX-6
+- [x] Session State Restoration (iOS PWA Fix) → UX-6 ✅
 - [ ] Einkaufsliste-Export (Clipboard + Native Share) → Sprint 5
 - [ ] Koch-Notizen (Text + Spracheingabe) → Sprint 6
 - [x] ~~URL-Rezept-Sharing~~ → Ersetzt durch serverseitige Share-Links (Backend B5)
@@ -506,14 +517,17 @@ UX-1 ist Blocker. UX-2 bis UX-6 können teilweise parallel laufen (UX-3/4/5 sind
 - [x] Edit-Modus View-Header (✕ Bearbeiten 💾 ↩↪) → UX-1 ✅ (Inline-Edit entfernen → UX-4)
 - [x] Inline-Edit entfernt (−1233 Zeilen, 4 Komponenten gelöscht) → UX-4 ✅
 - [x] ProfileView (Settings/Admin/Logout) → UX-5 ✅
-- [ ] PWA Auto-Update beim Seitenwechsel → UX-6
-- [ ] Session Restore (Route + Timestamp) → UX-6
+- [x] PWA Auto-Update beim Seitenwechsel → UX-6 ✅
+- [x] Session Restore (Route + Timestamp) → UX-6 ✅
 - [x] RecipeGrid-Komponente kapseln → UX-7 ✅
 
 ### Neue Features - Phase D (Design):
-- [ ] Design-System
-- [ ] Visual Consistency
-- [ ] Optional: Dark Mode
+- [x] Design-System (Token-basiert: Farben, Typografie, Spacing, Radii, Shadows, Transitions) → Sprint 9 ✅
+- [x] Visual Consistency (alle Komponenten auf Design-Tokens migriert) → Sprint 9 ✅
+- [x] Dark Mode (3-Wege-Toggle, vollständige Token-Unterstützung) → Sprint 9 ✅
+- [x] App-Shell Layout (max-width, zentriert, Body/Surface-Differenzierung) → Sprint 9 ✅
+- [x] RecipeCard Redesign (Tags, kompakter Titel, Recent-Cards vereinheitlicht) → Sprint 9 ✅
+- [x] Accessibility (ARIA-Labels, semantische Elemente) → Sprint 9 ✅
 
 ### Code Cleanup (Backlog) — VueUse Migration:
 
@@ -569,6 +583,11 @@ Alle Fragen sind durch das "Immersive + Bottom Nav"-Konzept beantwortet:
 - ✅ Koch-Modus Header: ⭐ Favorit-Toggle + ⋮ Dropdown (UX-3)
 - ✅ Inline-Edit entfernt, −1233 Zeilen, −18 KiB Bundle (UX-4)
 - ✅ ProfileView: Settings, Admin-Link, Logout (UX-5)
+- ✅ Design-System: Token-basierte Farbpalette, Typografie, Spacing (Sprint 9)
+- ✅ Dark Mode: 3-Wege-Toggle, vollständig (Sprint 9)
+- ✅ App-Shell: max-width 1200px, Body/Surface-Differenzierung (Sprint 9)
+- ✅ RecipeCard Redesign: kompakte Darstellung, Tags, Recent-Cards (Sprint 9)
+- ✅ Zutaten-Rundung auf 2 signifikante Stellen (Sprint 9)
 
 **Bekannte Probleme (werden durch UX-Umbau gelöst):**
 - ✅ ~~/favorites und /search Routen nicht funktional~~ → UX-2 gelöst (eigene Views)
@@ -579,7 +598,7 @@ Alle Fragen sind durch das "Immersive + Bottom Nav"-Konzept beantwortet:
 - ✅ ~~Drafts unsichtbar in der Gallery~~ → UX-2 gelöst (Entwürfe-Sektion + Badge)
 - ✅ ~~PWA-Update-Code ist toter Code~~ → UX-1 gelöst (Gallery.vue bereinigt)
 
-**Nächster Schritt:** Phase UX-6 — PWA Auto-Update + Session Restore + Sortierung persistieren
+**Nächster Schritt:** Optionale Workflow-Features (Sprint 5: Einkaufsliste-Export, Sprint 6: Koch-Notizen, Sprint 7: Rezept-Wizard)
 
 **Hinweis:** Frontend-Code liegt seit B6 unter `frontend/` (nicht mehr im Root). Alle `src/`-Pfade in dieser Roadmap beziehen sich auf `frontend/src/`.
 
