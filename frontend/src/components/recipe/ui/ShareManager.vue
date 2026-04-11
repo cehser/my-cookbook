@@ -253,21 +253,21 @@ watch(
   bottom: 0;
   width: 380px;
   max-width: 90vw;
-  background: #fff;
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.12);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   z-index: 1061;
 }
 
 .sidebar-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid #dee2e6;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
 .sidebar-body {
-  padding: 1rem 1.25rem;
+  padding: var(--space-3) var(--space-4);
   overflow-y: auto;
   flex: 1;
 }
