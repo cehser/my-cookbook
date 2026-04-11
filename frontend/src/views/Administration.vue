@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { adminApi } from "@/api/admin";
+import { adminApi, type AdminUser } from "@/api/admin";
 import { useToast } from "@/composables/useToast";
 import { useRecipeStore } from "@/store/recipeStore";
 import { generateUUID } from "@/js/uuid";
@@ -11,6 +11,7 @@ import {
 } from "@/js/recipes";
 import { useClipboard, useEventListener } from "@vueuse/core";
 import jsyaml from "js-yaml";
+import type { Recipe } from "@/types/recipe";
 
 const store = useRecipeStore();
 const { toast } = useToast();
@@ -34,7 +35,7 @@ interface ShareEntry {
   recipe_name: string;
   created_by_name: string;
   created_at: string;
-  expires_at?: string;
+  expires_at?: string | null;
   is_active: boolean;
 }
 
@@ -82,11 +83,11 @@ function formatDate(iso: string | undefined) {
   });
 }
 
-function isExpired(expiresAt?: string) {
+function isExpired(expiresAt?: string | null) {
   return expiresAt && new Date(expiresAt) < new Date();
 }
 
-function isExpiringSoon(expiresAt?: string) {
+function isExpiringSoon(expiresAt?: string | null) {
   if (!expiresAt) return false;
   const diff = new Date(expiresAt).getTime() - new Date().getTime();
   return diff > 0 && diff < 3 * 24 * 60 * 60 * 1000;
@@ -136,7 +137,7 @@ async function loadUsers() {
   usersError.value = null;
   try {
     users.value = (await adminApi.listUsers()).map(
-      (u: Record<string, unknown>) => ({ ...u, saving: false }) as UserEntry,
+      (u: AdminUser) => ({ ...u, saving: false }) as UserEntry,
     );
   } catch {
     usersError.value = "Benutzer konnten nicht geladen werden.";
@@ -232,9 +233,7 @@ function importRecipe(ev: Event) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const recipe = jsyaml.load(e.target?.result as string) as {
-        recipe_name: string;
-      };
+      const recipe = jsyaml.load(e.target?.result as string) as Recipe;
       store.appendRecipe(recipe);
       toast(`Rezept "${recipe.recipe_name}" importiert.`, "success");
       input.value = "";
@@ -316,7 +315,9 @@ function exportRecipe(index: number) {
                     class="form-select form-select-sm"
                     style="width: auto; min-width: 120px"
                     :value="u.role"
-                    @change="changeRole(u, $event.target.value)"
+                    @change="
+                      changeRole(u, ($event.target as HTMLSelectElement).value)
+                    "
                     :disabled="u.saving"
                   >
                     <option value="pending">⏳ Pending</option>
@@ -463,7 +464,7 @@ function exportRecipe(index: number) {
         />
       </div>
 
-      <BListGroup flush v-for="(recipe, index) in recipes" :key="index">
+      <BListGroup flush v-for="(recipe, index) in store.recipes" :key="index">
         <BListGroupItem
           >{{ recipe.recipe_name }}
           <BButton

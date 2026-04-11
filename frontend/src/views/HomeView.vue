@@ -23,6 +23,7 @@ import {
 } from "@/js/recipes";
 import jsyaml from "js-yaml";
 import { editUrl } from "@/js/slug";
+import type { Recipe } from "@/types/recipe";
 
 const router = useRouter();
 const store = useRecipeStore();
@@ -52,7 +53,7 @@ const recipes = computed(() => store.recipes);
 const recentRecipes = computed(() => {
   return recentUuids.value
     .map((uuid) => store.recipes.find((r) => r.recipe_uuid === uuid))
-    .filter(Boolean);
+    .filter((r): r is Recipe => !!r);
 });
 
 const draftRecipes = computed(() => {
@@ -158,9 +159,7 @@ function importRecipe(ev: Event) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const recipe = jsyaml.load(e.target?.result as string) as {
-        recipe_name: string;
-      };
+      const recipe = jsyaml.load(e.target?.result as string) as Recipe;
       store.appendRecipe(recipe);
       toast(`Rezept "${recipe.recipe_name}" importiert.`, "success");
       input.value = "";

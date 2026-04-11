@@ -79,7 +79,7 @@ const visibleIngredientSections = computed(() => {
 });
 
 // Step selection highlighting
-function selectStep(ev: MouseEvent) {
+function selectStep(ev: Event) {
   const target = ev.target as HTMLElement;
   const doHighlight = !target.classList.contains("list-group-item-primary");
   document.querySelectorAll("#steps .list-group-item").forEach((el) => {

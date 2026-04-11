@@ -11,7 +11,7 @@ defineProps<{
   showOnlyCurrentSection: boolean;
   visibleSections: Section[];
   sections: Section[];
-  activeSection?: string;
+  activeSection?: string | null;
   ingredients: Ingredient[];
 }>();
 
@@ -86,7 +86,7 @@ defineEmits<{
       <div class="ingredients-content">
         <IngredientsSection
           :sections="visibleSections"
-          :active-section="activeSection"
+          :active-section="activeSection ?? null"
           :ingredients="ingredients"
           :yields-value="yieldsValue"
         />

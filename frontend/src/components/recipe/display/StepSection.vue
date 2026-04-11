@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import type { Step, Section } from "@/types/recipe";
 
 const props = defineProps<{
@@ -7,6 +8,8 @@ const props = defineProps<{
   editMode?: boolean;
   keyPrefix?: string;
 }>();
+
+const keyPfx = computed(() => props.keyPrefix ?? '');
 
 defineEmits<{
   "select-step": [event: Event];
@@ -33,7 +36,7 @@ function getStepNumber(sectionName: string, stepIndex: number) {
 <template>
   <div
     v-for="(section, sectionIndex) in sections"
-    :key="keyPrefix + sectionIndex"
+    :key="keyPfx + sectionIndex"
     :data-step-section="section.section"
     class="step-section"
   >
@@ -50,7 +53,7 @@ function getStepNumber(sectionName: string, stepIndex: number) {
       <li
         class="list-group-item"
         v-for="(step, stepIndex) in getFilteredSteps(section.section)"
-        :key="keyPrefix + 'step-' + stepIndex"
+        :key="keyPfx + 'step-' + stepIndex"
         :data-section="section.section"
         :data-step-number="getStepNumber(section.section, stepIndex)"
         @click="!editMode && $emit('select-step', $event)"

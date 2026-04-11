@@ -49,7 +49,7 @@ function updateValue(value: string) {
         max="100"
         step="1"
         :value="yieldsValue"
-        @input="updateValue($event.target.value)"
+        @input="updateValue(($event.target as HTMLInputElement).value)"
         class="portions-input-desktop"
       />
       <span class="unit">{{ yieldsUnit }}</span>
@@ -79,7 +79,7 @@ function updateValue(value: string) {
       max="100"
       step="1"
       :value="yieldsValue"
-      @input="updateValue($event.target.value)"
+      @input="updateValue(($event.target as HTMLInputElement).value)"
       class="portions-input-mobile"
     />
     <span class="portions-unit-mobile">{{ yieldsUnit }}</span>
@@ -110,7 +110,7 @@ function updateValue(value: string) {
         max="100"
         step="1"
         :value="yieldsValue"
-        @input="updateValue($event.target.value)"
+        @input="updateValue(($event.target as HTMLInputElement).value)"
         class="portions-input-expanded"
       />
       <span class="unit">{{ yieldsUnit }}</span>

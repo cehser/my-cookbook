@@ -510,7 +510,7 @@ onBeforeUnmount(() => {
                 step="0.001"
                 placeholder="100.0"
                 :model-value="yields_value"
-                @update:model-value="setYieldsValue"
+                @update:model-value="(v) => setYieldsValue(Number(v))"
               />
               <div class="form-check form-switch mt-1">
                 <input
@@ -533,7 +533,7 @@ onBeforeUnmount(() => {
                 size="sm"
                 placeholder="Portionen"
                 :model-value="yields_unit"
-                @update:model-value="setYieldsUnit"
+                @update:model-value="(v) => setYieldsUnit(String(v ?? ''))"
               />
               <label for="v2-recalc-exp" class="form-label mb-0 mt-2"
                 >Exponent</label

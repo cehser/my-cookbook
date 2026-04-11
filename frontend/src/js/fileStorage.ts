@@ -9,7 +9,7 @@ interface SerializedFile {
   type: string;
 }
 
-interface SerializedRecipePictures {
+export interface SerializedRecipePictures {
   [recipe_uuid: string]: SerializedFile[];
 }
 

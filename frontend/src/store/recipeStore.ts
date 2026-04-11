@@ -5,6 +5,7 @@ import { deepCopyJSON, deepCopyYaml } from "@/js/deepCopy";
 import {
   serializeRecipePictures,
   deserializeRecipePictures,
+  type SerializedRecipePictures,
 } from "@/js/fileStorage";
 import { recipeApi } from "@/api/recipes";
 import { imageApi } from "@/api/images";
@@ -196,7 +197,7 @@ export const useRecipeStore = defineStore("recipe", {
       console.warn("Read recipe pictures from idb");
       get("recipe_pictures").then((val: unknown) => {
         if (val) {
-          this.recipe_pictures = deserializeRecipePictures(val);
+          this.recipe_pictures = deserializeRecipePictures(val as SerializedRecipePictures);
         }
       });
     },
