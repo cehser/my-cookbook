@@ -195,7 +195,7 @@ function importRecipe(ev: Event) {
             <div
               v-for="recipe in recentRecipes"
               :key="'recent-' + recipe.recipe_uuid"
-              class="recent-card cardAspect"
+              class="recent-card"
             >
               <RecipeCard
                 :recipe="recipe"
@@ -395,6 +395,11 @@ function importRecipe(ev: Event) {
 .recent-card {
   flex: 0 0 160px;
   scroll-snap-align: start;
+}
+
+.recent-card :deep(.card) {
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
 }
 
 @media (min-width: 768px) {

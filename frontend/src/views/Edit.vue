@@ -321,6 +321,14 @@ onBeforeUnmount(() => {
         >
           <i class="bi bi-x-circle"></i>
         </button>
+        <button
+          v-if="hasDraft"
+          class="btn-icon text-warning"
+          title="Entwurf löschen"
+          @click="discardDraft()"
+        >
+          <i class="bi bi-trash"></i>
+        </button>
         <button class="btn-icon" title="Vorschau" @click="showPreview = true">
           <i class="bi bi-eye"></i>
         </button>
