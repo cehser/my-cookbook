@@ -1,24 +1,29 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
+import { useColorMode } from "@vueuse/core";
 import { useRecipeStore } from "@/store/recipeStore";
 import { useToast } from "@/composables/useToast";
 import { logout } from "@/auth/oidc";
 import deepEqual from "deep-equal";
 
 const router = useRouter();
-const store = useRecipeStore();
+const recipeStore = useRecipeStore();
 const { toast } = useToast();
+const { store: colorMode } = useColorMode({
+  attribute: "data-bs-theme",
+  storageKey: "my-cookbook-color-mode",
+});
 
 // Local copy of settings for editing
-const settings = ref(JSON.parse(JSON.stringify(store.settings)));
+const settings = ref(JSON.parse(JSON.stringify(recipeStore.settings)));
 const userEdited = ref(false);
 
-const store_settings = computed(() => store.settings);
+const store_settings = computed(() => recipeStore.settings);
 
 // Watch store settings — update local copy unless user is editing
 watch(
-  () => store.settings,
+  () => recipeStore.settings,
   (newVal) => {
     if (!userEdited.value) {
       settings.value = JSON.parse(JSON.stringify(newVal));
@@ -31,34 +36,36 @@ watch(
 watch(
   settings,
   () => {
-    if (settings.value && !deepEqual(settings.value, store.settings)) {
+    if (settings.value && !deepEqual(settings.value, recipeStore.settings)) {
       userEdited.value = true;
     }
   },
   { deep: true },
 );
 
-const changed = computed(() => !deepEqual(settings.value, store.settings));
+const changed = computed(
+  () => !deepEqual(settings.value, recipeStore.settings),
+);
 
 const roleBadgeClass = computed(() => {
-  const role = settings.value?.role || store.settings?.role;
+  const role = settings.value?.role || recipeStore.settings?.role;
   if (role === "admin") return "bg-danger";
   if (role === "editor") return "bg-success";
   return "bg-secondary";
 });
 
 const roleLabel = computed(() => {
-  const role = settings.value?.role || store.settings?.role;
+  const role = settings.value?.role || recipeStore.settings?.role;
   if (role === "admin") return "Administrator";
   if (role === "editor") return "Bearbeiter";
   return "Nur Lesen";
 });
 
-const isAdmin = computed(() => store.settings?.role === "admin");
+const isAdmin = computed(() => recipeStore.settings?.role === "admin");
 
 async function saveChanges() {
-  await store.saveSettings(settings.value);
-  settings.value = JSON.parse(JSON.stringify(store.settings));
+  await recipeStore.saveSettings(settings.value);
+  settings.value = JSON.parse(JSON.stringify(recipeStore.settings));
   userEdited.value = false;
   toast("Einstellungen gespeichert.", "success");
 }
@@ -114,6 +121,35 @@ async function handleLogout() {
             YAML-Import/Export, erweiterte Verwaltungsoptionen.
           </small>
         </BAlert>
+      </div>
+
+      <!-- Appearance -->
+      <h6 class="section-label">Erscheinungsbild</h6>
+
+      <div class="settings-card mb-3">
+        <div class="theme-toggle">
+          <button
+            :class="['theme-btn', { active: colorMode === 'light' }]"
+            @click="colorMode = 'light'"
+          >
+            <i class="bi bi-sun-fill"></i>
+            Hell
+          </button>
+          <button
+            :class="['theme-btn', { active: colorMode === 'dark' }]"
+            @click="colorMode = 'dark'"
+          >
+            <i class="bi bi-moon-fill"></i>
+            Dunkel
+          </button>
+          <button
+            :class="['theme-btn', { active: colorMode === 'auto' }]"
+            @click="colorMode = 'auto'"
+          >
+            <i class="bi bi-circle-half"></i>
+            System
+          </button>
+        </div>
       </div>
 
       <!-- AI Model -->
@@ -214,5 +250,36 @@ async function handleLogout() {
 
 .profile-link-item:hover {
   background: var(--color-divider);
+}
+
+.theme-toggle {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.theme-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.theme-btn:hover {
+  background: var(--color-divider);
+}
+
+.theme-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
 }
 </style>

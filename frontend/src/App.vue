@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, watchEffect } from "vue";
+import { computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useOnline, usePreferredDark } from "@vueuse/core";
+import { useOnline, useColorMode } from "@vueuse/core";
 import { useRecipeStore } from "@/store/recipeStore";
 import { restoreSession } from "@/router";
 import BottomNav from "@/components/layout/BottomNav.vue";
@@ -10,17 +10,17 @@ const route = useRoute();
 const router = useRouter();
 const store = useRecipeStore();
 const isOnline = useOnline();
-const prefersDark = usePreferredDark();
+
+// Color mode: "light" | "dark" | "auto" (system)
+// Persists to localStorage key "vueuse-color-scheme"
+// Emits actual resolved mode to <html data-bs-theme="...">
+useColorMode({
+  attribute: "data-bs-theme",
+  modes: { light: "light", dark: "dark", auto: "" },
+  storageKey: "my-cookbook-color-mode",
+});
 
 const showBottomNav = computed(() => route.meta?.mode === "browsing");
-
-// Sync dark mode preference to <html data-bs-theme>
-watchEffect(() => {
-  document.documentElement.setAttribute(
-    "data-bs-theme",
-    prefersDark.value ? "dark" : "light",
-  );
-});
 
 onMounted(() => {
   store.loadSettings();
