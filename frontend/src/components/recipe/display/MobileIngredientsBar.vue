@@ -13,8 +13,6 @@ defineProps<{
   sections: Section[];
   activeSection?: string;
   ingredients: Ingredient[];
-  inlineEditable?: boolean;
-  dirtyItems?: Set<string>;
 }>();
 
 defineEmits<{
@@ -23,8 +21,6 @@ defineEmits<{
   "update:yields": [value: number];
   "update:showOnlyCurrentSection": [value: boolean];
   "scroll-to-section": [section: string];
-  changed: [event: unknown];
-  unchanged: [event: unknown];
 }>();
 </script>
 
@@ -88,10 +84,6 @@ defineEmits<{
           :active-section="activeSection"
           :ingredients="ingredients"
           :yields-value="yieldsValue"
-          :inline-editable="inlineEditable"
-          :dirty-items="dirtyItems"
-          @changed="$emit('changed', $event)"
-          @unchanged="$emit('unchanged', $event)"
         />
       </div>
 

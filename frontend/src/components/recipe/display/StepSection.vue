@@ -1,32 +1,16 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import StepInlineEdit from "./StepInlineEdit.vue";
 import type { Step, Section } from "@/types/recipe";
 
 const props = defineProps<{
   sections: Section[];
   steps: Step[];
   editMode?: boolean;
-  inlineEditable?: boolean;
   keyPrefix?: string;
-  dirtyItems?: Set<string>;
 }>();
 
 defineEmits<{
   "select-step": [event: Event];
-  changed: [event: unknown];
-  unchanged: [event: unknown];
 }>();
-
-const currentEditingIndex = ref<number | null>(null);
-
-function handleStartEdit(stepIndex: number) {
-  currentEditingIndex.value = stepIndex;
-}
-
-function handleEndEdit() {
-  currentEditingIndex.value = null;
-}
 
 function getFilteredSteps(sectionName: string) {
   return props.steps.filter((x) => x.section === sectionName);
@@ -61,34 +45,8 @@ function getStepNumber(sectionName: string, stepIndex: number) {
       placeholder="Abschnittsname"
     />
 
-    <!-- Inline-Editable Steps -->
-    <template v-if="inlineEditable">
-      <div class="steps-inline-list">
-        <StepInlineEdit
-          v-for="(step, stepIndex) in getFilteredSteps(section.section)"
-          :key="keyPrefix + 'step-inline-' + stepIndex"
-          :step="step"
-          :step-number="getStepNumber(section.section, stepIndex)"
-          :is-dirty="
-            dirtyItems.has(
-              `step:${getStepNumber(section.section, stepIndex) - 1}`,
-            )
-          "
-          :is-editing-other="
-            currentEditingIndex !== null &&
-            currentEditingIndex !==
-              getStepNumber(section.section, stepIndex) - 1
-          "
-          @changed="$emit('changed', $event)"
-          @unchanged="$emit('unchanged', $event)"
-          @start-edit="handleStartEdit"
-          @end-edit="handleEndEdit"
-        />
-      </div>
-    </template>
-
-    <!-- Original Edit Mode or Read-Only -->
-    <ul v-else class="list-group list-group-numbered list-group-flush">
+    <!-- Steps -->
+    <ul class="list-group list-group-numbered list-group-flush">
       <li
         class="list-group-item"
         v-for="(step, stepIndex) in getFilteredSteps(section.section)"
@@ -114,12 +72,6 @@ function getStepNumber(sectionName: string, stepIndex: number) {
   font-weight: 600;
   margin-bottom: 1rem;
   color: var(--bs-dark);
-}
-
-.steps-inline-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 .list-group-item {

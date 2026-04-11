@@ -20,22 +20,11 @@ const props = withDefaults(
     recipe: Recipe;
     imageSrc: string;
     editMode?: boolean;
-    inlineEditable?: boolean;
-    dirtyItems?: Set<string>;
   }>(),
   {
     editMode: false,
-    inlineEditable: false,
-    dirtyItems: () => new Set<string>(),
   },
 );
-
-defineEmits<{
-  "ingredient-changed": [key: string];
-  "ingredient-unchanged": [key: string];
-  "step-changed": [idx: number];
-  "step-unchanged": [idx: number];
-}>();
 
 // Yields — computed from recipe prop, mutated in-place
 const yieldsVal = computed(() => {
@@ -248,10 +237,6 @@ defineExpose({ reinitObserver });
                 :active-section="activeSection"
                 :ingredients="recipe.ingredients"
                 :yields-value="yieldsVal"
-                :inline-editable="inlineEditable"
-                :dirty-items="dirtyItems"
-                @changed="$emit('ingredient-changed', $event)"
-                @unchanged="$emit('ingredient-unchanged', $event)"
               />
             </div>
           </div>
@@ -316,12 +301,8 @@ defineExpose({ reinitObserver });
               :sections="recipe.sections"
               :steps="recipe.steps"
               :edit-mode="editMode"
-              :inline-editable="inlineEditable"
-              :dirty-items="dirtyItems"
               key-prefix="desktop-"
               @select-step="selectStep"
-              @changed="$emit('step-changed', $event)"
-              @unchanged="$emit('step-unchanged', $event)"
             />
           </div>
         </div>
@@ -377,12 +358,8 @@ defineExpose({ reinitObserver });
             :sections="recipe.sections"
             :steps="recipe.steps"
             :edit-mode="editMode"
-            :inline-editable="inlineEditable"
-            :dirty-items="dirtyItems"
             key-prefix="mobile-"
             @select-step="selectStep"
-            @changed="$emit('step-changed', $event)"
-            @unchanged="$emit('step-unchanged', $event)"
           />
         </div>
       </div>
@@ -398,15 +375,11 @@ defineExpose({ reinitObserver });
       :sections="recipe.sections"
       :active-section="activeSection"
       :ingredients="recipe.ingredients"
-      :inline-editable="inlineEditable"
-      :dirty-items="dirtyItems"
       @open="openIngredientsBar"
       @close="ingredientsExpanded = false"
       @update:yields="setYieldsValue"
       @update:show-only-current-section="showOnlyCurrentSection = $event"
       @scroll-to-section="scrollToIngredientSection"
-      @changed="$emit('ingredient-changed', $event)"
-      @unchanged="$emit('ingredient-unchanged', $event)"
     />
   </div>
 

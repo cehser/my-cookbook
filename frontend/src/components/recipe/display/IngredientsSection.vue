@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import IngredientInlineEdit from "./IngredientInlineEdit.vue";
 import type { Ingredient, Section } from "@/types/recipe";
 
 const props = defineProps<{
@@ -8,24 +6,7 @@ const props = defineProps<{
   activeSection: string | null;
   ingredients: Ingredient[];
   yieldsValue: number;
-  inlineEditable?: boolean;
-  dirtyItems?: Set<string>;
 }>();
-
-defineEmits<{
-  changed: [event: unknown];
-  unchanged: [event: unknown];
-}>();
-
-const currentEditingKey = ref<string | null>(null);
-
-function handleStartEdit(ingredientKey: string) {
-  currentEditingKey.value = ingredientKey;
-}
-
-function handleEndEdit() {
-  currentEditingKey.value = null;
-}
 
 function getSectionIngredients(sectionName: string) {
   return props.ingredients.filter((x) => x.section === sectionName);
@@ -60,44 +41,19 @@ function formatAmount(ingredient: Ingredient) {
     >
       <h5>{{ section.section }}</h5>
 
-      <!-- Inline-Editable Ingredients -->
-      <template v-if="inlineEditable">
-        <IngredientInlineEdit
-          v-for="(ingredient, idx) in getSectionIngredients(section.section)"
-          :key="'ing-edit-' + idx"
-          :ingredient="ingredient"
-          :yields-value="yieldsValue"
-          :is-dirty="
-            dirtyItems.has(`ingredient:${section.section}:${ingredient.name}`)
-          "
-          :is-editing-other="
-            currentEditingKey !== null &&
-            currentEditingKey !==
-              `ingredient:${section.section}:${ingredient.name}`
-          "
-          @changed="$emit('changed', $event)"
-          @unchanged="$emit('unchanged', $event)"
-          @start-edit="handleStartEdit"
-          @end-edit="handleEndEdit"
-        />
-      </template>
-
-      <!-- Read-Only Display -->
-      <template v-else>
-        <div
-          class="row mb-2 ingredient-row"
-          v-for="(ingredient, idx) in getSectionIngredients(section.section)"
-          :key="'ing-' + idx"
-        >
-          <div class="col-4 ingredient-amount">
-            {{ formatAmount(ingredient) }}
-            {{ getUnit(ingredient) }}
-          </div>
-          <div class="col-8 ingredient-name">
-            {{ getIngredientName(ingredient) }}
-          </div>
+      <div
+        class="row mb-2 ingredient-row"
+        v-for="(ingredient, idx) in getSectionIngredients(section.section)"
+        :key="'ing-' + idx"
+      >
+        <div class="col-4 ingredient-amount">
+          {{ formatAmount(ingredient) }}
+          {{ getUnit(ingredient) }}
         </div>
-      </template>
+        <div class="col-8 ingredient-name">
+          {{ getIngredientName(ingredient) }}
+        </div>
+      </div>
     </div>
   </div>
 </template>
