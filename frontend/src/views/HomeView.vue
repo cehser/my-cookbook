@@ -15,6 +15,7 @@ import { useToast } from "@/composables/useToast";
 import { useRecipeStore } from "@/store/recipeStore";
 import { useUIStore } from "@/store/uiStore";
 import RecipeCard from "@/components/recipe/ui/RecipeCard.vue";
+import RecipeGrid from "@/components/recipe/ui/RecipeGrid.vue";
 import AIRecipeImport from "@/components/features/AIRecipeImport.vue";
 import {
   loadNewRecipe as createNewRecipe,
@@ -264,24 +265,11 @@ function importRecipe(ev: Event) {
             </BFormSelect>
           </div>
 
-          <div
-            class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-2"
-          >
-            <div
-              v-for="(recipe, index) in sortedRecipes"
-              :key="recipe.recipe_uuid || index"
-              class="col"
-            >
-              <RecipeCard
-                class="cardAspect"
-                :recipe="recipe"
-                :picture_src="picture_src(recipe)"
-                :index="recipe.originalIndex"
-                :read_only="settings.read_only"
-                @delete="handleDeleteRecipe(recipe.recipe_uuid)"
-              />
-            </div>
-          </div>
+          <RecipeGrid
+            :recipes="sortedRecipes"
+            :read-only="settings.read_only"
+            @delete="handleDeleteRecipe"
+          />
         </section>
       </template>
 
@@ -349,33 +337,6 @@ function importRecipe(ev: Event) {
     </div>
   </div>
 </template>
-
-<style lang="scss">
-@use "sass:math";
-@use "sass:list";
-@use "sass:string";
-
-@mixin fluid-aspect($ratio: 1 1, $selector: "> :first-child") {
-  $selector: string.unquote($selector);
-
-  padding-bottom: math.percentage(
-    math.div(list.nth($ratio, 2), list.nth($ratio, 1))
-  );
-  position: relative;
-
-  #{$selector} {
-    left: 0;
-    height: 100%;
-    position: absolute !important;
-    top: 0;
-    width: 100%;
-  }
-}
-
-.cardAspect {
-  @include fluid-aspect(3 2);
-}
-</style>
 
 <style scoped>
 .section-label {

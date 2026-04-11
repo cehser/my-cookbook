@@ -1,14 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { useRecipeHelper } from "@/composables/useRecipeHelper";
+import { computed } from "vue";
 import { useRecipeStore } from "@/store/recipeStore";
-import RecipeCard from "@/components/recipe/ui/RecipeCard.vue";
+import RecipeGrid from "@/components/recipe/ui/RecipeGrid.vue";
 
 const store = useRecipeStore();
-
-const recipeId = ref("");
-const { recipeThumbnailSrc } = useRecipeHelper({ recipeId });
-const picture_src = recipeThumbnailSrc;
 
 const settings = computed(() => store.settings);
 
@@ -34,24 +29,11 @@ function handleDeleteRecipe(uuid: string) {
             favoriteRecipes.length !== 1 ? "en" : ""
           }}
         </h6>
-        <div
-          class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-2"
-        >
-          <div
-            v-for="recipe in favoriteRecipes"
-            :key="recipe.recipe_uuid"
-            class="col"
-          >
-            <RecipeCard
-              class="cardAspect"
-              :recipe="recipe"
-              :picture_src="picture_src(recipe)"
-              :index="recipe.originalIndex"
-              :read_only="settings.read_only"
-              @delete="handleDeleteRecipe(recipe.recipe_uuid)"
-            />
-          </div>
-        </div>
+        <RecipeGrid
+          :recipes="favoriteRecipes"
+          :read-only="settings.read_only"
+          @delete="handleDeleteRecipe"
+        />
       </template>
 
       <!-- Empty state -->
@@ -65,31 +47,6 @@ function handleDeleteRecipe(uuid: string) {
     </BContainer>
   </div>
 </template>
-
-<style lang="scss">
-@use "sass:math";
-@use "sass:list";
-@use "sass:string";
-
-@mixin fluid-aspect($ratio: 1 1, $selector: "> :first-child") {
-  $selector: string.unquote($selector);
-  padding-bottom: math.percentage(
-    math.div(list.nth($ratio, 2), list.nth($ratio, 1))
-  );
-  position: relative;
-  #{$selector} {
-    left: 0;
-    height: 100%;
-    position: absolute !important;
-    top: 0;
-    width: 100%;
-  }
-}
-
-.cardAspect {
-  @include fluid-aspect(3 2);
-}
-</style>
 
 <style scoped>
 .section-label {

@@ -1,14 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from "vue";
-import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useRecipeStore } from "@/store/recipeStore";
-import RecipeCard from "@/components/recipe/ui/RecipeCard.vue";
+import RecipeGrid from "@/components/recipe/ui/RecipeGrid.vue";
 
 const store = useRecipeStore();
-
-const recipeId = ref("");
-const { recipeThumbnailSrc } = useRecipeHelper({ recipeId });
-const picture_src = recipeThumbnailSrc;
 
 const searchInput = ref<HTMLInputElement | null>(null);
 const filter = ref("");
@@ -197,25 +192,12 @@ onMounted(() => {
             filteredRecipes.length !== 1 ? "se" : ""
           }}
         </p>
-        <div
-          class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-2"
-        >
-          <div
-            v-for="recipe in filteredRecipes"
-            :key="recipe.recipe_uuid"
-            class="col"
-          >
-            <RecipeCard
-              class="cardAspect"
-              :recipe="recipe"
-              :picture_src="picture_src(recipe)"
-              :index="recipe.originalIndex"
-              :highlight="filter"
-              :read_only="settings.read_only"
-              @delete="handleDeleteRecipe(recipe.recipe_uuid)"
-            />
-          </div>
-        </div>
+        <RecipeGrid
+          :recipes="filteredRecipes"
+          :read-only="settings.read_only"
+          :highlight="filter"
+          @delete="handleDeleteRecipe"
+        />
       </template>
 
       <!-- Empty state -->
@@ -228,31 +210,6 @@ onMounted(() => {
     </BContainer>
   </div>
 </template>
-
-<style lang="scss">
-@use "sass:math";
-@use "sass:list";
-@use "sass:string";
-
-@mixin fluid-aspect($ratio: 1 1, $selector: "> :first-child") {
-  $selector: string.unquote($selector);
-  padding-bottom: math.percentage(
-    math.div(list.nth($ratio, 2), list.nth($ratio, 1))
-  );
-  position: relative;
-  #{$selector} {
-    left: 0;
-    height: 100%;
-    position: absolute !important;
-    top: 0;
-    width: 100%;
-  }
-}
-
-.cardAspect {
-  @include fluid-aspect(3 2);
-}
-</style>
 
 <style scoped>
 .search-bar {
