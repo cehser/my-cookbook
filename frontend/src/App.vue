@@ -44,7 +44,7 @@ onMounted(() => {
       <i class="bi bi-wifi-off me-1"></i>
       Offline
     </div>
-    <div :class="{ 'has-bottom-nav': showBottomNav }">
+    <div class="app-shell" :class="{ 'has-bottom-nav': showBottomNav }">
       <router-view v-slot="{ Component }">
         <transition name="page" mode="out-in">
           <component :is="Component" />
@@ -70,7 +70,8 @@ onMounted(() => {
   --color-primary-subtle: #e8eddb;
 
   /* Surfaces */
-  --color-surface: #f7f4ef; /* Warmes Off-White, weicher */
+  --color-surface: #f5f1eb; /* App-Content – einen Tick wärmer/dunkler */
+  --color-surface-dim: #e8e4dc; /* Body außerhalb – deutlich abgesetzt */
   --color-surface-raised: #fefcf8; /* Warmes Weiß statt reines Weiß */
   --color-surface-overlay: rgba(0, 0, 0, 0.5);
 
@@ -151,6 +152,7 @@ onMounted(() => {
   --z-actions: 10;
 
   /* --- Dimensions ------------------------ */
+  --app-max-width: 1200px;
   --bottom-nav-height: 56px;
   --fab-size: 56px;
   --fab-size-small: 44px;
@@ -166,6 +168,7 @@ html[data-bs-theme="dark"] {
   --color-primary-subtle: #2e3425;
 
   --color-surface: #1e1b18;
+  --color-surface-dim: #2a2622; /* Body außerhalb – heller als Content */
   --color-surface-raised: #2a2622;
   --color-surface-overlay: rgba(0, 0, 0, 0.65);
 
@@ -193,8 +196,8 @@ html[data-bs-theme="dark"] {
   --shadow-fab-hover: 0 6px 16px rgba(0, 0, 0, 0.55);
 
   /* Bootstrap Overrides – warm statt blaugrau */
-  --bs-body-bg: #1e1b18;
-  --bs-body-bg-rgb: 30, 27, 24;
+  --bs-body-bg: #2a2622;
+  --bs-body-bg-rgb: 42, 38, 34;
   --bs-body-color: #ece6df;
   --bs-body-color-rgb: 236, 230, 223;
   --bs-emphasis-color: #ece6df;
@@ -222,8 +225,8 @@ html[data-bs-theme="dark"] {
 :root {
   --bs-font-sans-serif: var(--font-family);
   --bs-body-font-size: var(--font-size-base);
-  --bs-body-bg: #f7f4ef;
-  --bs-body-bg-rgb: 247, 244, 239;
+  --bs-body-bg: #ffffff;
+  --bs-body-bg-rgb: 255, 255, 255;
   --bs-body-color: #2c2520;
   --bs-body-color-rgb: 44, 37, 32;
   --bs-border-color: #e0dbd5;
@@ -242,15 +245,29 @@ html[data-bs-theme="dark"] {
 /* --- Base Styles ------------------------- */
 body {
   font-family: var(--font-family);
-  background: var(--color-surface);
+  background: var(--color-surface-dim);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 /* --- Global Utility Classes -------------- */
+.app-shell {
+  display: flow-root;
+  max-width: var(--app-max-width);
+  margin: 0 auto;
+  background: var(--color-surface);
+  min-height: 100vh;
+}
+
+@media (min-width: 1248px) {
+  .app-shell {
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.08);
+  }
+}
+
 .has-bottom-nav {
-  padding-bottom: var(--bottom-nav-height);
+  padding-bottom: calc(var(--bottom-nav-height) + var(--space-4));
 }
 
 .section-label {

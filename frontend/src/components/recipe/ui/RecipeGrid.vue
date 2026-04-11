@@ -24,9 +24,7 @@ const picture_src = recipeThumbnailSrc;
 </script>
 
 <template>
-  <div
-    class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-2"
-  >
+  <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 g-2">
     <div v-for="recipe in recipes" :key="recipe.recipe_uuid" class="col">
       <RecipeCard
         class="cardAspect"

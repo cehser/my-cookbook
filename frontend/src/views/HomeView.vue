@@ -359,7 +359,8 @@ function importRecipe(ev: Event) {
 }
 
 .recent-card {
-  flex: 0 0 160px;
+  flex: 0 0 calc(50% - var(--space-3) / 2);
+  max-width: 220px;
   scroll-snap-align: start;
 }
 
@@ -370,7 +371,7 @@ function importRecipe(ev: Event) {
 
 @media (min-width: 768px) {
   .recent-card {
-    flex: 0 0 200px;
+    flex: 0 0 220px;
   }
 }
 

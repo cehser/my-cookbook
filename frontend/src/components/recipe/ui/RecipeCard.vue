@@ -269,44 +269,49 @@ const addExistingTag = (tag: string) => {
         </div>
       </div>
 
-      <div
-        class="card-body recipe_title"
-        :class="{ 'card-body-compact': compact }"
-      >
-        <h2
-          class="card-title d-flex flex-row flex-wrap justify-content-between"
+      <div class="card-bottom" :class="{ 'card-body-compact': compact }">
+        <!-- Tags floating on image (above title overlay) -->
+        <div
+          v-if="!compact && recipe.tags && recipe.tags.length"
+          class="recipe-tags-floating"
         >
-          <span class="card-title-text">
-            <template v-for="(part, idx) in highlightedNameParts" :key="idx">
-              <mark v-if="part.highlight" class="search-highlight">{{
-                part.text
-              }}</mark>
-              <span v-else>{{ part.text }}</span>
-            </template>
-          </span>
-        </h2>
-        <template v-if="!compact">
-          <p class="card-text">{{ recipe.subtitle }}</p>
-          <div v-if="displayTime || isDraft" class="recipe-badges mt-1 mb-1">
-            <span v-if="displayTime" class="badge bg-light text-muted me-1">
-              <i class="bi bi-clock"></i> {{ displayTime }}
+          <span
+            v-for="(tag, idx) in recipe.tags"
+            :key="idx"
+            class="badge bg-secondary me-1"
+            >{{ tag }}</span
+          >
+        </div>
+        <!-- Title overlay -->
+        <div class="recipe_title">
+          <h2
+            class="card-title d-flex flex-row justify-content-between align-items-center"
+          >
+            <span class="card-title-text">
+              <template v-for="(part, idx) in highlightedNameParts" :key="idx">
+                <mark v-if="part.highlight" class="search-highlight">{{
+                  part.text
+                }}</mark>
+                <span v-else>{{ part.text }}</span>
+              </template>
             </span>
-            <span
-              v-if="isDraft"
-              class="badge bg-warning-subtle text-warning-emphasis me-1"
-            >
-              <i class="bi bi-pencil"></i> Entwurf
-            </span>
-          </div>
-          <div v-if="recipe.tags && recipe.tags.length" class="mt-2">
-            <span
-              v-for="(tag, idx) in recipe.tags"
-              :key="idx"
-              class="badge bg-secondary me-1"
-              >{{ tag }}</span
-            >
-          </div>
-        </template>
+            <i
+              v-if="isDraft && !compact"
+              class="bi bi-pencil draft-icon"
+              title="Entwurf"
+            ></i>
+          </h2>
+          <template v-if="!compact">
+            <p class="card-text recipe-subtitle">
+              {{ recipe.subtitle || "\u00A0" }}
+            </p>
+            <div v-if="displayTime" class="recipe-badges mt-1 mb-1">
+              <span class="badge bg-light text-muted me-1">
+                <i class="bi bi-clock"></i> {{ displayTime }}
+              </span>
+            </div>
+          </template>
+        </div>
       </div>
     </router-link>
 
@@ -404,25 +409,56 @@ const addExistingTag = (tag: string) => {
   margin: auto;
 }
 
-.recipe_title {
-  width: 100%;
+/* Card bottom area: tags float on image, title has overlay */
+.card-bottom {
   position: absolute;
   bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.recipe-tags-floating {
+  padding: var(--space-1) var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.recipe_title {
+  width: 100%;
   background-color: rgba(230, 230, 230, 0.6);
+  padding: var(--space-1) var(--space-2);
 }
 
 [data-bs-theme="dark"] .recipe_title {
   background-color: rgba(30, 28, 26, 0.75);
 }
 
-.card-body-compact {
-  padding: var(--space-1) var(--space-2);
-}
-
-.card-body-compact .card-title {
-  font-size: var(--font-size-xs);
+/* Card title sizing */
+.card-title {
+  font-size: var(--font-size-base);
   margin-bottom: 0;
   line-height: var(--line-height-tight);
+}
+
+.card-text {
+  font-size: var(--font-size-sm);
+}
+
+.recipe-badges {
+  font-size: var(--font-size-xs);
+}
+
+/* Hide subtitle, badges and tags on mobile (2-col) */
+@media (max-width: 575px) {
+  .recipe-subtitle,
+  .recipe-badges,
+  .recipe-tags-floating {
+    display: none !important;
+  }
 }
 
 .quick-actions {
@@ -492,7 +528,7 @@ const addExistingTag = (tag: string) => {
     var(--transition-all-normal),
     background-color var(--transition-fast);
   color: white;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.85));
 }
 
 .card-fab-button:hover {
@@ -534,7 +570,7 @@ const addExistingTag = (tag: string) => {
   z-index: var(--z-actions);
   cursor: pointer;
   font-size: var(--font-size-xl);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.85));
   transition: transform var(--transition-fast);
 }
 
@@ -609,6 +645,14 @@ const addExistingTag = (tag: string) => {
   text-overflow: ellipsis;
   overflow: hidden;
   line-height: 1.3;
+  min-width: 0;
+}
+
+.draft-icon {
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  color: var(--bs-warning);
+  margin-left: var(--space-1);
 }
 
 /* Search highlighting without v-html (XSS-safe) */
