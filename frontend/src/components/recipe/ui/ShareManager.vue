@@ -2,6 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { sharesApi, type Share } from "@/api/shares";
 import { useToast } from "@/composables/useToast";
+import { useClipboard } from "@vueuse/core";
 
 const props = defineProps<{
   show: boolean;
@@ -88,9 +89,11 @@ async function createLink() {
   }
 }
 
+const { copy } = useClipboard();
+
 async function copyLink(token: string) {
   try {
-    await navigator.clipboard.writeText(shareUrl(token));
+    await copy(shareUrl(token));
     toast("Link kopiert!", "success");
   } catch {
     toast("Kopieren fehlgeschlagen", "danger");

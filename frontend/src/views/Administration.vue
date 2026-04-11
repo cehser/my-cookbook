@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { adminApi } from "@/api/admin";
 import { useToast } from "@/composables/useToast";
 import { useRecipeStore } from "@/store/recipeStore";
@@ -9,6 +9,7 @@ import {
   loadNewRecipe as createNewRecipe,
   loadSample as createSampleRecipe,
 } from "@/js/recipes";
+import { useClipboard, useEventListener } from "@vueuse/core";
 import jsyaml from "js-yaml";
 
 const store = useRecipeStore();
@@ -45,6 +46,9 @@ const shares = ref<ShareEntry[]>([]);
 const sharesLoading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
+// Clipboard
+const { copy } = useClipboard();
+
 // Computed
 const settings = computed(() => store.settings);
 
@@ -53,22 +57,17 @@ const pendingUsers = computed(() =>
 );
 
 // Lifecycle
-function onKeyDown(event: KeyboardEvent) {
+useEventListener("keydown", (event: KeyboardEvent) => {
   if (event.ctrlKey && event.code === "KeyS") {
     event.preventDefault();
     saveToLocalStorage();
   }
-}
+});
 
 onMounted(() => {
   loadUsers();
   loadSiteSettings();
   loadShares();
-  document.addEventListener("keydown", onKeyDown);
-});
-
-onUnmounted(() => {
-  document.removeEventListener("keydown", onKeyDown);
 });
 
 // Methods
@@ -105,7 +104,7 @@ function shareUrl(token: string) {
 
 async function copyShareLink(token: string) {
   try {
-    await navigator.clipboard.writeText(shareUrl(token));
+    await copy(shareUrl(token));
   } catch {
     /* ignore */
   }

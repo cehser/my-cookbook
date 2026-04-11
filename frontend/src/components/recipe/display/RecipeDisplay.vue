@@ -8,6 +8,7 @@ import {
   watch,
 } from "vue";
 import { useViewport } from "@/composables/useViewport";
+import { useDebounceFn } from "@vueuse/core";
 import MetadataOverlay from "@/components/recipe/display/MetadataOverlay.vue";
 import PortionControl from "@/components/recipe/display/PortionControl.vue";
 import IngredientsSection from "@/components/recipe/display/IngredientsSection.vue";
@@ -125,7 +126,26 @@ function openIngredientsBar() {
 
 // Intersection Observer for active section tracking
 let observer: IntersectionObserver | null = null;
-let sectionTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const updateActiveSection = useDebounceFn(() => {
+  const all = document.querySelectorAll("[data-step-section]");
+  let maxVis = 0;
+  let best: string | null = null;
+  all.forEach((el) => {
+    const rect = el.getBoundingClientRect();
+    const h = window.innerHeight;
+    const visTop = Math.max(0, rect.top);
+    const visBot = Math.min(h, rect.bottom);
+    const vis = Math.max(0, visBot - visTop);
+    const centerOffset = Math.abs(rect.top + rect.height / 2 - h / 3);
+    const score = vis - centerOffset * 0.5;
+    if (score > maxVis && vis > 50) {
+      maxVis = score;
+      best = (el as HTMLElement).dataset.stepSection || null;
+    }
+  });
+  if (best) activeSection.value = best;
+}, 100);
 
 function observeStepSections() {
   if (observer) observer.disconnect();
@@ -134,31 +154,9 @@ function observeStepSections() {
     setTimeout(observeStepSections, 100);
     return;
   }
-  observer = new IntersectionObserver(
-    () => {
-      if (sectionTimeout) clearTimeout(sectionTimeout);
-      sectionTimeout = setTimeout(() => {
-        const all = document.querySelectorAll("[data-step-section]");
-        let maxVis = 0;
-        let best: string | null = null;
-        all.forEach((el) => {
-          const rect = el.getBoundingClientRect();
-          const h = window.innerHeight;
-          const visTop = Math.max(0, rect.top);
-          const visBot = Math.min(h, rect.bottom);
-          const vis = Math.max(0, visBot - visTop);
-          const centerOffset = Math.abs(rect.top + rect.height / 2 - h / 3);
-          const score = vis - centerOffset * 0.5;
-          if (score > maxVis && vis > 50) {
-            maxVis = score;
-            best = (el as HTMLElement).dataset.stepSection || null;
-          }
-        });
-        if (best) activeSection.value = best;
-      }, 100);
-    },
-    { threshold: [0, 0.25, 0.5, 0.75, 1] },
-  );
+  observer = new IntersectionObserver(() => updateActiveSection(), {
+    threshold: [0, 0.25, 0.5, 0.75, 1],
+  });
   els.forEach((el) => observer!.observe(el));
 }
 
@@ -173,7 +171,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (observer) observer.disconnect();
-  if (sectionTimeout) clearTimeout(sectionTimeout);
 });
 
 // Watch recipe changes to re-init observer

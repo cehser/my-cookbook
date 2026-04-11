@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch, onBeforeUnmount } from "vue";
+import { computed, ref } from "vue";
 import { useRecipeStore } from "@/store/recipeStore";
 import { useDraftIndex } from "@/composables/useDraftIndex";
 import { useRouter } from "vue-router";
+import { onKeyStroke } from "@vueuse/core";
 import type { Recipe } from "@/types/recipe";
 import { recipeUrl, editUrl } from "@/js/slug";
 
@@ -28,23 +29,10 @@ const showTagEditor = ref(false);
 const fabMenuOpen = ref(false);
 
 // Global ESC handler for tag editor
-const handleEscapeKey = (event: KeyboardEvent) => {
-  if (event.key === "Escape" && showTagEditor.value) {
+onKeyStroke("Escape", () => {
+  if (showTagEditor.value) {
     showTagEditor.value = false;
   }
-};
-
-// Setup/cleanup global ESC listener
-watch(showTagEditor, (isOpen) => {
-  if (isOpen) {
-    window.addEventListener("keydown", handleEscapeKey);
-  } else {
-    window.removeEventListener("keydown", handleEscapeKey);
-  }
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("keydown", handleEscapeKey);
 });
 
 const isFavorite = computed(() => {
