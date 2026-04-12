@@ -126,12 +126,20 @@ function exportRecipe() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+function goBack() {
+  // If opened via direct link (no history), go to gallery instead of empty tab
+  if (window.history.length <= 1) {
+    router.push("/");
+  } else {
+    router.back();
+  }
+}
 </script>
 
 <template>
   <div id="recipe">
     <div class="view-header">
-      <button class="btn-icon" @click="router.back()" title="Zurück">
+      <button class="btn-icon" @click="goBack" title="Zurück">
         <i class="bi bi-arrow-left"></i>
       </button>
       <span class="view-header-title">{{

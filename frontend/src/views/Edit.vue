@@ -292,6 +292,14 @@ onBeforeUnmount(() => {
   sectionSortable?.destroy();
   sectionSortable = null;
 });
+
+function goBack() {
+  if (window.history.length <= 1) {
+    router.push("/");
+  } else {
+    router.back();
+  }
+}
 </script>
 
 <template>
@@ -299,7 +307,7 @@ onBeforeUnmount(() => {
     <div class="view-header">
       <button
         class="btn-icon"
-        @click="router.back()"
+        @click="goBack"
         title="Abbrechen"
         aria-label="Abbrechen"
       >
