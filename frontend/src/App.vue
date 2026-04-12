@@ -29,7 +29,9 @@ onMounted(() => {
   store.loadFavorites();
 
   // Session Restore: redirect to last recipe if cold-starting on home
-  if (route.path === "/") {
+  // Use window.location.pathname (not route.path) because the router
+  // may not have resolved the initial route yet at mount time.
+  if (window.location.pathname === "/") {
     const savedPath = restoreSession();
     if (savedPath) {
       router.replace(savedPath);
