@@ -197,7 +197,9 @@ export const useRecipeStore = defineStore("recipe", {
       console.warn("Read recipe pictures from idb");
       get("recipe_pictures").then((val: unknown) => {
         if (val) {
-          this.recipe_pictures = deserializeRecipePictures(val as SerializedRecipePictures);
+          this.recipe_pictures = deserializeRecipePictures(
+            val as SerializedRecipePictures,
+          );
         }
       });
     },

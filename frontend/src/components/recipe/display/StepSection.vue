@@ -9,7 +9,7 @@ const props = defineProps<{
   keyPrefix?: string;
 }>();
 
-const keyPfx = computed(() => props.keyPrefix ?? '');
+const keyPfx = computed(() => props.keyPrefix ?? "");
 
 defineEmits<{
   "select-step": [event: Event];
