@@ -251,12 +251,19 @@ html {
 
 body {
   font-family: var(--font-family);
-  background: var(--color-surface-dim);
+  background: var(--color-surface);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* iOS safe area: push content below status bar / notch */
   padding-top: env(safe-area-inset-top, 0);
+}
+
+/* Desktop: abgesetzter Hintergrund an den Seiten */
+@media (min-width: 1248px) {
+  body {
+    background: var(--color-surface-dim);
+  }
 }
 
 /* --- Global Utility Classes -------------- */

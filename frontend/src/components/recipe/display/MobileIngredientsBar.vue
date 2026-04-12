@@ -127,6 +127,7 @@ defineEmits<{
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   box-shadow: 0 -2px 12px rgba(60, 50, 40, 0.15);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 /* Collapsed State */
