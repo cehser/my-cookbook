@@ -54,11 +54,11 @@ const activeTab = computed(() => {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  height: var(--bottom-nav-height);
+  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0));
+  padding-bottom: env(safe-area-inset-bottom, 0);
   background: var(--color-chrome);
   border-top: 1px solid var(--color-chrome-border);
   z-index: 1040;
-  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .bottom-nav-item {

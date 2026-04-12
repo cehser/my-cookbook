@@ -245,12 +245,18 @@ html[data-bs-theme="dark"] {
 /* Dark BS overrides handled in html[data-bs-theme="dark"] above */
 
 /* --- Base Styles ------------------------- */
+html {
+  background: var(--color-surface);
+}
+
 body {
   font-family: var(--font-family);
   background: var(--color-surface-dim);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* iOS safe area: push content below status bar / notch */
+  padding-top: env(safe-area-inset-top, 0);
 }
 
 /* --- Global Utility Classes -------------- */
@@ -269,7 +275,9 @@ body {
 }
 
 .has-bottom-nav {
-  padding-bottom: calc(var(--bottom-nav-height) + var(--space-4));
+  padding-bottom: calc(
+    var(--bottom-nav-height) + env(safe-area-inset-bottom, 0) + var(--space-4)
+  );
 }
 
 .section-label {
