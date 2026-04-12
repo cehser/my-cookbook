@@ -1,0 +1,1427 @@
+- recipe_uuid: 5c8b8db0-3d5c-4f0e-9f9a-9c6c6c7b84af
+  recipe_name: Wespennester
+  author: ''
+  source_url: ''
+  source_book: ''
+  bake_time: 130°–150° ca. 25 Min Umluft
+  yields:
+    - Bleche: 2.5
+  subtitle: ''
+  ingredients:
+    - Eiweiß:
+        amounts:
+          - amount: 3
+            unit: Stück
+      section: ''
+    - Zucker:
+        amounts:
+          - amount: 200
+            unit: g
+      section: ''
+    - Vanillezucker:
+        amounts:
+          - amount: 1
+            unit: P.
+      section: ''
+    - gehackte Zartbitterschokolade:
+        amounts:
+          - amount: 125
+            unit: g
+      section: ''
+    - geröstete Mandeln:
+        amounts:
+          - amount: 250
+            unit: g
+      section: ''
+    - Salz:
+        amounts:
+          - amount: 1
+            unit: Pr.
+      section: ''
+  steps:
+    - step: 100 g Zucker mit den Mandeln zu Krokant verarbeiten und abkühlen lassen.
+      haccp: {}
+      notes: []
+      section: ''
+    - step: Eiweiß mit dem restl. Zucker und Salz steif schlagen.
+      haccp: {}
+      notes: []
+      section: ''
+    - step: Schokolade und Mandeln mischen, dann den Eischnee unterheben.
+      haccp: {}
+      notes: []
+      section: ''
+    - step: Mit 2 Teelöffeln kleine Häufchen auf ein Backblech setzen.
+      haccp: {}
+      notes: []
+      section: ''
+  imageurl: null
+  recalc_exp: 1
+  sections:
+    - section: ''
+  lastUpdated: 2025-11-30T21:29:33.490Z
+  cloud_images: []
+- recipe_uuid: 76817e3f-dfa5-4e4f-a2e3-4212861b6956
+  recipe_name: Pfannkuchen
+  author: Christoph Eßer
+  source_url: None
+  source_book: None
+  bake_time: 15 Minuten
+  yields:
+    - Pfannkuchen: 6
+  subtitle: >-
+    Christophs Lieblingspfannkuchen-Rezept. Nach Belieben mit Früchten
+    verfeinern.
+  ingredients:
+    - Mehl:
+        amounts:
+          - amount: 250
+            unit: g
+      section: ''
+    - Backpulver:
+        amounts:
+          - amount: 6
+            unit: g
+      section: ''
+    - Eier:
+        amounts:
+          - amount: 3
+            unit: Stück
+      section: ''
+    - Salz:
+        amounts:
+          - amount: ''
+            unit: ''
+      section: ''
+    - Zucker:
+        amounts:
+          - amount: 50
+            unit: g
+      section: ''
+    - Milch:
+        amounts:
+          - amount: 500
+            unit: ml
+      section: ''
+  steps:
+    - step: Eier, Salz, Zucker und Milch verschlagen.
+      haccp:
+        control_point: The apples must be clean
+      notes:
+        - Some people like green
+        - Some people like red
+      section: ''
+    - step: Mehl und Backpulver vermischen. Eine Kuhle bilden.
+      haccp:
+        critical_control_point: Wash hands with soap and warm water before distributing.
+      section: ''
+    - step: >-
+        Eiermilch portionsweise unter das Mehl rühren. Klümpchenbildung
+        vermeiden.
+      section: ''
+    - step: Teig 30 Minuten gehen lassen.
+      section: ''
+    - step: Beschichtete Pfanne mit Backtrennspray ganz leicht fetten.
+      section: ''
+    - step: Pfannkuchen auf mittler Stufe von beiden Seiten goldgelb backen.
+      section: ''
+  imageurl: ''
+  recalc_exp: 1
+  sections:
+    - section: ''
+  lastUpdated: 2025-12-06T22:57:30.292Z
+  cloud_images:
+    - 6436-pfannkuchen.jpg
+- ingredients:
+    - Mehl:
+        amounts:
+          - amount: 500
+            unit: g
+      section: Boden
+    - Hefe:
+        amounts:
+          - amount: 1
+            unit: Pkg.
+      section: Boden
+    - Vanillezucker:
+        amounts:
+          - amount: 1
+            unit: Pkg.
+      section: Boden
+    - Zucker:
+        amounts:
+          - amount: 75
+            unit: g
+      section: Boden
+    - Salz:
+        amounts:
+          - amount: 1
+            unit: Prise
+      section: Boden
+    - Butter (zerlassen, abgekühlt):
+        amounts:
+          - amount: 75
+            unit: g
+      section: Boden
+    - Milch (lauwarm):
+        amounts:
+          - amount: 250
+            unit: ml
+      section: Boden
+    - Milch:
+        amounts:
+          - amount: 1
+            unit: l
+      section: Pudding
+    - Speisestärke:
+        amounts:
+          - amount: 100
+            unit: g
+      section: Pudding
+    - Zucker:
+        amounts:
+          - amount: 100
+            unit: g
+      section: Pudding
+    - Eigelb:
+        amounts:
+          - amount: 2
+            unit: Stück
+      section: Pudding
+    - Vanilleextrakt:
+        amounts:
+          - amount: 5
+            unit: TL
+      section: Pudding
+    - Mehl:
+        amounts:
+          - amount: 300
+            unit: g
+      section: Streusel
+    - Zucker:
+        amounts:
+          - amount: 150
+            unit: g
+      section: Streusel
+    - Vanillezucker:
+        amounts:
+          - amount: 1
+            unit: Pkg.
+      section: Streusel
+    - Butter:
+        amounts:
+          - amount: 175
+            unit: g (ca.)
+      section: Streusel
+  steps:
+    - step: Küchenmaschine auf 35°C vorheizen.
+      section: Boden
+    - step: >-
+        Alle Zutaten zu einem Teig herstellen. Auf einem Backbleck ausrollen.
+        Hinweis: Lauwarme Milch über die Hefe schütten.
+      section: Boden
+    - step: Zucker und Speisestärke mit etwas Milch im Simmertopf glattrühren.
+      section: Pudding
+    - step: >-
+        Eigelb und Vanilleextraxt sowie restliche Milch hinzufügen und
+        verrühren.
+      section: Pudding
+    - step: Pudding unter Rühren im Simmertopf erhitzen, bis er abgebunden hat.
+      section: Pudding
+    - step: >-
+        Warmen Pudding unter Rühren abkühlen. Tipp: Kaltes Wasser in den
+        Simmertopf geben.
+      section: Pudding
+    - step: Kalten Pudding auf dem Boden verstreichen.
+      section: Pudding
+    - step: >-
+        Mehl, Zucker und Vanillezucker mit dem K-Haken in der Küchenmaschine
+        verkneten. 
+      section: Streusel
+    - step: >-
+        Nach und nach die Butter hinzugeben, bis eine schöne Streusel-Konsistenz
+        erreicht ist.
+      section: Streusel
+    - step: Streusel über dem Pudding verteilen.
+      section: Streusel
+    - step: >-
+        Kuchen bei 180-200°C Ober-/Unterhitze 15-20 Minuten backen, bis die
+        Streusel goldbraun sind.
+      section: Streusel
+  recipe_name: Puddingstreusel
+  imageurl: null
+  yields:
+    - cm Durchmesser: 30
+      Portionen: 26
+  recalc_exp: 2
+  recipe_uuid: 385acf44-a662-47b6-8803-b5e994acc443
+  subtitle: Christophs Lieblingskuchen
+  sections:
+    - section: Boden
+    - section: Pudding
+    - section: Streusel
+    - section: ''
+  lastUpdated: 2025-12-06T23:19:54.376Z
+  cloud_images:
+    - 385acf44-a662-47b6-8803-b5e994acc443.jpeg
+- ingredients:
+    - gehackte Mandeln:
+        amounts:
+          - amount: 100
+            unit: g
+      section: Füllung
+    - Baiser:
+        amounts:
+          - amount: 150
+            unit: g
+      section: Füllung
+    - Zartbitterschokolade:
+        amounts:
+          - amount: 300
+            unit: g
+      section: Füllung
+    - Sahne:
+        amounts:
+          - amount: 1
+            unit: l
+      section: Füllung
+    - Vanillezucker:
+        amounts:
+          - amount: 2
+            unit: Pck.
+      section: Füllung
+    - Zucker:
+        amounts:
+          - amount: 50
+            unit: g
+      section: Krokant
+    - gehackte Mandeln:
+        amounts:
+          - amount: 100
+            unit: g
+      section: Krokant
+  steps:
+    - step: 'Zucker in der Pfanne schmelzen. '
+      section: Krokant
+    - step: Wenn der Zucker leicht braun ist, Mandeln hinzugeben und kurz mitbraten.
+      section: Krokant
+    - step: Auf der Arbeitsplatte mit Backpapier verteilen und erkalten lassen.
+      section: Krokant
+    - step: Baiser zerbrösen und die Schokolade hacken.
+      section: Füllung
+    - step: Mandeln, Krokant, Baiser und Schokolade mischen.
+      section: Füllung
+    - step: Sahne mit Vavnillezucker steif schlagen.
+      section: Füllung
+    - step: Sahne unter die Baisermasse heben und in eine Springform füllen.
+      section: Füllung
+    - step: Mindestens 3 Stunden im Gefrierschrank kühlen.
+      section: Füllung
+  recipe_name: Eiskuchen
+  imageurl: null
+  yields:
+    - cm Durchmesser: 26
+  recalc_exp: 2
+  recipe_uuid: ec860a23-c828-4ff8-b1b5-dcece7b4c482
+  sections:
+    - section: Krokant
+    - section: Füllung
+    - section: ''
+  lastUpdated: 2021-02-13T11:22:27.633Z
+  cloud_images:
+    - ec860a23-c828-4ff8-b1b5-dcece7b4c482.plain
+- ingredients:
+    - Rinderhack:
+        amounts:
+          - amount: 500
+            unit: g
+      section: Bolognesesauce
+    - Zwiebeln:
+        amounts:
+          - amount: 0.5
+            unit: Stück
+      section: Bolognesesauce
+    - Knoblauch:
+        amounts:
+          - amount: 1.5
+            unit: Zehen
+      section: Bolognesesauce
+    - Möhren:
+        amounts:
+          - amount: 1
+            unit: Stück
+      section: Bolognesesauce
+    - Sellerie:
+        amounts:
+          - amount: 0.25
+            unit: Stück
+      section: Bolognesesauce
+    - Tomaten, gestückelt:
+        amounts:
+          - amount: 600
+            unit: g
+      section: Bolognesesauce
+    - Tomatenmark:
+        amounts:
+          - amount: 2
+            unit: EL
+      section: Bolognesesauce
+    - Thymian:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Bolognesesauce
+    - Rosmarin:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Bolognesesauce
+    - Paprikapulver:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Bolognesesauce
+    - Chilipulver:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Bolognesesauce
+    - Petersilie:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Bolognesesauce
+    - Lasagneblätter:
+        amounts:
+          - amount: 500
+            unit: g
+      section: Fertigstellung
+    - Parmesan, gerieben:
+        amounts:
+          - amount: 100
+            unit: g
+      section: Fertigstellung
+    - Olivenöl:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Fertigstellung
+    - Semmelbrösel:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Fertigstellung
+    - Mehl:
+        amounts:
+          - amount: 40
+            unit: g
+      section: Bechamelsauce
+    - Butter:
+        amounts:
+          - amount: 60
+            unit: g
+      section: Bechamelsauce
+    - Milch:
+        amounts:
+          - amount: 500
+            unit: ml
+      section: Bechamelsauce
+    - Parmesan:
+        amounts:
+          - amount: 50
+            unit: g
+      section: Bechamelsauce
+    - Salz:
+        amounts:
+          - amount: 0.5
+            unit: TL
+      section: Bechamelsauce
+    - Muskat:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Bechamelsauce
+    - Weißer Pfeffer:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Bechamelsauce
+  steps:
+    - step: 'Zwiebeln fein hacken und mit wenig Olivenöl glasig anbraten. '
+      section: Bolognesesauce
+    - step: >-
+        Hackfleisch hinzugeben und dabei zerteilen, bis eine krümelige Masse
+        entsteht.
+      section: Bolognesesauce
+    - step: >-
+        Möhren und Sellerie in kleine Stücke schneiden, Knoblauch hacken/pressen
+        und alles hinzugeben
+      section: Bolognesesauce
+    - step: Mit Pfeffer und Salz gut würzen und kurz weiterbraten.
+      section: Bolognesesauce
+    - step: Tomaten und Tomatenmark hinzugeben und nach Geschmack würzen.
+      section: Bolognesesauce
+    - step: 20 Minuten köcheln lassen.
+      section: Bolognesesauce
+    - step: Auflaufform mit Olivenöl auspinseln.
+      section: Fertigstellung
+    - step: >-
+        Abwechselnd Lasangeblätter, Hackfleischsauce und Bechemelsauce
+        schichten. Mit Hack und Bechamelsauce enden.
+      section: Fertigstellung
+    - step: Parmesan deckend hinaufstreuen, mit Olivenöl beträufeln.
+      section: Fertigstellung
+    - step: Gfs mit etwas Semmelbrösel bestreuen.
+      section: Fertigstellung
+    - step: Bei 200 °C Ober-/Unterhitze ca. 45 Minuten im Backofen garen.
+      section: Fertigstellung
+    - step: >-
+        Milch und Mehl verrühren. Butter mit der Milch erhitzen bis die Sauce
+        cremig ist. Dabei ständig rühren.
+      section: Bechamelsauce
+    - step: >-
+        Mit Salz, Pfeffer und Muskat würzen, dann den fein geriebenen Parmesan
+        hinzufügen. Kurz unter Rühren weiter köcheln lassen.
+      section: Bechamelsauce
+  recipe_name: Lasagne
+  imageurl: null
+  yields:
+    - Liter: 4
+  recalc_exp: 1
+  recipe_uuid: 5e89e581-0d0a-4eec-a901-c08632c10135
+  sections:
+    - section: Bolognesesauce
+    - section: Bechamelsauce
+    - section: Fertigstellung
+    - section: ''
+  lastUpdated: 2021-03-07T15:14:45.818Z
+  cloud_images:
+    - 5e89e581-0d0a-4eec-a901-c08632c10135.html
+- ingredients:
+    - Milch:
+        amounts:
+          - amount: 1
+            unit: l
+      section: ''
+    - Milchreis:
+        amounts:
+          - amount: 200
+            unit: g
+      section: ''
+    - Zucker:
+        amounts:
+          - amount: 4
+            unit: EL
+      section: ''
+    - Vanilleextrakt:
+        amounts:
+          - amount: 4
+            unit: TL
+      section: ''
+  steps:
+    - step: >-
+        Cooking Chef mit Rührlippe ausstatten. Alles außer Reis in die Schüssel
+        geben.
+      section: ''
+    - step: Bei 120 °C und Intervallstufe 20 Sekunden für 10 Minuten aufkochen.
+      section: ''
+    - step: Milchreis hineingeben und 40 Minuten bei 90 °C alle 30 Sekunden rühren.
+      section: ''
+    - step: Zum Abkühlen alle 1-2 Minuten rühren.
+      section: ''
+  sections:
+    - section: ''
+  recipe_name: Milchreis
+  imageurl: null
+  yields:
+    - Portionen: 4
+  recalc_exp: 1
+  recipe_uuid: 2ae4ce7e-26ce-42ea-8ba1-3150199abc69
+  lastUpdated: 2021-02-10T19:09:30.801Z
+  cloud_images:
+    - 2ae4ce7e-26ce-42ea-8ba1-3150199abc69.html
+- ingredients:
+    - Mehl:
+        amounts:
+          - amount: 220
+            unit: g
+      section: Ölteig
+    - Olivenöl:
+        amounts:
+          - amount: 3
+            unit: EL
+      section: Ölteig
+    - Eigelb:
+        amounts:
+          - amount: 1
+            unit: Stück
+      section: Ölteig
+    - Salz:
+        amounts:
+          - amount: 0.5
+            unit: TL
+      section: Ölteig
+    - Wasser (warm):
+        amounts:
+          - amount: 100
+            unit: ml
+      section: Ölteig
+    - Fühlingszwiebeln:
+        amounts:
+          - amount: 1
+            unit: Bund
+      section: Belag
+    - Speck:
+        amounts:
+          - amount: 150
+            unit: g
+      section: Belag
+    - Schmand:
+        amounts:
+          - amount: 250
+            unit: g
+      section: Belag
+    - Crème Fraîche:
+        amounts:
+          - amount: 150
+            unit: g
+      section: Belag
+    - Salz:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Belag
+    - Pfeffer:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Belag
+  steps:
+    - step: >-
+        Teig mit Knethaken zubereiten anschließend einölen und in Folie
+        einwickeln. 30 Minuten ruhen lassen.
+      section: Ölteig
+    - step: >-
+        Schmand und Crème fraîche mit Salz und Pfeffer würzen, Frühlingszwiebeln
+        waschen und in Ringe schneiden. 
+      section: Belag
+    - step: >-
+        Teig halbieren, dünn ausrollen und belegen. Bei 250 °C 10 Minuten
+        backen. 
+      section: Belag
+  sections:
+    - section: Ölteig
+    - section: Belag
+    - section: ''
+  recipe_name: Elsässer Flammkuchen
+  imageurl: null
+  yields:
+    - Portionen: 2
+  recalc_exp: 1
+  recipe_uuid: 71cdfed7-bf8d-4c71-8d22-9e9c5ee8902c
+  lastUpdated: 2021-01-29T20:42:36.673Z
+  cloud_images:
+    - 71cdfed7-bf8d-4c71-8d22-9e9c5ee8902c.html
+- ingredients:
+    - Butter:
+        amounts:
+          - amount: 300
+            unit: g
+      section: ''
+    - Haselnüsse gemahlen:
+        amounts:
+          - amount: 150
+            unit: g
+      section: ''
+    - Zucker:
+        amounts:
+          - amount: 250
+            unit: g
+      section: ''
+    - Vanillezucker:
+        amounts:
+          - amount: 1
+            unit: Pck.
+      section: ''
+    - Eier:
+        amounts:
+          - amount: 2
+            unit: Stück
+      section: ''
+    - Mehl:
+        amounts:
+          - amount: 400
+            unit: g
+      section: ''
+    - Backpulver:
+        amounts:
+          - amount: 1
+            unit: TL
+      section: ''
+    - Vanillepudding:
+        amounts:
+          - amount: 1
+            unit: Pck.
+      section: ''
+    - Speisestärke:
+        amounts:
+          - amount: 50
+            unit: g
+      section: ''
+  steps:
+    - step: >-
+        Butter, Nüsse, Zucker und Eier mit dem K-Haken zu einem Rührteig
+        verarbeiten. 
+      section: ''
+    - step: >-
+        Mehl, Puddingpulver, Backpulver und Stärke vermischen und den gerührten
+        Teig mit den Händen darin verkneten.
+      section: ''
+    - step: Den fertigen Teig einige Stunden kühl ruhen lassen.
+      section: ''
+    - step: Dann bei 180 °C (Umluft) ca. 8 Minuten goldgelb backen.
+      section: ''
+  sections:
+    - section: ''
+  recipe_name: Spritzgebäck
+  imageurl: /placeholder-image.png
+  yields:
+    - Bleche: 4
+  recalc_exp: 1
+  recipe_uuid: 3e4e7a81-e3b8-4a88-a530-c3dde536aab4
+  lastUpdated: 2021-02-20T08:41:10.144Z
+  subtitle: Nach Oma Agnes
+  cloud_images:
+    - 83DE1B4F-57FC-4E87-BF0B-952763CE6CDC.jpeg
+- ingredients:
+    - Mehl:
+        amounts:
+          - amount: 250
+            unit: g
+      section: ''
+    - Eigelb:
+        amounts:
+          - amount: 2
+            unit: Stück
+      section: ''
+    - Puderzucker:
+        amounts:
+          - amount: 80
+            unit: g
+      section: ''
+    - Vanilleextrakt:
+        amounts:
+          - amount: 1
+            unit: TL
+      section: ''
+    - Vanillezucker:
+        amounts:
+          - amount: 1
+            unit: Pck.
+      section: ''
+    - Salz:
+        amounts:
+          - amount: 1
+            unit: Prise
+      section: ''
+    - Mandeln, gemahlen:
+        amounts:
+          - amount: 100
+            unit: g
+      section: ''
+    - Butter:
+        amounts:
+          - amount: 200
+            unit: g
+      section: ''
+    - Feiner Vanillezucker:
+        amounts:
+          - amount: 50
+            unit: g
+      section: ''
+    - Gemahlene Vanilleschote:
+        amounts:
+          - amount: null
+            unit: ''
+      section: ''
+  steps:
+    - step: >-
+        Mehl, Eigelb, Puderzucker, Vanilleextrakt, Vanillezucker und Salz und
+        Mandeln in die Küchenmaschine geben.
+      section: ''
+    - step: Gut gekühlte Butter in Flöckchen hinzugeben
+      section: ''
+    - step: Mit dem K-Haken zu einem Teig kneten.
+      section: ''
+    - step: 60 Minuten abgedeckt in den Kühlschrank stellen.
+      section: ''
+    - step: 5 mm dick ausrollen und sichelförmig ausstechen.
+      section: ''
+    - step: Bei 150 °C Umluft ca. 12 Minuten backen.
+      section: ''
+  sections:
+    - section: ''
+  recipe_name: Vanillekipferl
+  imageurl: /placeholder-image.png
+  yields:
+    - Bleche: 5
+  recalc_exp: 1
+  recipe_uuid: 19ee308d-92ca-4ccf-a15b-a4efeac0555a
+  lastUpdated: 2023-12-04T13:07:34.462Z
+  cloud_images:
+    - IMG_1888.jpeg
+- ingredients:
+    - Eier:
+        amounts:
+          - amount: 4
+            unit: Stück
+      section: ''
+    - Zucker:
+        amounts:
+          - amount: 8
+            unit: EL
+      section: ''
+    - Mehl:
+        amounts:
+          - amount: 500
+            unit: g
+      section: ''
+    - Backpulver:
+        amounts:
+          - amount: 1
+            unit: TL
+      section: ''
+    - Quark, 40 % Fett:
+        amounts:
+          - amount: 500
+            unit: g
+      section: ''
+    - Salz:
+        amounts:
+          - amount: 1
+            unit: Prise
+      section: ''
+    - Zitronenschale:
+        amounts:
+          - amount: 0.5
+            unit: Stück
+      section: ''
+    - Vanilleextrakt:
+        amounts:
+          - amount: 2
+            unit: TL
+      section: ''
+    - Puderzucker:
+        amounts:
+          - amount: null
+            unit: ''
+      section: ''
+    - Fett zum Backen:
+        amounts:
+          - amount: null
+            unit: ''
+      section: ''
+  steps:
+    - step: Eier und Zucker schaumig schlagen.
+      section: ''
+    - step: Mehl mit Backpulver und Salz vermischen.
+      section: ''
+    - step: Alles miteinander verrühren.
+      section: ''
+    - step: Den Teig 30 Minuten ruhen lassen.
+      section: ''
+    - step: >-
+        Fett im Topf erhitzen und Muzten mit zwei Teelöffeln ins Fett geben.
+        Goldbraun backen.
+      section: ''
+    - step: Direkt mit Puderzucker bestreuen und erkalten lassen.
+      section: ''
+  sections:
+    - section: ''
+  recipe_name: Mutzen
+  imageurl: /placeholder-image.png
+  yields:
+    - Portionen: 4
+  recalc_exp: 1
+  recipe_uuid: 8262afad-17a5-487c-9cb1-1f3deb08c9c5
+  lastUpdated: 2021-02-20T08:32:13.943Z
+  cloud_images:
+    - 51B237C2-1039-4BC7-BBCC-2D499DCC262C.jpeg
+- ingredients:
+    - Butter:
+        amounts:
+          - amount: 300
+            unit: g
+      section: ''
+    - Zucker:
+        amounts:
+          - amount: 275
+            unit: g
+      section: ''
+    - Vanillezucker:
+        amounts:
+          - amount: 1
+            unit: Pkg.
+      section: ''
+    - Eier:
+        amounts:
+          - amount: 3.5
+            unit: Stück
+      section: ''
+    - Salz:
+        amounts:
+          - amount: 1
+            unit: Prise
+      section: ''
+    - Rum-Aroma:
+        amounts:
+          - amount: 1
+            unit: Fläschchen
+      section: ''
+    - Weizenmehl:
+        amounts:
+          - amount: 500
+            unit: g
+      section: ''
+    - Backpulver:
+        amounts:
+          - amount: 1
+            unit: Pkg.
+      section: ''
+    - Milch:
+        amounts:
+          - amount: 125
+            unit: ml
+      section: ''
+    - Kakao:
+        amounts:
+          - amount: 30
+            unit: g
+      section: ''
+    - Zucker:
+        amounts:
+          - amount: 25
+            unit: g
+      section: ''
+    - Milch:
+        amounts:
+          - amount: 40
+            unit: ml
+      section: ''
+  steps:
+    - step: Butter schaumig rühren.
+      section: ''
+    - step: Nach und nach Zucker, Vanillezucker, Eier, Salz un Rum-Aroma hinzugeben.
+      section: ''
+    - step: Weizenmehr mit Backpulver mischen.
+      section: ''
+    - step: >-
+        Abwechselnd mit Milch unterrühren (nur so viel Milch verwenden, dass der
+        Teig schwer reißend vom Löffel fällt).
+      section: ''
+    - step: Den Teig halbieren.
+      section: ''
+    - step: >-
+        Unter die Hälfte der Masse den restlichen Kakao und Zucker rühren. Etwas
+        Milch hinzufüren sodass  der Teig schwer reißend vom Löffel fällt.
+      section: ''
+    - step: Den Teig abwechselnd in die Form füllen.
+      section: ''
+    - step: Bei 180°C Ober-/Unterhitze für 50 Minuten backen.
+      section: ''
+  sections:
+    - section: ''
+  recipe_name: Marmorkuchen
+  imageurl: null
+  yields:
+    - cm Durchmesser: 26
+  recalc_exp: 2
+  recipe_uuid: 9d852e3e-55a7-4b5c-990b-c0f3f498f3bc
+  lastUpdated: 2025-12-06T23:07:09.713Z
+  cloud_images:
+    - 9d852e3e-55a7-4b5c-990b-c0f3f498f3bc.jpeg
+- ingredients:
+    - Weizenmehl:
+        amounts:
+          - amount: 200
+            unit: g
+      section: Teig
+    - Backpulver:
+        amounts:
+          - amount: 4
+            unit: TL
+      section: Teig
+    - Zucker:
+        amounts:
+          - amount: 133
+            unit: g
+      section: Teig
+    - Butter:
+        amounts:
+          - amount: 167
+            unit: g
+      section: Teig
+    - Eier:
+        amounts:
+          - amount: 4
+            unit: Stück
+      section: Teig
+    - Raspelschokolade zartbitter:
+        amounts:
+          - amount: 4
+            unit: EL
+      section: Teig
+    - Sauerkirschen:
+        amounts:
+          - amount: 350
+            unit: g
+      section: Kirschfüllung
+    - Wasser:
+        amounts:
+          - amount: 200
+            unit: ml
+      section: Kirschfüllung
+    - Tortenguss rot:
+        amounts:
+          - amount: 1
+            unit: Pkg.
+      section: Kirschfüllung
+    - Speisequark, Magerstufe:
+        amounts:
+          - amount: 250
+            unit: g
+      section: Quarkfüllung
+    - Zucker:
+        amounts:
+          - amount: 50
+            unit: g
+      section: Quarkfüllung
+    - Vanillezucker:
+        amounts:
+          - amount: 1
+            unit: Pkg.
+      section: Quarkfüllung
+    - Milch:
+        amounts:
+          - amount: 5
+            unit: EL
+      section: Quarkfüllung
+    - Schlagsahne:
+        amounts:
+          - amount: 400
+            unit: g
+      section: Quarkfüllung
+    - Gelatine fix:
+        amounts:
+          - amount: 30
+            unit: g
+      section: Quarkfüllung
+    - Raspelschokolade zartbitter:
+        amounts:
+          - amount: 4
+            unit: EL
+      section: Quarkfüllung
+  steps:
+    - step: Butter weichrühren. Zucker und Eier hinzufügen.
+      section: Teig
+    - step: Mehl mit Backpulver mischen und ebenfalls hinzugeben.
+      section: Teig
+    - step: Zum Schluss die Schokoladenraspeln unterheben.
+      section: Teig
+    - step: Bei 180 °C Ober-/Unterhitze ca. 25 Minuten backen.
+      section: Teig
+    - step: >-
+        Wenn der Kuchen abgekühlt ist, den Boden waagerecht im Verhältnis 2:1
+        teilen. Den unteren (dicken) Boden auf eine Tortenplatte legen.
+      section: Teig
+    - step: Die Kirschen im Sieb gut abtropfen lassen.
+      section: Kirschfüllung
+    - step: 'Torteguss nach Packungsanleitung (aber nur 200 ml Wasser) zubereiten. '
+      section: Kirschfüllung
+    - step: 'Kirschen unterheben und mit 2 cm Abstand zum Rand verstreichen. '
+      section: Kirschfüllung
+    - step: Erkalten lassen.
+      section: Kirschfüllung
+    - step: Quark mit Zucker, Vanillezucker und Milch verrühren.
+      section: Quarkfüllung
+    - step: Sahne mit Gelatine fix nach Packungsanleitung steif schlagen.
+      section: Quarkfüllung
+    - step: Sahne mit einem Schneebesen unter die Quarkmasse heben.
+      section: Quarkfüllung
+    - step: Raspelschokolade ebenfalls unterheben
+      section: Quarkfüllung
+    - step: Creme kuppelförmig auf den Boden streichen. Dabei 1 cm Rand frei lassen.
+      section: Fertigstellung
+    - step: >-
+        Den oberen Boden in 16 Tortenstücke schneiden. Diese mit den Spitzen
+        nach oben auf die Kuppel legen und leicht andrücken.
+      section: Fertigstellung
+    - step: Kuchen mindestens 3 Stunden in den Kühlschrank stellen.
+      section: Fertigstellung
+  sections:
+    - section: Teig
+    - section: Kirschfüllung
+    - section: Quarkfüllung
+    - section: Fertigstellung
+    - section: ''
+  recipe_name: Kirsch-Stracciatella-Kuppel
+  imageurl: null
+  yields:
+    - cm Durchmesser: 26
+  recalc_exp: 2
+  recipe_uuid: b2c64067-08a7-44bb-87ae-f75523b7fce7
+  lastUpdated: 2021-03-07T15:06:57.927Z
+  subtitle: Sehr lecker auch mit Erdbeeren!
+  cloud_images:
+    - b2c64067-08a7-44bb-87ae-f75523b7fce7.html
+- ingredients:
+    - Butter:
+        amounts:
+          - amount: 150
+            unit: g
+      section: Buttercreme
+    - Puderzucker:
+        amounts:
+          - amount: 300
+            unit: g
+      section: Buttercreme
+    - Kakaopulver:
+        amounts:
+          - amount: 2
+            unit: TL
+      section: Buttercreme
+    - Milch:
+        amounts:
+          - amount: 1.5
+            unit: EL
+      section: Buttercreme
+    - Smarties:
+        amounts:
+          - amount: 400
+            unit: g
+      section: Verzierung
+    - Mandeln, ganz:
+        amounts:
+          - amount: 7
+            unit: Stück
+      section: Verzierung
+    - Zuckerstreusel:
+        amounts:
+          - amount: 50
+            unit: g
+      section: Verzierung
+    - Schokoladentropfen:
+        amounts:
+          - amount: 15
+            unit: Stück
+      section: Verzierung
+  steps:
+    - step: Rührkuchen oder Biskuitboden nach Wahl
+      section: Teig
+    - step: Butter schlagen bis sie weich und cremig ist.
+      section: Buttercreme
+    - step: >-
+        Nach und nach Puderzucker und Kakao gesiebt hinzugeben und weiter
+        verrühren.
+      section: Buttercreme
+    - step: Milch hinzufügen.
+      section: Buttercreme
+    - step: 'Boden halbieren und einen teil der Buttercreme darauf verstreichen. '
+      section: Buttercreme
+    - step: Anderen Boden daraufsetzen und den Rest der Buttercreme verteilen.
+      section: Buttercreme
+    - step: Kuchen wie abgebildet verzieren.
+      section: Verzierung
+  sections:
+    - section: Teig
+    - section: Buttercreme
+    - section: Verzierung
+    - section: ''
+  recipe_name: Smarties-Kuchen
+  imageurl: /placeholder-image.png
+  yields:
+    - cm Durchmesser: 20
+  recalc_exp: 2
+  recipe_uuid: 4d7077a0-c6b1-4607-b610-93c431988f00
+  lastUpdated: 2021-02-20T08:51:48.563Z
+  cloud_images:
+    - EF776BD4-1831-4C39-B66B-945CBC456947.jpeg
+- ingredients:
+    - Toblerone:
+        amounts:
+          - amount: 200
+            unit: g
+      section: ''
+    - Zartbitter-Toblerone:
+        amounts:
+          - amount: 100
+            unit: g
+      section: ''
+    - Sahne:
+        amounts:
+          - amount: 400
+            unit: ml
+      section: ''
+    - Eier:
+        amounts:
+          - amount: 2
+            unit: Stück
+      section: ''
+    - Vanilleextrakt:
+        amounts:
+          - amount: 1
+            unit: TL
+      section: ''
+    - Puderzucker:
+        amounts:
+          - amount: 50
+            unit: g
+      section: ''
+  steps:
+    - step: Toblerone zerkleinern und im Simmertopf schmelzen.
+      section: ''
+    - step: Sahne steif schlagen.
+      section: ''
+    - step: >-
+        Eier, Vanilleextrakt und Puderzucker zu einer schaumigen, hellen Masse
+        schlagen.
+      section: ''
+    - step: Geschmolzene Toblerone unterheben.
+      section: ''
+    - step: Sahne unterheben.
+      section: ''
+    - step: >-
+        Masse servierfertig umfüllen und mindestens 3-4 Stunden im Kühlschrank
+        ruhen lassen.
+      section: ''
+  sections:
+    - section: ''
+  recipe_name: Toblerone-Mousse
+  imageurl: null
+  yields:
+    - Liter: 1
+  recalc_exp: 1
+  recipe_uuid: 2e2d0d60-9fea-4dd0-a2f1-d88cb813663f
+  lastUpdated: 2021-03-03T21:29:42.646Z
+- ingredients:
+    - Mehl Type 550:
+        amounts:
+          - amount: 1
+            unit: kg
+      section: Teig
+    - Olivenöl:
+        amounts:
+          - amount: 6
+            unit: EL
+      section: Teig
+    - Zucker:
+        amounts:
+          - amount: 0.5
+            unit: TL
+      section: Teig
+    - Salz:
+        amounts:
+          - amount: 1
+            unit: TL
+      section: Teig
+    - Hefe:
+        amounts:
+          - amount: 1
+            unit: Würfel
+      section: Teig
+    - Warmes Wasser:
+        amounts:
+          - amount: 0.5
+            unit: l
+      section: Teig
+    - Pizzagewürz:
+        amounts:
+          - amount: 2
+            unit: TL
+      section: Teig
+    - Gouda:
+        amounts:
+          - amount: 500
+            unit: g
+      section: Zubereitung
+    - Oregano:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Zubereitung
+    - Tomaten passiert:
+        amounts:
+          - amount: 600
+            unit: g
+      section: Tomatensauce
+    - Tomatenmark:
+        amounts:
+          - amount: 3
+            unit: EL
+      section: Tomatensauce
+    - Pizzagewürz:
+        amounts:
+          - amount: 3
+            unit: TL
+      section: Tomatensauce
+    - Organo:
+        amounts:
+          - amount: 0.5
+            unit: TL
+      section: Tomatensauce
+    - Kräutersalz:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Tomatensauce
+    - Knoblauch:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Tomatensauce
+    - Salz, Pfeffer:
+        amounts:
+          - amount: null
+            unit: ''
+      section: Tomatensauce
+  steps:
+    - step: Hefe in 90 % des Wassers auflösen. Zucker hinzugeben und umrühren.
+      section: Teig
+    - step: >-
+        Mehl, Pizzagewürz, Olivenöl, Salz und Hefewasser in Küchenmaschine
+        verkneten. Restliches Wasser nach und nach hinzugeben, aber nur so viel,
+        dass der Teig nicht zu Feucht wird.
+      section: Teig
+    - step: Teig mit leichter Wärme (35°C) ca. 10 Minuten kneten.
+      section: Teig
+    - step: Alle Zutaten verrühren.
+      section: Tomatensauce
+    - step: >-
+        Teig portionieren (300 g pro Pizza) und unter einem warmen, feuchten
+        Tuch etwa eine Stunde gehen lassen
+      section: Teig
+    - step: >-
+        Arbeitsfläche und Teigling bemehlen. Teig zu einer Kreisform
+        auseinanderziehen.
+      section: Zubereitung
+    - step: Gouda reiben. Tomatensauce verteilen und Pizza mit Gouda bestreuen.
+      section: Zubereitung
+    - step: Pizza nach belieben belegen. Zum Schluss mit Oregano bestreuen.
+      section: Zubereitung
+    - step: >-
+        Backofen ca. 1 Stunde auf höchster Temperatur (ca. 300 °C
+        Ober-/Unterhitze) mit Pizzastein vorheizen.
+      section: Zubereitung
+    - step: Pizza je nach Belag 7 bis 9 Minuten auf dem Pizzastein backen.
+      section: Zubereitung
+  sections:
+    - section: Teig
+    - section: Tomatensauce
+    - section: Zubereitung
+    - section: ''
+  recipe_name: Pizza
+  imageurl: null
+  yields:
+    - Pizzen: 5
+  recalc_exp: 1
+  recipe_uuid: 79714305-b0fd-44a7-87b9-c56d3ac8e3fc
+  lastUpdated: 2021-03-07T15:06:30.118Z
+  cloud_images:
+    - A30FEC7F-F62D-446C-B59F-3ECDCF65F895.jpeg
+  subtitle: Selbstgemacht wie beim Italiener
+- recipe_uuid: c774ab64-0993-4767-98a2-f54e33704f3b
+  recipe_name: Grünkohleintopf ohne viel Arbeit
+  author: Kvothe13
+  source_url: >-
+    https://www.chefkoch.de/rezepte/2713041424290714/Gruenkohleintopf-ohne-viel-Arbeit.html
+  source_book: ''
+  bake_time: ''
+  yields:
+    - Portionen: 6
+  subtitle: ''
+  ingredients:
+    - Grünkohl (TK):
+        amounts:
+          - amount: 1000
+            unit: g
+      section: ''
+    - Zwiebel:
+        amounts:
+          - amount: 1
+            unit: große
+      section: ''
+    - Brühe (kräftig):
+        amounts:
+          - amount: 1
+            unit: l
+      section: ''
+    - Kartoffeln:
+        amounts:
+          - amount: 700
+            unit: g
+      section: ''
+    - Mettenden, geräuchert:
+        amounts:
+          - amount: 4
+            unit: Stück
+      section: ''
+    - Salz:
+        amounts:
+          - amount: null
+            unit: ''
+      section: ''
+    - Pfeffer:
+        amounts:
+          - amount: null
+            unit: ''
+      section: ''
+    - Butterschmalz:
+        amounts:
+          - amount: null
+            unit: ''
+      section: ''
+  steps:
+    - step: >-
+        Die Zwiebel würfeln und in etwas Butterschmalz glasig dünsten.
+        Ordentlich salzen und pfeffern. Den Grünkohl dazugeben, gut durchrühren,
+        etwas auf Temperatur bringen und die Brühe angießen. Das Ganze bei
+        mittlerer Temperatur mit geschlossenem Deckel 20 Minuten garen.
+      haccp:
+        time_temperature_controlled: false
+        high_risk_ingredient: false
+      notes:
+        - ''
+      section: ''
+    - step: >-
+        In der Zwischenzeit die Kartoffeln schälen und würfeln. Nach der Garzeit
+        die Kartoffeln zum Grünkohl geben, gut umrühren, Deckel wieder drauf und
+        weitere 20 Minuten köcheln lassen.
+      haccp:
+        time_temperature_controlled: false
+        high_risk_ingredient: false
+      notes:
+        - ''
+      section: ''
+    - step: >-
+        Danach die Mettenden dazugeben, weitere 10 Minuten garen lassen. Zum
+        Schluss die Würste herausnehmen, in Scheiben schneiden und wieder
+        zufügen.
+      haccp:
+        time_temperature_controlled: false
+        high_risk_ingredient: false
+      notes:
+        - ''
+      section: ''
+    - step: Evtl. noch mal nachwürzen, das ist aber meist nicht nötig.
+      haccp:
+        time_temperature_controlled: false
+        high_risk_ingredient: false
+      notes:
+        - ''
+      section: ''
+  imageurl: null
+  recalc_exp: 1
+  sections:
+    - section: ''
+  lastUpdated: 2025-12-01T22:42:39.313Z
+  cloud_images: []

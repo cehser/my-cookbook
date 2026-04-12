@@ -1,0 +1,362 @@
+<script setup lang="ts">
+import { computed } from "vue";
+import type { Recipe } from "@/types/recipe";
+
+const props = defineProps<{
+  show: boolean;
+  isMobile: boolean;
+  recipe: Recipe;
+  yieldsValue: number | null;
+  yieldsUnit: string | null;
+}>();
+
+defineEmits<{
+  close: [];
+}>();
+
+const hasTimeInfo = computed(
+  () =>
+    !!(
+      props.recipe.prep_time ||
+      props.recipe.cook_time ||
+      props.recipe.bake_time ||
+      props.recipe.total_time
+    ),
+);
+
+const difficultyLabel = computed(() => {
+  if (!props.recipe.difficulty) return "";
+  const difficulties: Record<string, string> = {
+    easy: "Einfach",
+    medium: "Mittel",
+    hard: "Schwer",
+  };
+  return difficulties[props.recipe.difficulty] || "";
+});
+
+const difficultyClass = computed(() => {
+  if (!props.recipe.difficulty) return "bg-secondary";
+  const classes: Record<string, string> = {
+    easy: "bg-success",
+    medium: "bg-warning",
+    hard: "bg-danger",
+  };
+  return classes[props.recipe.difficulty] || "bg-secondary";
+});
+</script>
+
+<template>
+  <!-- Desktop: Sidebar Overlay -->
+  <transition name="slide-in-right">
+    <div v-if="show && !isMobile" class="metadata-sidebar-overlay">
+      <div class="metadata-header">
+        <h6><i class="bi bi-info-circle me-2"></i>Informationen</h6>
+        <CloseButton @close="$emit('close')" />
+      </div>
+
+      <div class="metadata-content">
+        <div v-if="recipe.author" class="meta-row">
+          <i class="bi bi-person"></i>
+          <div>
+            <strong>Autor</strong>
+            <p>{{ recipe.author }}</p>
+          </div>
+        </div>
+
+        <div v-if="recipe.source_url || recipe.source_book" class="meta-row">
+          <i class="bi bi-link-45deg"></i>
+          <div>
+            <strong>Quelle</strong>
+            <a
+              v-if="recipe.source_url"
+              :href="recipe.source_url"
+              target="_blank"
+            >
+              {{ recipe.source_url }}
+            </a>
+            <p v-if="recipe.source_book">{{ recipe.source_book }}</p>
+          </div>
+        </div>
+
+        <div v-if="yieldsValue && yieldsUnit" class="meta-row">
+          <i class="bi bi-calculator"></i>
+          <div>
+            <strong>Menge</strong>
+            <p>{{ yieldsValue }} {{ yieldsUnit }}</p>
+          </div>
+        </div>
+
+        <div v-if="hasTimeInfo" class="meta-row">
+          <i class="bi bi-clock"></i>
+          <div>
+            <strong>Zeiten</strong>
+            <p v-if="recipe.prep_time">
+              Vorbereitung: {{ recipe.prep_time }} Min
+            </p>
+            <p v-if="recipe.cook_time">Kochen: {{ recipe.cook_time }} Min</p>
+            <p v-if="recipe.bake_time">Backen: {{ recipe.bake_time }} Min</p>
+            <p v-if="recipe.total_time">Gesamt: {{ recipe.total_time }} Min</p>
+          </div>
+        </div>
+
+        <div v-if="recipe.difficulty" class="meta-row">
+          <i class="bi bi-bar-chart"></i>
+          <div>
+            <strong>Schwierigkeit</strong>
+            <span class="badge" :class="difficultyClass">{{
+              difficultyLabel
+            }}</span>
+          </div>
+        </div>
+
+        <div v-if="recipe.notes" class="meta-row">
+          <i class="bi bi-journal-text"></i>
+          <div>
+            <strong>Notizen</strong>
+            <p>{{ recipe.notes }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </transition>
+
+  <!-- Mobile: Bottom Sheet -->
+  <div v-if="isMobile && show">
+    <!-- Backdrop -->
+    <div class="metadata-backdrop" @click="$emit('close')"></div>
+
+    <!-- Bottom Sheet -->
+    <transition name="slide-up">
+      <div v-if="show" class="metadata-bottom-sheet">
+        <!-- Drag Handle -->
+        <div class="drag-handle"></div>
+
+        <div class="metadata-header">
+          <h6><i class="bi bi-info-circle me-2"></i>Informationen</h6>
+          <CloseButton @close="$emit('close')" />
+        </div>
+
+        <div class="metadata-content">
+          <div v-if="recipe.author" class="meta-row">
+            <i class="bi bi-person"></i>
+            <div>
+              <strong>Autor</strong>
+              <p>{{ recipe.author }}</p>
+            </div>
+          </div>
+
+          <div v-if="recipe.source_url || recipe.source_book" class="meta-row">
+            <i class="bi bi-link-45deg"></i>
+            <div>
+              <strong>Quelle</strong>
+              <a
+                v-if="recipe.source_url"
+                :href="recipe.source_url"
+                target="_blank"
+              >
+                {{ recipe.source_url }}
+              </a>
+              <p v-if="recipe.source_book">{{ recipe.source_book }}</p>
+            </div>
+          </div>
+
+          <div v-if="yieldsValue && yieldsUnit" class="meta-row">
+            <i class="bi bi-calculator"></i>
+            <div>
+              <strong>Menge</strong>
+              <p>{{ yieldsValue }} {{ yieldsUnit }}</p>
+            </div>
+          </div>
+
+          <div v-if="hasTimeInfo" class="meta-row">
+            <i class="bi bi-clock"></i>
+            <div>
+              <strong>Zeiten</strong>
+              <p v-if="recipe.prep_time">
+                Vorbereitung: {{ recipe.prep_time }} Min
+              </p>
+              <p v-if="recipe.cook_time">Kochen: {{ recipe.cook_time }} Min</p>
+              <p v-if="recipe.bake_time">Backen: {{ recipe.bake_time }} Min</p>
+              <p v-if="recipe.total_time">
+                Gesamt: {{ recipe.total_time }} Min
+              </p>
+            </div>
+          </div>
+
+          <div v-if="recipe.difficulty" class="meta-row">
+            <i class="bi bi-bar-chart"></i>
+            <div>
+              <strong>Schwierigkeit</strong>
+              <span class="badge" :class="difficultyClass">{{
+                difficultyLabel
+              }}</span>
+            </div>
+          </div>
+
+          <div v-if="recipe.notes" class="meta-row">
+            <i class="bi bi-journal-text"></i>
+            <div>
+              <strong>Notizen</strong>
+              <p>{{ recipe.notes }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+  </div>
+</template>
+
+<style scoped>
+/* Metadata Sidebar Overlay (Desktop/Tablet) */
+.metadata-sidebar-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(350px, 40%);
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(12px);
+  color: white;
+  padding: var(--space-5);
+  overflow-y: auto;
+  z-index: 20;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.4);
+}
+
+.metadata-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.metadata-header h6 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Close button uses shared CloseButton component */
+
+.metadata-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.meta-row {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  align-items: start;
+}
+
+.meta-row i {
+  font-size: var(--font-size-xl);
+  opacity: 0.8;
+  min-width: 24px;
+}
+
+.meta-row strong {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-base);
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.meta-row p {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.meta-row a {
+  color: #6ea8fe;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.meta-row a:hover {
+  text-decoration: underline;
+}
+
+/* Slide-in Animation */
+.slide-in-right-enter-active,
+.slide-in-right-leave-active {
+  transition:
+    transform var(--transition-normal),
+    opacity var(--transition-normal);
+}
+
+.slide-in-right-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.slide-in-right-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+/* Mobile - Metadata Bottom Sheet */
+.metadata-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-surface-overlay);
+  z-index: var(--z-mobile-bar);
+  backdrop-filter: blur(4px);
+  animation: fadeIn var(--transition-normal);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.metadata-bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 75vh;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(20px);
+  color: white;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--space-5);
+  overflow-y: auto;
+  z-index: 101;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
+}
+
+.drag-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  margin: 0 auto var(--space-4);
+}
+
+/* Slide-up Animation */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100%);
+}
+</style>

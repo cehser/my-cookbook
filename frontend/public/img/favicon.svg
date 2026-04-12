@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="512" height="512" viewBox="0 0 100 100">
+  <title>Kochbuch Icon</title>
+  <defs>
+    <!-- Hintergrund-Gradient in deiner bisherigen Lila-Richtung -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#AEABF5"/>
+      <stop offset="100%" stop-color="#7C75F0"/>
+    </linearGradient>
+    <!-- dezenter Schatten fürs Buch -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- abgerundetes Quadrat (Squircle) als Hintergrund -->
+  <rect x="5" y="5" width="90" height="90" rx="24" fill="url(#bg)"/>
+
+  <!-- Kochbuch -->
+  <g filter="url(#shadow)">
+    <!-- Buchkörper -->
+    <rect x="28" y="22" width="44" height="56" rx="6" fill="#FFFFFF"/>
+
+    <!-- Buchrücken -->
+    <rect x="24" y="26" width="6" height="48" rx="3" fill="#EDE7F6"/>
+
+    <!-- Lesezeichen -->
+    <path d="M56 22h8v22l-4-3-4 3z" fill="#FF7043"/>
+
+    <!-- „Textzeilen“ / Rezeptlinien -->
+    <rect x="34" y="36" width="28" height="2" fill="#D1C4E9"/>
+    <rect x="34" y="42" width="24" height="2" fill="#D1C4E9"/>
+    <rect x="34" y="48" width="20" height="2" fill="#D1C4E9"/>
+
+    <!-- kleine Deko-Linie unten -->
+    <rect x="34" y="60" width="18" height="2" fill="#EDE7F6"/>
+  </g>
+</svg>

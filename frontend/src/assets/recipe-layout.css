@@ -1,0 +1,258 @@
+/* ============================================
+   SHARED RECIPE LAYOUT STYLES
+   Used by Recipe.vue and SharedRecipe.vue
+   ============================================ */
+
+/* ============================================
+   DESKTOP/TABLET: SPLIT-VIEW LAYOUT
+   ============================================ */
+@media (min-width: 768px) {
+  .recipe-container.split-view {
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  .split-layout {
+    display: grid;
+    grid-template-columns: 35% 65%;
+    gap: var(--space-6);
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--space-6);
+  }
+
+  @media (max-width: 1024px) and (min-width: 768px) {
+    .split-layout {
+      grid-template-columns: 40% 60%;
+      gap: var(--space-5);
+      padding: var(--space-5);
+    }
+  }
+
+  .ingredients-column {
+    position: relative;
+  }
+
+  .sticky-wrapper {
+    position: sticky;
+    top: calc(56px + 1rem);
+    max-height: calc(100vh - 56px - 2rem);
+    overflow-y: auto;
+  }
+
+  .steps-column {
+    min-height: 100vh;
+  }
+
+  /* Desktop Filter Controls */
+  .filter-controls {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .filter-controls .btn {
+    font-size: var(--font-size-sm);
+  }
+
+  /* Desktop Ingredients Section Highlighting */
+  .ingredients-column .ingredients-section {
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--color-divider);
+    transition: all var(--transition-normal);
+    border-left: 4px solid transparent;
+  }
+
+  .ingredients-column .ingredients-section.active {
+    background: var(--color-primary-subtle);
+    border-left-color: var(--color-primary);
+    padding-left: calc(var(--space-4) - 4px);
+  }
+
+  .ingredients-column .ingredients-section h5 {
+    transition: color var(--transition-normal);
+  }
+
+  .ingredients-column .ingredients-section.active h5 {
+    color: var(--color-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+}
+
+/* ============================================
+   MOBILE: BOTTOM BAR LAYOUT
+   ============================================ */
+@media (max-width: 767px) {
+  .recipe-container.mobile-view {
+    position: relative;
+    padding-bottom: 80px;
+  }
+}
+
+/* ============================================
+   COMMON STYLES
+   ============================================ */
+#recipe_title_container {
+  position: relative;
+}
+
+#recipe_img {
+  max-height: 60vh;
+  object-fit: cover;
+  object-position: center;
+  width: 100%;
+  margin: auto;
+}
+
+#recipe_title {
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  background-color: rgba(230, 230, 230, 0.6);
+}
+
+[data-bs-theme="dark"] #recipe_title {
+  background-color: rgba(30, 28, 26, 0.75);
+}
+
+.ingredients-section {
+  margin-bottom: var(--space-5);
+}
+
+.ingredients-section h5 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-3);
+  color: var(--color-text);
+}
+
+/* Step Section Highlighting */
+.step-section {
+  margin-bottom: var(--space-6);
+  scroll-margin-top: 100px;
+}
+
+.step-section h4 {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+/* List Styles */
+.list-group-alpha {
+  list-style: lower-alpha inside;
+}
+
+.list-group-roman {
+  list-style: lower-roman inside;
+}
+
+.list-group-alpha > li {
+  display: list-item;
+}
+
+/* Quick Actions on Recipe Image */
+.recipe-image-container {
+  position: relative;
+}
+
+.quick-actions.desktop-actions {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  gap: var(--space-1);
+  z-index: var(--z-actions);
+}
+
+.quick-actions .action-btn {
+  width: var(--action-btn-size);
+  height: var(--action-btn-size);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  border: none;
+  transition: var(--transition-all-fast);
+}
+
+.quick-actions .action-btn i {
+  font-size: 1.2rem;
+}
+
+.quick-actions .action-btn:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
+}
+
+.quick-actions .action-btn.btn-warning {
+  background-color: #ffc107;
+  color: #000;
+}
+
+.quick-actions .action-btn.btn-light {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.quick-actions .action-btn.btn-light:hover {
+  background-color: #fff;
+}
+
+/* Favorite Star */
+.favorite-star {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: var(--z-actions);
+  cursor: pointer;
+  font-size: 1.8rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: var(--transition-transform);
+}
+
+.favorite-star:hover {
+  transform: scale(1.15);
+}
+
+/* Metadata Toggle Icon */
+.metadata-toggle-icon {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: var(--z-actions);
+  cursor: pointer;
+  width: var(--action-btn-size);
+  height: var(--action-btn-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-circle);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  transition:
+    var(--transition-transform),
+    box-shadow var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.metadata-toggle-icon i {
+  font-size: 1.3rem;
+  color: var(--color-text-muted);
+}
+
+.metadata-toggle-icon:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 767px) {
+  .metadata-toggle-icon {
+    width: var(--fab-size-small);
+    height: var(--fab-size-small);
+  }
+
+  .metadata-toggle-icon i {
+    font-size: 1.4rem;
+  }
+}

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Silent Renew</title>
+</head>
+<body>
+  <script>
+    // This page runs inside a hidden iframe during silent token renewal.
+    // It posts the authorization response back to the parent window.
+    parent.postMessage(location.href, location.origin);
+  </script>
+</body>
+</html>

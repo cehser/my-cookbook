@@ -1,0 +1,54 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    container_name: my-cookbook-frontend
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: my-cookbook-backend
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - UPLOAD_DIR=/app/uploads
+      - MAX_UPLOAD_SIZE_MB=5
+    volumes:
+      - recipe_uploads:/app/uploads
+      - recipe_prompts:/app/prompts
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: my-cookbook-db
+    environment:
+      - POSTGRES_DB=${DB_NAME:-cookbook}
+      - POSTGRES_USER=${DB_USER:-cookbook}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cookbook"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  recipe_uploads:
+  recipe_prompts:

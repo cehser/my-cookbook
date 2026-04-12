@@ -1,6 +1,7 @@
 .DS_Store
 node_modules
-/dist
+dist
+components.d.ts
 
 
 # local env files
@@ -22,3 +23,7 @@ pnpm-debug.log*
 *.sln
 *.sw?
 out/
+
+# Environment
+.env
+backup_pre_d1.sql

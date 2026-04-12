@@ -1,0 +1,35 @@
+ingredients:
+  - name: apple
+    amounts:
+      - amount: 1
+        unit: each
+    section: ""
+    processing:
+      - whole
+      - raw
+    notes:
+      - Use whole apples
+      - >-
+        Apples may be substituted, but produce a different flavor and
+        mouthfeel
+  - name: pear
+    amounts:
+      - amount: 1
+        unit: each
+    section: ""
+    processing:
+      - whole
+      - raw
+    notes:
+      - Use whole pears
+      - 'Pears may be substituted, but produce a different flavor and mouthfeel'
+steps:
+  - step: Gather the apples.
+    haccp:
+      control_point: The apples must be clean
+    notes:
+      - Some people like green
+      - Some people like red
+  - step: Hand out the apples.
+    haccp:
+      critical_control_point: Wash hands with soap and warm water before distributing.

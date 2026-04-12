@@ -1,0 +1,5 @@
+// Runtime configuration — injected by nginx entrypoint via envsubst
+window.__CONFIG__ = {
+  OIDC_AUTHORITY: "${OIDC_AUTHORITY}",
+  OIDC_CLIENT_ID: "${OIDC_CLIENT_ID}",
+};
