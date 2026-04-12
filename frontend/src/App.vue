@@ -198,8 +198,6 @@ html[data-bs-theme="dark"] {
   --shadow-fab-hover: 0 6px 16px rgba(0, 0, 0, 0.55);
 
   /* Bootstrap Overrides – warm statt blaugrau */
-  --bs-body-bg: var(--color-surface);
-  --bs-body-bg-rgb: 30, 27, 24;
   --bs-body-color: #ece6df;
   --bs-body-color-rgb: 236, 230, 223;
   --bs-emphasis-color: #ece6df;
@@ -227,8 +225,6 @@ html[data-bs-theme="dark"] {
 :root {
   --bs-font-sans-serif: var(--font-family);
   --bs-body-font-size: var(--font-size-base);
-  --bs-body-bg: var(--color-surface);
-  --bs-body-bg-rgb: 245, 241, 235;
   --bs-body-color: #2c2520;
   --bs-body-color-rgb: 44, 37, 32;
   --bs-border-color: #e0dbd5;
@@ -250,9 +246,9 @@ html {
 }
 
 body {
+  --bs-body-bg: var(--color-surface);
   font-family: var(--font-family);
   color: var(--color-text);
-  background-color: var(--color-surface);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* iOS safe area: push content below status bar / notch */
@@ -262,7 +258,7 @@ body {
 /* Desktop: abgesetzter Hintergrund an den Seiten */
 @media (min-width: 1248px) {
   body {
-    background-color: var(--color-surface-dim);
+    --bs-body-bg: var(--color-surface-dim);
   }
 }
 
