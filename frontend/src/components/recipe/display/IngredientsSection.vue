@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import type { Ingredient, Section } from "@/types/recipe";
 
 const props = defineProps<{
@@ -8,8 +9,37 @@ const props = defineProps<{
   yieldsValue: number;
 }>();
 
+// Only show sections that have ingredients, plus orphaned ingredients
+const effectiveSections = computed(() => {
+  const knownNames = new Set(props.sections.map((s) => s.section));
+  const result: Section[] = [];
+
+  // Orphaned ingredients (section name not in sections list)
+  const orphaned = props.ingredients.filter(
+    (i) => !knownNames.has(i.section ?? ""),
+  );
+  if (orphaned.length > 0) {
+    const orphanNames = new Set(orphaned.map((i) => i.section ?? ""));
+    for (const name of orphanNames) {
+      result.push({ section: name });
+    }
+  }
+
+  // Declared sections that actually have ingredients
+  for (const section of props.sections) {
+    const hasIngredients = props.ingredients.some(
+      (i) => (i.section ?? "") === section.section,
+    );
+    if (hasIngredients) {
+      result.push(section);
+    }
+  }
+
+  return result;
+});
+
 function getSectionIngredients(sectionName: string) {
-  return props.ingredients.filter((x) => x.section === sectionName);
+  return props.ingredients.filter((x) => (x.section ?? "") === sectionName);
 }
 
 function getIngredientName(ingredient: Ingredient) {
@@ -34,7 +64,7 @@ function formatAmount(ingredient: Ingredient) {
 <template>
   <div class="ingredients-sections">
     <div
-      v-for="(section, index) in sections"
+      v-for="(section, index) in effectiveSections"
       :key="'ing-section-' + index"
       class="ingredients-section"
       :class="{ active: section.section === activeSection }"
