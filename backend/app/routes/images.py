@@ -419,3 +419,49 @@ async def migrate_image_urls(
         "migrated": migrated,
         "failed": failed,
     }
+
+
+# ---------------------------------------------------------------------------
+# Admin: cleanup orphaned recipe_images (file missing on disk)
+# ---------------------------------------------------------------------------
+
+@router.post("/admin/cleanup-images")
+async def cleanup_orphaned_images(
+    db: AsyncSession = Depends(get_db),
+    _user: AppUser = Depends(require_admin),
+):
+    """Find recipe_images rows whose files no longer exist on disk and delete them."""
+    result = await db.execute(select(RecipeImage))
+    images = result.scalars().all()
+
+    removed = 0
+    checked = 0
+    for img in images:
+        checked += 1
+        file_path = UPLOAD_DIR / img.file_path if img.file_path else None
+        thumb_path = UPLOAD_DIR / img.thumbnail_path if img.thumbnail_path else None
+
+        file_exists = file_path and file_path.is_file()
+        thumb_exists = thumb_path and thumb_path.is_file()
+
+        if not file_exists and not thumb_exists:
+            # Both files missing – remove DB row and any remaining files
+            for rel_path in (img.file_path, img.thumbnail_path):
+                if rel_path:
+                    (UPLOAD_DIR / rel_path).unlink(missing_ok=True)
+            originals_dir = UPLOAD_DIR / str(img.recipe_id) / "originals"
+            if originals_dir.is_dir():
+                for f in originals_dir.glob(f"{img.id}.*"):
+                    f.unlink(missing_ok=True)
+            await db.execute(
+                delete(RecipeImage).where(RecipeImage.id == img.id)
+            )
+            removed += 1
+
+    await db.commit()
+
+    return {
+        "checked": checked,
+        "removed": removed,
+        "remaining": checked - removed,
+    }

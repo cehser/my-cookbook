@@ -218,7 +218,12 @@ export const useRecipeStore = defineStore("recipe", {
     }) {
       if (picture && (await isAuthenticated())) {
         try {
-          await imageApi.upload(uuid, picture);
+          const uploaded = await imageApi.upload(uuid, picture);
+          // Update first_image_id in store so the UI shows the new image
+          const recipe = this.recipes.find((r) => r.recipe_uuid === uuid);
+          if (recipe) {
+            recipe.first_image_id = uploaded.id;
+          }
           return;
         } catch (e) {
           console.warn("Failed to upload image to API, saving locally", e);
@@ -229,6 +234,11 @@ export const useRecipeStore = defineStore("recipe", {
           const images = await imageApi.list(uuid);
           for (const img of images) {
             await imageApi.delete(uuid, img.id);
+          }
+          // Clear first_image_id in store
+          const recipe = this.recipes.find((r) => r.recipe_uuid === uuid);
+          if (recipe) {
+            recipe.first_image_id = undefined;
           }
           return;
         } catch (e) {

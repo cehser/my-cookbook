@@ -41,4 +41,9 @@ export const adminApi = {
   listShares: () => api.get<AdminShare[]>("/admin/shares"),
 
   revokeShare: (shareId: string) => api.delete(`/admin/shares/${shareId}`),
+
+  cleanupImages: () =>
+    api.post<{ checked: number; removed: number; remaining: number }>(
+      "/admin/cleanup-images",
+    ),
 };

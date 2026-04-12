@@ -216,6 +216,28 @@ async function migrateImages() {
   }
 }
 
+const cleanupRunning = ref(false);
+
+async function cleanupImages() {
+  cleanupRunning.value = true;
+  try {
+    const result = await adminApi.cleanupImages();
+    if (result.removed === 0) {
+      toast("Keine verwaisten Bilder gefunden.", "success");
+    } else {
+      toast(
+        `${result.removed} verwaiste Bild-Einträge entfernt (${result.remaining} verbleibend).`,
+        "success",
+      );
+      store.loadRecipesFromApi();
+    }
+  } catch (e) {
+    toast("Bereinigung fehlgeschlagen: " + (e as Error).message, "danger");
+  } finally {
+    cleanupRunning.value = false;
+  }
+}
+
 function saveToLocalStorage() {
   store.saveRecipes();
   store.saveRecipePictures().then(() => toast("Gespeichert.", "success"));
@@ -442,6 +464,14 @@ function exportRecipe(index: number) {
           class="btn m-2"
           @click="migrateImages"
           ><i class="bi bi-images"></i><br />Bild-URLs migrieren</BButton
+        >
+        <BButton
+          v-if="!settings.read_only && settings.role === 'admin'"
+          class="btn m-2"
+          :disabled="cleanupRunning"
+          @click="cleanupImages"
+          ><i class="bi bi-trash3"></i><br />Verwaiste Bilder
+          bereinigen</BButton
         >
         <BButton v-if="!settings.read_only" class="btn m-2" @click="newRecipe"
           ><i class="bi bi-file-earmark-plus"></i><br />Neues Rezept</BButton
