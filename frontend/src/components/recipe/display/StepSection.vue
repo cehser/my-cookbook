@@ -40,7 +40,7 @@ function getStepNumber(sectionName: string, stepIndex: number) {
     :data-step-section="section.section"
     class="step-section"
   >
-    <h4 v-if="!editMode">{{ section.section }}</h4>
+    <h4 v-if="!editMode && section.section">{{ section.section }}</h4>
     <BFormInput
       v-else
       v-model="section.section"

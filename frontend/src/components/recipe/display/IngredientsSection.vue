@@ -40,7 +40,7 @@ function formatAmount(ingredient: Ingredient) {
       :class="{ active: section.section === activeSection }"
       :data-section="section.section"
     >
-      <h5>{{ section.section }}</h5>
+      <h5 v-if="section.section">{{ section.section }}</h5>
 
       <div
         class="row mb-2 ingredient-row"

@@ -106,6 +106,28 @@ export function initRecipe(recipe: Partial<Recipe>): Recipe {
     step.section = step.section || "";
   });
 
+  // Ensure sections list contains all sections referenced by ingredients/steps
+  const existingSections = new Set(initialized.sections.map((s) => s.section));
+  const referencedSections = new Set<string>();
+  for (const ing of initialized.ingredients) {
+    if (ing.section) referencedSections.add(ing.section);
+  }
+  for (const step of initialized.steps) {
+    if (step.section) referencedSections.add(step.section);
+  }
+  for (const name of referencedSections) {
+    if (!existingSections.has(name)) {
+      initialized.sections.push({ section: name });
+    }
+  }
+  // If any items have section '' but no '' section exists, ensure one at the start
+  const hasEmptySection =
+    initialized.ingredients.some((i) => i.section === "") ||
+    initialized.steps.some((s) => s.section === "");
+  if (hasEmptySection && !existingSections.has("")) {
+    initialized.sections.unshift({ section: "" });
+  }
+
   // Coerce yields values to numbers
   if (initialized.yields) {
     initialized.yields.forEach((yld) => {
