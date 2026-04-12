@@ -37,11 +37,12 @@ export function clearRoleCache(): void {
  * When offline, allows navigation with cached data (read-only mode).
  */
 export async function requireAuth(
-  _to: RouteLocationNormalized,
+  to: RouteLocationNormalized,
   _from: RouteLocationNormalized,
 ) {
   if (await isAuthenticated()) return true;
   if (!navigator.onLine) return true;
+  sessionStorage.setItem("oidc-return-url", to.fullPath);
   await login();
   return false;
 }
@@ -56,6 +57,7 @@ export function requireRole(...roles: string[]) {
   ) => {
     if (!(await isAuthenticated())) {
       if (!navigator.onLine) return { name: "Gallery" };
+      sessionStorage.setItem("oidc-return-url", _to.fullPath);
       await login();
       return false;
     }

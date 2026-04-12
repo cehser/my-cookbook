@@ -8,10 +8,12 @@ const router = useRouter();
 onMounted(async () => {
   try {
     await handleCallback();
-    router.replace({ name: "Gallery" });
+    const returnUrl = sessionStorage.getItem("oidc-return-url");
+    sessionStorage.removeItem("oidc-return-url");
+    router.replace(returnUrl || "/");
   } catch (err) {
     console.error("OIDC callback failed:", err);
-    router.replace({ name: "Gallery" });
+    router.replace("/");
   }
 });
 </script>
