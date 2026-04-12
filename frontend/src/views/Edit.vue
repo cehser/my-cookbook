@@ -294,7 +294,7 @@ onBeforeUnmount(() => {
 });
 
 function goBack() {
-  if (window.history.length <= 1) {
+  if (!window.history.state?.back) {
     router.push("/");
   } else {
     router.back();

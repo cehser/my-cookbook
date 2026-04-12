@@ -127,8 +127,8 @@ function exportRecipe() {
   URL.revokeObjectURL(url);
 }
 function goBack() {
-  // If opened via direct link (no history), go to gallery instead of empty tab
-  if (window.history.length <= 1) {
+  // If opened via direct link (no previous route), go to gallery
+  if (!window.history.state?.back) {
     router.push("/");
   } else {
     router.back();
