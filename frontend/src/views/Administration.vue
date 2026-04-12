@@ -222,13 +222,20 @@ async function cleanupImages() {
   cleanupRunning.value = true;
   try {
     const result = await adminApi.cleanupImages();
-    if (result.removed === 0) {
-      toast("Keine verwaisten Bilder gefunden.", "success");
-    } else {
-      toast(
-        `${result.removed} verwaiste Bild-Einträge entfernt (${result.remaining} verbleibend).`,
-        "success",
+    const stripped = await adminApi.stripImageIds();
+    const messages: string[] = [];
+    if (result.removed > 0) {
+      messages.push(`${result.removed} verwaiste Bild-Einträge entfernt`);
+    }
+    if (stripped.cleaned > 0) {
+      messages.push(
+        `${stripped.cleaned} Rezepte mit veralteter Image-ID bereinigt`,
       );
+    }
+    if (messages.length === 0) {
+      toast("Keine Probleme gefunden.", "success");
+    } else {
+      toast(messages.join(". ") + ".", "success");
       store.loadRecipesFromApi();
     }
   } catch (e) {

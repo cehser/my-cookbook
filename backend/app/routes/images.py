@@ -465,3 +465,31 @@ async def cleanup_orphaned_images(
         "removed": removed,
         "remaining": checked - removed,
     }
+
+
+# ---------------------------------------------------------------------------
+# Admin: strip stale first_image_id from recipe JSONB data
+# ---------------------------------------------------------------------------
+
+@router.post("/admin/strip-image-ids")
+async def strip_image_ids_from_data(
+    db: AsyncSession = Depends(get_db),
+    _user: AppUser = Depends(require_admin),
+):
+    """Remove first_image_id keys that were accidentally saved into recipe.data JSONB."""
+    result = await db.execute(
+        select(Recipe).where(Recipe.data["first_image_id"].astext.isnot(None))
+    )
+    recipes = result.scalars().all()
+
+    cleaned = 0
+    for recipe in recipes:
+        data = dict(recipe.data or {})
+        if "first_image_id" in data:
+            del data["first_image_id"]
+            recipe.data = data
+            cleaned += 1
+
+    await db.commit()
+
+    return {"cleaned": cleaned}

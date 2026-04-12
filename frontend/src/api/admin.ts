@@ -46,4 +46,6 @@ export const adminApi = {
     api.post<{ checked: number; removed: number; remaining: number }>(
       "/admin/cleanup-images",
     ),
+
+  stripImageIds: () => api.post<{ cleaned: number }>("/admin/strip-image-ids"),
 };

@@ -143,6 +143,7 @@ export const useRecipeStore = defineStore("recipe", {
             recipe_uuid: _uuid,
             recipe_name,
             lastUpdated: _updated,
+            first_image_id: _fii,
             ingredients,
             steps,
             sections,
@@ -173,6 +174,7 @@ export const useRecipeStore = defineStore("recipe", {
             recipe_uuid,
             recipe_name,
             lastUpdated: _updated,
+            first_image_id: _fii,
             ingredients,
             steps,
             sections,
@@ -330,16 +332,20 @@ export const useRecipeStore = defineStore("recipe", {
 
     async loadRecipeDetailFromApi(id: string) {
       const detail = await recipeApi.get(id);
+      const { first_image_id: _fii, ...data } = (detail.data ?? {}) as Record<
+        string,
+        unknown
+      >;
       const recipe: Recipe = {
         recipe_uuid: detail.id,
         recipe_name: detail.recipe_name,
         lastUpdated: detail.updated_at,
-        first_image_id: detail.first_image_id ?? undefined,
         ingredients: [],
         steps: [],
         sections: [],
         tags: detail.tags,
-        ...(detail.data as Record<string, unknown>),
+        ...data,
+        first_image_id: detail.first_image_id ?? undefined,
       };
       set(`recipe:${recipe.recipe_uuid}`, recipe);
       return recipe;
@@ -368,16 +374,18 @@ export const useRecipeStore = defineStore("recipe", {
                 return;
               }
               const detail = await recipeApi.get(r.recipe_uuid);
+              const { first_image_id: _fii2, ...pfData } = (detail.data ??
+                {}) as Record<string, unknown>;
               const full: Recipe = {
                 recipe_uuid: detail.id,
                 recipe_name: detail.recipe_name,
                 lastUpdated: detail.updated_at,
-                first_image_id: detail.first_image_id ?? undefined,
                 ingredients: [],
                 steps: [],
                 sections: [],
                 tags: detail.tags,
-                ...(detail.data as Record<string, unknown>),
+                ...pfData,
+                first_image_id: detail.first_image_id ?? undefined,
               };
               set(`recipe:${full.recipe_uuid}`, full);
               fetched++;
