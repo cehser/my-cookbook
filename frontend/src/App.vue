@@ -252,6 +252,7 @@ html {
 body {
   font-family: var(--font-family);
   color: var(--color-text);
+  background-color: var(--color-surface);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* iOS safe area: push content below status bar / notch */
@@ -260,13 +261,8 @@ body {
 
 /* Desktop: abgesetzter Hintergrund an den Seiten */
 @media (min-width: 1248px) {
-  :root {
-    --bs-body-bg: var(--color-surface-dim);
-    --bs-body-bg-rgb: 232, 228, 220;
-  }
-  html[data-bs-theme="dark"] {
-    --bs-body-bg: var(--color-surface-dim);
-    --bs-body-bg-rgb: 42, 38, 34;
+  body {
+    background-color: var(--color-surface-dim);
   }
 }
 
