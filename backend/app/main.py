@@ -1,5 +1,7 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
+from functools import partial
 
 from alembic import command
 from alembic.config import Config
@@ -13,11 +15,16 @@ from app.routes import admin, ai, favorites, health, images, me, recipes, shares
 logger = logging.getLogger(__name__)
 
 
-def run_migrations() -> None:
-    """Run pending Alembic migrations on startup."""
+async def run_migrations() -> None:
+    """Run pending Alembic migrations on startup.
+
+    Alembic's async env.py calls asyncio.run(), which cannot run inside
+    an already-running event loop. We offload it to a thread so it gets
+    its own loop.
+    """
     try:
         alembic_cfg = Config("alembic.ini")
-        command.upgrade(alembic_cfg, "head")
+        await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
         logger.info("Database migrations applied successfully.")
     except Exception:
         logger.exception("Failed to run database migrations.")
@@ -27,7 +34,7 @@ def run_migrations() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    run_migrations()
+    await run_migrations()
     yield
     # Shutdown
 
