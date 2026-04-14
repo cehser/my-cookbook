@@ -7,6 +7,9 @@ import { useToast } from "@/composables/useToast";
 import { logout } from "@/auth/oidc";
 import deepEqual from "deep-equal";
 
+declare const __COMMIT_HASH__: string;
+const commitHash = __COMMIT_HASH__;
+
 const router = useRouter();
 const recipeStore = useRecipeStore();
 const { toast } = useToast();
@@ -213,6 +216,11 @@ async function handleLogout() {
           <span>Abmelden</span>
         </button>
       </div>
+
+      <!-- Version -->
+      <p class="text-center text-muted" style="font-size: 0.7rem; opacity: 0.5">
+        Version: {{ commitHash }}
+      </p>
     </BContainer>
   </div>
 </template>

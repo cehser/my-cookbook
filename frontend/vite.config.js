@@ -1,4 +1,5 @@
 import { fileURLToPath, URL } from "node:url";
+import { execSync } from "node:child_process";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
@@ -7,7 +8,12 @@ import Components from "unplugin-vue-components/vite";
 import { BootstrapVueNextResolver } from "bootstrap-vue-next";
 
 // https://vitejs.dev/config/
+const commitHash = execSync("git rev-parse --short HEAD").toString().trim();
+
 export default defineConfig({
+  define: {
+    __COMMIT_HASH__: JSON.stringify(commitHash),
+  },
   plugins: [
     basicSsl(),
     vue(),
