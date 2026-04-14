@@ -220,6 +220,11 @@ export const useRecipeStore = defineStore("recipe", {
     }) {
       if (picture && (await isAuthenticated())) {
         try {
+          // Delete existing images before uploading the new one
+          const existing = await imageApi.list(uuid);
+          for (const img of existing) {
+            await imageApi.delete(uuid, img.id);
+          }
           const uploaded = await imageApi.upload(uuid, picture);
           // Update first_image_id in store so the UI shows the new image
           const recipe = this.recipes.find((r) => r.recipe_uuid === uuid);
