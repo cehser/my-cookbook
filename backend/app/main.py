@@ -1,6 +1,8 @@
 import logging
 from contextlib import asynccontextmanager
 
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -11,9 +13,21 @@ from app.routes import admin, ai, favorites, health, images, me, recipes, shares
 logger = logging.getLogger(__name__)
 
 
+def run_migrations() -> None:
+    """Run pending Alembic migrations on startup."""
+    try:
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        logger.info("Database migrations applied successfully.")
+    except Exception:
+        logger.exception("Failed to run database migrations.")
+        raise
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    run_migrations()
     yield
     # Shutdown
 
