@@ -1,6 +1,8 @@
 # build stage
 FROM node:lts-alpine AS build-stage
 WORKDIR /app
+ARG COMMIT_HASH=dev
+ENV COMMIT_HASH=$COMMIT_HASH
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .

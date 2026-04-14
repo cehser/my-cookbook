@@ -8,7 +8,12 @@ import Components from "unplugin-vue-components/vite";
 import { BootstrapVueNextResolver } from "bootstrap-vue-next";
 
 // https://vitejs.dev/config/
-const commitHash = execSync("git rev-parse --short HEAD").toString().trim();
+let commitHash = process.env.COMMIT_HASH || "dev";
+try {
+  commitHash = execSync("git rev-parse --short HEAD").toString().trim();
+} catch {
+  // git not available (e.g. Docker build) — use COMMIT_HASH env or fallback
+}
 
 export default defineConfig({
   define: {
