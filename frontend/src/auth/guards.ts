@@ -4,7 +4,7 @@
  */
 
 import type { RouteLocationNormalized } from "vue-router";
-import { isAuthenticated, login } from "@/auth/oidc";
+import { ensureAuthenticated, login } from "@/auth/oidc";
 import { api } from "@/api/client";
 
 interface MeResponse {
@@ -40,7 +40,7 @@ export async function requireAuth(
   to: RouteLocationNormalized,
   _from: RouteLocationNormalized,
 ) {
-  if (await isAuthenticated()) return true;
+  if (await ensureAuthenticated()) return true; // ← Refresh Token wird versucht!
   if (!navigator.onLine) return true;
   sessionStorage.setItem("oidc-return-url", to.fullPath);
   await login();
@@ -55,7 +55,7 @@ export function requireRole(...roles: string[]) {
     _to: RouteLocationNormalized,
     _from: RouteLocationNormalized,
   ) => {
-    if (!(await isAuthenticated())) {
+    if (!(await ensureAuthenticated())) {
       if (!navigator.onLine) return { name: "Gallery" };
       sessionStorage.setItem("oidc-return-url", _to.fullPath);
       await login();

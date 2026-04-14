@@ -105,4 +105,22 @@ export async function isAuthenticated(): Promise<boolean> {
   return user !== null && !user.expired;
 }
 
+/** Try to restore session via refresh token, then check auth status */
+export async function ensureAuthenticated(): Promise<boolean> {
+  const user = await userManager.getUser();
+  if (user && !user.expired) return true;
+
+  // Access token expired but refresh token may exist → try silent renew
+  if (user?.refresh_token) {
+    try {
+      const renewed = await userManager.signinSilent();
+      return renewed !== null;
+    } catch (e) {
+      console.warn("[Auth] Silent renew in guard failed:", e);
+    }
+  }
+
+  return false;
+}
+
 export { userManager };
