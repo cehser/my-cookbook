@@ -4,17 +4,22 @@ Die App wird über ``httpx.ASGITransport`` angesprochen. Dabei läuft der
 ``lifespan`` nicht, also auch keine Alembic-Migration.
 """
 
+import os
 import uuid
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
-import httpx
-import pytest
+# Pflichtwerte der Settings vor dem App-Import setzen (es gibt keine Code-Defaults).
+os.environ.setdefault("OIDC_AUTHORITY", "https://idp.example.com/realms/test")
+os.environ.setdefault("OIDC_CLIENT_ID", "test-client")
 
-from app.auth.dependencies import get_current_user
-from app.database import get_db
-from app.main import app
-from app.models.user import AppUser
+import httpx  # noqa: E402
+import pytest  # noqa: E402
+
+from app.auth.dependencies import get_current_user  # noqa: E402
+from app.database import get_db  # noqa: E402
+from app.main import app  # noqa: E402
+from app.models.user import AppUser  # noqa: E402
 
 ROLES = ("pending", "readonly", "editor", "admin")
 

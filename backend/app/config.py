@@ -13,9 +13,13 @@ class Settings(BaseSettings):
     def database_url(self) -> str:
         return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
-    # OIDC
-    oidc_authority: str = "https://auth.cehser.de/realms/cehser"
-    oidc_client_id: str = "cookbook.cehser.de"
+    # OIDC (Pflicht, kein Default: ohne OIDC_AUTHORITY und OIDC_CLIENT_ID startet das Backend nicht)
+    oidc_authority: str
+    oidc_client_id: str
+
+    # E-Mail des ersten Admins (optional). Stimmt sie mit der verifizierten E-Mail
+    # aus dem Token überein, wird der User beim Login zum Admin heraufgestuft.
+    admin_email: str | None = None
 
     # OpenAI
     openai_api_key: str = ""
