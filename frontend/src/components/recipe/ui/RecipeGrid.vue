@@ -39,27 +39,17 @@ const picture_src = recipeThumbnailSrc;
   </div>
 </template>
 
-<style lang="scss">
-@use "sass:math";
-@use "sass:list";
-@use "sass:string";
-
-@mixin fluid-aspect($ratio: 1 1, $selector: "> :first-child") {
-  $selector: string.unquote($selector);
-  padding-bottom: math.percentage(
-    math.div(list.nth($ratio, 2), list.nth($ratio, 1))
-  );
+<style>
+.cardAspect {
+  aspect-ratio: 3 / 2;
   position: relative;
-  #{$selector} {
-    left: 0;
-    height: 100%;
-    position: absolute !important;
-    top: 0;
-    width: 100%;
-  }
 }
 
-.cardAspect {
-  @include fluid-aspect(3 2);
+.cardAspect > :first-child {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 </style>
