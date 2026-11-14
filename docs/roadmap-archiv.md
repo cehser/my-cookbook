@@ -16,3 +16,5 @@ Erledigte und verworfene Punkte aus [ROADMAP.md](../ROADMAP.md), wörtlich über
 - [x] W.17 `backup.sh`: Fehler von `pg_dump` und leere Dumps erkennen, dann keine Rotation · 2026-11-14 · `2eb553e`
 - [x] W.20 Backend-Aufräumen nach W.4: Migrationslog, B904, ruff-Ausnahme, xfail, Tie-Breaker `Recipe.id`, apt-Pakete entfernt; `root_path` → W.24 · 2026-11-14 · `9fded22`
 - [x] W.16 Verzichtbare Abhängigkeiten ersetzen: `deep-equal` → `isEqualPlain`, `deepCopyYaml` → `deepCopyJSON`, `sass` → CSS `aspect-ratio`, `@vueuse/integrations` und Font-Cache-Regel entfernt (22 Lock-Einträge weniger; Sichtprüfung Galerie nach Deploy) · 2026-11-14 · `5acab54`
+- [x] W.3 Instanz-Defaults entfernen (`OIDC_*` Pflicht, Dev über `frontend/.env.local`), erster Admin per `ADMIN_EMAIL` (nur `email_verified`), Login-Race per `ON CONFLICT` · 2026-11-15 · `e0ce16f`
+- [x] W.19 Apple-Touch-Icon und PNG-Favicons · 2026-11-15 · `1606d60`
