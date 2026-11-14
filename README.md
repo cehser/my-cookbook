@@ -235,7 +235,7 @@ Neue Benutzer erhalten automatisch die Rolle `pending` und müssen von einem Adm
 
 Damit der erste Admin nicht per SQL gesetzt werden muss, `ADMIN_EMAIL` in der `.env` setzen und das Backend neu starten. Beim Login wird ein User zum `admin`, wenn seine E-Mail aus dem Access-Token (ohne Beachtung der Groß-/Kleinschreibung) mit `ADMIN_EMAIL` übereinstimmt **und** das Claim `email_verified` wahr ist. Das gilt auch für bereits angelegte User. Es wird nur heraufgestuft, nie herabgestuft.
 
-Voraussetzung: Der Access-Token enthält `email` und `email_verified` (bei Keycloak über den Client-Scope `email`). Fehlt `email_verified`, passiert nichts. Nach dem ersten Admin kann `ADMIN_EMAIL` entfernt werden.
+Voraussetzung: Der Access-Token enthält `email` und `email_verified` (bei Keycloak über den Client-Scope `email`). Fehlt `email_verified`, passiert nichts. Nach dem ersten Login `ADMIN_EMAIL` wieder entfernen: Solange der Wert gesetzt ist, wird dieser User bei jedem Login erneut zum Admin, auch nach einer bewussten Herabstufung. Als Rettungsweg (Admin ausgesperrt) lässt er sich jederzeit wieder setzen.
 
 ## Lizenz
 
