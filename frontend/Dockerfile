@@ -4,7 +4,7 @@ WORKDIR /app
 ARG COMMIT_HASH=dev
 ENV COMMIT_HASH=$COMMIT_HASH
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm ci
 COPY . .
 
 RUN npm run build
