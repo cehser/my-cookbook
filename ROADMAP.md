@@ -7,9 +7,8 @@ Erledigt (Archiv): Sprints 0–3, UX-1 bis UX-7, Sprint 9 (Design-System) → [u
 
 ## W — Wartung 🔜
 Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.14, W.11 und W.4 parallel, W.12 nach W.4 (Format/SDK-Version), W.13 nach W.12 (gleiche Komponente), danach W.3 + W.19. W.16 nach W.11, W.15 nach W.11–W.13, W.21 nach W.15. W.4 vor dem nächsten Backend-Deploy (Versionen heute ungepinnt). Reihenfolge außerdem: W.4 vor dem Backend-Teil von W.5; W.9 nach W.3 und W.5; W.5 sofort möglich, W.10 hängt seine Tests danach in die CI ein.
-Erledigt (Archiv): W.1, W.2, W.3, W.4, W.6, W.7, W.8, W.11, W.14, W.16, W.17, W.18, W.19, W.20 → [roadmap-archiv.md](docs/roadmap-archiv.md)
+Erledigt (Archiv): W.1, W.2, W.3, W.4, W.5, W.6, W.7, W.8, W.11, W.14, W.16, W.17, W.18, W.19, W.20 → [roadmap-archiv.md](docs/roadmap-archiv.md)
 
-- [~] W.5 CI mit GitHub Actions, Migrations-Test gegen PostgreSQL, `--legacy-peer-deps` entfernen · M · Sonnet · [Auftrag](docs/tasks/W.5-ci.md)
 - [ ] W.9 Images per GitHub Actions bauen und nach `ghcr.io` pushen (öffentlich, Tags SHA + `main`), `deploy.sh` auf Pull umstellen · M · Sonnet
 - [ ] W.10 Vitest einführen (`vitest`, `@vue/test-utils`, `happy-dom`), erste Tests für `js/` und `composables/` (Skalierung, Draft/Undo); vorher Mapper aus `recipeStore` nach `js/recipeMapping.ts` und `recipeApi.listAll`, Komponententests `Callback.vue`/`App.vue`; `saveSettings` speichert Kopie statt reaktivem Objekt, Tests für `isEqualPlain`/`deepCopyJSON` · M · Sonnet · [Bericht W.11](docs/tasks/W.11.bericht.md)
 - [~] W.12 AI-Import robust, Modell als Admin-Einstellung · M–L · Sonnet · [Auftrag](docs/tasks/W.12-ai-import-robust.md) · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w12-ai-import-robust)
