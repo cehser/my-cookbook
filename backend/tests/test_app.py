@@ -69,10 +69,6 @@ def test_readme_route_registered(method: str, path: str) -> None:
     assert (method, path) in set(_registered())
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Bekannter Befund W.1: GET /v1/tags ist in recipes.py und tags.py doppelt registriert",
-)
 def test_no_duplicate_routes() -> None:
     duplicates = [key for key, n in Counter(_registered()).items() if n > 1]
     assert duplicates == []

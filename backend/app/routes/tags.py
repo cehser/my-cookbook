@@ -16,6 +16,7 @@ router = APIRouter(prefix="/v1", tags=["tags"])
 
 
 class TagWithCount(BaseModel):
+    id: int
     name: str
     count: int
 
@@ -27,9 +28,9 @@ async def list_tags(
 ):
     """Return all tags with recipe count, sorted alphabetically."""
     result = await db.execute(
-        select(Tag.name, func.count(RecipeTag.recipe_id).label("count"))
+        select(Tag.id, Tag.name, func.count(RecipeTag.recipe_id).label("count"))
         .join(RecipeTag, RecipeTag.tag_id == Tag.id)
-        .group_by(Tag.name)
+        .group_by(Tag.id, Tag.name)
         .order_by(Tag.name)
     )
-    return [TagWithCount(name=row.name, count=row.count) for row in result.all()]
+    return [TagWithCount(id=row.id, name=row.name, count=row.count) for row in result.all()]
