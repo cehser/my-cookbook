@@ -203,8 +203,11 @@ function loadSample() {
 async function migrateImages() {
   try {
     const { api } = await import("@/api/client");
+    // Long-running migration: no client timeout
     const result = await api.post<{ migrated: number; failed: number }>(
       "/admin/migrate-images",
+      undefined,
+      { timeoutMs: 0 },
     );
     toast(
       `Migration: ${result.migrated} Bilder gespeichert, ${result.failed} fehlgeschlagen.`,

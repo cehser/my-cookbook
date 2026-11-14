@@ -1,10 +1,22 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
+import {
+  createRouter,
+  createWebHistory,
+  type RouteLocationNormalized,
+  type RouteRecordRaw,
+} from "vue-router";
 import HomeView from "@/views/HomeView.vue";
 import { requireAuth, requireRole } from "@/auth/guards";
+import {
+  requestLoginForCurrentRoute,
+  setLoginTargetResolver,
+} from "@/auth/oidc";
+import { onSessionRejected } from "@/auth/session";
 
 declare module "vue-router" {
   interface RouteMeta {
     mode?: "browsing" | "cook" | "edit";
+    /** Route without login (no login redirect on rejected session) */
+    public?: boolean;
   }
 }
 
@@ -70,6 +82,7 @@ const routes: RouteRecordRaw[] = [
     name: "Callback",
     component: () =>
       import(/* webpackChunkName: "callback" */ "../views/Callback.vue"),
+    meta: { public: true },
   },
   {
     path: "/s/:token",
@@ -78,6 +91,7 @@ const routes: RouteRecordRaw[] = [
       import(/* webpackChunkName: "shared" */ "../views/SharedRecipe.vue"),
     props: true,
     // No auth guard — public route
+    meta: { public: true },
   },
   //legacy paths for compatibility reasons
   { path: "/edit.html", redirect: "/edit/0" },
@@ -90,6 +104,31 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 });
+
+// Target of the navigation in progress: before it completes, currentRoute
+// is still the previous route (on a cold start the start location "/", even
+// when opening a public link).
+let pendingTarget: RouteLocationNormalized | null = null;
+router.beforeEach((to) => {
+  pendingTarget = to;
+});
+router.afterEach(() => {
+  pendingTarget = null; // also called for aborted/failed navigations
+});
+router.onError(() => {
+  pendingTarget = null;
+});
+
+// Login target: the route being shown or navigated to. Public routes
+// (callback, shared links) and the start location get no login.
+setLoginTargetResolver(() => {
+  const route = pendingTarget ?? router.currentRoute.value;
+  if (route.matched.length === 0 || route.meta.public) return null;
+  return route.fullPath;
+});
+
+// Session rejected (expiry timer, 401 retry, store, guard, app resumed)
+onSessionRejected(requestLoginForCurrentRoute);
 
 // Handle chunk load errors after SW update (hash mismatch)
 router.onError((error, to) => {

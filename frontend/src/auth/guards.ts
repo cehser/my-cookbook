@@ -4,7 +4,9 @@
  */
 
 import type { RouteLocationNormalized } from "vue-router";
-import { ensureAuthenticated, login } from "@/auth/oidc";
+import { requestLogin } from "@/auth/oidc";
+import { ensureAuth } from "@/auth/session";
+import { hasCachedRecipes } from "@/js/offlineCache";
 import { api } from "@/api/client";
 
 interface MeResponse {
@@ -33,17 +35,28 @@ export function clearRoleCache(): void {
 }
 
 /**
- * Auth guard — redirects to IdP login if not authenticated.
- * When offline, allows navigation with cached data (read-only mode).
+ * Auth guard — redirects to IdP login if the session was rejected.
+ * When the token cannot be renewed for lack of network (or without network
+ * at all), allows navigation with cached data (read-only mode).
+ * With offline data present, the guard does not wait for a token renewal
+ * (bad network): it lets the navigation through and starts the login
+ * afterwards if the session turns out to be rejected.
  */
 export async function requireAuth(
   to: RouteLocationNormalized,
   _from: RouteLocationNormalized,
 ) {
-  if (await ensureAuthenticated()) return true; // ← Refresh Token wird versucht!
+  const auth = ensureAuth();
+  if (await hasCachedRecipes()) {
+    void auth.then((state) => {
+      if (state === "rejected") void requestLogin(to.fullPath);
+    });
+    return true;
+  }
+  const state = await auth;
+  if (state !== "rejected") return true;
   if (!navigator.onLine) return true;
-  sessionStorage.setItem("oidc-return-url", to.fullPath);
-  await login();
+  await requestLogin(to.fullPath);
   return false;
 }
 
@@ -55,10 +68,11 @@ export function requireRole(...roles: string[]) {
     _to: RouteLocationNormalized,
     _from: RouteLocationNormalized,
   ) => {
-    if (!(await ensureAuthenticated())) {
+    const state = await ensureAuth();
+    if (state === "offline") return { name: "Gallery" };
+    if (state === "rejected") {
       if (!navigator.onLine) return { name: "Gallery" };
-      sessionStorage.setItem("oidc-return-url", _to.fullPath);
-      await login();
+      await requestLogin(_to.fullPath);
       return false;
     }
 

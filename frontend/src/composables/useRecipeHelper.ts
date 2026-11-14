@@ -1,7 +1,8 @@
 import { ref, computed, watch, type Ref, type ComputedRef } from "vue";
 import { useRecipeStore } from "@/store/recipeStore";
 import { deepCopyYaml } from "@/js/deepCopy";
-import { isAuthenticated } from "@/auth/oidc";
+import { readRecipeDetail } from "@/js/offlineCache";
+import { isAuthenticated } from "@/auth/session";
 import { imageApi } from "@/api/images";
 import type { Recipe } from "@/types/recipe";
 
@@ -192,15 +193,10 @@ export function useRecipeHelper(
           // API unreachable — fall through to IDB
         }
       }
-      // Fallback: IDB cache
-      try {
-        const { get } = await import("idb-keyval");
-        const cached = await get(`recipe:${recipe.recipe_uuid}`);
-        if (cached) {
-          current_recipe.value = deepCopyYaml(cached as Recipe);
-        }
-      } catch {
-        // IDB also unavailable
+      // Fallback: offline cache
+      const cached = await readRecipeDetail(recipe.recipe_uuid);
+      if (cached) {
+        current_recipe.value = deepCopyYaml(cached);
       }
     }
 

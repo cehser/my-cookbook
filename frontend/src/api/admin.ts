@@ -42,10 +42,16 @@ export const adminApi = {
 
   revokeShare: (shareId: string) => api.delete(`/admin/shares/${shareId}`),
 
+  // Long-running maintenance jobs: no client timeout
   cleanupImages: () =>
     api.post<{ checked: number; removed: number; remaining: number }>(
       "/admin/cleanup-images",
+      undefined,
+      { timeoutMs: 0 },
     ),
 
-  stripImageIds: () => api.post<{ cleaned: number }>("/admin/strip-image-ids"),
+  stripImageIds: () =>
+    api.post<{ cleaned: number }>("/admin/strip-image-ids", undefined, {
+      timeoutMs: 0,
+    }),
 };

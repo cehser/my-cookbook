@@ -17,11 +17,11 @@ Nicht reproduziert. Die Befunde unten stammen aus dem Lesen des Codes (2026-11-1
 | L2 / T1 | Wegen `offline_access` (Refresh-Token in `localStorage`) ist der Access-Token beim App-Start meist abgelaufen. `isAuthenticated()` prüft nur `!expired` und versucht keinen Refresh → IndexedDB. Regelfall, nicht Ausnahme. | Code |
 | L3 | Die Liste lädt höchstens 200 Rezepte (`page_size: 200`, keine Paginierung). | Code, erst ab über 200 Rezepten relevant |
 | C1 | Jeder API-Fehler (auch 5xx/Timeout) fällt still auf IndexedDB zurück: kein Hinweis „Offline-Daten“, kein späteres Nachladen. | Code |
-| C2 | Der Service Worker aktiviert Updates erst beim nächsten Seitenwechsel (`main.ts`). Eine Sitzung kann mit altem JS laufen. | plausibel |
+| C2 | Korrigiert (W.11): Bei `registerType: autoUpdate` ruft `registerSW` `onNeedRefresh` nie auf, der Hook in `main.ts` ist toter Code. Das Plugin lädt die Seite **sofort** neu, sobald ein neuer Service Worker aktiv wird, auch mitten in einer Sitzung. Nach Updates sucht der Browser nur bei Navigation/Registrierung; eine fortgesetzte iOS-PWA kann lange mit altem JS laufen. | Code (vite-plugin-pwa 1.2.0) |
 | C3 | Die Liste in IndexedDB enthält nur Kopfdaten, die Details kommen per Prefetch. Bricht das Prefetch ab, fehlen sie offline. | Code, nur offline |
-| T2 | Beim Start laufen `loadSettings`, `loadRecipes`, `loadFavorites` und der Guard parallel. `getAccessToken()` liefert bei Ablauf `null` → 401 → `signinSilent()` je Anfrage, dazu Guard und `automaticSilentRenew`. Ob oidc-client-ts parallele Aufrufe zusammenfasst: unbestätigt. | Code |
+| T2 | Beim Start laufen `loadSettings`, `loadRecipes`, `loadFavorites` und der Guard parallel. `getAccessToken()` liefert bei Ablauf `null` → 401 → `signinSilent()` je Anfrage, dazu Guard und `automaticSilentRenew`. oidc-client-ts 3.5 fasst parallele `signinSilent()` nicht zusammen. Behoben in W.11 (Single-Flight). | Code |
 | T3 | Ist in Keycloak „Revoke Refresh Token“ (Rotation) aktiv, scheitern parallele Refreshes mit `invalid_grant` → wirkt wie Logout oder Ladefehler. | hängt vom IdP ab |
-| T4 | `addUserSignedOut` leitet zum Login um, auch wenn der Offline-Token noch gilt. Ob das Ereignis feuert (Session-Monitoring): unbestätigt. | Code |
+| T4 | `addUserSignedOut` feuerte nie: `monitorSession` ist standardmäßig aus. Entscheidung (2026-11-14): Session-Monitoring bleibt aus (nicht IdP-agnostisch, iOS-Cookies), Handler entfernt. Das Sitzungsende greift über die abgelehnte Erneuerung; Laufzeiten sind IdP-Einstellung. | erledigt (W.11) |
 | T5 | „Kein Netz“ und „Anmeldung abgelehnt“ werden gleich behandelt (still IndexedDB). | Code |
 
 ### Richtung
@@ -33,7 +33,7 @@ Nicht reproduziert. Die Befunde unten stammen aus dem Lesen des Codes (2026-11-1
 - Datenzugriff (API und IndexedDB) in einer Zugriffsschicht bündeln statt verstreuter `get`/`set`-Aufrufe, damit die spätere Offline-Bearbeitung (Roadmap 12) andocken kann. Offline-Schreiben selbst ist nicht Teil von W.11.
 
 ### Checkpoint
-Vor der Entscheidung zu T4 braucht es die Keycloak-Werte (liefert der Nutzer nach): Access Token Lifespan, Revoke Refresh Token, SSO Session Idle/Max, Offline Session Idle/Max. T1–T3 und T5 hängen nicht davon ab. Fehlen die Werte bis zum Merge, wird T4 als eigener Punkt abgespalten.
+Erledigt (2026-11-14): Die Lösung hängt nicht von den Keycloak-Werten ab (IdP-agnostisch), Laufzeiten sind eine Security-Einstellung im IdP. T4 siehe Tabelle.
 
 ### Nicht-Scope
 Refresh-Token in `localStorage` und fehlende CSP (XSS-Risiko): zur Kenntnis, eigener Punkt bei Bedarf.
