@@ -185,8 +185,32 @@ export async function handleCallback(): Promise<User> {
   return await userManager.signinRedirectCallback();
 }
 
-/** Logout — redirect to IdP logout */
+const REVOKE_TIMEOUT_MS = 5000;
+
+/**
+ * Logout: widerruft zuerst den Refresh-Token (RFC 7009), weil ein Logout
+ * beim IdP Offline-Tokens nicht zwingend beendet, dann Redirect zum IdP.
+ * Ein fehlgeschlagener Widerruf (kein Revocation-Endpunkt, kein Netz)
+ * blockiert den Logout nicht; deshalb nicht `revokeTokensOnSignout`, das
+ * bei einem Fehler den ganzen Logout abbricht.
+ */
 export async function logout(): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      userManager.revokeTokens(["refresh_token"]),
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("Timeout beim Token-Widerruf")),
+          REVOKE_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } catch (e) {
+    console.warn("[Auth] Refresh-Token konnte nicht widerrufen werden:", e);
+  } finally {
+    clearTimeout(timer);
+  }
   await userManager.signoutRedirect();
 }
 
