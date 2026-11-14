@@ -6,7 +6,7 @@ Aufwand: XS ≲ 30 min · S ≲ 1 h · M ≈ 2–4 h · L ≈ 1 Tag+
 Erledigt (Archiv): Sprints 0–3, UX-1 bis UX-7, Sprint 9 (Design-System) → [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md)
 
 ## W — Wartung 🔜
-Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.14, W.11 und W.4 parallel, W.12 nach W.4 (Format/SDK-Version), W.13 nach W.12 (gleiche Komponente), danach W.2 + W.3. W.16 nach W.11, W.15 nach W.11–W.13. W.4 vor dem nächsten Backend-Deploy (Versionen heute ungepinnt). Reihenfolge außerdem: W.4 vor dem Backend-Teil von W.5; W.9 nach W.3 und W.5; W.5 führt die Tests aus W.10 mit aus.
+Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.14, W.11 und W.4 parallel, W.12 nach W.4 (Format/SDK-Version), W.13 nach W.12 (gleiche Komponente), danach W.3 + W.19. W.16 nach W.11, W.15 nach W.11–W.13. W.4 vor dem nächsten Backend-Deploy (Versionen heute ungepinnt). Reihenfolge außerdem: W.4 vor dem Backend-Teil von W.5; W.9 nach W.3 und W.5; W.5 führt die Tests aus W.10 mit aus.
 Erledigt (Archiv): W.2, W.6, W.7, W.8, W.14 → [roadmap-archiv.md](docs/roadmap-archiv.md)
 
 - [ ] W.1 Doppelten Handler `GET /v1/tags` auflösen (recipes.py überdeckt tags.py mit Count) · S · Sonnet
@@ -18,10 +18,11 @@ Erledigt (Archiv): W.2, W.6, W.7, W.8, W.14 → [roadmap-archiv.md](docs/roadmap
 - [~] W.11 Rezepte nach Login und Token-Ablauf zuverlässig laden: Single-Flight-Refresh, Laden nach Auth, Offline-Fallback sichtbar · M–L · Opus · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w11-rezepte-zuverlässig-laden) · [Auftrag](docs/tasks/W.11-login-laden.md)
 - [ ] W.12 AI-Import robust: Timeouts, 401-Retry, Fehlermeldungen, YAML-Parsing, Upload-Grenzen, Modell-IDs, Entscheidung Structured Outputs statt YAML · M · Sonnet · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w12-ai-import-robust)
 - [ ] W.13 Foto im AI-Import über native Kamera/Fotoauswahl statt `getUserMedia`, Bilder clientseitig verkleinern · S–M · Sonnet · nach W.12 · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w13-foto-aufnahme-im-ai-import)
-- [ ] W.15 Frontend-Majors: bootstrap-vue-next 1.x, vite-plugin-pwa 2 (Override und `--legacy-peer-deps` entfernen), pinia 4, vueuse 15, js-yaml 5, lint-staged 17; TypeScript auf 5.x halten und als Ausnahme dokumentieren · M–L · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
+- [ ] W.15 Frontend-Majors: bootstrap-vue-next 1.x, vite-plugin-pwa 2 (Override und `--legacy-peer-deps` entfernen), pinia 4, vueuse 15, js-yaml 5, lint-staged 17; TypeScript auf 5.x halten und als Ausnahme dokumentieren; `eslint` als direkte devDependency · M–L · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
 - [ ] W.16 Verzichtbare Abhängigkeiten ersetzen: `deep-equal` (58 transitive Pakete), `sass` (→ CSS `aspect-ratio`), `deepCopyYaml` (→ `structuredClone`), `@vueuse/integrations` prüfen, Font-Cache-Regel löschen · S–M · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
 - [ ] W.17 `backup.sh`: Fehler von `pg_dump` erkennen (pipefail o. ä.), leere Dumps nicht rotieren lassen · XS · Sonnet
 - [ ] W.18 PyYAML aus den Backend-Abhängigkeiten entfernen · XS · Sonnet · nach W.4
+- [ ] W.19 Apple-Touch-Icon und PNG-Favicons in `index.html` einbinden (iOS-Homescreen) · XS · Sonnet · mit W.3
 
 ## 5 — Einkaufsliste-Export
 Zutaten eines Rezepts als Einkaufsliste per Clipboard und Native Share. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-5-einkaufsliste-export-1-2-tage--quick-win)

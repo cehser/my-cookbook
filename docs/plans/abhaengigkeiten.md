@@ -14,6 +14,7 @@ Versionen per `npm view` bzw. PyPI am 2026-11-14 ermittelt.
 | `@vueuse/core` | 14.2.1 → 15.0.0 | Changelog |
 | `js-yaml` | 4.1.1 → 5.5.0 | API-Änderungen prüfen (`load`/`dump`) |
 | `lint-staged` | 16.4.0 → 17.6.0 | dev |
+| `eslint` | nur als Peer im Lock | als direkte devDependency aufnehmen (`lint` und `lint-staged` rufen es direkt auf) |
 | `typescript` | 5.9.3 → 7.0.2 | **Ausnahme:** auf 5.x bleiben, bis `vue-tsc` TS 7 unterstützt (unbestätigt, prüfen) |
 
 Je Major einen eigenen Commit, nach jedem `lint:check`, `typecheck`, `build`.
@@ -45,3 +46,6 @@ Bleiben: `idb-keyval`, `oidc-client-ts`, `sortablejs`, `js-yaml` (YAML-Import/-E
 `PyYAML` wird nur von den Migrationsskripten genutzt und entfällt mit W.8.
 
 Entscheidung (2026-11-14): Lock-Basis ist die neueste Version je bisheriger Major-Linie (z. B. `openai<3`, `Pillow<13`, `sqlalchemy<2.1`); die Live-Versionen aus dem Container werden nicht erhoben. Danach je Major ein eigener Commit mit Smoke-Test.
+
+## Beobachtung Lieferkette (2026-11-14, aus W.14)
+`workbox-build` 7.4.1 (Peer von `vite-plugin-pwa`) ersetzt `@surma/rollup-plugin-off-main-thread` durch das Vorab-Release `@trickfilm400/rollup-plugin-off-main-thread@^3.0.0-pre1` (Einzel-Maintainer, wenig verbreitet). Die Abhängigkeit steht im offiziellen Manifest der Workbox-Maintainer, ist also eine Upstream-Entscheidung. Bei W.15 erneut prüfen, ob eine stabile Version vorliegt.
