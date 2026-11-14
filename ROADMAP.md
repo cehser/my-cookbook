@@ -7,7 +7,7 @@ Erledigt (Archiv): Sprints 0–3, UX-1 bis UX-7, Sprint 9 (Design-System) → [u
 
 ## W — Wartung 🔜
 Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.14, W.11 und W.4 parallel, W.12 nach W.4 (Format/SDK-Version), W.13 nach W.12 (gleiche Komponente), danach W.3 + W.19. W.16 nach W.11, W.15 nach W.11–W.13, W.21 nach W.15. W.4 vor dem nächsten Backend-Deploy (Versionen heute ungepinnt). Reihenfolge außerdem: W.4 vor dem Backend-Teil von W.5; W.9 nach W.3 und W.5; W.5 führt die Tests aus W.10 mit aus.
-Erledigt (Archiv): W.1, W.2, W.4, W.6, W.7, W.8, W.11, W.14, W.17, W.18, W.20 → [roadmap-archiv.md](docs/roadmap-archiv.md)
+Erledigt (Archiv): W.1, W.2, W.4, W.6, W.7, W.8, W.11, W.14, W.16, W.17, W.18, W.20 → [roadmap-archiv.md](docs/roadmap-archiv.md)
 
 - [ ] W.3 Instanzspezifische Defaults entfernen (IdP und Client-ID in `config.py`/`public/config.js`, StartURL in `index.html`) · S · Sonnet
 - [ ] W.5 CI mit GitHub Actions: lint:check, typecheck, build, `npm audit --audit-level=high`; Backend nach W.4 · M · Sonnet
@@ -16,7 +16,6 @@ Erledigt (Archiv): W.1, W.2, W.4, W.6, W.7, W.8, W.11, W.14, W.17, W.18, W.20 �
 - [ ] W.12 AI-Import robust: Timeouts, 401-Retry, Fehlermeldungen, YAML-Parsing, Upload-Grenzen, Modell-IDs, Entscheidung Structured Outputs statt YAML · M · Sonnet · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w12-ai-import-robust)
 - [ ] W.13 Foto im AI-Import über native Kamera/Fotoauswahl statt `getUserMedia`, Bilder clientseitig verkleinern · S–M · Sonnet · nach W.12 · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w13-foto-aufnahme-im-ai-import)
 - [ ] W.15 Frontend-Majors: bootstrap-vue-next 1.x, vite-plugin-pwa 2 (Override und `--legacy-peer-deps` entfernen), pinia 4, vueuse 15, js-yaml 5, lint-staged 17; TypeScript auf 6.0 (`~6.0.3`), TS 7 als Ausnahme bis `vue-tsc` und `typescript-eslint` es unterstützen; `eslint` als direkte devDependency · M–L · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
-- [~] W.16 Verzichtbare Abhängigkeiten ersetzen · S–M · Sonnet · [Auftrag](docs/tasks/W.16-abhaengigkeiten-verschlanken.md)
 - [ ] W.19 Apple-Touch-Icon und PNG-Favicons in `index.html` einbinden (iOS-Homescreen) · XS · Sonnet · mit W.3
 - [ ] W.21 PostgreSQL 16 → 18: Dump/Restore, Probelauf mit Kopie der Produktivdaten, Checkpoint vor dem Live-Schritt · M · Opus · nach W.15
 - [ ] W.22 Service-Worker-Update steuern: kein sofortiges Neuladen mitten in der Sitzung, Update-Prüfung beim Vordergrundwechsel, toten Code in `main.ts` entfernen · S · Sonnet
