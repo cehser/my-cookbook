@@ -53,3 +53,29 @@ Belege aus dem Betrieb (vom Nutzer, nur lesend):
 docker compose logs backend --since 72h | grep -i -E "error|exception|openai|timeout"
 docker compose logs frontend --since 72h | grep -E '" (413|499|502|504) '
 ```
+
+## W.13 Foto-Aufnahme im AI-Import
+
+Meldung: „Die Kamera-Komponente zickt manchmal.“ Hauptnutzung: PWA auf iOS/iPadOS.
+
+| # | Befund (`AIRecipeImport.vue`) | Stand |
+|---|---|---|
+| K1 | Stream wird nur in `onBeforeUnmount` gestoppt. Bleibt der Inhalt des geschlossenen `BModal` gemountet, läuft die Kamera weiter → beim nächsten Öffnen `NotReadableError` oder schwarzes Bild. | Code; Mount-Verhalten von `BModal` unbestätigt |
+| K2 | Tab-Wechsel stoppt die Kamera nicht. | Code |
+| K3 | `capturePhoto` prüft nicht, ob das Video läuft; bei `videoWidth` 0 entsteht ein leeres Bild (`data:,`). | Code |
+| K4 | Keine Auflösung angefordert → oft 640×480, Rezepttext schlecht lesbar. | plausibel |
+| K5 | Kein `play()`, kein `muted`; Startverhalten in der iOS-PWA nicht gesichert. | unbestätigt |
+| K6 | Kamera und Upload teilen `capturedImage`; „Neu“ startet die Kamera nicht; alte Fehlermeldung bleibt stehen. | Code |
+| K7 | Keine Verkleinerung vor dem Upload; Handyfotos stoßen an die nginx-Grenze (A5). | Code |
+
+### Entscheidung (2026-11-14)
+Native Kamera statt `getUserMedia`: ein Tab „Foto aufnehmen oder wählen“ mit `<input type="file" accept="image/*">`. Live-Vorschau, Video, Canvas-Aufnahme und Stream-Verwaltung entfallen (K1–K6).
+
+### Richtung
+- Ob `capture="environment"` gesetzt wird, im Auftrag an iOS prüfen: mit dem Attribut öffnet iOS direkt die Kamera, ohne bietet es Kamera und Mediathek zur Wahl. Für einen gemeinsamen Tab ist „ohne“ naheliegend.
+- Vor dem Upload per Canvas verkleinern (z. B. lange Kante 2000 px, JPEG ~0,85), ohne neue Abhängigkeit. Das wandelt auch HEIC in JPEG.
+- Unbestätigt, im Auftrag prüfen: EXIF-Ausrichtung beim Zeichnen in den Canvas (Safari), HEIC-Lieferung durch iOS an `<input type="file">`.
+- Abgrenzung zu W.12: W.12 regelt Server-Grenzen (nginx/Backend) und den API-Client, W.13 nur die Bildaufnahme im Frontend.
+
+### Abnahme
+Auf iPhone und iPad als installierte PWA: Foto aufnehmen und aus der Mediathek wählen, jeweils Rezept erkennen; Modal mehrfach öffnen und schließen ohne Fehler.
