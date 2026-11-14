@@ -48,6 +48,7 @@ def _require_openai_key() -> str:
 # Text → Recipe
 # ---------------------------------------------------------------------------
 
+
 class AITextRequest(BaseModel):
     text: str
     model: str = "gpt-4o"
@@ -95,6 +96,7 @@ async def ai_import_text(
 # ---------------------------------------------------------------------------
 # Image → Recipe (Vision)
 # ---------------------------------------------------------------------------
+
 
 @router.post("/import/image")
 async def ai_import_image(

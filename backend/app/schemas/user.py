@@ -37,6 +37,7 @@ class CurrentUserResponse(BaseModel):
 
 class UserSettings(BaseModel):
     """User-specific settings stored in the DB."""
+
     read_only: bool = True
     expert_mode: bool = False
     gpt_model: str = "gpt-4o-mini"
@@ -46,6 +47,7 @@ class UserSettings(BaseModel):
 
 class UserSettingsResponse(BaseModel):
     """Full settings response — includes derived fields."""
+
     read_only: bool
     expert_mode: bool
     gpt_model: str

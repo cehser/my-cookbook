@@ -26,6 +26,8 @@ out/
 
 # Environment
 .env
+.venv/
+__pycache__/
 docker-compose.yml
 cookbook.dump
 *.tar.gz

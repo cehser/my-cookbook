@@ -8,11 +8,11 @@ from app.config import settings
 from app.models.base import Base
 
 # Import all models so Alembic can detect them
-from app.models.user import AppUser  # noqa: F401
-from app.models.recipe import Recipe  # noqa: F401
-from app.models.image import RecipeImage  # noqa: F401
 from app.models.favorite import Favorite  # noqa: F401
-from app.models.tag import Tag, RecipeTag, RecipeShare  # noqa: F401
+from app.models.image import RecipeImage  # noqa: F401
+from app.models.recipe import Recipe  # noqa: F401
+from app.models.tag import RecipeShare, RecipeTag, Tag  # noqa: F401
+from app.models.user import AppUser  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

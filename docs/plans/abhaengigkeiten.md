@@ -47,5 +47,7 @@ Bleiben: `idb-keyval`, `oidc-client-ts`, `sortablejs`, `js-yaml` (YAML-Import/-E
 
 Entscheidung (2026-11-14): Lock-Basis ist die neueste Version je bisheriger Major-Linie (z. B. `openai<3`, `Pillow<13`, `sqlalchemy<2.1`); die Live-Versionen aus dem Container werden nicht erhoben. Danach je Major ein eigener Commit mit Smoke-Test.
 
+Stand nach W.4 (2026-11-14): `requirements.txt` ist durch `pyproject.toml` + `uv.lock` ersetzt. Alle vier Majors sind gehoben, `ai.py` blieb für openai 3 unverändert. Lock: fastapi 0.162.7, uvicorn 0.54.0, sqlalchemy 2.1.8, asyncpg 0.32.0, alembic 1.20.1, pyjwt 2.15.1, cryptography 50.0.2, pydantic 2.14.3, pydantic-settings 2.16.3, Pillow 13.0.0, openai 3.51.0, PyYAML 6.0.3, python-multipart 0.0.33, httpx 0.28.1; dev: pytest 9.2.0, ruff 0.17.5; uv 0.13.8 im Image.
+
 ## Beobachtung Lieferkette (2026-11-14, aus W.14)
 `workbox-build` 7.4.1 (Peer von `vite-plugin-pwa`) ersetzt `@surma/rollup-plugin-off-main-thread` durch das Vorab-Release `@trickfilm400/rollup-plugin-off-main-thread@^3.0.0-pre1` (Einzel-Maintainer, wenig verbreitet). Die Abhängigkeit steht im offiziellen Manifest der Workbox-Maintainer, ist also eine Upstream-Entscheidung. Bei W.15 erneut prüfen, ob eine stabile Version vorliegt.
