@@ -13,7 +13,7 @@ FILENAME="cookbook_${TIMESTAMP}.sql.gz"
 
 mkdir -p "$BACKUP_DIR"
 
-docker compose exec -T db pg_dump -U cookbook cookbook | gzip > "${BACKUP_DIR}/${FILENAME}"
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "${BACKUP_DIR}/${FILENAME}"
 
 echo "Backup saved: ${BACKUP_DIR}/${FILENAME}"
 

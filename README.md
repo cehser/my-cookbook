@@ -183,7 +183,7 @@ Für automatische Backups einen Cronjob einrichten:
 ### Backup einspielen
 
 ```bash
-gunzip -c backups/cookbook_20260405_030000.sql.gz | docker compose exec -T db psql -U cookbook cookbook
+gunzip -c backups/cookbook_20260405_030000.sql.gz | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'
 ```
 
 ## Umgebungsvariablen
