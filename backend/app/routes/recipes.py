@@ -176,10 +176,11 @@ async def list_recipes(
         "created": Recipe.created_at,
     }.get(sort, Recipe.updated_at)
 
+    # Recipe.id als Tie-Breaker, damit offset/limit bei gleichen Werten stabil bleibt
     if order == "asc":
-        query = query.order_by(sort_col.asc())
+        query = query.order_by(sort_col.asc(), Recipe.id.asc())
     else:
-        query = query.order_by(sort_col.desc())
+        query = query.order_by(sort_col.desc(), Recipe.id.desc())
 
     # Count
     total_result = await db.execute(count_query)
