@@ -17,7 +17,7 @@ Erledigt (Archiv): W.2, W.4, W.6, W.7, W.8, W.11, W.14 → [roadmap-archiv.md](d
 - [ ] W.12 AI-Import robust: Timeouts, 401-Retry, Fehlermeldungen, YAML-Parsing, Upload-Grenzen, Modell-IDs, Entscheidung Structured Outputs statt YAML · M · Sonnet · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w12-ai-import-robust)
 - [ ] W.13 Foto im AI-Import über native Kamera/Fotoauswahl statt `getUserMedia`, Bilder clientseitig verkleinern · S–M · Sonnet · nach W.12 · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w13-foto-aufnahme-im-ai-import)
 - [ ] W.15 Frontend-Majors: bootstrap-vue-next 1.x, vite-plugin-pwa 2 (Override und `--legacy-peer-deps` entfernen), pinia 4, vueuse 15, js-yaml 5, lint-staged 17; TypeScript auf 6.0 (`~6.0.3`), TS 7 als Ausnahme bis `vue-tsc` und `typescript-eslint` es unterstützen; `eslint` als direkte devDependency · M–L · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
-- [ ] W.16 Verzichtbare Abhängigkeiten ersetzen: `deep-equal` (58 transitive Pakete), `sass` (→ CSS `aspect-ratio`), `deepCopyYaml` (→ `structuredClone`), `@vueuse/integrations` prüfen, Font-Cache-Regel löschen · S–M · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
+- [~] W.16 Verzichtbare Abhängigkeiten ersetzen · S–M · Sonnet · [Auftrag](docs/tasks/W.16-abhaengigkeiten-verschlanken.md)
 - [~] W.17 `backup.sh`: Fehler von `pg_dump` erkennen · XS · Sonnet · [Auftrag](docs/tasks/W.20-backend-aufraeumen.md)
 - [~] W.18 PyYAML aus den Backend-Abhängigkeiten entfernen · XS · Sonnet · [Auftrag](docs/tasks/W.20-backend-aufraeumen.md)
 - [ ] W.19 Apple-Touch-Icon und PNG-Favicons in `index.html` einbinden (iOS-Homescreen) · XS · Sonnet · mit W.3

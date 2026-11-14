@@ -25,8 +25,8 @@ Je Major einen eigenen Commit, nach jedem `lint:check`, `typecheck`, `build`.
 |---|---|---|
 | `deep-equal`, `@types/deep-equal` | `ProfileView.vue`, `Settings.vue`: Vergleich flacher Settings | eigene Hilfsfunktion; entfernt 58 transitive Pakete |
 | `sass` | nur `RecipeGrid.vue`: Mixin `fluid-aspect` (Padding-Hack) | CSS `aspect-ratio: 3 / 2`; `preprocessorOptions.scss` in `vite.config.js` entfernen |
-| `deepCopyYaml` (`js/deepCopy.ts`, 16 Aufrufe) | Deep Copy per YAML-Dump/-Load | `structuredClone(toRaw(x))`. Falle: reaktive Proxies lassen sich nicht klonen. `deepCopyJSON` ebenso prüfen |
-| `@vueuse/integrations` | kein direkter Import; optionaler Peer von bootstrap-vue-next, dessen Partner `focus-trap` nicht installiert ist | entfernen, falls bootstrap-vue-next es nicht nutzt (unbestätigt) |
+| `deepCopyYaml` (`js/deepCopy.ts`, 11 Aufrufe nach W.11) | Deep Copy per YAML-Dump/-Load | `deepCopyJSON`. Nicht `structuredClone(toRaw(x))`: `toRaw` entfernt nur die oberste Proxy-Ebene, verschachtelte Proxies lösen `DataCloneError` aus; JSON liest durch Proxies hindurch, die Daten sind JSON-sicher |
+| `@vueuse/integrations` | kein direkter Import; optionaler Peer von bootstrap-vue-next | entfernen: bootstrap-vue-next 0.44 bündelt `useFocusTrap` im `dist`, nur `.d.ts` referenziert das Paket (`skipLibCheck` aktiv), geprüft 2026-11-14 |
 | Cache-Regel `fonts.googleapis.com` in `vite.config.js` | Google Fonts werden nicht verwendet | löschen |
 
 Bleiben: `idb-keyval`, `oidc-client-ts`, `sortablejs`, `js-yaml` (YAML-Import/-Export), `bootstrap`, `bootstrap-icons`, `workbox-window` (Peer von vite-plugin-pwa).
