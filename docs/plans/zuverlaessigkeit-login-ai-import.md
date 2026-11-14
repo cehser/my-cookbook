@@ -49,6 +49,7 @@ Refresh-Token in `localStorage` und fehlende CSP (XSS-Risiko): zur Kenntnis, eig
 | A5 | nginx erlaubt 10 MB, das Backend 20 MB. Große Fotos scheitern mit 413 an nginx; die Grenze des äußeren Proxys ist unbekannt. | Konfiguration |
 | A6 | Modell-IDs (`gpt-4o`, `gpt-4o-mini`) und das Tool `web_search_preview` könnten veraltet sein. | unbestätigt, gegen OpenAI-Doku prüfen |
 | A7 | Das Modell wählt jeder Nutzer in seinen Settings (`gpt_model`), der Client schickt es mit, das Backend übernimmt den String ungeprüft (`AITextRequest.model`, Query `model`). Jeder Editor kann so beliebige, auch teure Modelle aufrufen. | Code |
+| A8 | Foto-Upload sendet keinen Request: `@change` an `BFormFile` liest `event.target.files`, bootstrap-vue-next 0.44 emittiert nach dem Dateidialog aber ein nicht dispatchtes `CustomEvent` (`target` = `null`) → `TypeError` nur in der Konsole, keine Vorschau, kein Button, keine Meldung. Fix: per `watch` auf das `v-model` `uploadedFile` reagieren. Als erster Schritt in W.12. | bestätigt 2026-11-15 (Konsole: `Cannot read properties of null (reading 'files')`) |
 
 Belege aus dem Betrieb (vom Nutzer, nur lesend):
 ```bash
