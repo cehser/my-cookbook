@@ -13,7 +13,7 @@ dependencies = [
     "alembic>=1.20",
     # Auth
     "pyjwt>=2.15",
-    "cryptography>=46.0,<47",
+    "cryptography>=50.0",
     # Validation & Settings
     "pydantic>=2.14",
     "pydantic-settings>=2.16",
