@@ -192,13 +192,6 @@ class RecipeUpdate(BaseModel):
 # --- Response schemas ---
 
 
-class TagResponse(BaseModel):
-    id: int
-    name: str
-
-    model_config = {"from_attributes": True}
-
-
 class RecipeListItem(BaseModel):
     """Slim recipe for gallery/list views."""
 

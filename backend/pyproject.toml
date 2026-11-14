@@ -21,8 +21,6 @@ dependencies = [
     "pillow>=13.0",
     # AI
     "openai>=3.51",
-    # YAML (Migrationsskripte, entfällt mit W.8)
-    "pyyaml>=6.0",
     # Utils
     "python-multipart>=0.0.33",
     "httpx>=0.28",
@@ -65,7 +63,5 @@ extend-immutable-calls = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# Migrationsskripte entfallen mit W.8; "from app.models import Base" lädt bewusst alle Modelle
-"scripts/*" = ["F401"]
 # Migrationen sind Historie und werden nicht mehr geändert (lange SQL-Zeilen)
 "alembic/versions/*" = ["E501"]

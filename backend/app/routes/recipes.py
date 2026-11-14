@@ -21,7 +21,6 @@ from app.schemas.recipe import (
     RecipeListResponse,
     RecipeResponse,
     RecipeUpdate,
-    TagResponse,
     normalize_recipe_data,
 )
 
@@ -177,10 +176,11 @@ async def list_recipes(
         "created": Recipe.created_at,
     }.get(sort, Recipe.updated_at)
 
+    # Recipe.id als Tie-Breaker, damit offset/limit bei gleichen Werten stabil bleibt
     if order == "asc":
-        query = query.order_by(sort_col.asc())
+        query = query.order_by(sort_col.asc(), Recipe.id.asc())
     else:
-        query = query.order_by(sort_col.desc())
+        query = query.order_by(sort_col.desc(), Recipe.id.desc())
 
     # Count
     total_result = await db.execute(count_query)
@@ -324,15 +324,6 @@ async def delete_recipe(
 # ---------------------------------------------------------------------------
 # Tags
 # ---------------------------------------------------------------------------
-
-
-@router.get("/tags", response_model=list[TagResponse])
-async def list_tags(
-    user: AppUser = Depends(require_readonly),
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(select(Tag).order_by(Tag.name))
-    return result.scalars().all()
 
 
 @router.post("/recipes/{recipe_id}/tags", response_model=list[str])

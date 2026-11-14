@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import warnings
 from contextlib import asynccontextmanager
 
 from alembic import command
@@ -10,6 +11,17 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.routes import admin, ai, favorites, health, images, me, recipes, shares, tags
+
+# Uvicorn konfiguriert nur seine eigenen Logger; ohne Handler gingen INFO-Meldungen
+# aus "app.*" verloren. Handler am Logger "app" (nicht am Root), damit Uvicorns Logging
+# unberührt bleibt und nichts doppelt erscheint.
+_app_logger = logging.getLogger("app")
+if not _app_logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s - %(message)s"))
+    _app_logger.addHandler(_handler)
+    _app_logger.setLevel(logging.INFO)
+    _app_logger.propagate = False
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +50,18 @@ async def lifespan(app: FastAPI):
     # Shutdown
 
 
-app = FastAPI(
-    title="My Cookbook API",
-    version="0.1.0",
-    lifespan=lifespan,
-    root_path="/api",
-)
+# root_path bleibt im Code (W.20.1 verworfen): "uvicorn --root-path /api" erwartet, dass der
+# Proxy das Präfix entfernt (App läge dann unter /health), nginx reicht /api/ aber mit Präfix
+# durch (prod.conf). Die Deprecation-Warnung wird deshalb gezielt unterdrückt, bis nginx
+# das Präfix entfernt.
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message=".*root_path.*")
+    app = FastAPI(
+        title="My Cookbook API",
+        version="0.1.0",
+        lifespan=lifespan,
+        root_path="/api",
+    )
 
 app.add_middleware(
     CORSMiddleware,
