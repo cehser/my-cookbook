@@ -7,8 +7,6 @@ COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
 
-# Create vue.config.js to disable TypeScript checking
-RUN echo "module.exports = { chainWebpack: config => { config.plugins.delete('fork-ts-checker'); } };" > vue.config.js
 RUN npm run build
 
 # production stage
