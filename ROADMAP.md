@@ -13,9 +13,9 @@ Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.1
 - [ ] W.3 Instanzspezifische Defaults entfernen (IdP und Client-ID in `config.py`/`public/config.js`, StartURL in `index.html`) · S · Sonnet
 - [~] W.4 Backend auf uv + `pyproject.toml` + Lock, ruff, Smoke-Tests für Auth und Routen; Lock-Basis = neueste Version je bisheriger Major-Linie, danach Majors einzeln (openai 3, Pillow 13, cryptography 50, SQLAlchemy 2.1) · M · Opus · [Plan](docs/plans/abhaengigkeiten.md#backend-gehört-zu-w4) · [Auftrag](docs/tasks/W.4-backend-uv.md)
 - [ ] W.5 CI mit GitHub Actions: lint:check, typecheck, build, `npm audit --audit-level=high`; Backend nach W.4 · M · Sonnet
-- [ ] W.6 DB-User und -Name in `backup.sh`, Compose-Healthcheck und README-Restore aus Variablen · XS · Sonnet
+- [~] W.6 DB-User und -Name in `backup.sh`, Compose-Healthcheck und README-Restore aus Variablen · XS · Sonnet · [Auftrag](docs/tasks/W.6-ops-altlasten.md)
 - [~] W.7 Base-Images auf Minor pinnen, `npm ci --legacy-peer-deps` prüfen · XS · Sonnet · [Auftrag](docs/tasks/W.14-build-deps.md)
-- [ ] W.8 Altlasten der YAML-Migration entfernen (`backend/cookbook.yaml`, `scripts/migrate_yaml.py`, `restore_empty.py`, `.gitignore`-Eintrag `backup_pre_d1.sql`) · XS · Sonnet
+- [~] W.8 Altlasten der YAML-Migration entfernen (`backend/cookbook.yaml`, `scripts/migrate_yaml.py`, `restore_empty.py`, `.gitignore`-Eintrag `backup_pre_d1.sql`) · XS · Sonnet · [Auftrag](docs/tasks/W.6-ops-altlasten.md)
 - [ ] W.9 Images per GitHub Actions bauen und nach `ghcr.io` pushen (öffentlich, Tags SHA + `main`), `deploy.sh` auf Pull umstellen · M · Sonnet
 - [ ] W.10 Vitest einführen (`vitest`, `@vue/test-utils`, `happy-dom`), erste Tests für `js/` und `composables/` (Skalierung, Draft/Undo) · M · Sonnet
 - [~] W.11 Rezepte nach Login und Token-Ablauf zuverlässig laden: Single-Flight-Refresh, Laden nach Auth, Offline-Fallback sichtbar · M–L · Opus · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w11-rezepte-zuverlässig-laden) · [Auftrag](docs/tasks/W.11-login-laden.md)
