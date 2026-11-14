@@ -8,11 +8,6 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
-# System dependencies for Pillow
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libjpeg62-turbo-dev libwebp-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 # Abhängigkeiten zuerst, damit dieser Layer bei Codeänderungen gecacht bleibt
 COPY pyproject.toml uv.lock .python-version ./
 RUN --mount=type=cache,target=/root/.cache/uv \
