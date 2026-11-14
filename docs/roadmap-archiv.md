@@ -11,3 +11,7 @@ Erledigte und verworfene Punkte aus [ROADMAP.md](../ROADMAP.md), wörtlich über
 - [x] W.14 Frontend-Lock auffrischen (Patch/Minor), `npm audit` ohne high · 2026-11-14 · `f85d041`
 - [x] W.4 Backend auf uv + `pyproject.toml` + Lock, ruff, Smoke-Tests; Majors openai 3, Pillow 13, cryptography 50, SQLAlchemy 2.1 · 2026-11-14 · `0c0f76d`
 - [x] W.11 Rezepte nach Login und Token-Ablauf zuverlässig laden (inkl. Nacharbeit N1–N12, Abnahme auf dem Gerät nach Deploy) · 2026-11-14 · `451f2a0`
+- [x] W.1 Doppelten Handler `GET /v1/tags` auflösen: nur noch `tags.py`, Antwort `{id, name, count}` (nur Tags mit Rezept) · 2026-11-14 · `7048441`
+- [x] W.18 PyYAML aus den Backend-Abhängigkeiten entfernen · 2026-11-14 · `51e84fc`
+- [x] W.17 `backup.sh`: Fehler von `pg_dump` und leere Dumps erkennen, dann keine Rotation · 2026-11-14 · `2eb553e`
+- [x] W.20 Backend-Aufräumen nach W.4: Migrationslog, B904, ruff-Ausnahme, xfail, Tie-Breaker `Recipe.id`, apt-Pakete entfernt; `root_path` → W.24 · 2026-11-14 · `9fded22`
