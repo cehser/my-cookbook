@@ -59,3 +59,17 @@ Nach dem Login und beim Öffnen der PWA mit abgelaufenem Access-Token (Regelfall
   4. Abgelaufene oder widerrufene Session → Login statt stiller Cache-Daten.
 - Pro Start höchstens eine Token-Erneuerung (Konsole/Netzwerk-Tab), auch bei parallelen Anfragen.
 - Verifikation gemäß Projekt-CLAUDE.md (Frontend)
+
+## Nacharbeit (2026-11-14, aus der Abnahme durch den Master)
+
+Im bestehenden Worktree auf Branch `worktree-W.11-login-laden`. Zuerst `git merge main`, um den Lock aus W.14 zu übernehmen und dagegen zu verifizieren. Danach:
+
+- **N1 Klassifikation (Fehler):** `classifyRenewError` (`auth/oidc.ts`) wertet jede `ErrorResponse` als `rejected`. oidc-client-ts erzeugt `ErrorResponse` aber bei jedem Nicht-2xx mit OAuth-JSON, auch bei 5xx/429 (`server_error`, `temporarily_unavailable`) → Zwangs-Logout bei kurzer IdP-Störung. Neu: `rejected` nur bei `error === "invalid_grant"` (ggf. `invalid_client`, `unauthorized_client`), sonst `offline`. Kommentar korrigieren.
+- **N2 Client-Fehler ≠ Ausfall (Fehler):** `loadRecipes`/`loadFavorites`/`loadSettings` fallen bei jedem API-Fehler auf den Cache zurück. Nutzer mit Rolle `pending` bekommen 403 → dauerhaft „Offline-Daten“ und Neuladen bei jedem Vordergrundwechsel. Neu: `ApiError` mit 4xx (außer 401) ist kein Cache-Fall; für `pending` gilt der bestehende Hinweis in `HomeView`, kein Offline-Banner.
+- **N3 Abgelehnte Erneuerung im laufenden Betrieb:** Wird die Erneuerung im Ablauf-Timer oder im 401-Pfad mit `rejected` beendet, passiert heute nur `removeUser()`; eine fortgesetzte PWA zeigt still die alten Daten. Neu: bei `rejected` und online zentral Login auslösen (eine Stelle, keine Redirect-Schleife auf `/callback`). Beim Wechsel in den Vordergrund den Auth-Zustand prüfen, auch wenn die Daten von der API stammen.
+- **N4 Schlechtes Netz (Regression):** Bei `navigator.onLine === true`, aber hängender Verbindung bleibt die Liste bis zum Fetch-Fehler leer (früher: Cache sofort). Neu: Cache sofort als vorläufige Daten zeigen (Quelle „cache“, Banner), danach durch API-Daten ersetzen; dazu Timeout per `AbortController` im API-Client (Größenordnung 15 s, nicht für AI-Import und Uploads).
+- **N5 Suche:** `searchRecipesApi` ist weiter auf 200 Treffer begrenzt; wie die Liste paginieren.
+
+Nicht in der Nacharbeit: Sortier-Tie-Breaker im Backend (W.20), Service-Worker-Update (C2), `silent-renew.html`, Web Locks.
+
+Abnahme Nacharbeit: Verifikation gemäß Projekt-CLAUDE.md auf Stand nach `git merge main`; Auth-Simulation um N1 (5xx mit `server_error` → `offline`, `invalid_grant` → `rejected`) und N3 erweitert; Testszenarien im Bericht um „Rolle pending“ und „schlechtes Netz“ ergänzt. Bericht `W.11.bericht.md` fortschreiben.

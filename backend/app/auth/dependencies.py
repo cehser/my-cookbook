@@ -1,7 +1,7 @@
 """Auth dependencies for FastAPI route protection."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -16,9 +16,7 @@ from app.models.user import AppUser
 security = HTTPBearer()
 
 
-async def get_or_create_user(
-    db: AsyncSession, payload: dict
-) -> AppUser:
+async def get_or_create_user(db: AsyncSession, payload: dict) -> AppUser:
     """Load user from DB. If not found, auto-provision with 'pending' role.
 
     Syncs OIDC profile claims (display_name, email, given_name, family_name)
@@ -47,7 +45,7 @@ async def get_or_create_user(
         await db.refresh(user)
     else:
         # Sync profile fields from OIDC on every login
-        user.last_login = datetime.now(timezone.utc)
+        user.last_login = datetime.now(UTC)
         if display_name and user.display_name != display_name:
             user.display_name = display_name
         if email is not None:
@@ -69,7 +67,8 @@ async def get_current_user(
     try:
         payload = verify_oidc_token(credentials.credentials)
     except PyJWTError:
-        raise HTTPException(
+        # B904 offen gelassen: "from err" wäre eine Verhaltensänderung, nicht Teil von W.4
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token ungültig oder abgelaufen",
             headers={"WWW-Authenticate": "Bearer"},

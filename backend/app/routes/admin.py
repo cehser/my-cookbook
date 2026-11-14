@@ -12,7 +12,7 @@ from app.models.recipe import Recipe
 from app.models.site_settings import SiteSettings
 from app.models.tag import RecipeShare
 from app.models.user import AppUser
-from app.schemas.user import CurrentUserResponse, UserResponse, UserRoleUpdate
+from app.schemas.user import UserResponse, UserRoleUpdate
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
@@ -88,9 +88,7 @@ async def list_all_shares(
     db: AsyncSession = Depends(get_db),
 ):
     """List all share links (active + inactive) for admin overview."""
-    result = await db.execute(
-        select(RecipeShare).order_by(RecipeShare.created_at.desc())
-    )
+    result = await db.execute(select(RecipeShare).order_by(RecipeShare.created_at.desc()))
     shares = result.scalars().all()
 
     # Batch-load recipe names and user names
@@ -104,7 +102,9 @@ async def list_all_shares(
 
     user_names: dict[uuid.UUID, str] = {}
     if user_ids:
-        u = await db.execute(select(AppUser.oidc_sub, AppUser.display_name).where(AppUser.oidc_sub.in_(user_ids)))
+        u = await db.execute(
+            select(AppUser.oidc_sub, AppUser.display_name).where(AppUser.oidc_sub.in_(user_ids))
+        )
         user_names = {row.oidc_sub: row.display_name for row in u.all()}
 
     return [

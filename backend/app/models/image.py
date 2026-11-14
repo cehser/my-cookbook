@@ -30,6 +30,4 @@ class RecipeImage(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    __table_args__ = (
-        Index("idx_images_recipe", "recipe_id", "sort_order"),
-    )
+    __table_args__ = (Index("idx_images_recipe", "recipe_id", "sort_order"),)

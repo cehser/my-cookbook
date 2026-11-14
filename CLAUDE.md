@@ -6,15 +6,18 @@ Selbst gehostetes Familien-Kochbuch als PWA: Vue-3-SPA (offline-fähig) + FastAP
 ## Befehle
 Frontend (`cd frontend`):
 - `npm ci` — Abhängigkeiten (richtet auch den husky-Hook ein)
-- `npm run dev` — Dev-Server https://localhost:5173 (selbstsigniert)
+- `npm run dev` — Dev-Server https://localhost:8080 (selbstsigniert)
 - `npm run lint` / `npm run lint:check` — ESLint mit/ohne Fix
 - `npm run typecheck` — `vue-tsc --noEmit`
 - `npm run build` — Production-Build
 
-Backend (`cd backend`):
-- `pip install -r requirements.txt`
-- `uvicorn app.main:app --reload --port 8000` — braucht PostgreSQL (`DB_*`); Migrationen laufen beim Start automatisch
-- `alembic revision -m "<text>"` — neue Migration
+Backend (`cd backend`, uv-Projekt mit `uv.lock`):
+- `uv sync` — Umgebung inkl. Dev-Gruppe (pytest, ruff) aus dem Lock
+- `uv run uvicorn app.main:app --reload --port 8000` — braucht PostgreSQL (`DB_*`); Migrationen laufen beim Start automatisch
+- `uv run pytest` — Smoke-Tests ohne DB und Netz
+- `uv run ruff check` / `uv run ruff format` — Linter / Formatierer
+- `uv run alembic revision -m "<text>"` — neue Migration
+- `uv lock --upgrade-package <paket>` — gezieltes Update, Majors je eigener Commit
 
 Betrieb (Repo-Root, `docker-compose.yml` aus `.example` kopiert):
 - `./scripts/deploy.sh` — Build mit Commit-Hash + `docker compose up -d`
@@ -22,7 +25,7 @@ Betrieb (Repo-Root, `docker-compose.yml` aus `.example` kopiert):
 
 ## Verifikation
 - Frontend: `npm run lint:check && npm run typecheck && npm run build`. Der Pre-Commit-Hook prüft nur lint-staged und typecheck.
-- Backend: keine Tests, kein Linter (Roadmap W.4). Mindestens Container bauen und starten (`docker compose build backend && docker compose up -d`), im Log die erfolgreiche Migration prüfen, `GET /api/health`.
+- Backend: `uv sync --frozen && uv run ruff check && uv run ruff format --check && uv run pytest`. Bei Änderungen an Abhängigkeiten, Dockerfile oder Migrationen zusätzlich Container bauen und starten (`docker compose build backend && docker compose up -d`), im Log die erfolgreiche Migration prüfen, `GET /api/health`. Keine DB-Integrationstests (Roadmap W.5).
 - Keine CI (Roadmap W.5).
 
 ## Konventionen

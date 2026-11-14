@@ -96,7 +96,12 @@ async def download_and_store_image(
         return None
 
     image_id = uuid.uuid4()
-    ext_map = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
+    ext_map = {
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp",
+        "image/gif": ".gif",
+    }
     ext = ext_map.get(content_type, ".jpg")
     base_name = f"{image_id}{ext}"
 
@@ -119,8 +124,9 @@ async def download_and_store_image(
 
     # Determine sort_order
     result = await db.execute(
-        select(func.coalesce(func.max(RecipeImage.sort_order), -1))
-        .where(RecipeImage.recipe_id == recipe_id)
+        select(func.coalesce(func.max(RecipeImage.sort_order), -1)).where(
+            RecipeImage.recipe_id == recipe_id
+        )
     )
     next_order = result.scalar() + 1
 
@@ -143,6 +149,7 @@ async def download_and_store_image(
 # ---------------------------------------------------------------------------
 # Upload
 # ---------------------------------------------------------------------------
+
 
 @router.post(
     "/recipes/{recipe_id}/images",
@@ -174,8 +181,9 @@ async def upload_image(
 
     # Determine next sort_order
     result = await db.execute(
-        select(func.coalesce(func.max(RecipeImage.sort_order), -1))
-        .where(RecipeImage.recipe_id == recipe_id)
+        select(func.coalesce(func.max(RecipeImage.sort_order), -1)).where(
+            RecipeImage.recipe_id == recipe_id
+        )
     )
     next_order = result.scalar() + 1
 
@@ -203,7 +211,8 @@ async def upload_image(
         thumb_path.unlink(missing_ok=True)
         optimised_path.unlink(missing_ok=True)
         log.exception("Image processing failed for recipe %s", recipe_id)
-        raise HTTPException(
+        # B904 offen gelassen: Ursache ist geloggt, "from err" wäre eine Verhaltensänderung
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Bildverarbeitung fehlgeschlagen. Bitte ein anderes Format versuchen.",
         )
@@ -239,6 +248,7 @@ async def upload_image(
 # List images for a recipe
 # ---------------------------------------------------------------------------
 
+
 @router.get("/recipes/{recipe_id}/images")
 async def list_images(
     recipe_id: uuid.UUID,
@@ -273,15 +283,14 @@ async def list_images(
 # Serve image file
 # ---------------------------------------------------------------------------
 
+
 @router.get("/images/{image_id}")
 async def get_image(
     image_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
     """Serve the optimised image. No auth required for caching."""
-    result = await db.execute(
-        select(RecipeImage).where(RecipeImage.id == image_id)
-    )
+    result = await db.execute(select(RecipeImage).where(RecipeImage.id == image_id))
     img = result.scalar_one_or_none()
     if img is None:
         raise HTTPException(status_code=404, detail="Bild nicht gefunden")
@@ -303,9 +312,7 @@ async def get_thumbnail(
     db: AsyncSession = Depends(get_db),
 ):
     """Serve the thumbnail variant."""
-    result = await db.execute(
-        select(RecipeImage).where(RecipeImage.id == image_id)
-    )
+    result = await db.execute(select(RecipeImage).where(RecipeImage.id == image_id))
     img = result.scalar_one_or_none()
     if img is None:
         raise HTTPException(status_code=404, detail="Bild nicht gefunden")
@@ -327,6 +334,7 @@ async def get_thumbnail(
 # ---------------------------------------------------------------------------
 # Delete image
 # ---------------------------------------------------------------------------
+
 
 @router.delete(
     "/recipes/{recipe_id}/images/{image_id}",
@@ -360,15 +368,14 @@ async def delete_image(
     for f in originals_dir.glob(f"{image_id}.*"):
         f.unlink(missing_ok=True)
 
-    await db.execute(
-        delete(RecipeImage).where(RecipeImage.id == image_id)
-    )
+    await db.execute(delete(RecipeImage).where(RecipeImage.id == image_id))
     await db.commit()
 
 
 # ---------------------------------------------------------------------------
 # Admin: migrate imageurl → backend storage
 # ---------------------------------------------------------------------------
+
 
 @router.post("/admin/migrate-images")
 async def migrate_image_urls(
@@ -381,14 +388,11 @@ async def migrate_image_urls(
     """
     # Find recipes with imageurl in JSONB data but no recipe_images row
     result = await db.execute(
-        select(Recipe)
-        .where(
+        select(Recipe).where(
             Recipe.data["imageurl"].astext.isnot(None),
             Recipe.data["imageurl"].astext != "",
             Recipe.data["imageurl"].astext != "null",
-            ~Recipe.id.in_(
-                select(RecipeImage.recipe_id).distinct()
-            ),
+            ~Recipe.id.in_(select(RecipeImage.recipe_id).distinct()),
         )
     )
     recipes = result.scalars().all()
@@ -400,9 +404,7 @@ async def migrate_image_urls(
         if not url or not isinstance(url, str) or not url.startswith("http"):
             continue
 
-        img = await download_and_store_image(
-            url, recipe.id, db, uploaded_by=user.oidc_sub
-        )
+        img = await download_and_store_image(url, recipe.id, db, uploaded_by=user.oidc_sub)
         if img:
             # Clear imageurl from recipe data since we now have a stored image
             data = dict(recipe.data or {})
@@ -424,6 +426,7 @@ async def migrate_image_urls(
 # ---------------------------------------------------------------------------
 # Admin: cleanup orphaned recipe_images (file missing on disk)
 # ---------------------------------------------------------------------------
+
 
 @router.post("/admin/cleanup-images")
 async def cleanup_orphaned_images(
@@ -453,9 +456,7 @@ async def cleanup_orphaned_images(
             if originals_dir.is_dir():
                 for f in originals_dir.glob(f"{img.id}.*"):
                     f.unlink(missing_ok=True)
-            await db.execute(
-                delete(RecipeImage).where(RecipeImage.id == img.id)
-            )
+            await db.execute(delete(RecipeImage).where(RecipeImage.id == img.id))
             removed += 1
 
     await db.commit()
@@ -470,6 +471,7 @@ async def cleanup_orphaned_images(
 # ---------------------------------------------------------------------------
 # Admin: strip stale first_image_id from recipe JSONB data
 # ---------------------------------------------------------------------------
+
 
 @router.post("/admin/strip-image-ids")
 async def strip_image_ids_from_data(

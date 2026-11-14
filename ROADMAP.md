@@ -6,24 +6,24 @@ Aufwand: XS ≲ 30 min · S ≲ 1 h · M ≈ 2–4 h · L ≈ 1 Tag+
 Erledigt (Archiv): Sprints 0–3, UX-1 bis UX-7, Sprint 9 (Design-System) → [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md)
 
 ## W — Wartung 🔜
-Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.14, W.11 und W.4 parallel, W.12 nach W.4 (Format/SDK-Version), W.13 nach W.12 (gleiche Komponente), danach W.2 + W.3. W.16 nach W.11, W.15 nach W.11–W.13. W.4 vor dem nächsten Backend-Deploy (Versionen heute ungepinnt). Reihenfolge außerdem: W.4 vor dem Backend-Teil von W.5; W.9 nach W.3 und W.5; W.5 führt die Tests aus W.10 mit aus.
+Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.14, W.11 und W.4 parallel, W.12 nach W.4 (Format/SDK-Version), W.13 nach W.12 (gleiche Komponente), danach W.3 + W.19. W.16 nach W.11, W.15 nach W.11–W.13, W.21 nach W.15. W.4 vor dem nächsten Backend-Deploy (Versionen heute ungepinnt). Reihenfolge außerdem: W.4 vor dem Backend-Teil von W.5; W.9 nach W.3 und W.5; W.5 führt die Tests aus W.10 mit aus.
+Erledigt (Archiv): W.2, W.4, W.6, W.7, W.8, W.14 → [roadmap-archiv.md](docs/roadmap-archiv.md)
 
 - [ ] W.1 Doppelten Handler `GET /v1/tags` auflösen (recipes.py überdeckt tags.py mit Count) · S · Sonnet
-- [~] W.2 Vue-CLI-Altlasten entfernen (`vue.config.js`, `jsconfig.json`, `public/index.html`, `echo` im Dockerfile), `dist/index.html` prüfen · S · Sonnet · [Auftrag](docs/tasks/W.14-build-deps.md)
 - [ ] W.3 Instanzspezifische Defaults entfernen (IdP und Client-ID in `config.py`/`public/config.js`, StartURL in `index.html`) · S · Sonnet
-- [~] W.4 Backend auf uv + `pyproject.toml` + Lock, ruff, Smoke-Tests für Auth und Routen; Lock-Basis = neueste Version je bisheriger Major-Linie, danach Majors einzeln (openai 3, Pillow 13, cryptography 50, SQLAlchemy 2.1) · M · Opus · [Plan](docs/plans/abhaengigkeiten.md#backend-gehört-zu-w4) · [Auftrag](docs/tasks/W.4-backend-uv.md)
 - [ ] W.5 CI mit GitHub Actions: lint:check, typecheck, build, `npm audit --audit-level=high`; Backend nach W.4 · M · Sonnet
-- [ ] W.6 DB-User und -Name in `backup.sh`, Compose-Healthcheck und README-Restore aus Variablen · XS · Sonnet
-- [~] W.7 Base-Images auf Minor pinnen, `npm ci --legacy-peer-deps` prüfen · XS · Sonnet · [Auftrag](docs/tasks/W.14-build-deps.md)
-- [ ] W.8 Altlasten der YAML-Migration entfernen (`backend/cookbook.yaml`, `scripts/migrate_yaml.py`, `restore_empty.py`, `.gitignore`-Eintrag `backup_pre_d1.sql`) · XS · Sonnet
 - [ ] W.9 Images per GitHub Actions bauen und nach `ghcr.io` pushen (öffentlich, Tags SHA + `main`), `deploy.sh` auf Pull umstellen · M · Sonnet
 - [ ] W.10 Vitest einführen (`vitest`, `@vue/test-utils`, `happy-dom`), erste Tests für `js/` und `composables/` (Skalierung, Draft/Undo) · M · Sonnet
-- [~] W.11 Rezepte nach Login und Token-Ablauf zuverlässig laden: Single-Flight-Refresh, Laden nach Auth, Offline-Fallback sichtbar · M–L · Opus · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w11-rezepte-zuverlässig-laden) · [Auftrag](docs/tasks/W.11-login-laden.md)
+- [~] W.11 Rezepte nach Login und Token-Ablauf zuverlässig laden · M–L · Opus · 2026-11-14 · `4d88a9d` · Rest: Nacharbeit N1–N5 · [Auftrag](docs/tasks/W.11-login-laden.md)
 - [ ] W.12 AI-Import robust: Timeouts, 401-Retry, Fehlermeldungen, YAML-Parsing, Upload-Grenzen, Modell-IDs, Entscheidung Structured Outputs statt YAML · M · Sonnet · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w12-ai-import-robust)
 - [ ] W.13 Foto im AI-Import über native Kamera/Fotoauswahl statt `getUserMedia`, Bilder clientseitig verkleinern · S–M · Sonnet · nach W.12 · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w13-foto-aufnahme-im-ai-import)
-- [~] W.14 Frontend-Lock auffrischen (Patch/Minor), `npm audit` ohne high (Stand 2026-11-14: 32 Lücken, 12 high) · S · Sonnet · [Auftrag](docs/tasks/W.14-build-deps.md)
-- [ ] W.15 Frontend-Majors: bootstrap-vue-next 1.x, vite-plugin-pwa 2 (Override und `--legacy-peer-deps` entfernen), pinia 4, vueuse 15, js-yaml 5, lint-staged 17; TypeScript auf 5.x halten und als Ausnahme dokumentieren · M–L · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
+- [ ] W.15 Frontend-Majors: bootstrap-vue-next 1.x, vite-plugin-pwa 2 (Override und `--legacy-peer-deps` entfernen), pinia 4, vueuse 15, js-yaml 5, lint-staged 17; TypeScript auf 6.0 (`~6.0.3`), TS 7 als Ausnahme bis `vue-tsc` und `typescript-eslint` es unterstützen; `eslint` als direkte devDependency · M–L · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
 - [ ] W.16 Verzichtbare Abhängigkeiten ersetzen: `deep-equal` (58 transitive Pakete), `sass` (→ CSS `aspect-ratio`), `deepCopyYaml` (→ `structuredClone`), `@vueuse/integrations` prüfen, Font-Cache-Regel löschen · S–M · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
+- [ ] W.17 `backup.sh`: Fehler von `pg_dump` erkennen (pipefail o. ä.), leere Dumps nicht rotieren lassen · XS · Sonnet
+- [ ] W.18 PyYAML aus den Backend-Abhängigkeiten entfernen · XS · Sonnet · nach W.4
+- [ ] W.19 Apple-Touch-Icon und PNG-Favicons in `index.html` einbinden (iOS-Homescreen) · XS · Sonnet · mit W.3
+- [ ] W.20 Backend-Aufräumen nach W.4: `root_path` → `uvicorn --root-path`, Logging der Migration, B904, `scripts/*`-Ausnahme in ruff, xfail gezielt auf `GET /v1/tags`, apt-Dev-Pakete im Image prüfen · S–M · Sonnet · mit W.1 + W.18 · [Bericht W.4](docs/tasks/W.4.bericht.md)
+- [ ] W.21 PostgreSQL 16 → 18: Dump/Restore, Probelauf mit Kopie der Produktivdaten, Checkpoint vor dem Live-Schritt · M · Opus · nach W.15
 
 ## 5 — Einkaufsliste-Export
 Zutaten eines Rezepts als Einkaufsliste per Clipboard und Native Share. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-5-einkaufsliste-export-1-2-tage--quick-win)

@@ -105,7 +105,7 @@ npm install
 npm run dev
 ```
 
-Der Dev-Server startet auf `https://localhost:5173` (mit selbstsigniertem SSL für PWA/OIDC).
+Der Dev-Server startet auf `https://localhost:8080` (mit selbstsigniertem SSL für PWA/OIDC).
 
 Weitere Befehle:
 
@@ -118,13 +118,22 @@ Weitere Befehle:
 
 ### Backend
 
+Voraussetzung: [uv](https://docs.astral.sh/uv/). Abhängigkeiten sind in `backend/uv.lock` gepinnt, Python 3.14 holt uv bei Bedarf selbst. Auf Windows on ARM fehlt für `cryptography` ein Wheel; dort das x86_64-Python nutzen: `uv sync --python cpython-3.14-windows-x86_64-none`.
+
 ```bash
 cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uv sync
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 Das Backend erwartet eine laufende PostgreSQL-Instanz (siehe `DB_*`-Variablen).
+
+| Befehl | Beschreibung |
+|--------|-------------|
+| `uv run pytest` | Smoke-Tests (ohne Datenbank und Netz) |
+| `uv run ruff check` | Linter |
+| `uv run ruff format` | Formatierer |
+| `uv lock --upgrade-package <paket>` | Einzelnes Paket im Lock aktualisieren |
 
 ## Architektur
 
@@ -183,7 +192,7 @@ Für automatische Backups einen Cronjob einrichten:
 ### Backup einspielen
 
 ```bash
-gunzip -c backups/cookbook_20260405_030000.sql.gz | docker compose exec -T db psql -U cookbook cookbook
+gunzip -c backups/cookbook_20260405_030000.sql.gz | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'
 ```
 
 ## Umgebungsvariablen

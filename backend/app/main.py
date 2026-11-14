@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from functools import partial
 
 from alembic import command
 from alembic.config import Config

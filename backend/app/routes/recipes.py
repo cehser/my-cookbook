@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import delete, func, select, text
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin, require_editor, require_readonly
@@ -32,9 +32,8 @@ router = APIRouter(prefix="/v1", tags=["recipes"])
 # Helpers
 # ---------------------------------------------------------------------------
 
-async def _get_recipe_or_404(
-    recipe_id: uuid.UUID, db: AsyncSession
-) -> Recipe:
+
+async def _get_recipe_or_404(recipe_id: uuid.UUID, db: AsyncSession) -> Recipe:
     result = await db.execute(select(Recipe).where(Recipe.id == recipe_id))
     recipe = result.scalar_one_or_none()
     if recipe is None:
@@ -75,9 +74,7 @@ async def _sync_tags(recipe_id: uuid.UUID, tag_names: list[str], db: AsyncSessio
         db.add(RecipeTag(recipe_id=recipe_id, tag_id=tag.id))
 
 
-async def _get_first_image_id(
-    recipe_id: uuid.UUID, db: AsyncSession
-) -> uuid.UUID | None:
+async def _get_first_image_id(recipe_id: uuid.UUID, db: AsyncSession) -> uuid.UUID | None:
     result = await db.execute(
         select(RecipeImage.id)
         .where(RecipeImage.recipe_id == recipe_id)
@@ -105,7 +102,9 @@ async def _auto_download_imageurl(
         recipe.data = data
 
 
-def _recipe_to_list_item(recipe: Recipe, tags: list[str], first_image_id: uuid.UUID | None = None) -> RecipeListItem:
+def _recipe_to_list_item(
+    recipe: Recipe, tags: list[str], first_image_id: uuid.UUID | None = None
+) -> RecipeListItem:
     data = recipe.data or {}
     return RecipeListItem(
         id=recipe.id,
@@ -139,6 +138,7 @@ def _recipe_to_response(
 # ---------------------------------------------------------------------------
 # GET /recipes — List with search, filter, sort, pagination
 # ---------------------------------------------------------------------------
+
 
 @router.get("/recipes", response_model=RecipeListResponse)
 async def list_recipes(
@@ -220,6 +220,7 @@ async def list_recipes(
 # GET /recipes/:id — Single recipe
 # ---------------------------------------------------------------------------
 
+
 @router.get("/recipes/{recipe_id}", response_model=RecipeResponse)
 async def get_recipe(
     recipe_id: uuid.UUID,
@@ -235,6 +236,7 @@ async def get_recipe(
 # ---------------------------------------------------------------------------
 # POST /recipes — Create
 # ---------------------------------------------------------------------------
+
 
 @router.post("/recipes", response_model=RecipeResponse, status_code=201)
 async def create_recipe(
@@ -271,6 +273,7 @@ async def create_recipe(
 # PUT /recipes/:id — Update
 # ---------------------------------------------------------------------------
 
+
 @router.put("/recipes/{recipe_id}", response_model=RecipeResponse)
 async def update_recipe(
     recipe_id: uuid.UUID,
@@ -306,6 +309,7 @@ async def update_recipe(
 # DELETE /recipes/:id — Admin only
 # ---------------------------------------------------------------------------
 
+
 @router.delete("/recipes/{recipe_id}", status_code=204)
 async def delete_recipe(
     recipe_id: uuid.UUID,
@@ -320,6 +324,7 @@ async def delete_recipe(
 # ---------------------------------------------------------------------------
 # Tags
 # ---------------------------------------------------------------------------
+
 
 @router.get("/tags", response_model=list[TagResponse])
 async def list_tags(

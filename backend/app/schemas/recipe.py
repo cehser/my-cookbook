@@ -8,10 +8,10 @@ from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _to_number(val: object) -> float | int | None:
     """Coerce a value to a number.  Return None if not possible."""
@@ -23,7 +23,7 @@ def _to_number(val: object) -> float | int | None:
         try:
             f = float(val)
             return int(f) if f == int(f) else f
-        except (ValueError, OverflowError):
+        except ValueError, OverflowError:
             return None
     return None
 
@@ -34,6 +34,7 @@ def _to_number(val: object) -> float | int | None:
 #   Ingredient: {"name": "Rosinen", "amounts": [...], "section": ""}
 #   YieldEntry: {"unit": "Portionen", "value": 4}
 # ---------------------------------------------------------------------------
+
 
 class Amount(BaseModel):
     amount: float | int | None = None
@@ -46,6 +47,7 @@ class Section(BaseModel):
 
 class Ingredient(BaseModel):
     """Single ingredient with an explicit ``name`` field."""
+
     name: str
     amounts: list[Amount] = Field(default_factory=lambda: [Amount()])
     section: str = ""
@@ -70,6 +72,7 @@ class Ingredient(BaseModel):
 
 class YieldEntry(BaseModel):
     """A single yield entry, e.g. ``{"unit": "Portionen", "value": 4}``."""
+
     unit: str = "Portionen"
     value: float | int = 1
 
@@ -93,6 +96,7 @@ class Step(BaseModel):
 
 class RecipeData(BaseModel):
     """The full recipe body stored in the JSONB ``data`` column."""
+
     author: str | None = None
     source_url: str | None = None
     source_book: str | None = None
@@ -125,6 +129,7 @@ class RecipeData(BaseModel):
 # ---------------------------------------------------------------------------
 # Normalisation – safety net that runs on the plain dict before DB storage
 # ---------------------------------------------------------------------------
+
 
 def normalize_recipe_data(data: dict) -> dict:
     """Normalise a recipe data dict in-place and return it."""
@@ -171,6 +176,7 @@ def normalize_recipe_data(data: dict) -> dict:
 # Request / Response schemas
 # ---------------------------------------------------------------------------
 
+
 class RecipeCreate(BaseModel):
     recipe_name: str = Field(..., min_length=1, max_length=500)
     data: RecipeData = Field(default_factory=RecipeData)
@@ -185,6 +191,7 @@ class RecipeUpdate(BaseModel):
 
 # --- Response schemas ---
 
+
 class TagResponse(BaseModel):
     id: int
     name: str
@@ -194,6 +201,7 @@ class TagResponse(BaseModel):
 
 class RecipeListItem(BaseModel):
     """Slim recipe for gallery/list views."""
+
     id: uuid.UUID
     recipe_name: str
     author: str | None = None
@@ -209,6 +217,7 @@ class RecipeListItem(BaseModel):
 
 class RecipeResponse(BaseModel):
     """Full recipe detail."""
+
     id: uuid.UUID
     recipe_name: str
     data: dict

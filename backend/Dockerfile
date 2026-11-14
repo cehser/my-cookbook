@@ -1,5 +1,11 @@
 FROM python:3.14-slim
 
+COPY --from=ghcr.io/astral-sh/uv:0.13.8 /uv /bin/uv
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0
+
 WORKDIR /app
 
 # System dependencies for Pillow
@@ -7,13 +13,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg62-turbo-dev libwebp-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Abhängigkeiten zuerst, damit dieser Layer bei Codeänderungen gecacht bleibt
+COPY pyproject.toml uv.lock .python-version ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
 COPY app/ ./app/
 COPY alembic/ ./alembic/
 COPY alembic.ini .
 COPY prompts/ ./prompts/
+
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
 
