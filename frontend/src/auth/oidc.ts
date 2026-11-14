@@ -66,13 +66,11 @@ userManager.events.addAccessTokenExpiring(() => {
   void renewToken();
 });
 
-// When the user session ends unexpectedly (e.g. IdP session timeout)
-userManager.events.addUserSignedOut(() => {
-  console.warn("[Auth] User signed out from IdP.");
-  if (navigator.onLine) {
-    userManager.signinRedirect();
-  }
-});
+// Kein Session-Monitoring (`monitorSession` bleibt aus): Es braucht das
+// check_session_iframe des IdP und Drittanbieter-Cookies (iOS/ITP). Das Ende
+// der IdP-Session wird erst wirksam, wenn der IdP die Token-Erneuerung
+// ablehnt (→ `rejected` → Login). Wie lange ein Offline-Token gilt, ist
+// eine Einstellung im IdP.
 
 // --- Token renewal (single flight) ---
 
