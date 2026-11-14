@@ -6,7 +6,7 @@ Aufwand: XS ≲ 30 min · S ≲ 1 h · M ≈ 2–4 h · L ≈ 1 Tag+
 Erledigt (Archiv): Sprints 0–3, UX-1 bis UX-7, Sprint 9 (Design-System) → [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md)
 
 ## W — Wartung 🔜
-Projektstandard, Altlasten und Qualitätssicherung. Reihenfolge: W.4 vor dem Backend-Teil von W.5; W.9 nach W.3 und W.5; W.5 führt die Tests aus W.10 mit aus.
+Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.11 und W.12 (Fehler, die Nutzer treffen), danach W.2 + W.3. Reihenfolge außerdem: W.4 vor dem Backend-Teil von W.5; W.9 nach W.3 und W.5; W.5 führt die Tests aus W.10 mit aus.
 
 - [ ] W.1 Doppelten Handler `GET /v1/tags` auflösen (recipes.py überdeckt tags.py mit Count) · S · Sonnet
 - [ ] W.2 Vue-CLI-Altlasten entfernen (`vue.config.js`, `jsconfig.json`, `public/index.html`, `echo` im Dockerfile), `dist/index.html` prüfen · S · Sonnet
@@ -18,6 +18,8 @@ Projektstandard, Altlasten und Qualitätssicherung. Reihenfolge: W.4 vor dem Bac
 - [ ] W.8 Altlasten der YAML-Migration entfernen (`backend/cookbook.yaml`, `scripts/migrate_yaml.py`, `restore_empty.py`, `.gitignore`-Eintrag `backup_pre_d1.sql`) · XS · Sonnet
 - [ ] W.9 Images per GitHub Actions bauen und nach `ghcr.io` pushen (öffentlich, Tags SHA + `main`), `deploy.sh` auf Pull umstellen · M · Sonnet
 - [ ] W.10 Vitest einführen (`vitest`, `@vue/test-utils`, `happy-dom`), erste Tests für `js/` und `composables/` (Skalierung, Draft/Undo) · M · Sonnet
+- [ ] W.11 Rezepte nach Login und Token-Ablauf zuverlässig laden: Single-Flight-Refresh, Laden nach Auth, Offline-Fallback sichtbar · M–L · Opus · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w11-rezepte-zuverlässig-laden)
+- [ ] W.12 AI-Import robust: Timeouts, 401-Retry, Fehlermeldungen, YAML-Parsing, Upload-Grenzen, Modell-IDs · M · Sonnet · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w12-ai-import-robust)
 
 ## 5 — Einkaufsliste-Export
 Zutaten eines Rezepts als Einkaufsliste per Clipboard und Native Share. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-5-einkaufsliste-export-1-2-tage--quick-win)
