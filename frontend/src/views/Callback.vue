@@ -1,21 +1,29 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { handleCallback } from "@/auth/oidc";
+import { useOnline } from "@vueuse/core";
+import { handleCallback, requestLogin, resetLoginAttempts } from "@/auth/oidc";
 
 const router = useRouter();
+const isOnline = useOnline();
+const failed = ref(false);
+const returnUrl = sessionStorage.getItem("oidc-return-url") || "/";
 
 onMounted(async () => {
-  try {
-    await handleCallback();
-    const returnUrl = sessionStorage.getItem("oidc-return-url");
+  if (await handleCallback(returnUrl)) {
     sessionStorage.removeItem("oidc-return-url");
-    router.replace(returnUrl || "/");
-  } catch (err) {
-    console.error("OIDC callback failed:", err);
-    router.replace("/");
+    router.replace(returnUrl);
+    return;
   }
+  // Fehlgeschlagen (nach höchstens einer automatischen Wiederholung):
+  // Meldung statt Endlos-Spinner oder Redirect-Schleife.
+  failed.value = true;
 });
+
+async function retryLogin() {
+  resetLoginAttempts();
+  await requestLogin(returnUrl);
+}
 </script>
 
 <template>
@@ -23,11 +31,29 @@ onMounted(async () => {
     class="d-flex justify-content-center align-items-center"
     style="min-height: 60vh"
   >
-    <div class="text-center">
+    <div v-if="!failed" class="text-center">
       <div class="spinner-border text-primary mb-3" role="status">
         <span class="visually-hidden">Anmeldung wird verarbeitet...</span>
       </div>
       <p class="text-muted">Anmeldung wird verarbeitet...</p>
+    </div>
+    <div v-else class="text-center px-4" role="alert">
+      <i class="bi bi-exclamation-triangle fs-1 d-block mb-2"></i>
+      <h5>Anmeldung fehlgeschlagen</h5>
+      <p class="text-muted">
+        Die Antwort des Anmeldedienstes konnte nicht verarbeitet werden.
+      </p>
+      <p v-if="!isOnline" class="text-muted">
+        Keine Verbindung. Erneut anmelden, sobald das Netz wieder da ist.
+      </p>
+      <button
+        type="button"
+        class="btn btn-primary"
+        :disabled="!isOnline"
+        @click="retryLogin"
+      >
+        Erneut anmelden
+      </button>
     </div>
   </div>
 </template>

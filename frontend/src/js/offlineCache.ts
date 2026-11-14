@@ -38,13 +38,22 @@ async function write(key: string, value: unknown): Promise<void> {
   }
 }
 
+let knownRecipes = false;
+
 /** Rezeptliste (Kopfdaten, Details separat). */
 export function readRecipes(): Promise<Recipe[] | undefined> {
   return read<Recipe[]>(KEY_RECIPES);
 }
 
 export function writeRecipes(recipes: Recipe[]): Promise<void> {
+  knownRecipes = true;
   return write(KEY_RECIPES, recipes);
+}
+
+/** Liegt eine Rezeptliste im Cache? (einmal gelesen, danach gemerkt) */
+export async function hasCachedRecipes(): Promise<boolean> {
+  if (!knownRecipes) knownRecipes = (await readRecipes()) !== undefined;
+  return knownRecipes;
 }
 
 /** Vollständiges Rezept (Zutaten, Schritte) für die Offline-Anzeige. */

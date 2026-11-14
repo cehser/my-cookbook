@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useOnline, useColorMode, useDocumentVisibility } from "@vueuse/core";
 import { useRecipeStore } from "@/store/recipeStore";
 import { restoreSession } from "@/router";
-import { ensureAuth, onUserLoaded } from "@/auth/oidc";
+import { checkSessionOnResume, onUserLoaded } from "@/auth/oidc";
 import BottomNav from "@/components/layout/BottomNav.vue";
 
 const route = useRoute();
@@ -45,7 +45,7 @@ const showOfflineBanner = computed(
 // reloadIfStale() lädt nur, wenn die Daten nicht von der API stammen.
 // Im Vordergrund wird zusätzlich immer der Auth-Zustand geprüft: Ein
 // abgelaufener Token wird erneuert, eine abgelehnte Sitzung führt zum Login
-// (onSessionRejected im Router).
+// (checkSessionOnResume).
 const stopUserLoaded = onUserLoaded(() => void store.reloadIfStale());
 onUnmounted(stopUserLoaded);
 watch(isOnline, (online) => {
@@ -53,7 +53,7 @@ watch(isOnline, (online) => {
 });
 watch(visibility, async (state) => {
   if (state !== "visible") return;
-  await ensureAuth();
+  if ((await checkSessionOnResume()) === "rejected") return;
   void store.reloadIfStale();
 });
 

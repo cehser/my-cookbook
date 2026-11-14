@@ -44,6 +44,14 @@ export type AuthState = "valid" | "offline" | "rejected";
 /** Token gilt als abgelaufen, wenn er in weniger als so vielen Sekunden abläuft. */
 const RENEW_MARGIN_SECONDS = 10;
 
+/**
+ * Timeout der Erneuerung am Token-Endpunkt. Muss bei jedem `signinSilent()`
+ * übergeben werden: oidc-client-ts 3.5 überschreibt den Settings-Default
+ * per Spread mit `undefined` (`signinSilent` → `_useRefreshToken`), dann
+ * liefe der Abruf ohne Timeout.
+ */
+const RENEW_TIMEOUT_SECONDS = 10;
+
 const userManager = new UserManager({
   authority,
   client_id: clientId,
@@ -116,8 +124,10 @@ function notifyRejected(): void {
 }
 
 async function doRenew(): Promise<AuthState> {
+  // Während des Logouts keine neue Erneuerung (Rennen mit dem Widerruf).
+  if (logoutInProgress) return "offline";
   const state = await renewOnce();
-  if (state === "rejected") notifyRejected();
+  if (state === "rejected" && !logoutInProgress) notifyRejected();
   return state;
 }
 
@@ -128,7 +138,9 @@ async function renewOnce(): Promise<AuthState> {
 
   console.warn("[Auth] Token-Erneuerung per Refresh-Token");
   try {
-    await userManager.signinSilent();
+    await userManager.signinSilent({
+      silentRequestTimeoutInSeconds: RENEW_TIMEOUT_SECONDS,
+    });
     return "valid";
   } catch (e) {
     const state = classifyRenewError(e);
@@ -214,27 +226,101 @@ export function onUserLoaded(cb: () => void): () => void {
 // --- Redirect flows ---
 
 let loginStarted = false;
+let logoutInProgress = false;
+
+// Rückkehr per Zurück aus dem bfcache (z. B. vom IdP): Die Seite lebt mit
+// altem Modulzustand weiter, ein neuer Login bzw. Logout muss möglich sein.
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) {
+    loginStarted = false;
+    logoutInProgress = false;
+  }
+});
+
+const LOGIN_ATTEMPTS_KEY = "oidc-login-attempts";
+/** Automatische Login-Wiederholungen nach einem Callback-Fehler. */
+const MAX_AUTO_LOGIN_ATTEMPTS = 1;
+
+/**
+ * Verbraucht eine automatische Login-Wiederholung (sessionStorage, überlebt
+ * den Redirect). `false`, wenn das Limit erreicht ist.
+ */
+export function takeAutoLoginAttempt(): boolean {
+  const used = Number(sessionStorage.getItem(LOGIN_ATTEMPTS_KEY) ?? 0);
+  if (used >= MAX_AUTO_LOGIN_ATTEMPTS) return false;
+  sessionStorage.setItem(LOGIN_ATTEMPTS_KEY, String(used + 1));
+  return true;
+}
+
+/** Nach erfolgreichem Login oder manuellem Neuversuch. */
+export function resetLoginAttempts(): void {
+  sessionStorage.removeItem(LOGIN_ATTEMPTS_KEY);
+}
 
 /**
  * Einzige Stelle, die zum IdP-Login umleitet. Wirkt höchstens einmal pro
- * Seite, nur online und nie auf /callback (keine Redirect-Schleife).
+ * Seite, nur online und nicht während des Logouts. Ein Rücksprung auf
+ * /callback wird durch "/" ersetzt (keine Schleife über den Callback).
+ * Liefert `true`, wenn der Redirect gestartet wurde.
  */
-export async function requestLogin(returnUrl: string): Promise<void> {
-  if (loginStarted || !navigator.onLine) return;
-  if (window.location.pathname === "/callback") return;
+export async function requestLogin(returnUrl: string): Promise<boolean> {
+  if (loginStarted || logoutInProgress || !navigator.onLine) return false;
+  const target = returnUrl.startsWith("/callback") ? "/" : returnUrl;
   loginStarted = true;
-  sessionStorage.setItem("oidc-return-url", returnUrl);
+  sessionStorage.setItem("oidc-return-url", target);
   try {
     await userManager.signinRedirect();
+    return true;
   } catch (e) {
     loginStarted = false;
     console.warn("[Auth] Login-Redirect fehlgeschlagen:", e);
+    return false;
   }
 }
 
-/** Handle the callback after IdP redirect */
-export async function handleCallback(): Promise<User> {
-  return await userManager.signinRedirectCallback();
+let loginTarget: () => string | null = () => null;
+
+/**
+ * Der Router meldet, wohin nach dem Login zurückgesprungen wird: aktuelle
+ * bzw. gerade angesteuerte Route, `null` für öffentliche Routen.
+ */
+export function setLoginTargetResolver(resolve: () => string | null): void {
+  loginTarget = resolve;
+}
+
+/** Login für die aktuelle Route (öffentliche Routen bleiben, wie sie sind). */
+export function requestLoginForCurrentRoute(): void {
+  const target = loginTarget();
+  if (target) void requestLogin(target);
+}
+
+/**
+ * App wieder im Vordergrund: Auth-Zustand prüfen (erneuert abgelaufene
+ * Tokens) und bei abgelehnter Sitzung online zum Login. Wirkt auch, wenn
+ * keine Sitzung mehr gespeichert ist und deshalb keine Erneuerung läuft.
+ */
+export async function checkSessionOnResume(): Promise<AuthState> {
+  const state = await ensureAuth();
+  if (state === "rejected" && navigator.onLine) requestLoginForCurrentRoute();
+  return state;
+}
+
+/**
+ * Verarbeitet die Antwort des IdP auf /callback. Bei Fehler einmal
+ * automatisch neu anmelden (z. B. veralteter state nach Zurück), danach
+ * `false`: Callback.vue zeigt eine Meldung statt Spinner oder Schleife.
+ * requestLogin() kehrt erst bei Rückkehr per Zurück (bfcache) zurück.
+ */
+export async function handleCallback(returnUrl: string): Promise<boolean> {
+  try {
+    await userManager.signinRedirectCallback();
+    resetLoginAttempts();
+    return true;
+  } catch (e) {
+    console.error("[Auth] Login-Callback fehlgeschlagen:", e);
+    if (takeAutoLoginAttempt()) await requestLogin(returnUrl);
+    return false;
+  }
 }
 
 const REVOKE_TIMEOUT_MS = 5000;
@@ -245,8 +331,13 @@ const REVOKE_TIMEOUT_MS = 5000;
  * Ein fehlgeschlagener Widerruf (kein Revocation-Endpunkt, kein Netz)
  * blockiert den Logout nicht; deshalb nicht `revokeTokensOnSignout`, das
  * bei einem Fehler den ganzen Logout abbricht.
+ * Während des Logouts startet keine Erneuerung und kein Login; eine bereits
+ * laufende Erneuerung wird abgewartet, damit der aktuelle Token widerrufen
+ * wird und nicht ein gerade rotierter.
  */
 export async function logout(): Promise<void> {
+  logoutInProgress = true;
+  await renewInFlight?.catch(() => undefined);
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     await Promise.race([
@@ -263,7 +354,12 @@ export async function logout(): Promise<void> {
   } finally {
     clearTimeout(timer);
   }
-  await userManager.signoutRedirect();
+  try {
+    await userManager.signoutRedirect();
+  } catch (e) {
+    logoutInProgress = false;
+    throw e;
+  }
 }
 
 /** Get the currently authenticated user (or null) */

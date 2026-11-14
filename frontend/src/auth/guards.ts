@@ -4,7 +4,8 @@
  */
 
 import type { RouteLocationNormalized } from "vue-router";
-import { ensureAuth, requestLogin, type AuthState } from "@/auth/oidc";
+import { ensureAuth, requestLogin } from "@/auth/oidc";
+import { hasCachedRecipes } from "@/js/offlineCache";
 import { api } from "@/api/client";
 
 interface MeResponse {
@@ -32,34 +33,26 @@ export function clearRoleCache(): void {
   cachedRole = null;
 }
 
-// Number of guards currently awaiting the auth state. While a guard runs, it
-// decides about the login itself (it knows the target route).
-let activeGuards = 0;
-
-/** True while a route guard is resolving the auth state. */
-export function isGuardActive(): boolean {
-  return activeGuards > 0;
-}
-
-async function guardAuth(): Promise<AuthState> {
-  activeGuards++;
-  try {
-    return await ensureAuth();
-  } finally {
-    activeGuards--;
-  }
-}
-
 /**
  * Auth guard — redirects to IdP login if the session was rejected.
  * When the token cannot be renewed for lack of network (or without network
  * at all), allows navigation with cached data (read-only mode).
+ * With offline data present, the guard does not wait for a token renewal
+ * (bad network): it lets the navigation through and starts the login
+ * afterwards if the session turns out to be rejected.
  */
 export async function requireAuth(
   to: RouteLocationNormalized,
   _from: RouteLocationNormalized,
 ) {
-  const state = await guardAuth();
+  const auth = ensureAuth();
+  if (await hasCachedRecipes()) {
+    void auth.then((state) => {
+      if (state === "rejected") void requestLogin(to.fullPath);
+    });
+    return true;
+  }
+  const state = await auth;
   if (state !== "rejected") return true;
   if (!navigator.onLine) return true;
   await requestLogin(to.fullPath);
@@ -74,7 +67,7 @@ export function requireRole(...roles: string[]) {
     _to: RouteLocationNormalized,
     _from: RouteLocationNormalized,
   ) => {
-    const state = await guardAuth();
+    const state = await ensureAuth();
     if (state === "offline") return { name: "Gallery" };
     if (state === "rejected") {
       if (!navigator.onLine) return { name: "Gallery" };
