@@ -6,7 +6,7 @@ Aufwand: XS ≲ 30 min · S ≲ 1 h · M ≈ 2–4 h · L ≈ 1 Tag+
 Erledigt (Archiv): Sprints 0–3, UX-1 bis UX-7, Sprint 9 (Design-System) → [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md)
 
 ## W — Wartung 🔜
-Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.14, W.11 und W.4 parallel, W.12 nach W.4 (Format/SDK-Version), W.13 nach W.12 (gleiche Komponente), danach W.3 + W.19. W.16 nach W.11, W.15 nach W.11–W.13. W.4 vor dem nächsten Backend-Deploy (Versionen heute ungepinnt). Reihenfolge außerdem: W.4 vor dem Backend-Teil von W.5; W.9 nach W.3 und W.5; W.5 führt die Tests aus W.10 mit aus.
+Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.14, W.11 und W.4 parallel, W.12 nach W.4 (Format/SDK-Version), W.13 nach W.12 (gleiche Komponente), danach W.3 + W.19. W.16 nach W.11, W.15 nach W.11–W.13, W.21 nach W.15. W.4 vor dem nächsten Backend-Deploy (Versionen heute ungepinnt). Reihenfolge außerdem: W.4 vor dem Backend-Teil von W.5; W.9 nach W.3 und W.5; W.5 führt die Tests aus W.10 mit aus.
 Erledigt (Archiv): W.2, W.4, W.6, W.7, W.8, W.14 → [roadmap-archiv.md](docs/roadmap-archiv.md)
 
 - [ ] W.1 Doppelten Handler `GET /v1/tags` auflösen (recipes.py überdeckt tags.py mit Count) · S · Sonnet
@@ -23,6 +23,7 @@ Erledigt (Archiv): W.2, W.4, W.6, W.7, W.8, W.14 → [roadmap-archiv.md](docs/ro
 - [ ] W.18 PyYAML aus den Backend-Abhängigkeiten entfernen · XS · Sonnet · nach W.4
 - [ ] W.19 Apple-Touch-Icon und PNG-Favicons in `index.html` einbinden (iOS-Homescreen) · XS · Sonnet · mit W.3
 - [ ] W.20 Backend-Aufräumen nach W.4: `root_path` → `uvicorn --root-path`, Logging der Migration, B904, `scripts/*`-Ausnahme in ruff, xfail gezielt auf `GET /v1/tags`, apt-Dev-Pakete im Image prüfen · S–M · Sonnet · mit W.1 + W.18 · [Bericht W.4](docs/tasks/W.4.bericht.md)
+- [ ] W.21 PostgreSQL 16 → 18: Dump/Restore, Probelauf mit Kopie der Produktivdaten, Checkpoint vor dem Live-Schritt · M · Opus · nach W.15
 
 ## 5 — Einkaufsliste-Export
 Zutaten eines Rezepts als Einkaufsliste per Clipboard und Native Share. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-5-einkaufsliste-export-1-2-tage--quick-win)
