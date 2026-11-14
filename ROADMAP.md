@@ -18,6 +18,7 @@ Erledigt (Archiv): W.1, W.2, W.3, W.4, W.6, W.7, W.8, W.11, W.14, W.16, W.17, W.
 - [ ] W.21 PostgreSQL 16 → 18: Dump/Restore, Probelauf mit Kopie der Produktivdaten, Checkpoint vor dem Live-Schritt · M · Opus · nach W.15
 - [~] W.22 Service-Worker-Update steuern · S · Sonnet · [Auftrag](docs/tasks/W.22-sw-update.md)
 - [ ] W.23 Auth-Feinschliff: Login-Entscheidung zentral in `session.ts`, `userManager` als eigenes Modul (löst Import-Zyklus); damit Login bei offline → online, Cache-Kurzschluss für `requireRole`, keine doppelte Erneuerung beim Resume, Hinweis statt leerem Bildschirm; Web Locks und Backoff, `silent-renew.html` entfernen; Unit-Tests für `session.ts` · S–M · Opus · nach W.12 und W.10 · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w23-auth-feinschliff)
+- [ ] W.25 Konfig-Härtung: `config.js` nicht precachen (NetworkFirst), `DB_PASSWORD` ohne Default in `config.py` und Compose-Beispiel · XS–S · Sonnet · nach W.22 · [Bericht W.3](docs/tasks/W.3.bericht.md)
 
 ## 5 — Einkaufsliste-Export
 Zutaten eines Rezepts als Einkaufsliste per Clipboard und Native Share. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-5-einkaufsliste-export-1-2-tage--quick-win)
