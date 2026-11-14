@@ -13,7 +13,7 @@ Erledigt (Archiv): W.2, W.4, W.6, W.7, W.8, W.11, W.14 → [roadmap-archiv.md](d
 - [ ] W.3 Instanzspezifische Defaults entfernen (IdP und Client-ID in `config.py`/`public/config.js`, StartURL in `index.html`) · S · Sonnet
 - [ ] W.5 CI mit GitHub Actions: lint:check, typecheck, build, `npm audit --audit-level=high`; Backend nach W.4 · M · Sonnet
 - [ ] W.9 Images per GitHub Actions bauen und nach `ghcr.io` pushen (öffentlich, Tags SHA + `main`), `deploy.sh` auf Pull umstellen · M · Sonnet
-- [ ] W.10 Vitest einführen (`vitest`, `@vue/test-utils`, `happy-dom`), erste Tests für `js/` und `composables/` (Skalierung, Draft/Undo) · M · Sonnet
+- [ ] W.10 Vitest einführen (`vitest`, `@vue/test-utils`, `happy-dom`), erste Tests für `js/` und `composables/` (Skalierung, Draft/Undo); vorher Mapper aus `recipeStore` nach `js/recipeMapping.ts` und `recipeApi.listAll`, Komponententests `Callback.vue`/`App.vue` · M · Sonnet · [Bericht W.11](docs/tasks/W.11.bericht.md)
 - [ ] W.12 AI-Import robust: Timeouts, 401-Retry, Fehlermeldungen, YAML-Parsing, Upload-Grenzen, Modell-IDs, Entscheidung Structured Outputs statt YAML · M · Sonnet · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w12-ai-import-robust)
 - [ ] W.13 Foto im AI-Import über native Kamera/Fotoauswahl statt `getUserMedia`, Bilder clientseitig verkleinern · S–M · Sonnet · nach W.12 · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w13-foto-aufnahme-im-ai-import)
 - [ ] W.15 Frontend-Majors: bootstrap-vue-next 1.x, vite-plugin-pwa 2 (Override und `--legacy-peer-deps` entfernen), pinia 4, vueuse 15, js-yaml 5, lint-staged 17; TypeScript auf 6.0 (`~6.0.3`), TS 7 als Ausnahme bis `vue-tsc` und `typescript-eslint` es unterstützen; `eslint` als direkte devDependency · M–L · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
@@ -21,8 +21,10 @@ Erledigt (Archiv): W.2, W.4, W.6, W.7, W.8, W.11, W.14 → [roadmap-archiv.md](d
 - [ ] W.17 `backup.sh`: Fehler von `pg_dump` erkennen (pipefail o. ä.), leere Dumps nicht rotieren lassen · XS · Sonnet
 - [ ] W.18 PyYAML aus den Backend-Abhängigkeiten entfernen · XS · Sonnet · nach W.4
 - [ ] W.19 Apple-Touch-Icon und PNG-Favicons in `index.html` einbinden (iOS-Homescreen) · XS · Sonnet · mit W.3
-- [ ] W.20 Backend-Aufräumen nach W.4: `root_path` → `uvicorn --root-path`, Logging der Migration, B904, `scripts/*`-Ausnahme in ruff, xfail gezielt auf `GET /v1/tags`, apt-Dev-Pakete im Image prüfen · S–M · Sonnet · mit W.1 + W.18 · [Bericht W.4](docs/tasks/W.4.bericht.md)
+- [ ] W.20 Backend-Aufräumen nach W.4: `root_path` → `uvicorn --root-path`, Logging der Migration, B904, `scripts/*`-Ausnahme in ruff, xfail gezielt auf `GET /v1/tags`, apt-Dev-Pakete im Image prüfen, `id` als Tie-Breaker in der Sortierung (stabile Paginierung) · S–M · Sonnet · mit W.1 + W.18 · [Bericht W.4](docs/tasks/W.4.bericht.md)
 - [ ] W.21 PostgreSQL 16 → 18: Dump/Restore, Probelauf mit Kopie der Produktivdaten, Checkpoint vor dem Live-Schritt · M · Opus · nach W.15
+- [ ] W.22 Service-Worker-Update steuern: kein sofortiges Neuladen mitten in der Sitzung, Update-Prüfung beim Vordergrundwechsel, toten Code in `main.ts` entfernen · S · Sonnet
+- [ ] W.23 Auth-Feinschliff: Login bei offline → online ohne Sitzung, leerer Bildschirm ohne Cache (Hinweis + erneut versuchen), Cache-Kurzschluss für `requireRole`, doppelte Erneuerung beim Resume, Web Locks für mehrere Tabs und Backoff, `silent-renew.html`/`silent_redirect_uri` entfernen, Import-Zyklus `oidc.ts` ⇄ `session.ts` auflösen · S–M · Opus · nach W.12 · [Bericht W.11](docs/tasks/W.11.bericht.md)
 
 ## 5 — Einkaufsliste-Export
 Zutaten eines Rezepts als Einkaufsliste per Clipboard und Native Share. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-5-einkaufsliste-export-1-2-tage--quick-win)
