@@ -35,6 +35,7 @@ Text-, URL- und Foto-Import liefern per Structured Outputs (Responses API, `AIRe
 - Berührte Aussagen: CLAUDE.md stimmt noch (Prompt-Pfad und Volume unverändert). Neu: `.claude/rules/ai-import.md` (Zeitbudget, Bildgrenze, Prompt im Volume, Modell-Hinweise).
 
 ## Abweichungen vom Auftrag
+- Auf deine Anweisung nach dem Bericht: Der Prompt liegt jetzt nur noch im Image (`backend/prompts/system_prompt.md`, Pfad relativ zum Code), das Volume `recipe_prompts` und die Einstellung `prompt_dir` sind entfernt. Fehlt die Datei, startet das Backend nicht (vorher stiller Ersatz-Prompt). Geprüft: Im Scratch-Container lädt der Prompt aus dem Image (2840 Zeichen), 95 Tests grün. Angepasst: `docker-compose.yml.example`, `README.md`, `CLAUDE.md`, `.claude/rules/ai-import.md`.
 - Das Schema lässt `recipe_uuid`, `lastUpdated` und `haccp` weg: strict verlangt feste Objekte, HACCP-Freitext ist nicht abbildbar, UUID und Zeitstempel setzt `initRecipe`. Der Prompt ist entsprechend gekürzt.
 - `UserSettings` ignoriert jetzt unbekannte Felder (`extra: ignore` statt `forbid`). Sonst bekäme jeder PWA-Client mit altem Bundle beim Speichern der Einstellungen ein 422, weil er noch `gpt_model` schickt.
 - `web_search_preview` durch `web_search` ersetzt (laut Doku Legacy). Beide funktionierten im Test.
@@ -49,7 +50,7 @@ Text-, URL- und Foto-Import liefern per Structured Outputs (Responses API, `AIRe
 
 ## Offen und Folgepunkte
 - **Server-Aktionen (du):**
-  1. Prompt im Volume ersetzen: `backend/prompts/system_prompt.md` auf den Server kopieren (Volume `recipe_prompts`, z. B. `docker compose cp backend/prompts/system_prompt.md backend:/app/prompts/system_prompt.md`) und das Backend neu starten (der Prompt wird beim Start gelesen). Der alte YAML-Prompt widerspricht dem Schema.
+  1. **Volume `recipe_prompts` entfernen:** In deiner `docker-compose.yml` die Zeile `- recipe_prompts:/app/prompts` und den Eintrag unter `volumes:` streichen (Vorlage `docker-compose.yml.example` ist angepasst). Sonst überdeckt das Volume den neuen Prompt im Image. Danach deployen; das alte Volume kann mit `docker volume rm <projekt>_recipe_prompts` weg.
   2. Äußerer Reverse-Proxy: `proxy_read_timeout`/Send-Timeout ≥ 150 s und Body-Grenze ≥ 10 MB für `/api/v1/ai/`; die Werte dort sind unbekannt.
   3. Nach dem Deploy in der Administration „Verbindung testen“ ausführen und die Modelle prüfen.
 - Folgepunkt: Modell-IDs `gpt-4o`/`gpt-4o-mini` sind für 2027-01-14 als deprecated gelistet; der Default ist bereits `gpt-6-luna`, in gespeicherten Einstellungen steht (noch) kein altes Modell, weil `ai_model_*` neu ist.

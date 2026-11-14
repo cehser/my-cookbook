@@ -146,7 +146,7 @@ Browser ──→ nginx (:80)
 
 - **nginx** liefert das Frontend aus und proxied `/api/`-Requests ans Backend
 - **Runtime-Config:** OIDC-Einstellungen werden beim Container-Start per `envsubst` in `/config.js` injiziert — kein Rebuild bei Config-Änderung nötig
-- **AI System-Prompt** liegt als Markdown-Datei im Docker-Volume `recipe_prompts` — änderbar ohne Rebuild
+- **AI System-Prompt** liegt als Markdown-Datei im Repo (`backend/prompts/system_prompt.md`) und im Backend-Image — Änderung per Deploy
 
 ## API-Übersicht
 

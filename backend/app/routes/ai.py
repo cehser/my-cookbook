@@ -17,7 +17,6 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_editor
-from app.config import settings
 from app.database import get_db
 from app.models.user import AppUser
 from app.schemas.ai import AIImportResponse, AIRecipe
@@ -33,21 +32,16 @@ MAX_IMAGE_MB = 10
 MAX_OUTPUT_TOKENS = 8000
 
 # ---------------------------------------------------------------------------
-# System prompt – loaded from external file (editable without rebuild)
+# System prompt – Datei im Image (backend/prompts), versioniert mit dem Schema
 # ---------------------------------------------------------------------------
 
-_PROMPT_PATH = Path(settings.prompt_dir) / "system_prompt.md"
+_PROMPT_PATH = Path(__file__).resolve().parents[2] / "prompts" / "system_prompt.md"
 
 
 def _load_system_prompt() -> str:
-    try:
-        return _PROMPT_PATH.read_text(encoding="utf-8").strip()
-    except FileNotFoundError:
-        logger.warning("System prompt not found at %s, using built-in fallback", _PROMPT_PATH)
-        return (
-            "Du bist ein Rezept-Extraktions-Agent. Extrahiere genau ein Rezept aus der Eingabe,"
-            " ohne etwas zu erfinden. Mengen sind Zahlen oder null."
-        )
+    # Fehlt die Datei, ist das Image kaputt: lieber nicht starten als mit
+    # einem stillen, schwächeren Ersatz-Prompt zu laufen.
+    return _PROMPT_PATH.read_text(encoding="utf-8").strip()
 
 
 SYSTEM_PROMPT = _load_system_prompt()

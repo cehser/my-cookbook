@@ -20,9 +20,6 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_key: str = ""
 
-    # Prompts
-    prompt_dir: str = "/app/prompts"
-
     # Uploads
     upload_dir: str = "/app/uploads"
     max_upload_size_mb: int = 5

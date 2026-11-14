@@ -31,7 +31,7 @@ Betrieb (Repo-Root, `docker-compose.yml` aus `.example` kopiert):
 ## Konventionen
 - Frontend-Regeln: [docs/DEVELOPMENT-GUIDELINES.md](docs/DEVELOPMENT-GUIDELINES.md) (script setup, Pinia, strict TS, Named Exports, per ESLint durchgesetzt).
 - API unter `/api/v1/…` (FastAPI `root_path="/api"`, nginx proxied `/api/`). Rollen: `pending` < `readonly` < `editor` < `admin`.
-- AI-System-Prompt: `backend/prompts/system_prompt.md`, im Betrieb im Volume `recipe_prompts`.
+- AI-System-Prompt: `backend/prompts/system_prompt.md`, liegt im Image (kein Volume), Änderung per Deploy.
 - Commit-Bereiche: `frontend`, `backend`, `db`, `auth`, `pwa`, `images`, `ai`, `build`, `deploy`, `roadmap`.
 
 ## Branches
