@@ -4,7 +4,7 @@ import { adminApi, type AdminUser } from "@/api/admin";
 import { useToast } from "@/composables/useToast";
 import { useRecipeStore } from "@/store/recipeStore";
 import { generateUUID } from "@/js/uuid";
-import { deepCopyYaml } from "@/js/deepCopy";
+import { deepCopyJSON } from "@/js/deepCopy";
 import {
   loadNewRecipe as createNewRecipe,
   loadSample as createSampleRecipe,
@@ -187,7 +187,7 @@ function deleteRecipe(index: number) {
 }
 
 function copyRecipe(index: number) {
-  const recipe = deepCopyYaml(store.recipes[index]);
+  const recipe = deepCopyJSON(store.recipes[index]);
   recipe.recipe_uuid = generateUUID();
   store.appendRecipe(recipe);
 }

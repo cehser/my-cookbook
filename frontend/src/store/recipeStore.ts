@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { set, get } from "idb-keyval";
 import { loadYamlCookbook, loadSample } from "@/js/recipes";
-import { deepCopyJSON, deepCopyYaml } from "@/js/deepCopy";
+import { deepCopyJSON } from "@/js/deepCopy";
 import {
   serializeRecipePictures,
   deserializeRecipePictures,
@@ -267,7 +267,7 @@ export const useRecipeStore = defineStore("recipe", {
     },
 
     saveRecipes() {
-      const saved = deepCopyYaml(this.recipes);
+      const saved = deepCopyJSON(this.recipes);
       writeRecipes(saved).then(() => {
         this.recipes = [...this.recipes]; // trigger reactivity
       });
@@ -296,7 +296,7 @@ export const useRecipeStore = defineStore("recipe", {
     },
 
     async appendRecipe(recipe: Recipe) {
-      const recipeCopy = deepCopyYaml(recipe);
+      const recipeCopy = deepCopyJSON(recipe);
       if (await isAuthenticated()) {
         try {
           const {
@@ -326,7 +326,7 @@ export const useRecipeStore = defineStore("recipe", {
     },
 
     async setRecipe({ index, recipe }: { index: number; recipe: Recipe }) {
-      const recipeCopy = deepCopyYaml(recipe);
+      const recipeCopy = deepCopyJSON(recipe);
       this.recipes.splice(index, 1, recipeCopy);
       if ((await isAuthenticated()) && recipeCopy.recipe_uuid) {
         try {
@@ -481,7 +481,7 @@ export const useRecipeStore = defineStore("recipe", {
       const items = await fetchAllRecipeListItems();
       const recipes = items.map(listItemToRecipe);
       this.recipes = recipes;
-      void writeRecipes(deepCopyYaml(recipes));
+      void writeRecipes(deepCopyJSON(recipes));
       this.prefetchRecipeDetails(recipes);
     },
 

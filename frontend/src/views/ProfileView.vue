@@ -5,7 +5,7 @@ import { useColorMode } from "@vueuse/core";
 import { useRecipeStore } from "@/store/recipeStore";
 import { useToast } from "@/composables/useToast";
 import { logout } from "@/auth/oidc";
-import deepEqual from "deep-equal";
+import { isEqualPlain } from "@/js/isEqualPlain";
 
 declare const __COMMIT_HASH__: string;
 const commitHash = __COMMIT_HASH__;
@@ -39,7 +39,7 @@ watch(
 watch(
   settings,
   () => {
-    if (settings.value && !deepEqual(settings.value, recipeStore.settings)) {
+    if (settings.value && !isEqualPlain(settings.value, recipeStore.settings)) {
       userEdited.value = true;
     }
   },
@@ -47,7 +47,7 @@ watch(
 );
 
 const changed = computed(
-  () => !deepEqual(settings.value, recipeStore.settings),
+  () => !isEqualPlain(settings.value, recipeStore.settings),
 );
 
 const roleBadgeClass = computed(() => {

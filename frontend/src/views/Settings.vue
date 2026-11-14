@@ -2,7 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { useRecipeStore } from "@/store/recipeStore";
 import { useToast } from "@/composables/useToast";
-import deepEqual from "deep-equal";
+import { isEqualPlain } from "@/js/isEqualPlain";
 
 const store = useRecipeStore();
 const { toast } = useToast();
@@ -28,14 +28,14 @@ watch(
 watch(
   settings,
   () => {
-    if (settings.value && !deepEqual(settings.value, store.settings)) {
+    if (settings.value && !isEqualPlain(settings.value, store.settings)) {
       userEdited.value = true;
     }
   },
   { deep: true },
 );
 
-const changed = computed(() => !deepEqual(settings.value, store.settings));
+const changed = computed(() => !isEqualPlain(settings.value, store.settings));
 
 const roleBadgeClass = computed(() => {
   const role = settings.value?.role || store.settings?.role;
