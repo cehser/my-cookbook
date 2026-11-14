@@ -118,7 +118,7 @@ Weitere Befehle:
 
 ### Backend
 
-Voraussetzung: [uv](https://docs.astral.sh/uv/). Abhängigkeiten sind in `backend/uv.lock` gepinnt, Python 3.14 holt uv bei Bedarf selbst.
+Voraussetzung: [uv](https://docs.astral.sh/uv/). Abhängigkeiten sind in `backend/uv.lock` gepinnt, Python 3.14 holt uv bei Bedarf selbst. Auf Windows on ARM fehlt für `cryptography` ein Wheel; dort das x86_64-Python nutzen: `uv sync --python cpython-3.14-windows-x86_64-none`.
 
 ```bash
 cd backend
