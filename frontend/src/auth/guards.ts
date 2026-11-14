@@ -4,7 +4,8 @@
  */
 
 import type { RouteLocationNormalized } from "vue-router";
-import { ensureAuth, requestLogin } from "@/auth/oidc";
+import { requestLogin } from "@/auth/oidc";
+import { ensureAuth } from "@/auth/session";
 import { hasCachedRecipes } from "@/js/offlineCache";
 import { api } from "@/api/client";
 

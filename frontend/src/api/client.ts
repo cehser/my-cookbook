@@ -11,7 +11,7 @@
  * calls pass `timeoutMs: 0`. AI import and image uploads use their own fetch.
  */
 
-import { getAccessToken, renewAfterUnauthorized } from "@/auth/oidc";
+import { getAccessToken, renewAfterUnauthorized } from "@/auth/session";
 
 const API_BASE = "/api/v1";
 const DEFAULT_TIMEOUT_MS = 15_000;

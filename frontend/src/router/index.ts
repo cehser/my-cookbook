@@ -7,10 +7,10 @@ import {
 import HomeView from "@/views/HomeView.vue";
 import { requireAuth, requireRole } from "@/auth/guards";
 import {
-  onSessionRejected,
   requestLoginForCurrentRoute,
   setLoginTargetResolver,
 } from "@/auth/oidc";
+import { onSessionRejected } from "@/auth/session";
 
 declare module "vue-router" {
   interface RouteMeta {

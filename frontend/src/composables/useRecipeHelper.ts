@@ -2,7 +2,7 @@ import { ref, computed, watch, type Ref, type ComputedRef } from "vue";
 import { useRecipeStore } from "@/store/recipeStore";
 import { deepCopyYaml } from "@/js/deepCopy";
 import { readRecipeDetail } from "@/js/offlineCache";
-import { isAuthenticated } from "@/auth/oidc";
+import { isAuthenticated } from "@/auth/session";
 import { imageApi } from "@/api/images";
 import type { Recipe } from "@/types/recipe";
 

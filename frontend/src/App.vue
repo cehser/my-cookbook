@@ -4,7 +4,8 @@ import { useRoute, useRouter } from "vue-router";
 import { useOnline, useColorMode, useDocumentVisibility } from "@vueuse/core";
 import { useRecipeStore } from "@/store/recipeStore";
 import { restoreSession } from "@/router";
-import { checkSessionOnResume, onUserLoaded } from "@/auth/oidc";
+import { onUserLoaded } from "@/auth/oidc";
+import { checkSessionOnResume } from "@/auth/session";
 import BottomNav from "@/components/layout/BottomNav.vue";
 
 const route = useRoute();

@@ -25,7 +25,7 @@ import {
 } from "@/api/recipes";
 import { favoritesApi } from "@/api/favorites";
 import { imageApi } from "@/api/images";
-import { ensureAuth, isAuthenticated } from "@/auth/oidc";
+import { ensureAuth, isAuthenticated } from "@/auth/session";
 import type { Recipe, RecipePictures } from "@/types/recipe";
 import type { Settings } from "@/types/settings";
 
