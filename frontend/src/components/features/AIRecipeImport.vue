@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRecipeStore } from "@/store/recipeStore";
 import jsyaml from "js-yaml";
 import { generateUUID } from "@/js/uuid";
@@ -76,18 +76,18 @@ const capturePhoto = () => {
   stopCamera();
 };
 
-const handleFileUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const file = target.files?.[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedImage.value = e.target?.result as string;
-      capturedImage.value = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+watch(uploadedFile, (file) => {
+  if (!file) {
+    uploadedImage.value = null;
+    return;
   }
-};
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    uploadedImage.value = e.target?.result as string;
+    capturedImage.value = e.target?.result as string;
+  };
+  reader.readAsDataURL(file);
+});
 
 const analyzeImage = async () => {
   if (!capturedImage.value) return;
@@ -270,7 +270,6 @@ onBeforeUnmount(() => {
               v-model="uploadedFile"
               accept="image/*"
               placeholder="Wähle ein Foto aus..."
-              @change="handleFileUpload"
             ></BFormFile>
 
             <div v-if="uploadedImage" class="mt-3">
@@ -372,8 +371,7 @@ onBeforeUnmount(() => {
           <pre
             class="mt-2 p-3 bg-dark text-light rounded"
             style="max-height: 400px; overflow: auto; font-size: 0.85rem"
-            >{{ rawYaml }}</pre
-          >
+            >{{ rawYaml }}</pre>
         </details>
       </BCardBody>
     </BCard>
