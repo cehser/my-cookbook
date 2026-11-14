@@ -27,7 +27,6 @@ out/
 # Environment
 .env
 docker-compose.yml
-backup_pre_d1.sql
 cookbook.dump
 *.tar.gz
 *.dump
