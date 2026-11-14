@@ -15,4 +15,4 @@ paths:
 - Sitzungslogik in `src/auth/session.ts`, OIDC-Setup in `src/auth/oidc.ts`. `requestLogin` ist die einzige Stelle mit Login-Redirect; Routen ohne Login tragen `meta.public`.
 - oidc-client-ts: `signinSilent()` ohne `silentRequestTimeoutInSeconds` läuft **ohne** Timeout (das `undefined` überschreibt per Spread den Settings-Default). Immer explizit übergeben.
 - Die Access-Token-Laufzeit im IdP muss über 60 s liegen, sonst feuert der Expiring-Timer (Default 60 s vor Ablauf) sofort wieder und die Erneuerung läuft in Schleife.
-- `npm ci` immer ohne `--legacy-peer-deps`: Den Peer-Konflikt `vite-plugin-pwa` 1.x ↔ Vite 8 löst der Override in `package.json`. Das Flag ignoriert alle Peers (u. a. fehlt dann `eslint`, das bis W.15 nur als Peer im Lock steht). Im Frontend-Dockerfile entfällt es mit W.5.
+- `npm ci` immer ohne `--legacy-peer-deps`: Den Peer-Konflikt `vite-plugin-pwa` 1.x ↔ Vite 8 löst der Override in `package.json`. Das Flag ignoriert alle Peers (u. a. fehlt dann `eslint`, das bis W.15 nur als Peer im Lock steht).

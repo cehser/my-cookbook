@@ -25,8 +25,9 @@ Betrieb (Repo-Root, `docker-compose.yml` aus `.example` kopiert):
 
 ## Verifikation
 - Frontend: `npm run lint:check && npm run typecheck && npm run build`. Der Pre-Commit-Hook prüft nur lint-staged und typecheck.
-- Backend: `uv sync --frozen && uv run ruff check && uv run ruff format --check && uv run pytest`. Bei Änderungen an Abhängigkeiten, Dockerfile oder Migrationen zusätzlich Container bauen und starten (`docker compose build backend && docker compose up -d`), im Log die erfolgreiche Migration prüfen, `GET /api/health`. Keine DB-Integrationstests (Roadmap W.5).
-- Keine CI (Roadmap W.5).
+- Backend: `uv sync --frozen && uv run ruff check && uv run ruff format --check && uv run pytest`. Bei Änderungen an Abhängigkeiten, Dockerfile oder Migrationen zusätzlich Container bauen und starten (`docker compose build backend && docker compose up -d`), im Log die erfolgreiche Migration prüfen, `GET /api/health`.
+- DB-Tests (Marker `db`, `backend/tests/db/`: Migrationen up/down/up, Rezept-API, `/me`) laufen nur mit `DB_HOST` und `DB_NAME=test…` (sie leeren das Schema!), sonst übersprungen. Lokal: PostgreSQL 16 starten, dann `DB_HOST=localhost DB_NAME=test_cookbook DB_USER=… DB_PASSWORD=… uv run pytest -m db`. Details im Docstring von `tests/db/conftest.py`.
+- CI: `.github/workflows/ci.yml` (Push auf `main`, Pull Requests) führt Frontend, Backend, DB-Tests und beide Image-Builds aus, ohne Push. Actions per Commit-SHA gepinnt.
 
 ## Konventionen
 - Frontend-Regeln: [docs/DEVELOPMENT-GUIDELINES.md](docs/DEVELOPMENT-GUIDELINES.md) (script setup, Pinia, strict TS, Named Exports, per ESLint durchgesetzt).

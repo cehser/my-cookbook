@@ -1,5 +1,7 @@
 # my-cookbook
 
+[![CI](https://github.com/cehser/my-cookbook/actions/workflows/ci.yml/badge.svg)](https://github.com/cehser/my-cookbook/actions/workflows/ci.yml)
+
 Ein persönliches Kochbuch als Progressive Web App — selbst gehostet, offline-fähig, mit AI-Import.
 
 ## Features
@@ -130,7 +132,8 @@ Das Backend erwartet eine laufende PostgreSQL-Instanz (siehe `DB_*`-Variablen).
 
 | Befehl | Beschreibung |
 |--------|-------------|
-| `uv run pytest` | Smoke-Tests (ohne Datenbank und Netz) |
+| `uv run pytest` | Smoke-Tests (ohne Datenbank und Netz); DB-Tests werden übersprungen |
+| `uv run pytest -m db` | DB-Tests gegen PostgreSQL, braucht `DB_HOST` und `DB_NAME=test…` (leert das Schema), siehe `backend/tests/db/conftest.py` |
 | `uv run ruff check` | Linter |
 | `uv run ruff format` | Formatierer |
 | `uv lock --upgrade-package <paket>` | Einzelnes Paket im Lock aktualisieren |
