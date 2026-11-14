@@ -44,7 +44,7 @@ export default {
 // ✅ Richtig
 import { useRecipeStore } from '@/store/recipeStore'
 const store = useRecipeStore()
-await store.loadRecipes()
+await store.loadAll()
 
 // ❌ Verboten
 import { useStore } from 'vuex'
