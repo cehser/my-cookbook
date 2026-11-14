@@ -1,5 +1,6 @@
 """Auth dependencies for FastAPI route protection."""
 
+import logging
 import uuid
 from datetime import UTC, datetime
 
@@ -7,11 +8,15 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import PyJWTError
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.oidc import verify_oidc_token
+from app.config import settings
 from app.database import get_db
 from app.models.user import AppUser
+
+logger = logging.getLogger(__name__)
 
 security = HTTPBearer()
 
@@ -20,7 +25,8 @@ async def get_or_create_user(db: AsyncSession, payload: dict) -> AppUser:
     """Load user from DB. If not found, auto-provision with 'pending' role.
 
     Syncs OIDC profile claims (display_name, email, given_name, family_name)
-    on every login.
+    on every login. Matches the verified token e-mail against ``ADMIN_EMAIL``
+    and promotes the user to 'admin' (never demotes).
     """
     user_uuid = uuid.UUID(payload["sub"])
     display_name = payload.get("preferred_username") or "Unknown"
@@ -32,17 +38,22 @@ async def get_or_create_user(db: AsyncSession, payload: dict) -> AppUser:
     user = result.scalar_one_or_none()
 
     if user is None:
-        user = AppUser(
-            oidc_sub=user_uuid,
-            display_name=display_name,
-            email=email,
-            given_name=given_name,
-            family_name=family_name,
-            role="pending",
+        # ON CONFLICT: parallele erste Requests desselben Users dürfen keine
+        # UniqueViolation auslösen; wer verliert, liest den Gewinner-Datensatz.
+        await db.execute(
+            pg_insert(AppUser)
+            .values(
+                oidc_sub=user_uuid,
+                display_name=display_name,
+                email=email,
+                given_name=given_name,
+                family_name=family_name,
+                role="pending",
+            )
+            .on_conflict_do_nothing(index_elements=[AppUser.oidc_sub])
         )
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
+        result = await db.execute(select(AppUser).where(AppUser.oidc_sub == user_uuid))
+        user = result.scalar_one()
     else:
         # Sync profile fields from OIDC on every login
         user.last_login = datetime.now(UTC)
@@ -54,9 +65,25 @@ async def get_or_create_user(db: AsyncSession, payload: dict) -> AppUser:
             user.given_name = given_name
         if family_name is not None:
             user.family_name = family_name
-        await db.commit()
 
+    if user.role != "admin" and _is_admin_email(payload):
+        logger.info("ADMIN_EMAIL stimmt überein: User %s wird zum Admin heraufgestuft", user_uuid)
+        user.role = "admin"
+
+    await db.commit()
     return user
+
+
+def _is_admin_email(payload: dict) -> bool:
+    """True, wenn die E-Mail des Tokens ADMIN_EMAIL entspricht und verifiziert ist."""
+    admin_email = settings.admin_email
+    email = payload.get("email")
+    if not admin_email or not isinstance(email, str):
+        return False
+    # Ohne bestätigtes email_verified-Claim keine Heraufstufung
+    if payload.get("email_verified") is not True:
+        return False
+    return email.strip().casefold() == admin_email.strip().casefold()
 
 
 async def get_current_user(
