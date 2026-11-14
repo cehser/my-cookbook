@@ -23,6 +23,8 @@ Erledigt (Archiv): W.6, W.8 → [roadmap-archiv.md](docs/roadmap-archiv.md)
 - [~] W.14 Frontend-Lock auffrischen (Patch/Minor), `npm audit` ohne high (Stand 2026-11-14: 32 Lücken, 12 high) · S · Sonnet · [Auftrag](docs/tasks/W.14-build-deps.md)
 - [ ] W.15 Frontend-Majors: bootstrap-vue-next 1.x, vite-plugin-pwa 2 (Override und `--legacy-peer-deps` entfernen), pinia 4, vueuse 15, js-yaml 5, lint-staged 17; TypeScript auf 5.x halten und als Ausnahme dokumentieren · M–L · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
 - [ ] W.16 Verzichtbare Abhängigkeiten ersetzen: `deep-equal` (58 transitive Pakete), `sass` (→ CSS `aspect-ratio`), `deepCopyYaml` (→ `structuredClone`), `@vueuse/integrations` prüfen, Font-Cache-Regel löschen · S–M · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
+- [ ] W.17 `backup.sh`: Fehler von `pg_dump` erkennen (pipefail o. ä.), leere Dumps nicht rotieren lassen · XS · Sonnet
+- [ ] W.18 PyYAML aus den Backend-Abhängigkeiten entfernen · XS · Sonnet · nach W.4
 
 ## 5 — Einkaufsliste-Export
 Zutaten eines Rezepts als Einkaufsliste per Clipboard und Native Share. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-5-einkaufsliste-export-1-2-tage--quick-win)
