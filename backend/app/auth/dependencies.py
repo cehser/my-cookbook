@@ -66,13 +66,12 @@ async def get_current_user(
     """Verify OIDC token and return the authenticated user."""
     try:
         payload = verify_oidc_token(credentials.credentials)
-    except PyJWTError:
-        # B904 offen gelassen: "from err" wäre eine Verhaltensänderung, nicht Teil von W.4
-        raise HTTPException(  # noqa: B904
+    except PyJWTError as err:
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token ungültig oder abgelaufen",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from err
 
     user = await get_or_create_user(db, payload)
     return user
