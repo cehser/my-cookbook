@@ -11,7 +11,7 @@ Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.1
 - [ ] W.1 Doppelten Handler `GET /v1/tags` auflösen (recipes.py überdeckt tags.py mit Count) · S · Sonnet
 - [~] W.2 Vue-CLI-Altlasten entfernen (`vue.config.js`, `jsconfig.json`, `public/index.html`, `echo` im Dockerfile), `dist/index.html` prüfen · S · Sonnet · [Auftrag](docs/tasks/W.14-build-deps.md)
 - [ ] W.3 Instanzspezifische Defaults entfernen (IdP und Client-ID in `config.py`/`public/config.js`, StartURL in `index.html`) · S · Sonnet
-- [ ] W.4 Backend auf uv + `pyproject.toml` + Lock, ruff, Smoke-Tests für Auth und Routen; Lock-Basis = neueste Version je bisheriger Major-Linie, danach Majors einzeln (openai 3, Pillow 13, cryptography 50, SQLAlchemy 2.1) · M · Opus · [Plan](docs/plans/abhaengigkeiten.md#backend-gehört-zu-w4)
+- [~] W.4 Backend auf uv + `pyproject.toml` + Lock, ruff, Smoke-Tests für Auth und Routen; Lock-Basis = neueste Version je bisheriger Major-Linie, danach Majors einzeln (openai 3, Pillow 13, cryptography 50, SQLAlchemy 2.1) · M · Opus · [Plan](docs/plans/abhaengigkeiten.md#backend-gehört-zu-w4) · [Auftrag](docs/tasks/W.4-backend-uv.md)
 - [ ] W.5 CI mit GitHub Actions: lint:check, typecheck, build, `npm audit --audit-level=high`; Backend nach W.4 · M · Sonnet
 - [ ] W.6 DB-User und -Name in `backup.sh`, Compose-Healthcheck und README-Restore aus Variablen · XS · Sonnet
 - [~] W.7 Base-Images auf Minor pinnen, `npm ci --legacy-peer-deps` prüfen · XS · Sonnet · [Auftrag](docs/tasks/W.14-build-deps.md)
