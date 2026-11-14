@@ -118,13 +118,22 @@ Weitere Befehle:
 
 ### Backend
 
+Voraussetzung: [uv](https://docs.astral.sh/uv/). Abhängigkeiten sind in `backend/uv.lock` gepinnt, Python 3.14 holt uv bei Bedarf selbst.
+
 ```bash
 cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uv sync
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 Das Backend erwartet eine laufende PostgreSQL-Instanz (siehe `DB_*`-Variablen).
+
+| Befehl | Beschreibung |
+|--------|-------------|
+| `uv run pytest` | Smoke-Tests (ohne Datenbank und Netz) |
+| `uv run ruff check` | Linter |
+| `uv run ruff format` | Formatierer |
+| `uv lock --upgrade-package <paket>` | Einzelnes Paket im Lock aktualisieren |
 
 ## Architektur
 
