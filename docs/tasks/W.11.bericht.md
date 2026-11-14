@@ -1,6 +1,6 @@
 # Bericht W.11: Rezepte nach Login und Token-Ablauf zuverlässig laden
 
-> Branch `worktree-W.11-login-laden` · Basis `d101f5f` (Auftrag: `f20df40`, dazwischen nur `docs(roadmap)`) · Stand `b482bca` · 2026-11-14 · Dauer: 15:46 – 16:21 (35 min, davon Warten an Checkpoints 17 min) · Status: fertig
+> Branch `worktree-W.11-login-laden` · Basis `d101f5f` (Auftrag: `f20df40`, dazwischen nur `docs(roadmap)`) · Stand `4d88a9d` · 2026-11-14 · Dauer: 15:46 – 16:21 (35 min, davon Warten an Checkpoints 17 min), Nacharbeit Logout-Widerruf bis 16:43 (Beginn nicht festgehalten) · Status: fertig
 
 ## Ergebnis
 Die Token-Erneuerung läuft als Single-Flight, die sich alle Aufrufer teilen. Ihr Ergebnis ist `valid`, `offline` oder `rejected`. `getAccessToken()` erneuert einen abgelaufenen Token, statt `null` zu liefern. Rezepte, Settings und Favoriten werden erst nach geklärtem Auth-Zustand geladen. Nachgeladen wird nach Login/Erneuerung (`userLoaded`), wenn das Gerät wieder online ist und wenn die App wieder in den Vordergrund kommt. Daten aus IndexedDB sind im Banner als „Offline-Daten“ markiert. Die Rezeptliste lädt alle Seiten.
@@ -10,6 +10,7 @@ Die Token-Erneuerung läuft als Single-Flight, die sich alle Aufrufer teilen. Ih
 - `ff52806` feat(frontend): Daten nach geklärtem Auth-Zustand laden, Cache markieren
 - `b68f94b` refactor(auth): toten addUserSignedOut-Handler entfernen
 - `b482bca` docs(roadmap): Plan W.11 um Befunde C2, T2, T4 ergänzen
+- `4d88a9d` feat(auth): Refresh-Token beim Logout widerrufen
 
 ## Erkundung (Auftrag Schritt 1)
 - **`isAuthenticated()`:** 13 Aufrufe, 12 im Store, 1 in `useRecipeHelper.loadRecipe`. Die drei Lade-Aufrufe sind durch `loadAll()` → `ensureAuth()` ersetzt. Die übrigen Aufrufe (Schreibpfade, Detail) nutzen weiter `isAuthenticated()`, das jetzt über `ensureAuth()` abgelaufene Tokens erneuert.
@@ -26,7 +27,7 @@ Die Token-Erneuerung läuft als Single-Flight, die sich alle Aufrufer teilen. Ih
 
 ## Verifikation
 - `npm run lint:check && npm run typecheck && npm run build`: grün (ESLint ohne Befund, vue-tsc ohne Fehler, Build inkl. Service Worker)
-- Auth-Simulation: `auth/oidc.ts` mit rolldown gebündelt, `oidc-client-ts` durch eine Attrappe ersetzt, 21 Prüfungen in Node, alle OK. Geprüft:
+- Auth-Simulation: `auth/oidc.ts` mit rolldown gebündelt, `oidc-client-ts` durch eine Attrappe ersetzt, 24 Prüfungen in Node, alle OK. Geprüft:
   - 6 parallele Aufrufer → genau 1 Erneuerung
   - danach keine weitere Erneuerung
   - `invalid_grant` → `rejected` und die Sitzung wird verworfen
@@ -38,8 +39,9 @@ Die Token-Erneuerung läuft als Single-Flight, die sich alle Aufrufer teilen. Ih
   - 3× 401 parallel → 1 Refresh
   - Expiring-Event nutzt dieselbe Erneuerung
   - Fehlerklassifikation
+  - Logout bei erfolgreichem, fehlgeschlagenem und hängendem Widerruf → immer `signoutRedirect` (hängend nach 5 s)
 - Sichtprüfung: keine. Ohne IdP ist das lokal nicht lauffähig; die Abnahme auf iPhone/iPad steht unten.
-- Prüfzeit: ~2 min; größter Posten: `npm run build` (gesamte Kette 1:51 min)
+- Prüfzeit: ~2 min je Lauf, zwei Läufe; größter Posten: `npm run build` (Kette 1:51 min bzw. nach dem Logout-Commit 1:15 min)
 - Prüfskripte: nur Scratchpad (`authsim/`). Sie wären die Vorlage für W.10.
 
 ## Testszenarien für die Abnahme (iPhone/iPad, PWA)
@@ -48,8 +50,9 @@ Konsole bzw. Web-Inspector: Jede Erneuerung erzeugt die Meldung `[Auth] Token-Er
 2. **PWA nach Ablauf des Access-Tokens öffnen** (nach mehr als dessen Laufzeit, App aus dem Hintergrund oder neu gestartet). Erwartung: kein Login, kein „Offline-Daten“, Daten von der API. Genau **eine** Meldung „Token-Erneuerung“ und **ein** POST an den Token-Endpunkt, obwohl Guard, Settings, Rezepte, Favoriten und Bilder gleichzeitig starten.
 3. **Flugmodus, App öffnen:** Erwartung: Rezepte aus dem Cache, Banner „Offline · Offline-Daten“. Netz wieder an: Erwartung: automatisches Nachladen, Banner verschwindet.
 3b. **API ausgefallen, Netz da** (z. B. Backend-Container gestoppt): Erwartung: Banner nur „Offline-Daten“. Backend starten, App in den Hintergrund und wieder nach vorn: Erwartung: Nachladen, Banner verschwindet.
-4. **Session widerrufen** (im IdP die Offline-Session bzw. die App-Sitzung des Nutzers beenden), dann PWA mit abgelaufenem Access-Token öffnen. Erwartung: Weiterleitung zum Login, keine stillen Cache-Daten. Ohne Netz in diesem Zustand: Cache-Daten (ohne Netz ist kein Login möglich).
+4. **Session widerrufen** (im IdP die Offline-Session bzw. die App-Sitzung des Nutzers beenden), dann PWA mit abgelaufenem Access-Token öffnen. Erwartung: Weiterleitung zum Login, keine stillen Cache-Daten. Ohne Netz in diesem Zustand: Cache-Daten (ohne Netz ist kein Login möglich). **Pflichttest:** Belegt live, dass der IdP mit `invalid_grant` als JSON antwortet. Kommt stattdessen „Offline-Daten“, ist die Fehlerklassifikation für diesen IdP falsch.
 5. **Laufender Betrieb über die Token-Laufzeit hinaus** (App offen lassen): Erwartung: etwa 60 s vor Ablauf genau eine Erneuerung, kein Neuladen der Rezeptliste.
+6. **Abmelden** (Profil → Logout): Erwartung: im Netzwerk-Tab ein POST an den Revocation-Endpunkt (Keycloak: `…/protocol/openid-connect/revoke`), danach Redirect zum IdP-Logout. In Keycloak ist die Offline-Session der App für den Nutzer danach weg (Admin-Konsole → Benutzer → Sitzungen bzw. Account-Konsole → Anwendungen).
 
 ## Struktur und Doku
 - **Gewachsene Dateien:** `store/recipeStore.ts` hat jetzt 490 Zeilen (vorher 426). Gründe sind `loadAll`/`reloadIfStale`/`loadAllOnce`, Paginierung und Mapper. Die Mapper `listItemToRecipe` und `detailToRecipe` ersetzen drei vorhandene Kopien desselben Codes. `auth/oidc.ts` hat 198 Zeilen (vorher 126).
@@ -63,6 +66,7 @@ Konsole bzw. Web-Inspector: Jede Erneuerung erzeugt die Meldung `[Auth] Token-Er
 - **Nachladen bei `userLoaded` und online nur, wenn die Daten nicht von der API stammen.** Sonst würde jede reguläre Erneuerung (alle paar Minuten) die ganze Liste neu laden.
 - **localStorage-Migration in `loadRecipes`:** Die Logik ist unverändert, nur `get`/`set` laufen jetzt über `offlineCache`, und der Block wird awaited statt mit `.then()` nebenher ausgeführt.
 - **T4 ohne Keycloak-Werte entschieden** (Rückmeldung am Checkpoint: Die Lösung muss IdP-agnostisch mit allen Einstellungen funktionieren). Session-Monitoring bleibt aus und der tote `addUserSignedOut`-Handler ist entfernt. Das Ende der Sitzung greift, sobald der IdP die Erneuerung ablehnt.
+- **Zusätzlich nach Freigabe:** `logout()` widerruft den Refresh-Token vor dem Redirect (RFC 7009), weil ein Logout beim IdP Offline-Tokens nicht zwingend beendet. Das gilt für Keycloak als unbestätigt. Bewusst nicht über `revokeTokensOnSignout`: Laut Quelltext bricht damit der ganze Logout ab, wenn der Widerruf scheitert (kein Revocation-Endpunkt, kein Netz). Jetzt gilt ein Timeout von 5 s, danach wird in jedem Fall abgemeldet.
 
 ## Nachgetragen in Specs/Plänen
 - `docs/plans/zuverlaessigkeit-login-ai-import.md`: C2 korrigiert, T2 bestätigt/behoben, T4 entschieden, Checkpoint erledigt
@@ -81,4 +85,4 @@ Konsole bzw. Web-Inspector: Jede Erneuerung erzeugt die Meldung `[Auth] Token-Er
 - `W.11` fertig (Abnahme auf dem Gerät steht aus)
 
 ## Vorschlag Roadmap-Zeilen
-`- [x] W.11 Rezepte nach Login und Token-Ablauf zuverlässig laden · 2026-11-14 · b482bca`
+`- [x] W.11 Rezepte nach Login und Token-Ablauf zuverlässig laden · 2026-11-14 · 4d88a9d`
