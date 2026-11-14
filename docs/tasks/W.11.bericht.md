@@ -55,7 +55,7 @@ Konsole bzw. Web-Inspector: Jede Erneuerung erzeugt die Meldung `[Auth] Token-Er
 6. **Abmelden** (Profil → Logout): Erwartung: im Netzwerk-Tab ein POST an den Revocation-Endpunkt (Keycloak: `…/protocol/openid-connect/revoke`), danach Redirect zum IdP-Logout. In Keycloak ist die Offline-Session der App für den Nutzer danach weg (Admin-Konsole → Benutzer → Sitzungen bzw. Account-Konsole → Anwendungen).
 
 ## Struktur und Doku
-- **Gewachsene Dateien:** `store/recipeStore.ts` hat jetzt 490 Zeilen (vorher 426). Gründe sind `loadAll`/`reloadIfStale`/`loadAllOnce`, Paginierung und Mapper. Die Mapper `listItemToRecipe` und `detailToRecipe` ersetzen drei vorhandene Kopien desselben Codes. `auth/oidc.ts` hat 198 Zeilen (vorher 126).
+- **Gewachsene Dateien:** `store/recipeStore.ts` hat jetzt 490 Zeilen (vorher 426). Gründe sind `loadAll`/`reloadIfStale`/`loadAllOnce`, Paginierung und Mapper. Die Mapper `listItemToRecipe` und `detailToRecipe` ersetzen drei vorhandene Kopien desselben Codes. `auth/oidc.ts` hat 222 Zeilen (vorher 126).
 - **Neues Modul:** `frontend/src/js/offlineCache.ts`
 - **Bewusste Duplikate:** keine
 - **CLAUDE.md, `.claude/rules/frontend.md`:** stimmen noch. Hinweis: Die Rule beschreibt `autoUpdate` korrekt, sagt aber nichts zum sofortigen Neuladen (siehe Folgepunkt C2).
