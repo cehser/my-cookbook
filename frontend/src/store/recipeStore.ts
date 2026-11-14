@@ -44,12 +44,12 @@ const default_settings: Settings = {
 
 const LIST_PAGE_SIZE = 200; // Maximum des Backends
 
-/** Lädt alle Seiten der Rezeptliste, optional gefiltert per Volltextsuche. */
-async function fetchAllRecipeListItems(q?: string): Promise<RecipeListItem[]> {
+/** Lädt alle Seiten der Rezeptliste. */
+async function fetchAllRecipeListItems(): Promise<RecipeListItem[]> {
   const items: RecipeListItem[] = [];
   const seen = new Set<string>();
   for (let page = 1; ; page++) {
-    const res = await recipeApi.list({ q, page, page_size: LIST_PAGE_SIZE });
+    const res = await recipeApi.list({ page, page_size: LIST_PAGE_SIZE });
     for (const item of res.items) {
       if (!seen.has(item.id)) {
         seen.add(item.id);
@@ -523,11 +523,6 @@ export const useRecipeStore = defineStore("recipe", {
       console.warn(
         `Prefetched ${fetched}/${recipes.length} recipe details for offline use`,
       );
-    },
-
-    async searchRecipesApi(query: string) {
-      const items = await fetchAllRecipeListItems(query);
-      return items.map(listItemToRecipe);
     },
   },
 });
