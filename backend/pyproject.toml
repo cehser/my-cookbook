@@ -18,7 +18,7 @@ dependencies = [
     "pydantic>=2.14",
     "pydantic-settings>=2.16",
     # Image Processing
-    "pillow>=12.1,<13",
+    "pillow>=13.0",
     # AI
     "openai>=2.29,<3",
     # YAML (Migrationsskripte, entfällt mit W.8)
