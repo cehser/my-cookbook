@@ -17,7 +17,7 @@ import {
   writeRecipes,
   writeSettings,
 } from "@/js/offlineCache";
-import { api } from "@/api/client";
+import { api, isClientError } from "@/api/client";
 import {
   recipeApi,
   type RecipeDetail,
@@ -29,7 +29,10 @@ import { ensureAuth, isAuthenticated } from "@/auth/oidc";
 import type { Recipe, RecipePictures } from "@/types/recipe";
 import type { Settings } from "@/types/settings";
 
-/** Herkunft der geladenen Daten: noch nichts, API oder Offline-Cache. */
+/**
+ * Herkunft der geladenen Daten: noch nichts, API (auch eine verbindliche
+ * Ablehnung wie 403 für `pending`) oder Offline-Cache (vorläufig oder Ersatz).
+ */
 export type DataSource = "none" | "api" | "cache";
 
 const default_settings: Settings = {
@@ -41,12 +44,12 @@ const default_settings: Settings = {
 
 const LIST_PAGE_SIZE = 200; // Maximum des Backends
 
-/** Lädt alle Seiten der Rezeptliste. */
-async function fetchAllRecipeListItems(): Promise<RecipeListItem[]> {
+/** Lädt alle Seiten der Rezeptliste, optional gefiltert per Volltextsuche. */
+async function fetchAllRecipeListItems(q?: string): Promise<RecipeListItem[]> {
   const items: RecipeListItem[] = [];
   const seen = new Set<string>();
   for (let page = 1; ; page++) {
-    const res = await recipeApi.list({ page, page_size: LIST_PAGE_SIZE });
+    const res = await recipeApi.list({ q, page, page_size: LIST_PAGE_SIZE });
     for (const item of res.items) {
       if (!seen.has(item.id)) {
         seen.add(item.id);
@@ -111,9 +114,10 @@ export const useRecipeStore = defineStore("recipe", {
     // --- Laden (Start, Login, Token-Erneuerung, wieder online) ---
 
     /**
-     * Lädt Settings, Rezepte und Favoriten, sobald der Auth-Zustand geklärt
-     * ist: gültig → API (Cache nur bei API-Fehler), offline → Cache,
-     * abgelehnt → nichts, der Guard leitet zum Login (ohne Netz: Cache).
+     * Lädt Settings, Rezepte und Favoriten. Beim ersten Laden zeigt der
+     * Cache sofort vorläufige Daten (Quelle „cache“). Nach geklärtem
+     * Auth-Zustand: gültig → API (Cache nur bei Ausfall, nicht bei 4xx),
+     * offline → Cache, abgelehnt → Login folgt (ohne Netz: Cache).
      */
     loadAll(): Promise<void> {
       if (loadAllInFlight) {
@@ -141,8 +145,17 @@ export const useRecipeStore = defineStore("recipe", {
     },
 
     async loadAllOnce() {
+      // Vorläufige Daten, damit bei hängender Verbindung nicht bis zum
+      // Timeout eine leere Liste steht. Läuft parallel zur Auth-Klärung.
+      const preliminary =
+        this.dataSource === "none" ? this.showCachedData() : undefined;
       const auth = await ensureAuth();
-      if (auth === "rejected" && navigator.onLine) return;
+      await preliminary;
+      if (auth === "rejected" && navigator.onLine) {
+        // Login folgt (Guard bzw. onSessionRejected): kein Offline-Banner.
+        if (this.dataSource === "cache") this.dataSource = "none";
+        return;
+      }
       const useApi = auth === "valid";
       const sources = await Promise.all([
         this.loadSettings(useApi),
@@ -150,6 +163,22 @@ export const useRecipeStore = defineStore("recipe", {
         this.loadFavorites(useApi),
       ]);
       this.dataSource = sources.every((s) => s === "api") ? "api" : "cache";
+    },
+
+    /** Zeigt vorhandene Cache-Daten als vorläufigen Stand. */
+    async showCachedData() {
+      const [settings, recipes, favorites] = await Promise.all([
+        readSettings(),
+        readRecipes(),
+        readFavorites(),
+      ]);
+      if (!settings && !recipes && !favorites) return;
+      // Nur übernehmen, solange nichts Verbindliches geladen ist
+      if (this.dataSource !== "none") return;
+      if (settings) this.settings = settings;
+      if (recipes) this.recipes = recipes;
+      if (favorites) this.favorites = favorites;
+      this.dataSource = "cache";
     },
 
     // --- Settings ---
@@ -161,6 +190,7 @@ export const useRecipeStore = defineStore("recipe", {
           void writeSettings(settings);
           return "api";
         } catch (e) {
+          if (isClientError(e)) return "api";
           console.warn(
             "Failed to load settings from API, falling back to IDB",
             e,
@@ -200,6 +230,11 @@ export const useRecipeStore = defineStore("recipe", {
           await this.loadRecipesFromApi();
           return "api";
         } catch (e) {
+          if (isClientError(e)) {
+            // z. B. 403 für `pending`: verbindlich keine Rezepte, kein Cache
+            this.recipes = [];
+            return "api";
+          }
           console.warn("API load failed, falling back to IDB", e);
         }
       }
@@ -386,6 +421,10 @@ export const useRecipeStore = defineStore("recipe", {
           void writeFavorites(favorites);
           return "api";
         } catch (e) {
+          if (isClientError(e)) {
+            this.favorites = [];
+            return "api";
+          }
           console.warn(
             "Failed to load favorites from API, falling back to IDB",
             e,
@@ -483,8 +522,8 @@ export const useRecipeStore = defineStore("recipe", {
     },
 
     async searchRecipesApi(query: string) {
-      const res = await recipeApi.list({ q: query, page_size: 200 });
-      return res.items.map(listItemToRecipe);
+      const items = await fetchAllRecipeListItems(query);
+      return items.map(listItemToRecipe);
     },
   },
 });

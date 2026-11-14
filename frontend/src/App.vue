@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useOnline, useColorMode, useDocumentVisibility } from "@vueuse/core";
 import { useRecipeStore } from "@/store/recipeStore";
 import { restoreSession } from "@/router";
-import { onUserLoaded } from "@/auth/oidc";
+import { ensureAuth, onUserLoaded } from "@/auth/oidc";
 import BottomNav from "@/components/layout/BottomNav.vue";
 
 const route = useRoute();
@@ -15,7 +15,27 @@ const visibility = useDocumentVisibility();
 
 // Banner: offline und/oder Daten aus dem Offline-Cache (auch bei Netz, wenn
 // die API ausgefallen ist). Verschwindet nach erfolgreichem Nachladen.
-const usesCachedData = computed(() => store.dataSource === "cache");
+// Bei Netz erscheint „Offline-Daten“ erst nach kurzer Verzögerung: Beim Start
+// stehen Cache-Daten vorläufig da, bis die API antwortet (meist < 1 s).
+const CACHE_HINT_DELAY_MS = 1500;
+const usesCachedData = ref(false);
+let cacheHintTimer: ReturnType<typeof setTimeout> | undefined;
+watch(
+  () => store.dataSource === "cache",
+  (cached) => {
+    clearTimeout(cacheHintTimer);
+    if (!cached) {
+      usesCachedData.value = false;
+      return;
+    }
+    cacheHintTimer = setTimeout(
+      () => (usesCachedData.value = true),
+      isOnline.value ? CACHE_HINT_DELAY_MS : 0,
+    );
+  },
+  { immediate: true },
+);
+onUnmounted(() => clearTimeout(cacheHintTimer));
 const showOfflineBanner = computed(
   () => !isOnline.value || usesCachedData.value,
 );
@@ -23,13 +43,18 @@ const showOfflineBanner = computed(
 // Nachladen, sobald die API wieder erreichbar sein kann: neuer Token
 // (Login-Callback, Erneuerung), wieder online, App wieder im Vordergrund.
 // reloadIfStale() lädt nur, wenn die Daten nicht von der API stammen.
+// Im Vordergrund wird zusätzlich immer der Auth-Zustand geprüft: Ein
+// abgelaufener Token wird erneuert, eine abgelehnte Sitzung führt zum Login
+// (onSessionRejected im Router).
 const stopUserLoaded = onUserLoaded(() => void store.reloadIfStale());
 onUnmounted(stopUserLoaded);
 watch(isOnline, (online) => {
   if (online) void store.reloadIfStale();
 });
-watch(visibility, (state) => {
-  if (state === "visible") void store.reloadIfStale();
+watch(visibility, async (state) => {
+  if (state !== "visible") return;
+  await ensureAuth();
+  void store.reloadIfStale();
 });
 
 // Color mode: "light" | "dark" | "auto" (system)
