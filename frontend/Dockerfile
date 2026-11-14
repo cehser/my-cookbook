@@ -1,5 +1,5 @@
 # build stage
-FROM node:lts-alpine AS build-stage
+FROM node:26-alpine AS build-stage
 WORKDIR /app
 ARG COMMIT_HASH=dev
 ENV COMMIT_HASH=$COMMIT_HASH
@@ -10,7 +10,7 @@ COPY . .
 RUN npm run build
 
 # production stage
-FROM nginx:stable-alpine AS production-stage
+FROM nginx:1.30-alpine AS production-stage
 COPY .docker/nginx/prod.conf /etc/nginx/conf.d/default.conf
 COPY .docker/nginx/config.js.template /etc/nginx/templates/config.js.template
 COPY .docker/nginx/docker-entrypoint.sh /docker-entrypoint.d/40-inject-config.sh
