@@ -134,16 +134,21 @@ export class ApiTimeoutError extends Error {
   }
 }
 
+/** 4xx that mean "try again later", i.e. an outage rather than a refusal. */
+const TRANSIENT_CLIENT_STATUS = new Set([401, 408, 429]);
+
 /**
- * Client error (4xx except 401): the API answered and refused, e.g. 403 for
- * role `pending`. Not an outage, so no fallback to the offline cache.
+ * Client error (4xx except 401, 408, 429): the API answered and refused,
+ * e.g. 403 for role `pending`. Not an outage, so no fallback to the offline
+ * cache. 408 (timeout) and 429 (rate limit) count as an outage; 401 is
+ * handled by the token renewal.
  */
 export function isClientError(e: unknown): boolean {
   return (
     e instanceof ApiError &&
     e.status >= 400 &&
     e.status < 500 &&
-    e.status !== 401
+    !TRANSIENT_CLIENT_STATUS.has(e.status)
   );
 }
 

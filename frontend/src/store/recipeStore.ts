@@ -190,7 +190,11 @@ export const useRecipeStore = defineStore("recipe", {
           void writeSettings(settings);
           return "api";
         } catch (e) {
-          if (isClientError(e)) return "api";
+          if (isClientError(e)) {
+            // verbindliche Ablehnung: Standardwerte statt Cache
+            this.settings = { ...default_settings };
+            return "api";
+          }
           console.warn(
             "Failed to load settings from API, falling back to IDB",
             e,
