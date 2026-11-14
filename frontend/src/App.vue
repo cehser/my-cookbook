@@ -1,15 +1,36 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useOnline, useColorMode } from "@vueuse/core";
+import { useOnline, useColorMode, useDocumentVisibility } from "@vueuse/core";
 import { useRecipeStore } from "@/store/recipeStore";
 import { restoreSession } from "@/router";
+import { onUserLoaded } from "@/auth/oidc";
 import BottomNav from "@/components/layout/BottomNav.vue";
 
 const route = useRoute();
 const router = useRouter();
 const store = useRecipeStore();
 const isOnline = useOnline();
+const visibility = useDocumentVisibility();
+
+// Banner: offline und/oder Daten aus dem Offline-Cache (auch bei Netz, wenn
+// die API ausgefallen ist). Verschwindet nach erfolgreichem Nachladen.
+const usesCachedData = computed(() => store.dataSource === "cache");
+const showOfflineBanner = computed(
+  () => !isOnline.value || usesCachedData.value,
+);
+
+// Nachladen, sobald die API wieder erreichbar sein kann: neuer Token
+// (Login-Callback, Erneuerung), wieder online, App wieder im Vordergrund.
+// reloadIfStale() lädt nur, wenn die Daten nicht von der API stammen.
+const stopUserLoaded = onUserLoaded(() => void store.reloadIfStale());
+onUnmounted(stopUserLoaded);
+watch(isOnline, (online) => {
+  if (online) void store.reloadIfStale();
+});
+watch(visibility, (state) => {
+  if (state === "visible") void store.reloadIfStale();
+});
 
 // Color mode: "light" | "dark" | "auto" (system)
 // Persists to localStorage key "vueuse-color-scheme"
@@ -23,10 +44,10 @@ useColorMode({
 const showBottomNav = computed(() => route.meta?.mode === "browsing");
 
 onMounted(() => {
-  store.loadSettings();
-  store.loadRecipes();
+  // Wartet intern auf den Auth-Zustand (inkl. Token-Erneuerung). Auf
+  // /callback ist noch keine Sitzung da; geladen wird dann über userLoaded.
+  void store.loadAll();
   store.loadRecipePictures();
-  store.loadFavorites();
 
   // Session Restore: redirect to last recipe if cold-starting on home
   // Use window.location.pathname (not route.path) because the router
@@ -42,9 +63,16 @@ onMounted(() => {
 
 <template>
   <BApp>
-    <div v-if="!isOnline" class="offline-banner">
-      <i class="bi bi-wifi-off me-1"></i>
-      Offline
+    <div v-if="showOfflineBanner" class="offline-banner" role="status">
+      <span v-if="!isOnline">
+        <i class="bi bi-wifi-off me-1"></i>
+        Offline
+      </span>
+      <span v-if="!isOnline && usesCachedData"> · </span>
+      <span v-if="usesCachedData">
+        <i class="bi bi-cloud-slash me-1"></i>
+        Offline-Daten
+      </span>
     </div>
     <div class="app-shell" :class="{ 'has-bottom-nav': showBottomNav }">
       <router-view v-slot="{ Component }">

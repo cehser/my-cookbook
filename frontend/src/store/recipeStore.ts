@@ -7,11 +7,30 @@ import {
   deserializeRecipePictures,
   type SerializedRecipePictures,
 } from "@/js/fileStorage";
-import { recipeApi } from "@/api/recipes";
+import {
+  readFavorites,
+  readRecipeDetail,
+  readRecipes,
+  readSettings,
+  writeFavorites,
+  writeRecipeDetail,
+  writeRecipes,
+  writeSettings,
+} from "@/js/offlineCache";
+import { api } from "@/api/client";
+import {
+  recipeApi,
+  type RecipeDetail,
+  type RecipeListItem,
+} from "@/api/recipes";
+import { favoritesApi } from "@/api/favorites";
 import { imageApi } from "@/api/images";
-import { isAuthenticated } from "@/auth/oidc";
+import { ensureAuth, isAuthenticated } from "@/auth/oidc";
 import type { Recipe, RecipePictures } from "@/types/recipe";
 import type { Settings } from "@/types/settings";
+
+/** Herkunft der geladenen Daten: noch nichts, API oder Offline-Cache. */
+export type DataSource = "none" | "api" | "cache";
 
 const default_settings: Settings = {
   read_only: true,
@@ -20,24 +39,127 @@ const default_settings: Settings = {
   role: "readonly",
 };
 
+const LIST_PAGE_SIZE = 200; // Maximum des Backends
+
+/** Lädt alle Seiten der Rezeptliste. */
+async function fetchAllRecipeListItems(): Promise<RecipeListItem[]> {
+  const items: RecipeListItem[] = [];
+  const seen = new Set<string>();
+  for (let page = 1; ; page++) {
+    const res = await recipeApi.list({ page, page_size: LIST_PAGE_SIZE });
+    for (const item of res.items) {
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        items.push(item);
+      }
+    }
+    const lastPage =
+      res.items.length < LIST_PAGE_SIZE || page * LIST_PAGE_SIZE >= res.total;
+    if (lastPage) return items;
+  }
+}
+
+function listItemToRecipe(item: RecipeListItem): Recipe {
+  return {
+    recipe_uuid: item.id,
+    recipe_name: item.recipe_name,
+    author: item.author ?? undefined,
+    subtitle: item.subtitle ?? undefined,
+    tags: item.tags,
+    imageurl: item.imageurl ?? undefined,
+    first_image_id: item.first_image_id ?? undefined,
+    lastUpdated: item.updated_at,
+    ingredients: [],
+    steps: [],
+    sections: [],
+  };
+}
+
+function detailToRecipe(detail: RecipeDetail): Recipe {
+  const { first_image_id: _fii, ...data } = (detail.data ?? {}) as Record<
+    string,
+    unknown
+  >;
+  return {
+    recipe_uuid: detail.id,
+    recipe_name: detail.recipe_name,
+    lastUpdated: detail.updated_at,
+    ingredients: [],
+    steps: [],
+    sections: [],
+    tags: detail.tags,
+    ...data,
+    first_image_id: detail.first_image_id ?? undefined,
+  };
+}
+
+// Single-Flight für loadAll(): Anfragen während eines Laufs lösen genau einen
+// weiteren Lauf aus, falls der laufende keine API-Daten geliefert hat.
+let loadAllInFlight: Promise<void> | null = null;
+let loadAllRerun = false;
+
 export const useRecipeStore = defineStore("recipe", {
   state: () => ({
     recipes: [] as Recipe[],
     settings: { ...default_settings } as Settings,
     recipe_pictures: {} as RecipePictures,
     favorites: [] as string[],
+    dataSource: "none" as DataSource,
   }),
 
   actions: {
-    // --- Settings ---
-    async loadSettings() {
-      if (await isAuthenticated()) {
+    // --- Laden (Start, Login, Token-Erneuerung, wieder online) ---
+
+    /**
+     * Lädt Settings, Rezepte und Favoriten, sobald der Auth-Zustand geklärt
+     * ist: gültig → API (Cache nur bei API-Fehler), offline → Cache,
+     * abgelehnt → nichts, der Guard leitet zum Login (ohne Netz: Cache).
+     */
+    loadAll(): Promise<void> {
+      if (loadAllInFlight) {
+        loadAllRerun = true;
+        return loadAllInFlight;
+      }
+      loadAllInFlight = (async () => {
         try {
-          const { api } = await import("@/api/client");
+          do {
+            loadAllRerun = false;
+            await this.loadAllOnce();
+          } while (loadAllRerun && this.dataSource !== "api");
+        } finally {
+          loadAllInFlight = null;
+          loadAllRerun = false;
+        }
+      })();
+      return loadAllInFlight;
+    },
+
+    /** Lädt neu, wenn die Daten (noch) nicht von der API stammen. */
+    async reloadIfStale(): Promise<void> {
+      if (this.dataSource === "api") return;
+      await this.loadAll();
+    },
+
+    async loadAllOnce() {
+      const auth = await ensureAuth();
+      if (auth === "rejected" && navigator.onLine) return;
+      const useApi = auth === "valid";
+      const sources = await Promise.all([
+        this.loadSettings(useApi),
+        this.loadRecipes(useApi),
+        this.loadFavorites(useApi),
+      ]);
+      this.dataSource = sources.every((s) => s === "api") ? "api" : "cache";
+    },
+
+    // --- Settings ---
+    async loadSettings(useApi: boolean): Promise<DataSource> {
+      if (useApi) {
+        try {
           const settings = await api.get<Settings>("/me/settings");
           this.settings = settings;
-          set("settings", settings);
-          return;
+          void writeSettings(settings);
+          return "api";
         } catch (e) {
           console.warn(
             "Failed to load settings from API, falling back to IDB",
@@ -45,70 +167,69 @@ export const useRecipeStore = defineStore("recipe", {
           );
         }
       }
-      const val: Settings | undefined = await get("settings");
+      const val = await readSettings();
       if (val) {
         this.settings = val;
       }
+      return "cache";
     },
 
     async saveSettings(settings: Settings) {
       this.settings = settings;
       if (await isAuthenticated()) {
         try {
-          const { api } = await import("@/api/client");
           const updated = await api.put<Settings>("/me/settings", {
             read_only: settings.read_only,
             expert_mode: settings.expert_mode,
             gpt_model: settings.gpt_model,
           });
           this.settings = updated;
-          set("settings", updated);
+          void writeSettings(updated);
           return;
         } catch (e) {
           console.warn("Failed to save settings to API", e);
         }
       }
-      set("settings", deepCopyJSON(settings));
+      void writeSettings(deepCopyJSON(settings));
     },
 
     // --- Recipes ---
-    async loadRecipes() {
-      if (await isAuthenticated()) {
-        console.warn("Authenticated – loading recipes from API");
+    async loadRecipes(useApi: boolean): Promise<DataSource> {
+      if (useApi) {
         try {
           await this.loadRecipesFromApi();
-          return;
+          return "api";
         } catch (e) {
           console.warn("API load failed, falling back to IDB", e);
         }
       }
 
       console.warn("Read recipes from idb");
-      get("recipes").then((val: Recipe[] | undefined) => {
-        if (val) {
-          this.recipes = val;
+      const val = await readRecipes();
+      if (val) {
+        this.recipes = val;
+      } else {
+        console.warn("Fallback to localstorage");
+        let recipes: Recipe[];
+        const recipesStr = localStorage.getItem("recipes");
+
+        if (recipesStr) {
+          recipes = loadYamlCookbook(recipesStr);
+          localStorage.removeItem("recipes");
         } else {
-          console.warn("Fallback to localstorage");
-          let recipes: Recipe[];
-          const recipesStr = localStorage.getItem("recipes");
-
-          if (recipesStr) {
-            recipes = loadYamlCookbook(recipesStr);
-            localStorage.removeItem("recipes");
-          } else {
-            console.warn("Fallback to sample");
-            recipes = [loadSample()];
-          }
-
-          set("recipes", recipes);
-          this.recipes = recipes;
+          console.warn("Fallback to sample");
+          recipes = [loadSample()];
         }
-      });
+
+        void writeRecipes(recipes);
+        this.recipes = recipes;
+      }
+      return "cache";
     },
 
     saveRecipes() {
       const saved = deepCopyYaml(this.recipes);
-      set("recipes", saved).then(() => {
+      writeRecipes(saved).then(() => {
         this.recipes = [...this.recipes]; // trigger reactivity
       });
     },
@@ -186,7 +307,7 @@ export const useRecipeStore = defineStore("recipe", {
             data: { ingredients, steps, sections, ...rest },
             tags: tags || [],
           });
-          set(`recipe:${recipe_uuid}`, recipeCopy);
+          void writeRecipeDetail(recipeCopy);
         } catch (e) {
           console.warn("Failed to update recipe via API", e);
         }
@@ -257,14 +378,13 @@ export const useRecipeStore = defineStore("recipe", {
     },
 
     // --- Favorites ---
-    async loadFavorites() {
-      if (await isAuthenticated()) {
+    async loadFavorites(useApi: boolean): Promise<DataSource> {
+      if (useApi) {
         try {
-          const { favoritesApi } = await import("@/api/favorites");
           const favorites = await favoritesApi.list();
           this.favorites = favorites;
-          set("favorites", favorites);
-          return;
+          void writeFavorites(favorites);
+          return "api";
         } catch (e) {
           console.warn(
             "Failed to load favorites from API, falling back to IDB",
@@ -272,10 +392,11 @@ export const useRecipeStore = defineStore("recipe", {
           );
         }
       }
-      const val: string[] | undefined = await get("favorites");
+      const val = await readFavorites();
       if (val) {
         this.favorites = val;
       }
+      return "cache";
     },
 
     async addFavorite(uuid: string) {
@@ -284,15 +405,14 @@ export const useRecipeStore = defineStore("recipe", {
       }
       if (await isAuthenticated()) {
         try {
-          const { favoritesApi } = await import("@/api/favorites");
           await favoritesApi.add(uuid);
         } catch (e) {
           console.warn("Failed to add favorite via API", e);
         }
       }
-      const favorites = [...(((await get("favorites")) as string[]) || [])];
+      const favorites = [...((await readFavorites()) || [])];
       if (!favorites.includes(uuid)) favorites.push(uuid);
-      set("favorites", favorites);
+      void writeFavorites(favorites);
     },
 
     async removeFavorite(uuid: string) {
@@ -302,57 +422,29 @@ export const useRecipeStore = defineStore("recipe", {
       }
       if (await isAuthenticated()) {
         try {
-          const { favoritesApi } = await import("@/api/favorites");
           await favoritesApi.remove(uuid);
         } catch (e) {
           console.warn("Failed to remove favorite via API", e);
         }
       }
-      const favorites = (((await get("favorites")) as string[]) || []).filter(
+      const favorites = ((await readFavorites()) || []).filter(
         (id: string) => id !== uuid,
       );
-      set("favorites", favorites);
+      void writeFavorites(favorites);
     },
 
     // --- API-backed actions ---
     async loadRecipesFromApi() {
-      const res = await recipeApi.list({ page_size: 200 });
-      const recipes: Recipe[] = res.items.map((item) => ({
-        recipe_uuid: item.id,
-        recipe_name: item.recipe_name,
-        author: item.author ?? undefined,
-        subtitle: item.subtitle ?? undefined,
-        tags: item.tags,
-        imageurl: item.imageurl ?? undefined,
-        first_image_id: item.first_image_id ?? undefined,
-        lastUpdated: item.updated_at,
-        ingredients: [],
-        steps: [],
-        sections: [],
-      }));
+      const items = await fetchAllRecipeListItems();
+      const recipes = items.map(listItemToRecipe);
       this.recipes = recipes;
-      set("recipes", deepCopyYaml(recipes));
+      void writeRecipes(deepCopyYaml(recipes));
       this.prefetchRecipeDetails(recipes);
     },
 
     async loadRecipeDetailFromApi(id: string) {
-      const detail = await recipeApi.get(id);
-      const { first_image_id: _fii, ...data } = (detail.data ?? {}) as Record<
-        string,
-        unknown
-      >;
-      const recipe: Recipe = {
-        recipe_uuid: detail.id,
-        recipe_name: detail.recipe_name,
-        lastUpdated: detail.updated_at,
-        ingredients: [],
-        steps: [],
-        sections: [],
-        tags: detail.tags,
-        ...data,
-        first_image_id: detail.first_image_id ?? undefined,
-      };
-      set(`recipe:${recipe.recipe_uuid}`, recipe);
+      const recipe = detailToRecipe(await recipeApi.get(id));
+      void writeRecipeDetail(recipe);
       return recipe;
     },
 
@@ -364,9 +456,7 @@ export const useRecipeStore = defineStore("recipe", {
         await Promise.allSettled(
           batch.map(async (r) => {
             try {
-              const cached: Recipe | undefined = await get(
-                `recipe:${r.recipe_uuid}`,
-              );
+              const cached = await readRecipeDetail(r.recipe_uuid);
               const isComplete = cached?.ingredients?.some(
                 (i) => i.amounts?.length > 0,
               );
@@ -378,21 +468,8 @@ export const useRecipeStore = defineStore("recipe", {
                 fetched++;
                 return;
               }
-              const detail = await recipeApi.get(r.recipe_uuid);
-              const { first_image_id: _fii2, ...pfData } = (detail.data ??
-                {}) as Record<string, unknown>;
-              const full: Recipe = {
-                recipe_uuid: detail.id,
-                recipe_name: detail.recipe_name,
-                lastUpdated: detail.updated_at,
-                ingredients: [],
-                steps: [],
-                sections: [],
-                tags: detail.tags,
-                ...pfData,
-                first_image_id: detail.first_image_id ?? undefined,
-              };
-              set(`recipe:${full.recipe_uuid}`, full);
+              const full = detailToRecipe(await recipeApi.get(r.recipe_uuid));
+              await writeRecipeDetail(full);
               fetched++;
             } catch {
               // Best-effort — skip on error
@@ -407,20 +484,7 @@ export const useRecipeStore = defineStore("recipe", {
 
     async searchRecipesApi(query: string) {
       const res = await recipeApi.list({ q: query, page_size: 200 });
-      const recipes: Recipe[] = res.items.map((item) => ({
-        recipe_uuid: item.id,
-        recipe_name: item.recipe_name,
-        author: item.author ?? undefined,
-        subtitle: item.subtitle ?? undefined,
-        tags: item.tags,
-        imageurl: item.imageurl ?? undefined,
-        first_image_id: item.first_image_id ?? undefined,
-        lastUpdated: item.updated_at,
-        ingredients: [],
-        steps: [],
-        sections: [],
-      }));
-      return recipes;
+      return res.items.map(listItemToRecipe);
     },
   },
 });
