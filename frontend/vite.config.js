@@ -26,7 +26,7 @@ export default defineConfig({
       resolvers: [BootstrapVueNextResolver()],
     }),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         runtimeCaching: [

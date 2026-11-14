@@ -3,7 +3,7 @@ import { createPinia } from "pinia";
 import App from "./App.vue";
 
 import router from "./router";
-import { registerSW } from "virtual:pwa-register";
+import { setupSwUpdate } from "./js/swUpdate";
 
 // Import Bootstrap and BootstrapVueNext CSS files
 import "bootstrap/dist/css/bootstrap.css";
@@ -15,20 +15,7 @@ const app = createApp(App);
 app.use(router);
 app.use(createPinia());
 
-// --- PWA Auto-Update: reload on next navigation when new SW is ready ---
-let swNeedsReload = false;
-
-registerSW({
-  onNeedRefresh() {
-    swNeedsReload = true;
-  },
-});
-
-router.afterEach(() => {
-  if (swNeedsReload) {
-    window.location.reload();
-  }
-});
+setupSwUpdate(router);
 
 // Global Vue error handler — prevents white screen on render errors
 app.config.errorHandler = (err, instance, info) => {
