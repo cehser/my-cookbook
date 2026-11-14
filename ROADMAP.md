@@ -9,7 +9,7 @@ Erledigt (Archiv): Sprints 0–3, UX-1 bis UX-7, Sprint 9 (Design-System) → [u
 Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.14, W.11 und W.4 parallel, W.12 nach W.4 (Format/SDK-Version), W.13 nach W.12 (gleiche Komponente), danach W.3 + W.19. W.16 nach W.11, W.15 nach W.11–W.13, W.21 nach W.15. W.4 vor dem nächsten Backend-Deploy (Versionen heute ungepinnt). Reihenfolge außerdem: W.4 vor dem Backend-Teil von W.5; W.9 nach W.3 und W.5; W.5 führt die Tests aus W.10 mit aus.
 Erledigt (Archiv): W.1, W.2, W.4, W.6, W.7, W.8, W.11, W.14, W.16, W.17, W.18, W.20 → [roadmap-archiv.md](docs/roadmap-archiv.md)
 
-- [ ] W.3 Instanzspezifische Defaults entfernen (IdP und Client-ID in `config.py`/`public/config.js`, StartURL in `index.html`) · S · Sonnet
+- [ ] W.3 Instanzspezifische Defaults entfernen (IdP und Client-ID in `config.py`/`public/config.js`, StartURL in `index.html`); erster Admin per `ADMIN_EMAIL` (nur mit `email_verified`, wirkt auch auf bestehende User), README „Erster Admin“ · S · Sonnet
 - [ ] W.5 CI mit GitHub Actions: lint:check, typecheck, build, `npm audit --audit-level=high`; Backend nach W.4 · M · Sonnet
 - [ ] W.9 Images per GitHub Actions bauen und nach `ghcr.io` pushen (öffentlich, Tags SHA + `main`), `deploy.sh` auf Pull umstellen · M · Sonnet
 - [ ] W.10 Vitest einführen (`vitest`, `@vue/test-utils`, `happy-dom`), erste Tests für `js/` und `composables/` (Skalierung, Draft/Undo); vorher Mapper aus `recipeStore` nach `js/recipeMapping.ts` und `recipeApi.listAll`, Komponententests `Callback.vue`/`App.vue`; `saveSettings` speichert Kopie statt reaktivem Objekt, Tests für `isEqualPlain`/`deepCopyJSON` · M · Sonnet · [Bericht W.11](docs/tasks/W.11.bericht.md)
