@@ -219,7 +219,6 @@ src/
 │   └── recipe/   # Rezept-Anzeige-Komponenten
 ├── composables/  # Vue Composables (useXxx.ts)
 ├── js/           # Reine Utility-Funktionen (kein Vue)
-├── prompts/      # AI-Prompts
 ├── router/       # Vue Router Config
 ├── store/        # Pinia Stores (useXxxStore.ts)
 ├── types/        # TypeScript Interfaces & Types
@@ -274,24 +273,7 @@ Folgende Packages sind geprüft und dürfen verwendet werden:
 
 ## 9. Git-Konventionen
 
-### 9.1 Commit-Messages
-
-Format: `<type>(<scope>): <description>`
-
-| Type | Verwendung |
-|------|-----------|
-| `feat` | Neues Feature |
-| `fix` | Bugfix |
-| `refactor` | Code-Umbau ohne Funktionsänderung |
-| `chore` | Dependencies, Config, CI |
-| `docs` | Dokumentation |
-| `style` | Formatting, kein Code-Change |
-
-### 9.2 Branch-Strategie
-
-- `main` — Production-ready
-- `feat-*` — Feature-Branches
-- Kein direkter Push auf `main`
+Commit-Format, Bereiche und Branch-Modell stehen in der [CLAUDE.md](../CLAUDE.md) (Abschnitte „Konventionen“ und „Branches“).
 
 ---
 
@@ -303,6 +285,7 @@ Jeder `git commit` durchläuft automatisch lint-staged via husky:
 - **Geänderte `.vue`, `.ts`, `.js` Dateien** werden mit `eslint --fix` geprüft
 - Commit wird blockiert, wenn ESLint-Errors bestehen
 - Warnings werden angezeigt, blockieren aber nicht
+- Danach läuft `vue-tsc --noEmit` über das ganze Frontend
 
 ```bash
 # Hook wird bei `npm install` automatisch eingerichtet (prepare-Script)
@@ -317,7 +300,7 @@ npx vue-tsc --noEmit  # TypeScript-Check
 npm run build         # Build-Verifizierung
 ```
 
-### 10.3 CI-Pipeline (Ziel)
+### 10.3 CI-Pipeline (Ziel, GitHub Actions — Roadmap W.5)
 
 Jeder Push sollte automatisch folgende Checks durchlaufen:
 1. `npm run lint` (kein `--fix`, nur prüfen)

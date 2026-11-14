@@ -30,8 +30,9 @@ Ein persönliches Kochbuch als Progressive Web App — selbst gehostet, offline-
 my-cookbook/
 ├── .env                  # Zentrale Konfiguration (nicht eingecheckt)
 ├── .env.example          # Vorlage für .env
-├── docker-compose.yml    # Production-Setup (Frontend + Backend + DB)
+├── docker-compose.yml.example  # Vorlage Production-Setup (Kopie nicht eingecheckt)
 ├── scripts/
+│   ├── deploy.sh         # Build mit Commit-Hash + Start
 │   └── backup.sh         # DB-Backup mit Rotation
 ├── frontend/             # Vue 3 SPA
 │   ├── Dockerfile        # Multi-Stage: Node Build → nginx
@@ -58,6 +59,7 @@ cd my-cookbook
 
 ```bash
 cp .env.example .env
+cp docker-compose.yml.example docker-compose.yml
 ```
 
 Die `.env`-Datei bearbeiten:
@@ -82,18 +84,16 @@ CORS_ORIGINS=["https://cookbook.example.com"]
 ### 3. Starten
 
 ```bash
-docker compose up -d
+./scripts/deploy.sh
 ```
+
+Das Skript übergibt den aktuellen Commit-Hash an den Frontend-Build (Anzeige im Profil) und startet per `docker compose up -d`.
 
 Die App ist unter `http://localhost:8080` erreichbar. In Production einen Reverse-Proxy mit HTTPS davor schalten.
 
 ### 4. Datenbank-Migrationen
 
-Beim ersten Start oder nach Updates:
-
-```bash
-docker compose exec backend alembic upgrade head
-```
+Das Backend führt ausstehende Alembic-Migrationen beim Start automatisch aus (`alembic upgrade head`). Schlägt eine Migration fehl, startet das Backend nicht; Ursache im Log (`docker compose logs backend`).
 
 ## Lokale Entwicklung
 
@@ -146,14 +146,22 @@ Das Backend stellt eine REST-API unter `/api` bereit:
 | Bereich | Endpunkte | Auth |
 |---------|-----------|------|
 | Health | `GET /health` | Nein |
-| Rezepte | `GET/POST /v1/recipes`, `GET/PUT/DELETE /v1/recipes/{id}` | Editor+ |
-| Bilder | `POST /v1/recipes/{id}/images`, `GET /v1/images/{id}` | Editor+ / Öffentlich |
+| Rezepte | `GET /v1/recipes`, `GET /v1/recipes/{id}` | Readonly+ |
+| | `POST /v1/recipes`, `PUT /v1/recipes/{id}`, `POST /v1/recipes/{id}/tags` | Editor+ |
+| | `DELETE /v1/recipes/{id}` | Admin |
+| Bilder | `GET /v1/recipes/{id}/images` | Readonly+ |
+| | `POST /v1/recipes/{id}/images`, `DELETE /v1/recipes/{id}/images/{image_id}` | Editor+ |
+| | `GET /v1/images/{id}`, `GET /v1/images/{id}/thumbnail` | Öffentlich |
 | AI-Import | `POST /v1/ai/import`, `POST /v1/ai/import/image` | Editor+ |
-| Favoriten | `GET/POST/DELETE /v1/favorites` | Readonly+ |
+| Favoriten | `GET /v1/favorites`, `POST/DELETE /v1/favorites/{recipe_id}` | Readonly+ |
 | Tags | `GET /v1/tags` | Readonly+ |
-| Share-Links | `POST /v1/recipes/{id}/share`, `GET /v1/shared/{token}` | Editor+ / Öffentlich |
-| User | `GET /v1/me`, `PUT /v1/me/settings` | Auth |
+| Share-Links | `GET /v1/shares/config`, `GET /v1/recipes/{id}/shares` | Readonly+ |
+| | `POST /v1/recipes/{id}/share`, `DELETE /v1/shares/{id}` | Editor+ |
+| | `GET /v1/shared/{token}` | Öffentlich |
+| User | `GET /v1/me`, `GET/PUT /v1/me/settings` | Angemeldet (auch `pending`) |
 | Admin | `GET /v1/admin/users`, `PUT /v1/admin/users/{id}/role` | Admin |
+| | `GET/PUT /v1/admin/settings`, `GET /v1/admin/shares`, `DELETE /v1/admin/shares/{id}` | Admin |
+| | `POST /v1/admin/migrate-images`, `/cleanup-images`, `/strip-image-ids` (Wartung) | Admin |
 
 ## Backup & Restore
 

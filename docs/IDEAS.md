@@ -1,6 +1,10 @@
 # Ideensammlung – Weiterentwicklung
 
+> Stand 2026-11-14: Idee 1 steht als S.1, Idee 2 als S.2 in der [Roadmap](../ROADMAP.md).
+
 ## 1. Rezept-Tracking: Beliebt & Zuletzt geöffnet
+
+> **Teilweise umgesetzt:** „Zuletzt geöffnet“ gibt es clientseitig (localStorage, `useRecentRecipes`, Sektion in HomeView), also je Gerät statt je User. Offen: serverseitige Erfassung und „Beliebt“.
 
 **Idee:** Das System erfasst, wann ein User ein Rezept öffnet. Daraus ergeben sich zwei Features:
 
@@ -23,6 +27,8 @@
 ---
 
 ## 2. Dashboard statt Galerie
+
+> **Teilweise umgesetzt (UX-2, 04/2026):** HomeView ersetzt die Galerie und enthält „Zuletzt geöffnet“, „Entwürfe“ und „Alle Rezepte“; Favoriten haben einen eigenen Tab. Offen: „Beliebt“, „Zuletzt hinzugefügt“, saisonale Vorschläge.
 
 **Idee:** Die aktuelle Galerie-Ansicht wird durch ein Dashboard ersetzt (oder ergänzt), das verschiedene Sektionen bietet:
 

@@ -1,6 +1,8 @@
-# UI-Roadmap - my-cookbook
+# UI-Roadmap - my-cookbook (Archiv)
 
 > **Letzte Aktualisierung:** 11. April 2026
+>
+> **Archiv:** Abgelöst durch [ROADMAP.md](../../ROADMAP.md) (2026-11-14). Offene Sprints 5–7 dort als `5.1`, `6.1`, `7.1`. Dieses Dokument bleibt als Hintergrund für Konzept und Entscheidungen.
 
 ---
 
@@ -291,7 +293,7 @@ Ersetzt durch serverseitige Share-Links (Backend Sprint B5):
 
 #### Sprint UX: UX-Konzept erarbeiten
 **Ziel:** Stimmiges Gesamtkonzept für Navigation, Startseite und Informationsarchitektur — bevor einzelne Features isoliert umgesetzt werden.
-**Priorität:** 🔴 Kritisch (Blocker für Sprint 4–7) | **Status:** 📋 Nächster Schritt
+**Priorität:** 🔴 Kritisch (Blocker für Sprint 4–7) | **Status:** ✅ Bestätigt (04/2026)
 
 **Hintergrund:** Mehrere geplante Features greifen ineinander und beeinflussen dieselben UI-Bereiche (Navbar, Galerie, Router). Ohne ein abgestimmtes Konzept entstehen Inkonsistenzen.
 
@@ -602,6 +604,3 @@ Alle Fragen sind durch das "Immersive + Bottom Nav"-Konzept beantwortet:
 
 **Hinweis:** Frontend-Code liegt seit B6 unter `frontend/` (nicht mehr im Root). Alle `src/`-Pfade in dieser Roadmap beziehen sich auf `frontend/src/`.
 
----
-
-*Siehe `PLANNING-NOTES.md` für Hintergründe und verworfene Ideen.*
