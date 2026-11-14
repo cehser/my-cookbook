@@ -1,13 +1,13 @@
 /**
  * API Client with automatic Bearer token injection.
  *
- * On 401 responses, attempts a silent token renewal and retries once
- * before throwing — prevents unnecessary full-page redirects when the
- * access token just expired between the client-side check and the
- * server-side validation.
+ * The token is renewed before the request if it has expired (shared with all
+ * other callers, see auth/oidc.ts). On 401 responses, attempts one renewal
+ * and retries once before throwing — covers tokens that expired between the
+ * client-side check and the server-side validation.
  */
 
-import { getAccessToken, refreshToken } from "@/auth/oidc";
+import { getAccessToken, renewAfterUnauthorized } from "@/auth/oidc";
 
 const API_BASE = "/api/v1";
 
@@ -23,8 +23,9 @@ async function apiFetch<T>(
   const { skipAuth, ...fetchOptions } = options;
   const headers = new Headers(fetchOptions.headers);
 
+  let token: string | null = null;
   if (!skipAuth) {
-    const token = await getAccessToken();
+    token = await getAccessToken();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
     }
@@ -43,9 +44,10 @@ async function apiFetch<T>(
     headers,
   });
 
-  // On 401: try silent token renewal once, then retry
-  if (response.status === 401 && !skipAuth && !_isRetry) {
-    const newToken = await refreshToken();
+  // On 401: try token renewal once, then retry. Without a token the renewal
+  // has already failed in getAccessToken(), so don't try again.
+  if (response.status === 401 && token && !_isRetry) {
+    const newToken = await renewAfterUnauthorized(token);
     if (newToken) {
       return apiFetch<T>(path, options, true);
     }
