@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
@@ -17,11 +17,11 @@ from app.database import get_db
 from app.models.image import RecipeImage
 from app.models.recipe import Recipe
 from app.models.site_settings import SiteSettings
-from app.models.tag import RecipeShare, Tag, RecipeTag
+from app.models.tag import RecipeShare, RecipeTag, Tag
 from app.models.user import AppUser
 
-
 # --- Schemas ---
+
 
 class ShareCreateRequest(BaseModel):
     expires_in_days: int | None = None
@@ -54,6 +54,7 @@ class SharedRecipeResponse(BaseModel):
 
 # --- Helpers ---
 
+
 async def _get_max_share_days(db: AsyncSession) -> int:
     """Return the max share days from site settings (default 30)."""
     result = await db.execute(select(SiteSettings).where(SiteSettings.id == 1))
@@ -72,6 +73,7 @@ public_router = APIRouter(prefix="/v1", tags=["public-shares"])
 # ---------------------------------------------------------------------------
 # Authenticated endpoints (require editor+)
 # ---------------------------------------------------------------------------
+
 
 @router.get("/shares/config", response_model=ShareConfigResponse)
 async def get_share_config(
@@ -109,7 +111,7 @@ async def create_share_link(
             detail=f"Laufzeit muss zwischen 1 und {max_days} Tagen liegen",
         )
 
-    expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
+    expires_at = datetime.now(UTC) + timedelta(days=expires_in_days)
 
     share = RecipeShare(
         recipe_id=recipe_id,
@@ -130,7 +132,7 @@ async def list_share_links(
     db: AsyncSession = Depends(get_db),
 ):
     """List all active share links for a recipe."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     result = await db.execute(
         select(RecipeShare)
         .where(
@@ -165,6 +167,7 @@ async def revoke_share_link(
 # Public endpoints (no auth required)
 # ---------------------------------------------------------------------------
 
+
 async def _get_active_share(token: str, db: AsyncSession) -> RecipeShare:
     """Resolve token to active, non-expired share or raise 404."""
     result = await db.execute(
@@ -177,7 +180,7 @@ async def _get_active_share(token: str, db: AsyncSession) -> RecipeShare:
     if share is None:
         raise HTTPException(status_code=404, detail="Link ungültig oder abgelaufen")
     # Check expiry
-    if share.expires_at and share.expires_at < datetime.now(timezone.utc):
+    if share.expires_at and share.expires_at < datetime.now(UTC):
         raise HTTPException(status_code=410, detail="Dieser Share-Link ist abgelaufen")
     return share
 
@@ -197,7 +200,6 @@ async def get_shared_recipe(
         raise HTTPException(status_code=404, detail="Rezept nicht mehr vorhanden")
 
     # Load tags
-    from app.models.tag import Tag, RecipeTag
     tag_result = await db.execute(
         select(Tag.name)
         .join(RecipeTag, RecipeTag.tag_id == Tag.id)

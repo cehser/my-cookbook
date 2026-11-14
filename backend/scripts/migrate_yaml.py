@@ -13,7 +13,7 @@ import argparse
 import asyncio
 import sys
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -23,18 +23,18 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 # Ensure the app package is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.database import async_session                       # noqa: E402
-from app.models.recipe import Recipe                         # noqa: E402
+from app.database import async_session  # noqa: E402
 from app.models import Base  # ensure all models imported    # noqa: E402
+from app.models.recipe import Recipe  # noqa: E402
 
 
 def parse_last_updated(raw: str | datetime | None) -> datetime:
     """Parse lastUpdated from YAML (ISO string or datetime)."""
     if raw is None:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
     if isinstance(raw, datetime):
         if raw.tzinfo is None:
-            return raw.replace(tzinfo=timezone.utc)
+            return raw.replace(tzinfo=UTC)
         return raw
     # ISO-8601 string
     s = str(raw).replace("Z", "+00:00")
@@ -58,7 +58,7 @@ async def migrate(yaml_path: str, owner_sub: str | None = None) -> None:
         print(f"ERROR: File not found: {path}")
         sys.exit(1)
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         recipes = yaml.safe_load(f)
 
     if not isinstance(recipes, list):
@@ -101,13 +101,15 @@ async def migrate(yaml_path: str, owner_sub: str | None = None) -> None:
         await session.commit()
 
         # Refresh search vectors for newly inserted rows
-        await session.execute(text("""
+        await session.execute(
+            text("""
             UPDATE recipes SET search_vector =
                 setweight(to_tsvector('german', coalesce(recipe_name, '')), 'A') ||
                 setweight(to_tsvector('german', coalesce(data->>'author', '')), 'B') ||
                 setweight(to_tsvector('german', coalesce(data->>'notes', '')), 'C')
             WHERE search_vector IS NULL
-        """))
+        """)
+        )
         await session.commit()
 
     print(f"\nDone: {inserted} inserted, {skipped} skipped (already existed).")

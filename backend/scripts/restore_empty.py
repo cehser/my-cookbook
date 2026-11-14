@@ -18,9 +18,8 @@ from sqlalchemy import select, update
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.database import async_session  # noqa: E402
-from app.models.recipe import Recipe     # noqa: E402
-from app.models import Base              # noqa: E402
-
+from app.models import Base  # noqa: E402
+from app.models.recipe import Recipe  # noqa: E402
 
 TOP_LEVEL_COLS = {"recipe_uuid", "recipe_name", "lastUpdated"}
 
@@ -35,7 +34,7 @@ async def restore(yaml_path: str) -> None:
         print(f"ERROR: File not found: {path}")
         sys.exit(1)
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         recipes = yaml.safe_load(f)
 
     if not isinstance(recipes, list):
@@ -50,9 +49,7 @@ async def restore(yaml_path: str) -> None:
 
     async with async_session() as session:
         # Find recipes with empty ingredients
-        result = await session.execute(
-            select(Recipe.id, Recipe.recipe_name, Recipe.data)
-        )
+        result = await session.execute(select(Recipe.id, Recipe.recipe_name, Recipe.data))
         rows = result.all()
 
         restored = 0
@@ -69,9 +66,7 @@ async def restore(yaml_path: str) -> None:
 
             new_data = build_data_blob(yaml_lookup[recipe_id])
             await session.execute(
-                update(Recipe)
-                .where(Recipe.id == recipe_id)
-                .values(data=new_data)
+                update(Recipe).where(Recipe.id == recipe_id).values(data=new_data)
             )
             restored += 1
             print(f"  ✓ {name} ({recipe_id}) — restored")

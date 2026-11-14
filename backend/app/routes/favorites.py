@@ -21,9 +21,7 @@ async def list_favorites(
     db: AsyncSession = Depends(get_db),
 ):
     """Return list of recipe UUIDs the current user has favorited."""
-    result = await db.execute(
-        select(Favorite.recipe_id).where(Favorite.user_id == user.oidc_sub)
-    )
+    result = await db.execute(select(Favorite.recipe_id).where(Favorite.user_id == user.oidc_sub))
     return [str(row) for row in result.scalars().all()]
 
 
