@@ -18,7 +18,7 @@ Erledigt (Archiv): W.1, W.2, W.4, W.6, W.7, W.8, W.11, W.14, W.16, W.17, W.18, W
 - [ ] W.15 Frontend-Majors: bootstrap-vue-next 1.x, vite-plugin-pwa 2 (Override entfernen), pinia 4, vueuse 15, js-yaml 5, lint-staged 17; TypeScript auf 6.0 (`~6.0.3`), TS 7 als Ausnahme bis `vue-tsc` und `typescript-eslint` es unterstützen; `eslint` als direkte devDependency; `tsconfig` `target`/`lib` auf ES2022 · M–L · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
 - [~] W.19 Apple-Touch-Icon und PNG-Favicons · XS · Sonnet · [Auftrag](docs/tasks/W.3-instanz-defaults.md)
 - [ ] W.21 PostgreSQL 16 → 18: Dump/Restore, Probelauf mit Kopie der Produktivdaten, Checkpoint vor dem Live-Schritt · M · Opus · nach W.15
-- [ ] W.22 Service-Worker-Update steuern: kein sofortiges Neuladen mitten in der Sitzung, Update-Prüfung beim Vordergrundwechsel, toten Code in `main.ts` entfernen · S · Sonnet
+- [~] W.22 Service-Worker-Update steuern · S · Sonnet · [Auftrag](docs/tasks/W.22-sw-update.md)
 - [ ] W.23 Auth-Feinschliff: Login-Entscheidung zentral in `session.ts`, `userManager` als eigenes Modul (löst Import-Zyklus); damit Login bei offline → online, Cache-Kurzschluss für `requireRole`, keine doppelte Erneuerung beim Resume, Hinweis statt leerem Bildschirm; Web Locks und Backoff, `silent-renew.html` entfernen; Unit-Tests für `session.ts` · S–M · Opus · nach W.12 und W.10 · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w23-auth-feinschliff)
 
 ## 5 — Einkaufsliste-Export
