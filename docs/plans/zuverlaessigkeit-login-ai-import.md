@@ -83,3 +83,25 @@ Native Kamera statt `getUserMedia`: ein Tab „Foto aufnehmen oder wählen“ mi
 
 ### Abnahme
 Auf iPhone und iPad als installierte PWA: Foto aufnehmen und aus der Mediathek wählen, jeweils Rezept erkennen; Modal mehrfach öffnen und schließen ohne Fehler.
+
+## W.23 Auth-Feinschliff
+
+Stand nach W.11 (2026-11-14): `session.ts` (Erneuerung, Auth-Zustand) und `oidc.ts` (Setup, Redirects, Logout) sind sauber getrennt; der Redirect läuft nur über `requestLogin`.
+
+### Ursache der Restlücken
+Die **Entscheidung**, ob ein Login ausgelöst wird, ist verteilt: `requireAuth` (2×), `requireRole`, `onSessionRejected` im Router, `checkSessionOnResume`, `Callback.vue`, `handleCallback`. Jede Stelle prüft „online“ etwas anders, das `online`-Ereignis löst gar nichts aus. Daraus folgen:
+- kein Login bei offline → online ohne Sitzung
+- `requireRole` ohne Cache-Kurzschluss, anderer Ablauf als `requireAuth`
+- doppelte Erneuerung beim Resume
+- leerer Bildschirm ohne Cache bei hängendem IdP
+
+Der Import-Zyklus `oidc.ts` ⇄ `session.ts` entsteht nur, weil `session.ts` `userManager`, `isLogoutInProgress` und `requestLoginForCurrentRoute` braucht.
+
+### Richtung
+1. `userManager` in ein eigenes Modul (`auth/userManager.ts`), damit löst sich der Zyklus.
+2. Login-Entscheidung zentral in `session.ts`: ein Einstieg je Auslöser (Navigation, Resume, online, rejected, Callback); Guards, Router und App rufen nur diesen auf. „online“ wird an genau einer Stelle geprüft.
+3. Der Auftrag enthält die Zustandstabelle (Auth-Zustand × Auslöser × Cache vorhanden → Verhalten); die Unit-Tests für `session.ts` prüfen sie.
+4. Dazu: Web Locks für mehrere Tabs und Backoff, `silent-renew.html`/`silent_redirect_uri` entfernen, Kompatibilitäts-Export `getAccessToken` aus `oidc.ts` entfernen.
+
+### Nicht-Scope
+- `recipeStore.ts`-Mapper (W.10), `App.vue` ohne Bezug zum Login
