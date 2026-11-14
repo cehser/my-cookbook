@@ -73,3 +73,19 @@ Im bestehenden Worktree auf Branch `worktree-W.11-login-laden`. Zuerst `git merg
 Nicht in der Nacharbeit: Sortier-Tie-Breaker im Backend (W.20), Service-Worker-Update (C2), `silent-renew.html`, Web Locks.
 
 Abnahme Nacharbeit: Verifikation gemäß Projekt-CLAUDE.md auf Stand nach `git merge main`; Auth-Simulation um N1 (5xx mit `server_error` → `offline`, `invalid_grant` → `rejected`) und N3 erweitert; Testszenarien im Bericht um „Rolle pending“ und „schlechtes Netz“ ergänzt. Bericht `W.11.bericht.md` fortschreiben.
+
+## Nacharbeit 2 (2026-11-14, aus der Abnahme der Nacharbeit)
+
+Im selben Worktree. Zuerst `git merge main`. N1–N4 sind im Kern richtig. Offen:
+
+- **N6 Refresh ohne Timeout (Fehler):** `userManager.signinSilent()` ohne Argument reicht `timeoutInSeconds: undefined` durch, das in `_useRefreshToken` den Settings-Default per Spread überschreibt (`oidc-client-ts.js:3121`, `:3160`) → `fetchWithTimeout` ohne Timeout. Bei hängender Verbindung blockiert der Guard die Erstnavigation, `getAccessToken()` liegt außerhalb des API-Timeouts. Fix: `signinSilent({ silentRequestTimeoutInSeconds: 10 })`. Prüfen, ob `requireAuth` bei vorhandenem Cache die Navigation freigeben kann, statt auf die Erneuerung zu warten.
+- **N7 Callback-Sackgasse (Fehler):** Bei Fehler in `Callback.vue` → `router.replace("/")` → Guard `rejected` → `requestLogin` unterdrückt, weil `location.pathname` noch `/callback` ist → Spinner bleibt dauerhaft. Fix: `requestLogin` prüft das Ziel, nicht `location.pathname`; `Callback.vue` zeigt im Fehlerfall Meldung und Button „Erneut anmelden“; automatische Wiederholungen per `sessionStorage`-Zähler begrenzen.
+- **N8 Vordergrund-Prüfung wirkt nicht:** `App.vue` verwirft das Ergebnis von `ensureAuth()`. Fix: bei `rejected` und online die zentrale Login-Stelle auslösen.
+- **N9 Login-Redirect robust:** `loginStarted` bei `pageshow` mit `persisted` zurücksetzen (bfcache nach Zurück vom IdP). Im `onSessionRejected`-Listener nicht überspringen, solange ein Guard läuft, sondern auf `loginStarted` verlassen. Während `logout()` läuft, `requestLogin` unterdrücken (Rennen Widerruf ↔ Erneuerung).
+- **N10 Client-Fehler präzisieren:** 408 und 429 sind kein verbindlicher Client-Fehler, sondern Ausfall (Cache). `loadSettings` bei 4xx konsistent zu Rezepten/Favoriten.
+- **N11 Toter Code:** `searchRecipesApi` hat keinen Aufrufer (auch auf `main` nicht) → entfernen statt paginieren.
+- **N12 Schnitt (eigener Commit, reine Verschiebung, zuletzt):** `auth/oidc.ts` teilen: `auth/session.ts` für `AuthState`, Klassifikation, Single-Flight-Erneuerung, `ensureAuth`, `getAccessToken`, `renewAfterUnauthorized`, `onSessionRejected`; in `oidc.ts` bleiben UserManager-Setup, `requestLogin`, `handleCallback`, `logout`, `getUser`.
+
+Nicht in Nacharbeit 2 (im Bericht als bekannt vermerken): `invalid_scope`/Validierungsfehler nach Refresh gelten als `offline`; 401 auf frisch erneuerten Token hält die Quelle auf „cache“; Store-Schnitt (`recipeApi.listAll`, Mapper-Modul).
+
+Abnahme Nacharbeit 2: Verifikation gemäß Projekt-CLAUDE.md; Auth-Simulation um N6 (hängender Token-Endpunkt → `offline` nach ≤ 10 s, Guard gibt frei), N7 (Callback-Fehler → kein Endlos-Spinner, begrenzte Wiederholung), N8, N9 (bfcache, Logout-Rennen), N10 erweitert; Testszenarien im Bericht um „Callback-Fehler“ ergänzt; Bericht fortschreiben.

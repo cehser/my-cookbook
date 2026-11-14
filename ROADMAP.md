@@ -14,7 +14,7 @@ Erledigt (Archiv): W.2, W.4, W.6, W.7, W.8, W.14 → [roadmap-archiv.md](docs/ro
 - [ ] W.5 CI mit GitHub Actions: lint:check, typecheck, build, `npm audit --audit-level=high`; Backend nach W.4 · M · Sonnet
 - [ ] W.9 Images per GitHub Actions bauen und nach `ghcr.io` pushen (öffentlich, Tags SHA + `main`), `deploy.sh` auf Pull umstellen · M · Sonnet
 - [ ] W.10 Vitest einführen (`vitest`, `@vue/test-utils`, `happy-dom`), erste Tests für `js/` und `composables/` (Skalierung, Draft/Undo) · M · Sonnet
-- [~] W.11 Rezepte nach Login und Token-Ablauf zuverlässig laden · M–L · Opus · 2026-11-14 · `4d88a9d` · Rest: Nacharbeit N1–N5 · [Auftrag](docs/tasks/W.11-login-laden.md)
+- [~] W.11 Rezepte nach Login und Token-Ablauf zuverlässig laden · M–L · Opus · 2026-11-14 · `4d88a9d` · Rest: Nacharbeit 2 (N6–N12) · [Auftrag](docs/tasks/W.11-login-laden.md)
 - [ ] W.12 AI-Import robust: Timeouts, 401-Retry, Fehlermeldungen, YAML-Parsing, Upload-Grenzen, Modell-IDs, Entscheidung Structured Outputs statt YAML · M · Sonnet · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w12-ai-import-robust)
 - [ ] W.13 Foto im AI-Import über native Kamera/Fotoauswahl statt `getUserMedia`, Bilder clientseitig verkleinern · S–M · Sonnet · nach W.12 · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w13-foto-aufnahme-im-ai-import)
 - [ ] W.15 Frontend-Majors: bootstrap-vue-next 1.x, vite-plugin-pwa 2 (Override und `--legacy-peer-deps` entfernen), pinia 4, vueuse 15, js-yaml 5, lint-staged 17; TypeScript auf 6.0 (`~6.0.3`), TS 7 als Ausnahme bis `vue-tsc` und `typescript-eslint` es unterstützen; `eslint` als direkte devDependency · M–L · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
