@@ -10,7 +10,7 @@ Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Zuerst W.1
 Erledigt (Archiv): W.1, W.2, W.4, W.6, W.7, W.8, W.11, W.14, W.16, W.17, W.18, W.20 → [roadmap-archiv.md](docs/roadmap-archiv.md)
 
 - [~] W.3 Instanz-Defaults entfernen, erster Admin per `ADMIN_EMAIL`, Login-Race · S · Sonnet · [Auftrag](docs/tasks/W.3-instanz-defaults.md)
-- [ ] W.5 CI mit GitHub Actions: lint:check, typecheck, build, `npm audit --audit-level=high`, Backend-Prüfung; `--legacy-peer-deps` aus dem Frontend-Dockerfile entfernen · M · Sonnet
+- [~] W.5 CI mit GitHub Actions, Migrations-Test gegen PostgreSQL, `--legacy-peer-deps` entfernen · M · Sonnet · [Auftrag](docs/tasks/W.5-ci.md)
 - [ ] W.9 Images per GitHub Actions bauen und nach `ghcr.io` pushen (öffentlich, Tags SHA + `main`), `deploy.sh` auf Pull umstellen · M · Sonnet
 - [ ] W.10 Vitest einführen (`vitest`, `@vue/test-utils`, `happy-dom`), erste Tests für `js/` und `composables/` (Skalierung, Draft/Undo); vorher Mapper aus `recipeStore` nach `js/recipeMapping.ts` und `recipeApi.listAll`, Komponententests `Callback.vue`/`App.vue`; `saveSettings` speichert Kopie statt reaktivem Objekt, Tests für `isEqualPlain`/`deepCopyJSON` · M · Sonnet · [Bericht W.11](docs/tasks/W.11.bericht.md)
 - [~] W.12 AI-Import robust, Modell als Admin-Einstellung · M–L · Sonnet · [Auftrag](docs/tasks/W.12-ai-import-robust.md) · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w12-ai-import-robust)
