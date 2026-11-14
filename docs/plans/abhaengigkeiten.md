@@ -43,3 +43,5 @@ Bleiben: `idb-keyval`, `oidc-client-ts`, `sortablejs`, `js-yaml` (YAML-Import/-E
 | `fastapi` | 0.135 | 0.162.7 |
 
 `PyYAML` wird nur von den Migrationsskripten genutzt und entfällt mit W.8.
+
+Entscheidung (2026-11-14): Lock-Basis ist die neueste Version je bisheriger Major-Linie (z. B. `openai<3`, `Pillow<13`, `sqlalchemy<2.1`); die Live-Versionen aus dem Container werden nicht erhoben. Danach je Major ein eigener Commit mit Smoke-Test.

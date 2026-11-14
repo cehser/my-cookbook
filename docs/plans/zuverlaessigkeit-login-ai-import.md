@@ -30,6 +30,7 @@ Nicht reproduziert. Die Befunde unten stammen aus dem Lesen des Codes (2026-11-1
 - IndexedDB nur bei echtem Offline oder API-Ausfall, in der Oberfläche als „Offline-Daten“ markiert, Nachladen sobald möglich.
 - Ohne Netz: IndexedDB. Anmeldung abgelehnt: Login.
 - Verhalten von oidc-client-ts (`signinSilent` mit Refresh-Token, parallele Aufrufe, `monitorSession`) gegen dessen Doku prüfen.
+- Datenzugriff (API und IndexedDB) in einer Zugriffsschicht bündeln statt verstreuter `get`/`set`-Aufrufe, damit die spätere Offline-Bearbeitung (Roadmap 12) andocken kann. Offline-Schreiben selbst ist nicht Teil von W.11.
 
 ### Checkpoint
 Vor der Entscheidung zu T4 braucht es die Keycloak-Werte (liefert der Nutzer nach): Access Token Lifespan, Revoke Refresh Token, SSO Session Idle/Max, Offline Session Idle/Max. T1–T3 und T5 hängen nicht davon ab. Fehlen die Werte bis zum Merge, wird T4 als eigener Punkt abgespalten.
@@ -53,6 +54,9 @@ Belege aus dem Betrieb (vom Nutzer, nur lesend):
 docker compose logs backend --since 72h | grep -i -E "error|exception|openai|timeout"
 docker compose logs frontend --since 72h | grep -E '" (413|499|502|504) '
 ```
+
+### Entscheidung im Auftrag: Structured Outputs statt YAML
+Heute verlangt der Prompt YAML in einem Markdown-Block, das Frontend sucht es per Regex heraus (A4). Alternative: OpenAI Structured Outputs mit JSON-Schema des Rezepts; das Backend validiert und liefert JSON. Prüfen: Verfügbarkeit zusammen mit der Websuche (Responses API) und mit den eingesetzten Modellen (unbestätigt), Anpassung von `system_prompt.md`. Ergebnis als Checkpoint vorlegen, bevor umgebaut wird. `js-yaml` bleibt für YAML-Import/-Export.
 
 ## W.13 Foto-Aufnahme im AI-Import
 
