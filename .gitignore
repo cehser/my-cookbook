@@ -31,3 +31,8 @@ backup_pre_d1.sql
 cookbook.dump
 *.tar.gz
 *.dump
+
+# Claude Code
+.claude/worktrees/
+.claude/settings.local.json
+.claude/eingang/
