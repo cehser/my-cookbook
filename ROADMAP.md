@@ -22,6 +22,7 @@ Erledigt (Archiv): W.2, W.4, W.6, W.7, W.8, W.14 → [roadmap-archiv.md](docs/ro
 - [ ] W.17 `backup.sh`: Fehler von `pg_dump` erkennen (pipefail o. ä.), leere Dumps nicht rotieren lassen · XS · Sonnet
 - [ ] W.18 PyYAML aus den Backend-Abhängigkeiten entfernen · XS · Sonnet · nach W.4
 - [ ] W.19 Apple-Touch-Icon und PNG-Favicons in `index.html` einbinden (iOS-Homescreen) · XS · Sonnet · mit W.3
+- [ ] W.20 Backend-Aufräumen nach W.4: `root_path` → `uvicorn --root-path`, Logging der Migration, B904, `scripts/*`-Ausnahme in ruff, xfail gezielt auf `GET /v1/tags`, apt-Dev-Pakete im Image prüfen · S–M · Sonnet · mit W.1 + W.18 · [Bericht W.4](docs/tasks/W.4.bericht.md)
 
 ## 5 — Einkaufsliste-Export
 Zutaten eines Rezepts als Einkaufsliste per Clipboard und Native Share. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-5-einkaufsliste-export-1-2-tage--quick-win)
