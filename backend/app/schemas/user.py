@@ -40,9 +40,8 @@ class UserSettings(BaseModel):
 
     read_only: bool = True
     expert_mode: bool = False
-    gpt_model: str = "gpt-4o-mini"
-
-    model_config = {"extra": "forbid"}
+    # Alte Clients (PWA-Cache) senden noch gpt_model: ignorieren statt 422.
+    model_config = {"extra": "ignore"}
 
 
 class UserSettingsResponse(BaseModel):
@@ -50,7 +49,6 @@ class UserSettingsResponse(BaseModel):
 
     read_only: bool
     expert_mode: bool
-    gpt_model: str
     role: str
 
     model_config = {"from_attributes": True}
