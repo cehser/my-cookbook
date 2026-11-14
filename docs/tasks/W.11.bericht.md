@@ -52,7 +52,7 @@ Konsole bzw. Web-Inspector: Jede Erneuerung erzeugt die Meldung `[Auth] Token-Er
 5. **Laufender Betrieb über die Token-Laufzeit hinaus** (App offen lassen): Erwartung: etwa 60 s vor Ablauf genau eine Erneuerung, kein Neuladen der Rezeptliste.
 
 ## Struktur und Doku
-- **Gewachsene Dateien:** `store/recipeStore.ts` hat jetzt 463 Zeilen (vorher 426). Gründe sind `loadAll`/`reloadIfStale`/`loadAllOnce`, Paginierung und Mapper. Die Mapper `listItemToRecipe` und `detailToRecipe` ersetzen drei vorhandene Kopien desselben Codes. `auth/oidc.ts` hat 199 Zeilen (vorher 126).
+- **Gewachsene Dateien:** `store/recipeStore.ts` hat jetzt 490 Zeilen (vorher 426). Gründe sind `loadAll`/`reloadIfStale`/`loadAllOnce`, Paginierung und Mapper. Die Mapper `listItemToRecipe` und `detailToRecipe` ersetzen drei vorhandene Kopien desselben Codes. `auth/oidc.ts` hat 198 Zeilen (vorher 126).
 - **Neues Modul:** `frontend/src/js/offlineCache.ts`
 - **Bewusste Duplikate:** keine
 - **CLAUDE.md, `.claude/rules/frontend.md`:** stimmen noch. Hinweis: Die Rule beschreibt `autoUpdate` korrekt, sagt aber nichts zum sofortigen Neuladen (siehe Folgepunkt C2).
