@@ -211,7 +211,8 @@ async def upload_image(
         thumb_path.unlink(missing_ok=True)
         optimised_path.unlink(missing_ok=True)
         log.exception("Image processing failed for recipe %s", recipe_id)
-        raise HTTPException(
+        # B904 offen gelassen: Ursache ist geloggt, "from err" wäre eine Verhaltensänderung
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Bildverarbeitung fehlgeschlagen. Bitte ein anderes Format versuchen.",
         )

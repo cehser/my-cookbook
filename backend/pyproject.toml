@@ -67,3 +67,5 @@ extend-immutable-calls = [
 [tool.ruff.lint.per-file-ignores]
 # Migrationsskripte entfallen mit W.8; "from app.models import Base" lädt bewusst alle Modelle
 "scripts/*" = ["F401"]
+# Migrationen sind Historie und werden nicht mehr geändert (lange SQL-Zeilen)
+"alembic/versions/*" = ["E501"]
