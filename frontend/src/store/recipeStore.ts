@@ -38,7 +38,6 @@ export type DataSource = "none" | "api" | "cache";
 const default_settings: Settings = {
   read_only: true,
   expert_mode: false,
-  gpt_model: "gpt-4o-mini",
   role: "readonly",
 };
 
@@ -215,7 +214,6 @@ export const useRecipeStore = defineStore("recipe", {
           const updated = await api.put<Settings>("/me/settings", {
             read_only: settings.read_only,
             expert_mode: settings.expert_mode,
-            gpt_model: settings.gpt_model,
           });
           this.settings = updated;
           void writeSettings(updated);

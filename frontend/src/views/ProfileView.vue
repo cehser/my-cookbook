@@ -156,33 +156,6 @@ async function handleLogout() {
         </div>
       </div>
 
-      <!-- AI Model -->
-      <h6 class="section-label">AI-Integration</h6>
-
-      <div class="settings-card mb-3">
-        <label for="gpt_model" class="form-label mb-1">GPT-Modell</label>
-        <input
-          id="gpt_model"
-          v-model="settings.gpt_model"
-          list="gpt-model-options"
-          autocomplete="off"
-          placeholder="z.B. gpt-5.4-mini"
-          class="form-control form-control-sm"
-          @input="userEdited = true"
-        />
-        <datalist id="gpt-model-options">
-          <option value="gpt-5.4-nano">GPT-5.4 nano</option>
-          <option value="gpt-5.4-mini">GPT-5.4 mini</option>
-          <option value="gpt-5.4">GPT-5.4</option>
-          <option value="gpt-5-nano">GPT-5 nano</option>
-          <option value="gpt-5-mini">GPT-5 mini</option>
-          <option value="gpt-5">GPT-5</option>
-          <option value="gpt-4.1-nano">GPT-4.1 nano</option>
-          <option value="gpt-4.1-mini">GPT-4.1 mini</option>
-          <option value="gpt-4.1">GPT-4.1</option>
-        </datalist>
-      </div>
-
       <!-- Save -->
       <BButton
         variant="primary"
