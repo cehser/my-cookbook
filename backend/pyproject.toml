@@ -21,8 +21,6 @@ dependencies = [
     "pillow>=13.0",
     # AI
     "openai>=3.51",
-    # YAML (Migrationsskripte, entfällt mit W.8)
-    "pyyaml>=6.0",
     # Utils
     "python-multipart>=0.0.33",
     "httpx>=0.28",
