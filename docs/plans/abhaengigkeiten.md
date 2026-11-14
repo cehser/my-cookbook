@@ -15,7 +15,7 @@ Versionen per `npm view` bzw. PyPI am 2026-11-14 ermittelt.
 | `js-yaml` | 4.1.1 → 5.5.0 | API-Änderungen prüfen (`load`/`dump`) |
 | `lint-staged` | 16.4.0 → 17.6.0 | dev |
 | `eslint` | nur als Peer im Lock | als direkte devDependency aufnehmen (`lint` und `lint-staged` rufen es direkt auf) |
-| `typescript` | 5.9.3 → 7.0.2 | **Ausnahme:** auf 5.x bleiben, bis `vue-tsc` TS 7 unterstützt (unbestätigt, prüfen) |
+| `typescript` | 5.9.3 → 6.0.3 | Brücke zu TS 7: Bereich `~6.0.3`, weil `typescript-eslint` `<6.1.0` verlangt. Veraltet-Warnungen von TS 6 beheben. **Ausnahme TS 7** (latest 7.0.2): erst, wenn `vue-tsc` **und** `typescript-eslint` es unterstützen (erwartet ab 7.1, unbestätigt). `tsconfig.json` nutzt keine in TS 6 veralteten Optionen (Stand 2026-11-14) |
 
 Je Major einen eigenen Commit, nach jedem `lint:check`, `typecheck`, `build`.
 
