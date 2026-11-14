@@ -37,7 +37,7 @@ if (!authority || !clientId) {
  * - `offline`: Erneuerung nicht möglich (kein Netz, Timeout, IdP nicht
  *   erreichbar) → Offline-Cache verwenden
  * - `rejected`: keine Sitzung, kein Refresh-Token oder vom IdP abgelehnt
- *   (`invalid_grant` u. a.) → neu anmelden
+ *   (`invalid_grant`, `invalid_client`, `unauthorized_client`) → neu anmelden
  */
 export type AuthState = "valid" | "offline" | "rejected";
 
@@ -56,6 +56,9 @@ const userManager = new UserManager({
   // eingebauten SilentRenewService, der signinSilent() direkt aufruft.
   automaticSilentRenew: false,
   accessTokenExpiringNotificationTimeInSeconds: 60,
+  // Ohne diesen Wert laufen Discovery- und JWKS-Abrufe ohne Timeout; bei
+  // hängender Verbindung blockierte dann der Guard die Navigation.
+  requestTimeoutInSeconds: 10,
   userStore: new WebStorageStateStore({ store: window.localStorage }),
 });
 
@@ -75,24 +78,50 @@ userManager.events.addAccessTokenExpiring(() => {
 // --- Token renewal (single flight) ---
 
 let renewInFlight: Promise<AuthState> | null = null;
+const rejectedListeners = new Set<() => void>();
 
 function needsRenewal(user: User): boolean {
   const expiresIn = user.expires_in;
   return expiresIn !== undefined && expiresIn <= RENEW_MARGIN_SECONDS;
 }
 
+/** OAuth-Fehlercodes, bei denen eine Wiederholung nichts bringt. */
+const REJECTING_ERRORS = new Set([
+  "invalid_grant",
+  "invalid_client",
+  "unauthorized_client",
+]);
+
 /**
  * Bewertet einen Fehler von `signinSilent()` mit Refresh-Token.
- * Nur eine OAuth-Fehlerantwort des IdP (z. B. `invalid_grant`) bedeutet
- * „abgelehnt“; Netzwerkfehler, Timeout und 5xx gelten als „offline“.
+ * oidc-client-ts erzeugt `ErrorResponse` bei jeder Nicht-2xx-Antwort mit
+ * OAuth-JSON, also auch bei 5xx/429 (`server_error`,
+ * `temporarily_unavailable`). „Abgelehnt“ gilt daher nur für die Codes in
+ * REJECTING_ERRORS; alles andere (auch Netzwerkfehler, Timeout, 5xx ohne
+ * JSON) gilt als „offline“.
  */
 export function classifyRenewError(e: unknown): "offline" | "rejected" {
-  if (e instanceof ErrorResponse) return "rejected";
-  if (e instanceof Error && e.name === "ErrorResponse") return "rejected";
-  return "offline";
+  const isErrorResponse =
+    e instanceof ErrorResponse ||
+    (e instanceof Error && e.name === "ErrorResponse");
+  if (!isErrorResponse) return "offline";
+  const code = (e as { error?: unknown }).error;
+  return typeof code === "string" && REJECTING_ERRORS.has(code)
+    ? "rejected"
+    : "offline";
+}
+
+function notifyRejected(): void {
+  rejectedListeners.forEach((cb) => cb());
 }
 
 async function doRenew(): Promise<AuthState> {
+  const state = await renewOnce();
+  if (state === "rejected") notifyRejected();
+  return state;
+}
+
+async function renewOnce(): Promise<AuthState> {
   const user = await userManager.getUser();
   if (!user?.refresh_token) return "rejected";
   if (!navigator.onLine) return "offline";
@@ -166,6 +195,15 @@ export async function isAuthenticated(): Promise<boolean> {
 }
 
 /**
+ * Callback, wenn eine Token-Erneuerung mit `rejected` endet (Ablauf-Timer,
+ * 401-Pfad, Guard, Store). Liefert eine Funktion zum Abmelden.
+ */
+export function onSessionRejected(cb: () => void): () => void {
+  rejectedListeners.add(cb);
+  return () => rejectedListeners.delete(cb);
+}
+
+/**
  * Callback bei neuem Token (Login-Callback oder Erneuerung).
  * Liefert eine Funktion zum Abmelden.
  */
@@ -175,9 +213,23 @@ export function onUserLoaded(cb: () => void): () => void {
 
 // --- Redirect flows ---
 
-/** Redirect to IdP login page */
-export async function login(): Promise<void> {
-  await userManager.signinRedirect();
+let loginStarted = false;
+
+/**
+ * Einzige Stelle, die zum IdP-Login umleitet. Wirkt höchstens einmal pro
+ * Seite, nur online und nie auf /callback (keine Redirect-Schleife).
+ */
+export async function requestLogin(returnUrl: string): Promise<void> {
+  if (loginStarted || !navigator.onLine) return;
+  if (window.location.pathname === "/callback") return;
+  loginStarted = true;
+  sessionStorage.setItem("oidc-return-url", returnUrl);
+  try {
+    await userManager.signinRedirect();
+  } catch (e) {
+    loginStarted = false;
+    console.warn("[Auth] Login-Redirect fehlgeschlagen:", e);
+  }
 }
 
 /** Handle the callback after IdP redirect */

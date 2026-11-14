@@ -1,10 +1,13 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import HomeView from "@/views/HomeView.vue";
-import { requireAuth, requireRole } from "@/auth/guards";
+import { isGuardActive, requireAuth, requireRole } from "@/auth/guards";
+import { onSessionRejected, requestLogin } from "@/auth/oidc";
 
 declare module "vue-router" {
   interface RouteMeta {
     mode?: "browsing" | "cook" | "edit";
+    /** Route without login (no login redirect on rejected session) */
+    public?: boolean;
   }
 }
 
@@ -70,6 +73,7 @@ const routes: RouteRecordRaw[] = [
     name: "Callback",
     component: () =>
       import(/* webpackChunkName: "callback" */ "../views/Callback.vue"),
+    meta: { public: true },
   },
   {
     path: "/s/:token",
@@ -78,6 +82,7 @@ const routes: RouteRecordRaw[] = [
       import(/* webpackChunkName: "shared" */ "../views/SharedRecipe.vue"),
     props: true,
     // No auth guard — public route
+    meta: { public: true },
   },
   //legacy paths for compatibility reasons
   { path: "/edit.html", redirect: "/edit/0" },
@@ -89,6 +94,23 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+});
+
+// Session rejected outside a navigation (expiry timer, 401 retry, store,
+// app resumed): log in again. During a navigation the guard decides itself,
+// because only it knows the target route. Public routes stay as they are.
+// Waits for the initial navigation: before that, currentRoute is the start
+// location "/" even when opening a public link.
+onSessionRejected(async () => {
+  if (isGuardActive()) return;
+  try {
+    await router.isReady();
+  } catch {
+    return; // initial navigation failed, nothing to return to
+  }
+  const route = router.currentRoute.value;
+  if (route.meta.public) return;
+  void requestLogin(route.fullPath);
 });
 
 // Handle chunk load errors after SW update (hash mismatch)

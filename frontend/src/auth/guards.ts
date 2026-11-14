@@ -4,7 +4,7 @@
  */
 
 import type { RouteLocationNormalized } from "vue-router";
-import { ensureAuth, login } from "@/auth/oidc";
+import { ensureAuth, requestLogin, type AuthState } from "@/auth/oidc";
 import { api } from "@/api/client";
 
 interface MeResponse {
@@ -32,6 +32,24 @@ export function clearRoleCache(): void {
   cachedRole = null;
 }
 
+// Number of guards currently awaiting the auth state. While a guard runs, it
+// decides about the login itself (it knows the target route).
+let activeGuards = 0;
+
+/** True while a route guard is resolving the auth state. */
+export function isGuardActive(): boolean {
+  return activeGuards > 0;
+}
+
+async function guardAuth(): Promise<AuthState> {
+  activeGuards++;
+  try {
+    return await ensureAuth();
+  } finally {
+    activeGuards--;
+  }
+}
+
 /**
  * Auth guard — redirects to IdP login if the session was rejected.
  * When the token cannot be renewed for lack of network (or without network
@@ -41,11 +59,10 @@ export async function requireAuth(
   to: RouteLocationNormalized,
   _from: RouteLocationNormalized,
 ) {
-  const state = await ensureAuth();
+  const state = await guardAuth();
   if (state !== "rejected") return true;
   if (!navigator.onLine) return true;
-  sessionStorage.setItem("oidc-return-url", to.fullPath);
-  await login();
+  await requestLogin(to.fullPath);
   return false;
 }
 
@@ -57,12 +74,11 @@ export function requireRole(...roles: string[]) {
     _to: RouteLocationNormalized,
     _from: RouteLocationNormalized,
   ) => {
-    const state = await ensureAuth();
+    const state = await guardAuth();
     if (state === "offline") return { name: "Gallery" };
     if (state === "rejected") {
       if (!navigator.onLine) return { name: "Gallery" };
-      sessionStorage.setItem("oidc-return-url", _to.fullPath);
-      await login();
+      await requestLogin(_to.fullPath);
       return false;
     }
 
