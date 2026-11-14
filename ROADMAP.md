@@ -6,7 +6,7 @@ Aufwand: XS ≲ 30 min · S ≲ 1 h · M ≈ 2–4 h · L ≈ 1 Tag+
 Erledigt (Archiv): Sprints 0–3, UX-1 bis UX-7, Sprint 9 (Design-System) → [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md)
 
 ## W — Wartung 🔜
-Projektstandard, Altlasten und Qualitätssicherung. Reihenfolge: W.4 vor dem Backend-Teil von W.5.
+Projektstandard, Altlasten und Qualitätssicherung. Reihenfolge: W.4 vor dem Backend-Teil von W.5; W.9 nach W.3 und W.5.
 
 - [ ] W.1 Doppelten Handler `GET /v1/tags` auflösen (recipes.py überdeckt tags.py mit Count) · S · Sonnet
 - [ ] W.2 Vue-CLI-Altlasten entfernen (`vue.config.js`, `jsconfig.json`, `public/index.html`, `echo` im Dockerfile), `dist/index.html` prüfen · S · Sonnet
@@ -16,6 +16,7 @@ Projektstandard, Altlasten und Qualitätssicherung. Reihenfolge: W.4 vor dem Bac
 - [ ] W.6 DB-User und -Name in `backup.sh`, Compose-Healthcheck und README-Restore aus Variablen · XS · Sonnet
 - [ ] W.7 Base-Images auf Minor pinnen, `npm ci --legacy-peer-deps` prüfen · XS · Sonnet
 - [ ] W.8 Altlasten der YAML-Migration entfernen (`backend/cookbook.yaml`, `scripts/migrate_yaml.py`, `restore_empty.py`, `.gitignore`-Eintrag `backup_pre_d1.sql`) · XS · Sonnet
+- [ ] W.9 Images per GitHub Actions bauen und nach `ghcr.io` pushen (öffentlich, Tags SHA + `main`), `deploy.sh` auf Pull umstellen · M · Sonnet
 
 ## 5 — Einkaufsliste-Export
 Zutaten eines Rezepts als Einkaufsliste per Clipboard und Native Share. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-5-einkaufsliste-export-1-2-tage--quick-win)
@@ -31,6 +32,11 @@ Persönliche Notizen am Rezept, auch per Spracheingabe. Plan: [ui-roadmap-2025-2
 Geführte Rezepterstellung in vier Schritten. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-7-rezept-erstellungs-wizard-1-woche)
 
 - [ ] 7.1 Rezept-Erstellungs-Wizard · L · Opus
+
+## 10 — PDF-Export
+Rezepte als PDF exportieren (Drucken, Weitergeben). Ansatz offen: Print-CSS im Browser oder serverseitige Erzeugung.
+
+- [ ] 10.1 PDF-Export der Rezepte · M · Opus
 
 ## Später
 - [ ] S.1 Rezept-Tracking serverseitig: „Zuletzt geöffnet“ je User, „Beliebt“ über alle → [IDEAS.md](docs/IDEAS.md#1-rezept-tracking-beliebt--zuletzt-geöffnet)
