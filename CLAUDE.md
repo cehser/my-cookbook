@@ -6,7 +6,7 @@ Selbst gehostetes Familien-Kochbuch als PWA: Vue-3-SPA (offline-fähig) + FastAP
 ## Befehle
 Frontend (`cd frontend`):
 - `npm ci` — Abhängigkeiten (richtet auch den husky-Hook ein)
-- `npm run dev` — Dev-Server https://localhost:5173 (selbstsigniert)
+- `npm run dev` — Dev-Server https://localhost:8080 (selbstsigniert)
 - `npm run lint` / `npm run lint:check` — ESLint mit/ohne Fix
 - `npm run typecheck` — `vue-tsc --noEmit`
 - `npm run build` — Production-Build

@@ -105,7 +105,7 @@ npm install
 npm run dev
 ```
 
-Der Dev-Server startet auf `https://localhost:5173` (mit selbstsigniertem SSL für PWA/OIDC).
+Der Dev-Server startet auf `https://localhost:8080` (mit selbstsigniertem SSL für PWA/OIDC).
 
 Weitere Befehle:
 
