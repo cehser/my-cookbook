@@ -16,7 +16,8 @@ from app.models.user import AppUser  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # False: sonst deaktiviert fileConfig die Logger der App (und von Uvicorn)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # Build sqlalchemy.url from app settings (DB_HOST, DB_PORT, etc.)
 config.set_main_option("sqlalchemy.url", settings.database_url)
