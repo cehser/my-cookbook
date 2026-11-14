@@ -1,6 +1,6 @@
 import { ref, computed, watch, type Ref, type ComputedRef } from "vue";
 import { useRecipeStore } from "@/store/recipeStore";
-import { deepCopyYaml } from "@/js/deepCopy";
+import { deepCopyJSON } from "@/js/deepCopy";
 import { readRecipeDetail } from "@/js/offlineCache";
 import { isAuthenticated } from "@/auth/session";
 import { imageApi } from "@/api/images";
@@ -169,7 +169,7 @@ export function useRecipeHelper(
     isLoaded.value = false;
 
     // Set immediately with safe defaults so the template never sees null
-    const safeCopy = deepCopyYaml(recipe);
+    const safeCopy = deepCopyJSON(recipe);
     safeCopy.ingredients = safeCopy.ingredients || [];
     safeCopy.steps = safeCopy.steps || [];
     safeCopy.sections = safeCopy.sections || [{ section: "" }];
@@ -186,7 +186,7 @@ export function useRecipeHelper(
           const detail = await store.loadRecipeDetailFromApi(
             recipe.recipe_uuid,
           );
-          current_recipe.value = deepCopyYaml(detail);
+          current_recipe.value = deepCopyJSON(detail);
           isLoaded.value = true;
           return;
         } catch {
@@ -196,7 +196,7 @@ export function useRecipeHelper(
       // Fallback: offline cache
       const cached = await readRecipeDetail(recipe.recipe_uuid);
       if (cached) {
-        current_recipe.value = deepCopyYaml(cached);
+        current_recipe.value = deepCopyJSON(cached);
       }
     }
 

@@ -10,7 +10,7 @@ import ShareManager from "@/components/recipe/ui/ShareManager.vue";
 import jsyaml from "js-yaml";
 import { useToast } from "@/composables/useToast";
 import { generateUUID } from "@/js/uuid";
-import { deepCopyYaml } from "@/js/deepCopy";
+import { deepCopyJSON } from "@/js/deepCopy";
 import { recipeUrl, editUrl } from "@/js/slug";
 
 const props = defineProps<{ id: string }>();
@@ -77,7 +77,7 @@ function copyRecipe() {
   }
   try {
     headerMenuOpen.value = false;
-    const recipe = deepCopyYaml(current_recipe.value);
+    const recipe = deepCopyJSON(current_recipe.value);
     recipe.recipe_uuid = generateUUID();
     store.appendRecipe(recipe);
     router.push(recipeUrl(recipe.recipe_uuid, recipe.recipe_name));

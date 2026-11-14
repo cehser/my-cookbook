@@ -7,7 +7,7 @@
  * werden nur protokolliert.
  *
  * Werte müssen per Structured Clone speicherbar sein: keine reaktiven
- * Vue-Proxies übergeben, sondern Kopien (`deepCopyYaml`/`deepCopyJSON`).
+ * Vue-Proxies übergeben, sondern Kopien (`deepCopyJSON`).
  *
  * Bilder (`recipe_pictures`) liegen weiterhin im Store (Altbestand).
  */
