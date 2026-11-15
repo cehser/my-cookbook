@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     db_port: int = 5432
     db_name: str = "cookbook"
     db_user: str = "cookbook"
-    db_password: str = "changeme"
+    db_password: str  # Pflicht, kein Default: ohne DB_PASSWORD startet das Backend nicht
 
     @property
     def database_url(self) -> str:

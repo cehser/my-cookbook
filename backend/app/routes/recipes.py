@@ -6,6 +6,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import delete, func, select
+from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin, require_editor, require_readonly
@@ -204,7 +205,7 @@ async def list_recipes(
             select(RecipeImage.recipe_id, RecipeImage.id)
             .where(RecipeImage.recipe_id.in_(recipe_ids))
             .order_by(RecipeImage.recipe_id, RecipeImage.sort_order)
-            .distinct(RecipeImage.recipe_id)
+            .ext(distinct_on(RecipeImage.recipe_id))
         )
         for row in img_result:
             first_images[row[0]] = row[1]
