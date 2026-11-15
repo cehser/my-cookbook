@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, nextTick, ref } from "vue";
-import { mount } from "@vue/test-utils";
+import { mount, type VueWrapper } from "@vue/test-utils";
 import { useDraft } from "@/composables/useDraft";
 import type { Recipe } from "@/types/recipe";
 
@@ -15,6 +15,10 @@ function recipe(name = "A"): Recipe {
   };
 }
 
+// Gemountete Instanzen; afterEach baut sie ab, sonst bleiben ihre
+// beforeunload-Listener aktiv und machen Tests anderer Instanzen grün.
+const mounted: VueWrapper[] = [];
+
 function setup(initial: Recipe | null = recipe(), dirty = true) {
   const uuid = ref("r1");
   const rec = ref<Recipe | null>(initial);
@@ -28,6 +32,7 @@ function setup(initial: Recipe | null = recipe(), dirty = true) {
       },
     }),
   );
+  mounted.push(wrapper);
   return { uuid, rec, isDirty, api, wrapper };
 }
 
@@ -36,7 +41,10 @@ describe("useDraft", () => {
     localStorage.clear();
     vi.useFakeTimers();
   });
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    mounted.splice(0).forEach((w) => w.unmount());
+    vi.useRealTimers();
+  });
 
   it("erkennt einen vorhandenen Entwurf beim Start", () => {
     localStorage.setItem("draft:r1", JSON.stringify(recipe("alt")));
@@ -77,9 +85,12 @@ describe("useDraft", () => {
   });
 
   it("sichert bei beforeunload", () => {
-    setup();
+    // Eigener Name: Ein übrig gebliebener Listener einer früheren Instanz
+    // schriebe denselben Schlüssel, aber nicht diesen Inhalt.
+    setup(recipe("aktuell"));
     window.dispatchEvent(new Event("beforeunload"));
-    expect(localStorage.getItem("draft:r1")).not.toBeNull();
+    const stored = JSON.parse(localStorage.getItem("draft:r1")!) as Recipe;
+    expect(stored.recipe_name).toBe("aktuell");
   });
 
   it("stellt den Entwurf wieder her", () => {
