@@ -8,8 +8,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.config import settings
+from tests.alembic_helpers import alembic_config
 
-from .conftest import alembic_config, reset_schema
+from .conftest import reset_schema
 
 EXPECTED_TABLES = {
     "app_users",

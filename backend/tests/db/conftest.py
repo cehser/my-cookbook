@@ -21,7 +21,6 @@ from pathlib import Path
 import httpx
 import pytest
 from alembic import command
-from alembic.config import Config
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
@@ -31,8 +30,8 @@ from app.config import settings
 from app.database import get_db
 from app.main import app
 from app.models.user import AppUser
+from tests.alembic_helpers import alembic_config
 
-BACKEND_DIR = Path(__file__).resolve().parents[2]
 DB_DIR = Path(__file__).resolve().parent
 
 
@@ -57,13 +56,6 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             item.add_marker(pytest.mark.db)
             if not _db_configured():
                 item.add_marker(skip)
-
-
-def alembic_config() -> Config:
-    # Absolute Pfade, damit der Test unabhängig vom Arbeitsverzeichnis läuft
-    cfg = Config(str(BACKEND_DIR / "alembic.ini"))
-    cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
-    return cfg
 
 
 def reset_schema() -> None:
