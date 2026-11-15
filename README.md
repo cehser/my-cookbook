@@ -21,7 +21,7 @@ Ein persönliches Kochbuch als Progressive Web App — selbst gehostet, offline-
 | **Backend** | Python 3.14, FastAPI, SQLAlchemy 2 (async), Alembic |
 | **Datenbank** | PostgreSQL 16 |
 | **Auth** | OIDC (Keycloak oder kompatibler IdP) |
-| **AI** | OpenAI API (Chat Completions + Vision) |
+| **AI** | OpenAI API (Responses API, Structured Outputs, Websuche) |
 | **Deployment** | Docker Compose (nginx + uvicorn + PostgreSQL) |
 
 ## Projektstruktur
@@ -42,7 +42,7 @@ my-cookbook/
 │   ├── Dockerfile        # Python 3.14-slim + Pillow
 │   ├── app/              # Anwendungscode
 │   ├── alembic/          # DB-Migrationen
-│   └── prompts/          # AI System-Prompt (extern änderbar)
+│   └── prompts/          # AI System-Prompt (liegt im Image)
 └── docs/                 # Planungsdokumente
 ```
 
@@ -146,7 +146,8 @@ Browser ──→ nginx (:80)
 
 - **nginx** liefert das Frontend aus und proxied `/api/`-Requests ans Backend
 - **Runtime-Config:** OIDC-Einstellungen werden beim Container-Start per `envsubst` in `/config.js` injiziert — kein Rebuild bei Config-Änderung nötig
-- **AI System-Prompt** liegt als Markdown-Datei im Repo (`backend/prompts/system_prompt.md`) und im Backend-Image — Änderung per Deploy
+- **AI-Import:** Das Modell wählt der Admin in der Administration (Text/URL und Foto getrennt, Default `gpt-6-luna`). Die Antwort kommt per Structured Outputs als Rezeptschema (`backend/app/schemas/ai.py`); URLs liest das Modell über die Websuche.
+- **AI System-Prompt** liegt als Markdown-Datei im Repo (`backend/prompts/system_prompt.md`) und im Backend-Image — Änderung per Deploy, nicht extern änderbar
 
 ## API-Übersicht
 
