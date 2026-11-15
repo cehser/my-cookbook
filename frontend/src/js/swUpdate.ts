@@ -27,6 +27,8 @@ let registration: ServiceWorkerRegistration | undefined;
 let lastCheck = 0;
 let pendingWrites = 0;
 let applying = false;
+/** Ein anderer Tab hat den neuen SW aktiviert; dieser Tab läuft noch mit altem JS. */
+let reloadPending = false;
 let hiddenSince: number | undefined;
 
 /** Zählt laufende schreibende Anfragen (alles außer GET/HEAD) über window.fetch. */
@@ -46,9 +48,14 @@ function trackWrites(): void {
 }
 
 function applyUpdate(): void {
-  if (!updateReady || !updateSW || applying || pendingWrites > 0) return;
-  applying = true;
-  void updateSW(true);
+  if (applying || pendingWrites > 0) return;
+  if (reloadPending) {
+    applying = true;
+    window.location.reload();
+  } else if (updateReady && updateSW) {
+    applying = true;
+    void updateSW(true);
+  }
 }
 
 function checkForUpdate(): void {
@@ -67,6 +74,13 @@ export function setupSwUpdate(router: Router): void {
   updateSW = registerSW({
     onNeedRefresh() {
       updateReady = true;
+    },
+    // register.js ruft das bei jedem Controllerwechsel (isUpdate) statt
+    // location.reload(): auch wenn ein anderer Tab aktiviert hat. Eigene
+    // Aktivierung lädt sofort, fremde erst bei Navigation oder Rückkehr.
+    onNeedReload() {
+      if (applying) window.location.reload();
+      else reloadPending = true;
     },
     onRegisteredSW(_url, reg) {
       registration = reg;
@@ -97,7 +111,11 @@ export function setupSwUpdate(router: Router): void {
     const wasHiddenMs =
       hiddenSince === undefined ? 0 : Date.now() - hiddenSince;
     hiddenSince = undefined;
-    if (updateReady && wasHiddenMs >= HIDDEN_RELOAD_MS && pendingWrites === 0) {
+    if (
+      (updateReady || reloadPending) &&
+      wasHiddenMs >= HIDDEN_RELOAD_MS &&
+      pendingWrites === 0
+    ) {
       applyUpdate();
       return;
     }
