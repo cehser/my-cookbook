@@ -44,7 +44,7 @@ Ob die App zum Login leitet, entscheidet nur noch `session.ts` mit einem Einstie
   - `auth/userManager.ts`: Instanz und Setup
   - `auth/role.ts`: Rollenspeicher und `/me`. Nicht in der Ablage des Auftrags. Eigenes Modul, weil Guard und Logout die Rolle brauchen und `session.ts` `api/client` nicht importieren darf (`client` importiert `session`, das wäre ein neuer Zyklus).
 - Gewachsene Dateien:
-  - `auth/session.ts` von 189 auf 439 Zeilen: Login, Callback und Einstiege kamen aus `oidc.ts` dazu, `oidc.ts` schrumpft auf 63 Zeilen.
+  - `auth/session.ts` von 189 auf 439 Zeilen: Login, Callback und Einstiege kamen aus `oidc.ts` dazu, `oidc.ts` schrumpft auf 65 Zeilen.
   - `auth/session.spec.ts` hat 522 Zeilen.
   - Ein Aufteilen von `session.ts` (z. B. Login und Callback in ein eigenes Modul) widerspräche der Vorgabe „eine Stelle in `session.ts`“. Deshalb nicht aufgeteilt.
 - Keine bewussten Duplikate.
