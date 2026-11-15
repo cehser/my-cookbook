@@ -71,7 +71,7 @@ function goToEdit() {
   );
 }
 
-function copyRecipe() {
+async function copyRecipe() {
   if (!current_recipe.value) {
     showToast("Rezept konnte nicht dupliziert werden", "danger");
     return;
@@ -80,8 +80,11 @@ function copyRecipe() {
     headerMenuOpen.value = false;
     const recipe = deepCopyJSON(current_recipe.value);
     recipe.recipe_uuid = generateUUID();
-    store.appendRecipe(recipe);
-    router.push(recipeUrl(recipe.recipe_uuid, recipe.recipe_name));
+    // Erst nach dem Anlegen navigieren: das Backend vergibt die ID
+    const created = await store.appendRecipe(recipe);
+    router.push(
+      recipeUrl(created?.id ?? recipe.recipe_uuid, recipe.recipe_name),
+    );
   } catch (error) {
     console.error("Error copying recipe:", error);
     showToast("Fehler beim Duplizieren des Rezepts", "danger");

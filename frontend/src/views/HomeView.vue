@@ -130,11 +130,12 @@ function handleDeleteRecipe(uuid: string) {
   store.deleteRecipe(uuid);
 }
 
-function newRecipe() {
+async function newRecipe() {
   const recipe = createNewRecipe();
-  store.appendRecipe(recipe);
+  // Erst nach dem Anlegen navigieren: das Backend vergibt die ID
+  const created = await store.appendRecipe(recipe);
   toast("Neues Rezept erstellt.", "success");
-  router.push(editUrl(recipe.recipe_uuid, recipe.recipe_name));
+  router.push(editUrl(created?.id ?? recipe.recipe_uuid, recipe.recipe_name));
 }
 
 function loadSample() {
