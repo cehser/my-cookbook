@@ -72,7 +72,10 @@ export function setupSwUpdate(router: Router): void {
   });
 
   let firstNavigation = true;
-  router.afterEach((to) => {
+  router.afterEach((to, _from, failure) => {
+    // Abgebrochene, gecancelte und doppelte Navigationen zählen nicht: App.vue
+    // cancelt beim Kaltstart die Initialnavigation per router.replace().
+    if (failure) return;
     if (firstNavigation) {
       firstNavigation = false;
       return;
