@@ -6,11 +6,7 @@ import {
 } from "vue-router";
 import HomeView from "@/views/HomeView.vue";
 import { requireAuth, requireRole } from "@/auth/guards";
-import {
-  requestLoginForCurrentRoute,
-  setLoginTargetResolver,
-} from "@/auth/oidc";
-import { onSessionRejected } from "@/auth/session";
+import { setLoginTargetResolver } from "@/auth/session";
 import { reloadOnce } from "@/js/reload";
 
 declare module "vue-router" {
@@ -120,16 +116,14 @@ router.onError(() => {
   pendingTarget = null;
 });
 
-// Login target: the route being shown or navigated to. Public routes
-// (callback, shared links) and the start location get no login.
+// Login target for auth/session.ts (resume, online, rejected session): the
+// route being shown or navigated to. Public routes (callback, shared links)
+// and the start location get no login.
 setLoginTargetResolver(() => {
   const route = pendingTarget ?? router.currentRoute.value;
   if (route.matched.length === 0 || route.meta.public) return null;
   return route.fullPath;
 });
-
-// Session rejected (expiry timer, 401 retry, store, guard, app resumed)
-onSessionRejected(requestLoginForCurrentRoute);
 
 // Chunk load errors after an update (old chunks gone from the server).
 // Vite wraps every dynamic import and fires `vite:preloadError` when the

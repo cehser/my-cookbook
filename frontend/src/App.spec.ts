@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
+import { ref } from "vue";
 
 const replace = vi.fn();
 const store = {
@@ -16,10 +17,17 @@ vi.mock("vue-router", () => ({
 vi.mock("@/store/recipeStore", () => ({ useRecipeStore: () => store }));
 vi.mock("@/router", () => ({ restoreSession: vi.fn() }));
 vi.mock("@/auth/oidc", () => ({ onUserLoaded: vi.fn(() => vi.fn()) }));
-vi.mock("@/auth/session", () => ({ checkSessionOnResume: vi.fn() }));
+const hint = ref<string | null>(null);
+vi.mock("@/auth/session", () => ({
+  onResume: vi.fn(),
+  onOnline: vi.fn(),
+  get sessionHint() {
+    return hint;
+  },
+}));
 
 import { restoreSession } from "@/router";
-import { checkSessionOnResume } from "@/auth/session";
+import { onOnline, onResume } from "@/auth/session";
 import App from "@/App.vue";
 
 const mounted: ReturnType<typeof mount>[] = [];
@@ -38,6 +46,14 @@ function mountApp() {
   return w;
 }
 
+function setOnline(online: boolean) {
+  Object.defineProperty(navigator, "onLine", {
+    configurable: true,
+    get: () => online,
+  });
+  window.dispatchEvent(new Event(online ? "online" : "offline"));
+}
+
 function setVisibility(state: "visible" | "hidden") {
   Object.defineProperty(document, "visibilityState", {
     configurable: true,
@@ -50,8 +66,10 @@ describe("App.vue", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     store.dataSource = "api";
+    hint.value = null;
     window.history.replaceState({}, "", "/");
     setVisibility("visible");
+    setOnline(true);
   });
 
   afterEach(() => {
@@ -89,26 +107,59 @@ describe("App.vue", () => {
   });
 
   it("prüft beim Wechsel in den Vordergrund die Sitzung und lädt nach", async () => {
-    vi.mocked(checkSessionOnResume).mockResolvedValue("valid");
+    vi.mocked(onResume).mockResolvedValue("valid");
     mountApp();
     await flushPromises();
     setVisibility("hidden");
     await flushPromises();
-    expect(checkSessionOnResume).not.toHaveBeenCalled();
+    expect(onResume).not.toHaveBeenCalled();
     setVisibility("visible");
     await flushPromises();
-    expect(checkSessionOnResume).toHaveBeenCalledTimes(1);
+    expect(onResume).toHaveBeenCalledTimes(1);
     expect(store.reloadIfStale).toHaveBeenCalledTimes(1);
   });
 
   it("lädt bei abgelehnter Sitzung nicht nach", async () => {
-    vi.mocked(checkSessionOnResume).mockResolvedValue("rejected");
+    vi.mocked(onResume).mockResolvedValue("rejected");
     mountApp();
     await flushPromises();
     setVisibility("hidden");
     setVisibility("visible");
     await flushPromises();
-    expect(checkSessionOnResume).toHaveBeenCalledTimes(1);
+    expect(onResume).toHaveBeenCalledTimes(1);
     expect(store.reloadIfStale).not.toHaveBeenCalled();
+  });
+
+  it("klärt bei wieder online die Sitzung und lädt nach", async () => {
+    vi.mocked(onOnline).mockResolvedValue("valid");
+    setOnline(false);
+    mountApp();
+    await flushPromises();
+    setOnline(true);
+    await flushPromises();
+    expect(onOnline).toHaveBeenCalledTimes(1);
+    expect(store.reloadIfStale).toHaveBeenCalledTimes(1);
+  });
+
+  it("lädt bei wieder online ohne Sitzung nicht nach (Login folgt)", async () => {
+    vi.mocked(onOnline).mockResolvedValue("rejected");
+    setOnline(false);
+    mountApp();
+    await flushPromises();
+    setOnline(true);
+    await flushPromises();
+    expect(onOnline).toHaveBeenCalledTimes(1);
+    expect(store.reloadIfStale).not.toHaveBeenCalled();
+  });
+
+  it("zeigt den Hinweis der Sitzung im Banner", async () => {
+    const w = mountApp();
+    await flushPromises();
+    expect(w.find(".session-hint").exists()).toBe(false);
+    hint.value = "no-data";
+    await flushPromises();
+    expect(w.find(".session-hint").text()).toContain(
+      "Keine Verbindung, noch keine Daten",
+    );
   });
 });

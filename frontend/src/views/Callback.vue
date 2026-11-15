@@ -2,7 +2,7 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useOnline } from "@vueuse/core";
-import { handleCallback, requestLogin, resetLoginAttempts } from "@/auth/oidc";
+import { onCallback, retryLoginFromCallback } from "@/auth/session";
 
 const router = useRouter();
 const isOnline = useOnline();
@@ -10,7 +10,8 @@ const failed = ref(false);
 const returnUrl = sessionStorage.getItem("oidc-return-url") || "/";
 
 onMounted(async () => {
-  if (await handleCallback(returnUrl)) {
+  // onCallback verarbeitet den Code genau einmal (auch bei zweitem Mount/Reload).
+  if (await onCallback(returnUrl)) {
     sessionStorage.removeItem("oidc-return-url");
     router.replace(returnUrl);
     return;
@@ -21,8 +22,7 @@ onMounted(async () => {
 });
 
 async function retryLogin() {
-  resetLoginAttempts();
-  await requestLogin(returnUrl);
+  await retryLoginFromCallback(returnUrl);
 }
 </script>
 
