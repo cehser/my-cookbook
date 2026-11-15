@@ -90,4 +90,49 @@ Auslegungen der Tabelle (kein Widerspruch, deshalb kein Checkpoint):
 - `W.23` fertig (Abnahme auf dem Gerät steht aus)
 
 ## Vorschlag Roadmap-Zeilen
-`- [x] W.23 Auth-Feinschliff, Login-Entscheidung zentral · 2026-11-15 · d031803`
+`- [x] W.23 Auth-Feinschliff, Login-Entscheidung zentral · 2026-11-16 · caed8cb`
+
+---
+
+## Nacharbeit (N1–N5)
+
+> Ausgangsstand `9120080` · Stand siehe letzter Commit · 2026-11-16 · Dauer: 00:03 – 00:16 (13 min, davon Warten an Checkpoints 0 min) · Status: fertig
+
+### Ergebnis
+- N1: `vitest.config.ts` ist wieder Text.
+- N2: Das Warten auf den Erneuerungs-Lock ist auf 15 s begrenzt.
+- N3: Eine Login-Vormerkung übersteht einen gescheiterten Redirect.
+- N4: Die Vormerk-Tests prüfen jetzt wirklich die Vormerkung.
+- N5: Der Rollen-Hinweis erscheint nur ohne Verbindung.
+
+### Commits
+- `55e8f58` fix(build): NUL-Bytes im Vitest-Stub durch Escape-Sequenz ersetzen (N1)
+- `2d5b20c` fix(auth): Warten auf den Erneuerungs-Lock auf 15 s begrenzen (N2)
+- `1ffe7f4` fix(auth): Login-Vormerkung bei gescheitertem Redirect erhalten (N3)
+- `da0a81f` test(auth): Vormerk-Tests mit Folgezustand offline schärfen (N4)
+- `49d1ee6` fix(auth): Rollen-Hinweis nur ohne Verbindung zeigen (N5)
+- `caed8cb` docs(auth): Regeln zu Lock-Timeout, Vormerkung und Rollen-Hinweis nachgezogen
+
+### Umsetzung, wo vom Auftragstext abweichend oder ergänzt
+- **N1:** Ursache war die Escape-Sequenz `\0` in einem Python-Heredoc. Der Text landete als NUL-Byte in der Datei. `git diff --stat 3673f1d..HEAD -- frontend/vitest.config.ts` zeigt jetzt `10 ++++++++++`. Nur der Diff des Fix-Commits selbst bleibt binär, weil die Vorversion NULs enthält.
+- **N2:** Statt `AbortSignal.timeout(15_000)` nutze ich `AbortController` mit `setTimeout`. Der Timer wird beim Gewähren des Locks gelöscht, begrenzt also nur das Warten. Die Erneuerung selbst hat weiter 10 s Timeout. Grund für den Controller: Vitest-Fake-Timers steuern ihn, `AbortSignal.timeout` nicht verlässlich. Nach einem Abbruch liefert die Erneuerung `offline`, ohne Backoff.
+  - happy-dom liefert `navigator.locks = null`. `session.spec.ts` bringt deshalb einen exklusiven Fake-LockManager mit: Warteschlange, `signal`, Freigabe auch bei Exception.
+  - Die bisherigen Lock-Tests laufen jetzt auch gegen diesen Fake. Der Test „anderer Tab hat schon erneuert“ wartet dabei tatsächlich auf den Lock, statt ihn nur zu simulieren.
+- **N3:** `signinRedirect` löst bei Erfolg nie auf, weil die Seite verlassen wird; nur nach Rückkehr per Zurück (bfcache) löst es auf. Die Vormerkung wird deshalb erst danach bzw. bei gültiger Sitzung gelöscht.
+- **N5:** Die Netzprüfung liegt in `session.ts` (`onRoleUnavailable(state)`), damit „Netz nur in `session.ts`“ gilt. `showSessionHint` entfällt.
+
+### Verifikation
+- `npm run lint:check && npm run typecheck && npm test && npm run build` → grün: 17 Testdateien, 159 Tests (vorher 151), Build in 1,45 s.
+- Gegenprobe per Mutation, jeweils danach zurückgesetzt:
+  - Lock ohne `signal`: Der Timeout-Test fällt.
+  - `loginPending = false` wieder beim Start von `requestLogin`: Der N3-Test fällt.
+  - Vormerkung aus `onOnline`/`onResume` entfernt: 6 Vormerk-Tests fallen. Vor N4 hätten sie das nicht.
+- Browserszenarien gegen den neuen Build: 10/10 OK (Skript wie oben, 22 s).
+- Prüfzeit: 00:12:26 – 00:14:22, ~2 min. Größter Posten: Browserszenarien und Build.
+
+### Struktur und Doku
+- `.claude/rules/frontend.md`: Lock-Timeout, Vormerkung und Rollen-Hinweis nachgetragen.
+- `session.spec.ts` wächst um den Fake-LockManager (~50 Zeilen). Er bleibt bewusst in der Spec, weil er nur dort gebraucht wird.
+
+### Offen
+- unverändert gegenüber oben
