@@ -1,6 +1,6 @@
 # Bericht W.27: `Administration.vue` aufteilen, Undo/Redo als Composable
 
-> Branch `worktree-W.27-admin-undo` · Basis `d54f150` (HEAD beim Start `d8ee3c0`, nur `docs(roadmap)` dazwischen) · Stand `178a074` · 2026-11-15 · Dauer: 21:57 – 22:17 (20 min, davon Warten an Checkpoints 0 min) · Status: fertig
+> Branch `worktree-W.27-admin-undo` · Basis `d54f150` (HEAD beim Start `d8ee3c0`, nur `docs(roadmap)` dazwischen) · Stand `178a074` · 2026-11-15 · Dauer: 21:57 – 22:16 (19 min, davon Warten an Checkpoints 0 min) · Status: fertig
 
 ## Ergebnis
 `Administration.vue` ist von 669 auf 44 Zeilen geschrumpft und bindet fünf Abschnittskomponenten unter `src/components/admin/` ein; die Sichtbarkeitsregeln stehen nur noch in der Seite. Undo/Redo samt Tastenkürzeln liegt in `useEditHistory`, `Edit.vue` (711 → 678 Zeilen) übergibt nur noch Entwurf und Dirty-Snapshot über den Hook `onLoaded`. Die Lade-Reihenfolge (Laden und Entwurf nicht rückgängig zu machen) ist per Test abgesichert, `useDraft.spec.ts` räumt ab.
@@ -27,7 +27,7 @@
 - Prüfskripte: wiederholbar als Specs im Repo (`useEditHistory.spec.ts`, `components/admin/*.spec.ts`, `views/Administration.spec.ts`)
 
 ## Struktur und Doku
-- Neue Module: `src/composables/useEditHistory.ts`, `src/components/admin/{AdminUsers,AdminSettings,AdminShares,AdminMaintenance,AdminRecipes}.vue`, `src/components/admin/format.ts` (`formatDate`, von Benutzern und Share-Links geteilt statt kopiert). Größte neue Datei: `AdminSettings.vue` (~190 Zeilen, davon gut die Hälfte Template).
+- Neue Module: `src/composables/useEditHistory.ts`, `src/components/admin/{AdminUsers,AdminSettings,AdminShares,AdminMaintenance,AdminRecipes}.vue`, `src/components/admin/format.ts` (`formatDate`, von Benutzern und Share-Links geteilt statt kopiert). Größte neue Datei: `AdminSettings.vue` (183 Zeilen, davon gut die Hälfte Template).
 - `Edit.vue` bleibt mit 678 Zeilen groß; weitere Aufteilung war nicht beauftragt (W.28 folgt).
 - Bewusste Duplikate: keine. `formatDate` existiert ähnlich in `ShareManager.vue` und `SharedRecipe.vue` (vorher schon); nicht angefasst, außerhalb des Scopes.
 - `AdminMaintenance` hat zwei Wurzelknoten (Fragment) und wird über den Slot `actions` in die Knopfleiste von `AdminRecipes` gesetzt, damit die Knöpfe wie bisher in einem Flex-Container stehen.
