@@ -5,7 +5,7 @@
  * wird still bei der nächsten erfolgreichen Navigation oder bei der Rückkehr
  * in den Vordergrund nach mindestens 10 min Hintergrund, nie mitten in der
  * Benutzung und nie bei kurzem hidden (Kamera, Fotoauswahl). Eine laufende
- * schreibende Anfrage verhindert die Aktivierung.
+ * schreibende Anfrage verhindert die Aktivierung, ebenso fehlendes Netz.
  *
  * Nach Updates sucht der Browser von sich aus nur bei Navigation und
  * Registrierung. Eine fortgesetzte PWA prüft deshalb beim Start und beim
@@ -16,6 +16,7 @@
 
 import type { Router } from "vue-router";
 import { registerSW } from "virtual:pwa-register";
+import { reloadOnce } from "./reload";
 
 const CHECK_INTERVAL_MS = 30 * 60 * 1000;
 /** So lange muss die App im Hintergrund gewesen sein, damit die Rückkehr neu lädt. */
@@ -48,10 +49,12 @@ function trackWrites(): void {
 }
 
 function applyUpdate(): void {
-  if (applying || pendingWrites > 0) return;
+  // Offline nicht aktivieren: config.js liegt nach dem Update noch nicht im
+  // Cache runtime-config, die App startete ohne Laufzeitconfig (kein Login).
+  if (applying || pendingWrites > 0 || !navigator.onLine) return;
   if (reloadPending) {
     applying = true;
-    window.location.reload();
+    reloadOnce();
   } else if (updateReady && updateSW) {
     applying = true;
     void updateSW(true);
@@ -79,7 +82,7 @@ export function setupSwUpdate(router: Router): void {
     // location.reload(): auch wenn ein anderer Tab aktiviert hat. Eigene
     // Aktivierung lädt sofort, fremde erst bei Navigation oder Rückkehr.
     onNeedReload() {
-      if (applying) window.location.reload();
+      if (applying) reloadOnce();
       else reloadPending = true;
     },
     onRegisteredSW(_url, reg) {
@@ -100,6 +103,17 @@ export function setupSwUpdate(router: Router): void {
     // Neuladen auf /callback würde den Login unterbrechen (Code nur einmal gültig).
     if (to.name === "Callback") return;
     applyUpdate();
+  });
+
+  // Ein anderer Tab hat aktiviert und der Server liefert die alten Chunks nicht
+  // mehr: die Navigation scheitert, egal in welchem Browser und mit welcher
+  // Meldung. Dann auf das Ziel neu laden (der Router-Handler tut das bei
+  // erkannten Chunk-Fehlern ebenfalls; reloadOnce verhindert doppeltes Laden).
+  router.onError((_error, to) => {
+    if (reloadPending && pendingWrites === 0) {
+      applying = true;
+      reloadOnce(to.fullPath);
+    }
   });
 
   document.addEventListener("visibilitychange", () => {

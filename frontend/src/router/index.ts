@@ -11,6 +11,7 @@ import {
   setLoginTargetResolver,
 } from "@/auth/oidc";
 import { onSessionRejected } from "@/auth/session";
+import { reloadOnce } from "@/js/reload";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -130,15 +131,49 @@ setLoginTargetResolver(() => {
 // Session rejected (expiry timer, 401 retry, store, guard, app resumed)
 onSessionRejected(requestLoginForCurrentRoute);
 
-// Handle chunk load errors after SW update (hash mismatch)
-router.onError((error, to) => {
-  if (
-    error.message.includes("Failed to fetch dynamically imported module") ||
-    error.message.includes("Unable to preload CSS")
-  ) {
-    // Force full reload to pick up new SW + assets
-    window.location.assign(to.fullPath);
+// Chunk load errors after an update (old chunks gone from the server).
+// Vite wraps every dynamic import and fires `vite:preloadError` when the
+// import or its preload fails, in every browser. The message match is only a
+// fallback: Chrome/Chromium "Failed to fetch dynamically imported module",
+// Firefox "error loading dynamically imported module" (documented in Mozilla
+// bug reports), Safari "Importing a module script failed" (unconfirmed).
+// The flag only counts for the navigation in progress: imports outside the
+// router (e.g. a lazy component in a dialog) must not mark a later navigation.
+let preloadFailed = false;
+router.beforeEach(() => {
+  preloadFailed = false;
+});
+window.addEventListener("vite:preloadError", () => {
+  // not prevented: the error reaches router.onError
+  if (pendingTarget) preloadFailed = true;
+});
+
+const CHUNK_ERROR_PATTERN =
+  /dynamically imported module|Unable to preload CSS|Importing a module script failed/i;
+
+// At most one chunk reload per 10 s: if the server keeps failing to deliver
+// the chunks, the error passes through instead of reloading in a loop.
+const CHUNK_RELOAD_KEY = "my-cookbook-chunk-reload";
+const CHUNK_RELOAD_MIN_INTERVAL_MS = 10 * 1000;
+
+function chunkReloadAllowed(): boolean {
+  try {
+    const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) ?? 0);
+    if (Date.now() - last < CHUNK_RELOAD_MIN_INTERVAL_MS) return false;
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
+  } catch {
+    // sessionStorage unavailable: reload anyway (no loop protection)
   }
+  return true;
+}
+
+router.onError((error, to) => {
+  const failed =
+    preloadFailed || CHUNK_ERROR_PATTERN.test(String(error?.message));
+  preloadFailed = false;
+  if (!failed || !chunkReloadAllowed()) return;
+  // Full reload to the target picks up the new SW and assets
+  reloadOnce(to.fullPath);
 });
 
 // --- Session Restore (iOS PWA Fix) ---

@@ -228,6 +228,8 @@ gunzip -c backups/cookbook_20260405_030000.sql.gz | docker compose exec -T db sh
    echo "ALTER ROLE \"<db-user>\" PASSWORD '<neues-passwort>';" | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'
    ```
 
+   In den doppelten Anführungszeichen wertet die Shell `$`, `` ` `` und `\` aus, ein `'` beendet den SQL-String. Solche Zeichen maskieren (`\$`, `''`) oder ein Passwort ohne sie wählen.
+
 4. **Reverse-Proxy:** für `/api/v1/ai/` Request-Body ≥ 20 MB und Lese-/Sende-Timeout ≥ 150 s.
 5. **Installierte PWAs** (Homescreen) einmal vollständig schließen und neu öffnen: Der Service Worker wechselt von automatischem auf gesteuertes Update; alte Clients übernehmen ihn erst, wenn kein Fenster der App mehr offen ist.
 
@@ -240,7 +242,7 @@ gunzip -c backups/cookbook_20260405_030000.sql.gz | docker compose exec -T db sh
 | `ADMIN_EMAIL` | Nein | — | E-Mail des ersten Admins, siehe „Erster Admin“ |
 | `DB_NAME` | Nein | `cookbook` | PostgreSQL-Datenbankname |
 | `DB_USER` | Nein | `cookbook` | PostgreSQL-Benutzer |
-| `DB_PASSWORD` | Ja | — | PostgreSQL-Passwort |
+| `DB_PASSWORD` | Ja | — | PostgreSQL-Passwort; Sonderzeichen erlaubt, in `.env` in einfache Anführungszeichen setzen (Compose wertet `$` sonst aus) |
 | `OPENAI_API_KEY` | Nein | — | OpenAI API-Key (leer = AI deaktiviert) |
 | `CORS_ORIGINS` | Nein | `["http://localhost:8080"]` | Erlaubte Origins (JSON-Array) |
 

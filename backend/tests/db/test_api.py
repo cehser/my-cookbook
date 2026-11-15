@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import select
 
 from app.auth import dependencies
+from app.models.image import RecipeImage
 from app.models.user import AppUser
 
 pytestmark = pytest.mark.anyio
@@ -68,6 +69,43 @@ async def test_pagination_with_identical_names_is_stable(
     assert seen == sorted(seen), "Tie-Breaker Recipe.id aufsteigend"
 
     for recipe_id in ids:
+        await db_client.delete(f"/api/v1/recipes/{recipe_id}")
+
+
+async def test_list_returns_first_image_per_recipe(
+    db_client: httpx.AsyncClient, db_session, as_db_user
+) -> None:
+    await as_db_user("admin")
+    tag = f"ci-{uuid.uuid4()}"
+    with_images = (
+        await db_client.post("/api/v1/recipes", json={"recipe_name": "Mit Bildern", "tags": [tag]})
+    ).json()["id"]
+    without = (
+        await db_client.post("/api/v1/recipes", json={"recipe_name": "Ohne Bild", "tags": [tag]})
+    ).json()["id"]
+
+    first, second = uuid.uuid4(), uuid.uuid4()
+    for image_id, order in ((second, 1), (first, 0)):  # absichtlich unsortiert eingefügt
+        db_session.add(
+            RecipeImage(
+                id=image_id,
+                recipe_id=uuid.UUID(with_images),
+                filename="x.jpg",
+                mime_type="image/webp",
+                file_path=f"{image_id}.webp",
+                sort_order=order,
+            )
+        )
+    await db_session.commit()
+
+    items = {
+        i["id"]: i
+        for i in (await db_client.get("/api/v1/recipes", params={"tag": tag})).json()["items"]
+    }
+    assert items[with_images]["first_image_id"] == str(first), "niedrigste sort_order gewinnt"
+    assert items[without]["first_image_id"] is None
+
+    for recipe_id in (with_images, without):
         await db_client.delete(f"/api/v1/recipes/{recipe_id}")
 
 

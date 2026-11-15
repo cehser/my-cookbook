@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from sqlalchemy import URL
 
 
 class Settings(BaseSettings):
@@ -7,11 +8,20 @@ class Settings(BaseSettings):
     db_port: int = 5432
     db_name: str = "cookbook"
     db_user: str = "cookbook"
-    db_password: str = "changeme"
+    db_password: str  # Pflicht, kein Default: ohne DB_PASSWORD startet das Backend nicht
 
     @property
-    def database_url(self) -> str:
-        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+    def database_url(self) -> URL:
+        # URL.create kodiert Sonderzeichen (@ / : # %) in Benutzer und Passwort;
+        # ein f-String würde die URL bei solchen Passwörtern zerbrechen.
+        return URL.create(
+            "postgresql+asyncpg",
+            username=self.db_user,
+            password=self.db_password,
+            host=self.db_host,
+            port=self.db_port,
+            database=self.db_name,
+        )
 
     # OIDC (Pflicht, kein Default: ohne OIDC_AUTHORITY und OIDC_CLIENT_ID startet das Backend nicht)
     oidc_authority: str

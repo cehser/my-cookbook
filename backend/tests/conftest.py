@@ -12,6 +12,7 @@ from typing import Any
 # Pflichtwerte der Settings vor dem App-Import setzen (es gibt keine Code-Defaults).
 os.environ.setdefault("OIDC_AUTHORITY", "https://idp.example.com/realms/test")
 os.environ.setdefault("OIDC_CLIENT_ID", "test-client")
+os.environ.setdefault("DB_PASSWORD", "test")
 
 import httpx  # noqa: E402
 import pytest  # noqa: E402
