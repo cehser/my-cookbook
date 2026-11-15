@@ -54,3 +54,24 @@ Der Foto-Import nimmt 1–10 Seiten eines Rezepts über die native Kamera bzw. F
 - Backend-Tests: mehrere Dateien → ein Aufruf mit Bildern in Reihenfolge und `detail: "high"` (Client gemockt); zu viele Dateien, Einzelbild zu groß, Gesamt zu groß, kein Bild → jeweils 4xx mit Meldung
 - Bericht listet die Geräteszenarien für mich (iPhone und iPad als installierte PWA: Kamera, Mediathek, mehrere Seiten, Hoch- und Querformat, Modal mehrfach öffnen) und nennt die Proxy-Grenze für den Server (≥ 20 MB für `/api/v1/ai/`)
 - Verifikation gemäß Projekt-CLAUDE.md (Frontend und Backend, mit Container)
+
+## Nacharbeit (2026-11-15, nach Prüfung)
+
+Ausgangsstand: `e05ffd5`.
+
+- **N1 `createImageBitmap`:** Wirft der Aufruf mit `{ imageOrientation: "from-image" }` einen `TypeError` (Option unbekannt, ältere WebKit-Versionen), ohne Optionen erneut versuchen; nur ein echter Dekodierfehler führt zur HEIC-/Format-Meldung. Beim Zeichnen `imageSmoothingQuality = "high"` setzen.
+- **N2 Fehler im Stapel:** Scheitert eine Datei, die übrigen trotzdem verarbeiten; fehlgeschlagene Dateien und die Kürzung über 10 Seiten am Ende gesammelt melden (beide Meldungen sichtbar).
+- **N3 Ladeanzeige und Vorschau:** Eigene Anzeige „Seiten werden vorbereitet“ ab der ersten Auswahl, getrennt vom Button „Rezept erkennen“. Beim Verkleinern zusätzlich ein kleines Vorschaubild (z. B. lange Kante 320 px) erzeugen und in `ImportPageList` anzeigen; die 2000-px-Blobs bleiben für Upload und W.28.
+- **N4 Zustand im Dialog:** Seiten bleiben beim Schließen und erneuten Öffnen des Modals erhalten (versehentliches Schließen verwirft keine Aufnahmen). `error` und `result` beim Entfernen einer Seite, beim Hinzufügen und bei „Neu“ zurücksetzen.
+- **N5 README:** im Betriebsteil (Abschnitt Reverse-Proxy) die Anforderungen an den äußeren Proxy für `/api/v1/ai/`: Body ≥ 20 MB, Timeouts ≥ 150 s.
+- **N6 Messung** (Schritt 6 des Auftrags), freigegeben mit wenigen echten Aufrufen (1, 3, 10 Seiten):
+  - Testfotos: Ordner mit echten Rezeptseiten nennt der Nutzer in der Sitzung.
+  - Größen vor/nach mit der echten `imageResize.ts` im Headless-Browser (`playwright-core` wie in W.22).
+  - Modelldauer und Ergebnis per Skript im laufenden lokalen Backend-Container (`docker compose exec backend python …` im Hauptcheckout), Request-Form wie im Branch (`detail: "high"`, Begleittext, Prompt aus dem Branch per stdin). Der Key wird dort aus der Umgebung genutzt, weder gelesen noch ausgegeben; `.env` nicht lesen.
+  - Lesbarkeit: Zutatenmengen kleiner Schrift mit der Vorlage vergleichen.
+  - Checkpoint wie im Auftrag: Dauer > 100 s bei 10 Seiten oder kleine Schrift nicht sicher erkannt → Messwerte vorlegen und anhalten.
+
+### Abnahme Nacharbeit
+- Messwerte (Größe je Seite vor/nach, Gesamtgröße, Dauer bei 1/3/10 Seiten, Lesbarkeit) im Bericht
+- Komponentenlogik von N1–N4 im Headless-Browser geprüft, soweit ohne Login möglich (z. B. `imageResize.ts` mit JPEG, PNG, gedrehtem JPEG, nicht dekodierbarer Datei); sonst begründet
+- Bericht um Abschnitt „Nacharbeit“ fortschreiben; Verifikation gemäß Projekt-CLAUDE.md (Frontend und Backend)

@@ -120,10 +120,11 @@ Anlass: Das Foto des Imports wird nicht gespeichert; das KI-Ergebnis lässt sich
 ### Entschieden (2026-11-15)
 - **Eigene Bildart:** `recipe_images.kind` (`photo` | `source`), Default `photo`, Check-Constraint; Migration.
 - `photo`-Logik berücksichtigt nur `photo`: `_get_first_image_id`, Listenabfrage (`distinct`/`distinct_on`, daher nach W.26), `setRecipePicture` (löscht nur `photo`), Admin-Aufräumfunktion.
-- Nach dem Import lädt das Frontend die verkleinerten Seiten mit `kind=source` und `sort_order` = Seitenreihenfolge zum neuen Rezept hoch.
+- Nach dem Import lädt das Frontend die verkleinerten Seiten mit `kind=source` und `sort_order` = Seitenreihenfolge zum neuen Rezept hoch. Dazu muss `emit("imported")` in `AIRecipeImport.vue` die Blobs mitgeben (die Seitenliste wird direkt danach geleert) oder der Upload in der Komponente vor dem Leeren laufen.
 - **Anzeige:** aufklappbarer Abschnitt „Vorlage“ mit Vorschaubildern, antippen öffnet das Bild groß; in Detailansicht und Bearbeitung.
 - **Nach dem Import** öffnet die App direkt die Bearbeitung des neuen Rezepts (statt nur Toast), damit man das Ergebnis gleich mit der Vorlage prüft.
 - Export/Import (11.1/11.2) nimmt die Vorlagen samt `kind` mit.
+- Bekannt, ohne Änderung: Bleibt jemand ≥ 10 min in Kamera oder Mediathek und wartet ein SW-Update, lädt `swUpdate.ts` bei der Rückkehr neu; gesammelte, noch nicht importierte Seiten gehen verloren (selten).
 
 ## W.23 Auth-Feinschliff
 
