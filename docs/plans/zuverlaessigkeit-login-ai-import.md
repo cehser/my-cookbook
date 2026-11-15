@@ -40,6 +40,8 @@ Refresh-Token in `localStorage` und fehlende CSP (XSS-Risiko): zur Kenntnis, eig
 
 ## W.12 AI-Import robust
 
+**Stand 2026-11-15: umgesetzt (W.12, `e9d2689`).** A1–A8 erledigt. Bericht: [W.12.bericht.md](../tasks/W.12.bericht.md), Regeln: `.claude/rules/ai-import.md`.
+
 | # | Befund | Stand |
 |---|---|---|
 | A1 | `prod.conf` setzt kein `proxy_read_timeout` (nginx-Standard 60 s). Ein URL-Import mit Websuche kann länger dauern → 504. Das Timeout des äußeren Reverse-Proxys ist unbekannt. | Konfiguration |
@@ -62,6 +64,12 @@ docker compose logs frontend --since 72h | grep -E '" (413|499|502|504) '
 - Die persönliche Einstellung `gpt_model` und der `model`-Parameter der AI-Routen entfallen (Frontend und Backend).
 - **API-Key** bleibt in der Umgebung (`OPENAI_API_KEY`), nicht in der DB: sonst stünde er in jedem `pg_dump`-Backup und im ZIP-Export (11.1). Die Admin-Seite zeigt nur „Key konfiguriert: ja/nein“ und bietet einen Verbindungstest.
 - **Endpunkt** wird nicht konfigurierbar: URL-Import nutzt die Responses API mit Websuche (OpenAI-spezifisch); andere Anbieter unterstützen Vision und Structured Outputs unterschiedlich. Bei echtem Bedarf (z. B. Azure OpenAI) später als Umgebungsvariable.
+
+### Entschieden (2026-11-15, Checkpoint W.12)
+- **Structured Outputs** über die Responses API (`responses.parse`, Schema `AIRecipe`) für Text, URL (mit `web_search`) und Foto. Kein YAML mehr im AI-Pfad; `js-yaml` bleibt für YAML-Import/-Export.
+- **Default-Modell** `gpt-6-luna` (Text/URL und Foto getrennt einstellbar). `gpt-4o`/`gpt-4o-mini` laut OpenAI-Doku ab 2027-01-14 deprecated.
+- **System-Prompt** liegt nur noch im Image (`backend/prompts/system_prompt.md`), kein Volume `recipe_prompts`; Änderung per Deploy. Fehlt die Datei, startet das Backend nicht.
+- Zeitbudget: Backend 120 s < Frontend 135 s < nginx 150 s; Upload-Grenze 10 MB überall.
 
 ### Entscheidung im Auftrag: Structured Outputs statt YAML
 Heute verlangt der Prompt YAML in einem Markdown-Block, das Frontend sucht es per Regex heraus (A4). Alternative: OpenAI Structured Outputs mit JSON-Schema des Rezepts; das Backend validiert und liefert JSON. Prüfen: Verfügbarkeit zusammen mit der Websuche (Responses API) und mit den eingesetzten Modellen (unbestätigt), Anpassung von `system_prompt.md`. Ergebnis als Checkpoint vorlegen, bevor umgebaut wird. `js-yaml` bleibt für YAML-Import/-Export.
