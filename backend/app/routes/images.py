@@ -11,6 +11,7 @@ import httpx
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from PIL import Image as PILImage
+from PIL import ImageOps
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,7 +48,8 @@ def _ensure_dirs(recipe_id: uuid.UUID) -> tuple[Path, Path]:
 def _process_image(src_path: Path, thumb_path: Path, optimised_path: Path) -> None:
     """Generate thumbnail (400px WebP) and optimised version (1200px WebP)."""
     with PILImage.open(src_path) as img:
-        img = img.convert("RGB")
+        # EXIF-Ausrichtung anwenden, sonst liegen Hochformatfotos von Handys quer
+        img = ImageOps.exif_transpose(img).convert("RGB")
 
         # Thumbnail
         thumb = img.copy()
