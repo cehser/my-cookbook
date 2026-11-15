@@ -63,3 +63,7 @@ Das Frontend hat eine Testumgebung (Vitest, `@vue/test-utils`, happy-dom), die l
 - CI-Job `frontend` führt die Tests aus (Workflow-Syntax geprüft)
 - Bericht nennt gefundene Fehler, die nicht behoben wurden
 - Verifikation gemäß Projekt-CLAUDE.md (Frontend)
+
+## Korrektur (2026-11-15, nach Prüfung)
+- Schritt 4 „`useDraft`: … Undo“ war falsch: Undo/Redo liegt in `views/Edit.vue` (`useRefHistory`), nicht in `useDraft`. Weiter in W.29.
+- „`Callback.vue` verarbeitet den Code nur einmal“: Eine Sperre gibt es weder in `Callback.vue` noch in `oidc.handleCallback`; der Test prüft nur Vue-Semantik. Sperre in W.23.

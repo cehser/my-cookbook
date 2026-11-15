@@ -21,3 +21,4 @@ Erledigte und verworfene Punkte aus [ROADMAP.md](../ROADMAP.md), wörtlich über
 - [x] W.5 CI mit GitHub Actions (Frontend, Backend, DB-Tests gegen PostgreSQL 16, Image-Builds ohne Push), `--legacy-peer-deps` entfernt · 2026-11-15 · `d0818e9`
 - [x] W.22 Service-Worker-Update steuern: `registerType: prompt`, Aktivierung bei erfolgreicher Navigation oder Rückkehr nach ≥ 10 min, nie bei `hidden` (Dateiauswahl), andere Tabs aufgeschoben (inkl. Nacharbeit N1–N3) · 2026-11-15 · `7951515`
 - [x] W.12 AI-Import robust: Structured Outputs (Responses API), Modell als Admin-Einstellung, Fehlerabbildung, Timeouts/Grenzen, Foto-Upload (A8), Prompt im Image statt Volume (inkl. Nacharbeit N1–N5) · 2026-11-15 · `e9d2689`
+- [x] W.10 Vitest eingeführt (vitest, @vue/test-utils, happy-dom; 63 Tests, CI), Store-Schnitt `recipeMapping.ts` und `recipeApi.listAll`, `saveSettings` speichert Kopie · 2026-11-15 · `6b061b4`
