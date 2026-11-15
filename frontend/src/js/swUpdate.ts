@@ -5,7 +5,7 @@
  * wird still bei der nächsten erfolgreichen Navigation oder bei der Rückkehr
  * in den Vordergrund nach mindestens 10 min Hintergrund, nie mitten in der
  * Benutzung und nie bei kurzem hidden (Kamera, Fotoauswahl). Eine laufende
- * schreibende Anfrage verhindert die Aktivierung.
+ * schreibende Anfrage verhindert die Aktivierung, ebenso fehlendes Netz.
  *
  * Nach Updates sucht der Browser von sich aus nur bei Navigation und
  * Registrierung. Eine fortgesetzte PWA prüft deshalb beim Start und beim
@@ -49,7 +49,9 @@ function trackWrites(): void {
 }
 
 function applyUpdate(): void {
-  if (applying || pendingWrites > 0) return;
+  // Offline nicht aktivieren: config.js liegt nach dem Update noch nicht im
+  // Cache runtime-config, die App startete ohne Laufzeitconfig (kein Login).
+  if (applying || pendingWrites > 0 || !navigator.onLine) return;
   if (reloadPending) {
     applying = true;
     reloadOnce();
