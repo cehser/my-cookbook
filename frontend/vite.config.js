@@ -39,6 +39,9 @@ export default defineConfig({
             options: {
               cacheName: "runtime-config",
               networkTimeoutSeconds: 3,
+              // am HTTP-Cache vorbei: nginx sendet nur Last-Modified, der
+              // Browser würde die Datei sonst heuristisch aus dem Cache liefern
+              fetchOptions: { cache: "no-cache" },
               cacheableResponse: { statuses: [200] },
             },
           },
