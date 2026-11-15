@@ -1,10 +1,19 @@
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { ref, computed, onBeforeUnmount } from "vue";
 import { useRecipeStore } from "@/store/recipeStore";
 import { generateUUID } from "@/js/uuid";
 import { initRecipe } from "@/js/recipes";
-import { aiApi, aiErrorMessage, type AIImportResponse } from "@/api/ai";
+import { ImageResizeError, resizeImage } from "@/js/imageResize";
+import {
+  aiApi,
+  aiErrorMessage,
+  MAX_PAGES,
+  type AIImportResponse,
+} from "@/api/ai";
 import type { Recipe } from "@/types/recipe";
+import ImportPageList, {
+  type ImportPage,
+} from "@/components/features/ImportPageList.vue";
 
 const emit = defineEmits<{
   imported: [recipe: Recipe];
@@ -13,22 +22,19 @@ const emit = defineEmits<{
 const store = useRecipeStore();
 
 // Template refs
-const cameraVideo = ref<HTMLVideoElement>();
-const cameraCanvas = ref<HTMLCanvasElement>();
+const fileInput = ref<HTMLInputElement>();
 
 // State
-const cameraActive = ref(false);
-const capturedImage = ref<string | null>(null);
-const uploadedFile = ref<File | null>(null);
-const uploadedImage = ref<string | null>(null);
+const pages = ref<ImportPage[]>([]);
+const preparing = ref(false);
 const textInput = ref("");
 const loading = ref(false);
 const result = ref<Recipe | null>(null);
 const error = ref<string | null>(null);
 const rawJson = ref<string | null>(null);
-const stream = ref<MediaStream | null>(null);
 const downloadImage = ref(true);
 const downloadingImage = ref(false);
+let nextPageId = 1;
 
 // Computed
 const settings = computed(() => store.settings);
@@ -36,57 +42,55 @@ const hasApiKey = computed(() => {
   // Backend holds the key — check if user is authenticated
   return true;
 });
+const busy = computed(() => loading.value || preparing.value);
 
 // Methods
-const startCamera = async () => {
+const pickFiles = () => fileInput.value?.click();
+
+const clearPages = () => {
+  pages.value.forEach((p) => URL.revokeObjectURL(p.url));
+  pages.value = [];
+};
+
+const removePage = (id: number) => {
+  const page = pages.value.find((p) => p.id === id);
+  if (page) URL.revokeObjectURL(page.url);
+  pages.value = pages.value.filter((p) => p.id !== id);
+};
+
+/** Nimmt die gewählten Bilder nacheinander auf und verkleinert sie (iOS-Speicher). */
+const onFilesChosen = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const files = Array.from(input.files ?? []);
+  // Gleiche Datei soll erneut wählbar sein.
+  input.value = "";
+  if (files.length === 0) return;
+
+  error.value = null;
+  const free = MAX_PAGES - pages.value.length;
+  const accepted = files.slice(0, Math.max(free, 0));
+  const rejected = files.length - accepted.length;
+
+  preparing.value = true;
   try {
-    stream.value = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
-    });
-    if (cameraVideo.value) {
-      cameraVideo.value.srcObject = stream.value;
+    for (const file of accepted) {
+      const blob = await resizeImage(file);
+      pages.value.push({
+        id: nextPageId++,
+        blob,
+        url: URL.createObjectURL(blob),
+      });
     }
-    cameraActive.value = true;
-    capturedImage.value = null;
+    if (rejected > 0) {
+      error.value = `Höchstens ${MAX_PAGES} Seiten je Import: ${rejected} Bild${rejected === 1 ? " wurde" : "er wurden"} nicht übernommen.`;
+    }
   } catch (err: unknown) {
     error.value =
-      "Kamera-Zugriff fehlgeschlagen: " +
-      (err instanceof Error ? err.message : String(err));
+      err instanceof ImageResizeError ? err.message : aiErrorMessage(err);
+  } finally {
+    preparing.value = false;
   }
 };
-
-const stopCamera = () => {
-  if (stream.value) {
-    stream.value.getTracks().forEach((track) => track.stop());
-    stream.value = null;
-    cameraActive.value = false;
-  }
-};
-
-const capturePhoto = () => {
-  const video = cameraVideo.value;
-  const canvas = cameraCanvas.value;
-  if (!video || !canvas) return;
-
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext("2d")?.drawImage(video, 0, 0);
-  capturedImage.value = canvas.toDataURL("image/jpeg");
-  stopCamera();
-};
-
-watch(uploadedFile, (file) => {
-  if (!file) {
-    uploadedImage.value = null;
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    uploadedImage.value = e.target?.result as string;
-    capturedImage.value = e.target?.result as string;
-  };
-  reader.readAsDataURL(file);
-});
 
 /** Führt einen AI-Aufruf aus und zeigt Ergebnis oder Fehler im Dialog. */
 const runAnalysis = async (call: () => Promise<AIImportResponse>) => {
@@ -106,14 +110,10 @@ const runAnalysis = async (call: () => Promise<AIImportResponse>) => {
   }
 };
 
-const analyzeImage = () => {
-  const image = capturedImage.value;
-  if (!image) return;
-  return runAnalysis(async () => {
-    // Data URI → Blob für den Upload
-    const blob = await (await fetch(image)).blob();
-    return aiApi.importImage(blob, "photo.jpg");
-  });
+const analyzeImages = () => {
+  if (pages.value.length === 0) return;
+  const blobs = pages.value.map((p) => p.blob);
+  return runAnalysis(() => aiApi.importImages(blobs));
 };
 
 const analyzeText = () => runAnalysis(() => aiApi.importText(textInput.value));
@@ -136,17 +136,13 @@ const importRecipe = async () => {
 
   // Reset
   result.value = null;
-  capturedImage.value = null;
-  uploadedImage.value = null;
-  uploadedFile.value = null; // gleiche Datei soll erneut wählbar sein
+  clearPages();
   textInput.value = "";
   downloadImage.value = true;
 };
 
 // Lifecycle
-onBeforeUnmount(() => {
-  stopCamera();
-});
+onBeforeUnmount(clearPages);
 </script>
 
 <template>
@@ -162,100 +158,65 @@ onBeforeUnmount(() => {
         </div>
 
         <BTabs v-else content-class="mt-3">
-          <!-- Camera Tab -->
-          <BTab title="Kamera" active>
-            <div class="camera-container">
-              <video
-                ref="cameraVideo"
-                class="camera-preview"
-                autoplay
-                playsinline
-              ></video>
-              <canvas ref="cameraCanvas" style="display: none"></canvas>
-
-              <div class="camera-controls mt-3">
-                <BButton
-                  v-if="!cameraActive"
-                  @click="startCamera"
-                  variant="primary"
-                >
-                  <i class="bi bi-camera"></i> Kamera starten
-                </BButton>
-                <BButton v-else @click="capturePhoto" variant="success">
-                  <i class="bi bi-camera-fill"></i> Foto aufnehmen
-                </BButton>
-                <BButton
-                  v-if="cameraActive"
-                  @click="stopCamera"
-                  variant="secondary"
-                  class="ms-2"
-                >
-                  <i class="bi bi-x-circle"></i> Kamera stoppen
-                </BButton>
-              </div>
-
-              <div v-if="capturedImage" class="mt-3">
-                <img
-                  :src="capturedImage"
-                  class="img-thumbnail"
-                  alt="Captured"
-                  style="max-width: 300px"
-                />
-                <div class="mt-2">
-                  <BButton
-                    @click="analyzeImage"
-                    variant="primary"
-                    :disabled="loading"
-                  >
-                    <span
-                      v-if="loading"
-                      class="spinner-border spinner-border-sm me-2"
-                    ></span>
-                    <i v-else class="bi bi-magic"></i>
-                    Rezept erkennen
-                  </BButton>
-                  <BButton
-                    @click="capturedImage = null"
-                    variant="secondary"
-                    class="ms-2"
-                  >
-                    <i class="bi bi-arrow-counterclockwise"></i> Neu
-                  </BButton>
-                </div>
-              </div>
-            </div>
-          </BTab>
-
-          <!-- Upload Tab -->
-          <BTab title="Foto hochladen">
-            <BFormFile
-              v-model="uploadedFile"
+          <!-- Photo Tab: native Kamera bzw. Fotoauswahl, 1–10 Seiten -->
+          <BTab title="Foto aufnehmen oder wählen" active>
+            <!-- Ohne capture: iOS bietet Kamera und Mediathek zur Wahl -->
+            <input
+              ref="fileInput"
+              type="file"
               accept="image/*"
-              placeholder="Wähle ein Foto aus..."
-            ></BFormFile>
+              multiple
+              class="d-none"
+              @change="onFilesChosen"
+            />
 
-            <div v-if="uploadedImage" class="mt-3">
-              <img
-                :src="uploadedImage"
-                class="img-thumbnail"
-                alt="Uploaded"
-                style="max-width: 300px"
-              />
-              <div class="mt-2">
-                <BButton
-                  @click="analyzeImage"
-                  variant="primary"
-                  :disabled="loading"
-                >
-                  <span
-                    v-if="loading"
-                    class="spinner-border spinner-border-sm me-2"
-                  ></span>
-                  <i v-else class="bi bi-magic"></i>
-                  Rezept erkennen
-                </BButton>
-              </div>
+            <ImportPageList
+              v-if="pages.length"
+              :pages="pages"
+              :disabled="busy"
+              class="mb-3"
+              @remove="removePage"
+            />
+
+            <div class="d-flex flex-wrap gap-2">
+              <BButton
+                variant="primary"
+                :disabled="busy || pages.length >= MAX_PAGES"
+                @click="pickFiles"
+              >
+                <i class="bi bi-camera"></i>
+                {{
+                  pages.length
+                    ? "Seite hinzufügen"
+                    : "Foto aufnehmen oder wählen"
+                }}
+              </BButton>
+              <BButton
+                v-if="pages.length"
+                variant="success"
+                :disabled="busy"
+                @click="analyzeImages"
+              >
+                <span
+                  v-if="loading || preparing"
+                  class="spinner-border spinner-border-sm me-2"
+                ></span>
+                <i v-else class="bi bi-magic"></i>
+                Rezept erkennen
+              </BButton>
+              <BButton
+                v-if="pages.length"
+                variant="secondary"
+                :disabled="busy"
+                @click="clearPages"
+              >
+                <i class="bi bi-arrow-counterclockwise"></i> Neu
+              </BButton>
             </div>
+            <small class="text-muted d-block mt-2">
+              Rezepte über mehrere Seiten: bis zu {{ MAX_PAGES }} Fotos in
+              Lesereihenfolge.
+            </small>
           </BTab>
 
           <!-- Text/URL Tab -->
@@ -341,17 +302,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.camera-container {
-  text-align: center;
-}
-
-.camera-preview {
-  width: 100%;
-  max-width: 500px;
-  border-radius: var(--radius-md);
-  background: #000;
-}
-
 .recipe-preview {
   padding: var(--space-4);
   border: 1px solid var(--color-border);
