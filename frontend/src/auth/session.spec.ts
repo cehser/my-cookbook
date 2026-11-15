@@ -66,6 +66,65 @@ function deferred<T = void>() {
   return { promise, resolve, reject };
 }
 
+/**
+ * Exklusiver Fake-LockManager (happy-dom hat keinen): Warteschlange je Name,
+ * `signal` bricht das Warten ab, Freigabe auch bei Exception.
+ */
+function installLocks() {
+  type Entry = {
+    fn: () => Promise<unknown>;
+    done: (p: Promise<unknown>) => void;
+  };
+  const queue: Entry[] = [];
+  let holding = false;
+  const names: string[] = [];
+  const next = () => {
+    if (holding) return;
+    const entry = queue.shift();
+    if (!entry) return;
+    holding = true;
+    const run = Promise.resolve().then(entry.fn);
+    entry.done(run);
+    void run
+      .catch(() => undefined)
+      .finally(() => {
+        holding = false;
+        next();
+      });
+  };
+  const locks = {
+    names,
+    held: () => holding,
+    queued: () => queue.length,
+    request(
+      name: string,
+      optsOrFn: { signal?: AbortSignal } | (() => Promise<unknown>),
+      maybeFn?: () => Promise<unknown>,
+    ): Promise<unknown> {
+      names.push(name);
+      const fn = typeof optsOrFn === "function" ? optsOrFn : maybeFn!;
+      const signal =
+        typeof optsOrFn === "function" ? undefined : optsOrFn.signal;
+      return new Promise((resolve, reject) => {
+        const entry: Entry = { fn, done: (p) => p.then(resolve, reject) };
+        signal?.addEventListener("abort", () => {
+          const i = queue.indexOf(entry);
+          if (i < 0) return; // schon gewährt: Abbruch wirkungslos
+          queue.splice(i, 1);
+          reject(new DOMException("aborted", "AbortError"));
+        });
+        queue.push(entry);
+        next();
+      });
+    },
+  };
+  Object.defineProperty(navigator, "locks", {
+    configurable: true,
+    value: locks,
+  });
+  return locks;
+}
+
 const loginCalls = () => um.signinRedirect.mock.calls.length;
 const loginTarget = () => sessionStorage.getItem("oidc-return-url");
 
@@ -356,47 +415,82 @@ describe("Erneuerung: Single-Flight, Web Lock, Backoff", () => {
   });
 
   it("erneuert unter navigator.locks", async () => {
-    const request = vi.fn((_name: string, fn: () => Promise<unknown>) => fn());
-    Object.defineProperty(navigator, "locks", {
-      configurable: true,
-      value: { request },
-    });
+    const locks = installLocks();
     stored = expired();
     expect(await session.renewToken()).toBe("valid");
-    expect(request).toHaveBeenCalledWith(
-      "my-cookbook-token-renewal",
-      expect.any(Function),
-    );
+    expect(locks.names).toEqual(["my-cookbook-token-renewal"]);
     expect(um.signinSilent).toHaveBeenCalledTimes(1);
   });
 
   it("nach dem Lock: anderer Tab hat schon erneuert → keine zweite Erneuerung", async () => {
-    const request = vi.fn(async (_name: string, fn: () => Promise<unknown>) => {
+    const locks = installLocks();
+    const otherTab = deferred();
+    void locks.request("my-cookbook-token-renewal", async () => {
+      await otherTab.promise;
       stored = fresh(3); // der andere Tab hielt den Lock und erneuerte
-      return fn();
-    });
-    Object.defineProperty(navigator, "locks", {
-      configurable: true,
-      value: { request },
     });
     stored = expired();
-    expect(await session.renewToken()).toBe("valid");
+    const renewal = session.renewToken();
+    await flushPromises();
+    expect(um.signinSilent).not.toHaveBeenCalled(); // wartet auf den Lock
+    otherTab.resolve();
+    expect(await renewal).toBe("valid");
     expect(um.signinSilent).not.toHaveBeenCalled();
   });
 
   it("nach dem Lock: anderer Tab hat die Sitzung verworfen → rejected", async () => {
-    Object.defineProperty(navigator, "locks", {
-      configurable: true,
-      value: {
-        request: async (_n: string, fn: () => Promise<unknown>) => {
-          stored = null;
-          return fn();
-        },
-      },
+    const locks = installLocks();
+    void locks.request("my-cookbook-token-renewal", async () => {
+      stored = null;
     });
     stored = expired();
     expect(await session.renewToken()).toBe("rejected");
     expect(um.signinSilent).not.toHaveBeenCalled();
+  });
+
+  it("Lock-Wartezeit begrenzt (15 s): offline, kein Hängen von getAccessToken und logout", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const locks = installLocks();
+    void locks.request(
+      "my-cookbook-token-renewal",
+      () => new Promise(() => undefined),
+    ); // Tab hängt
+    stored = expired();
+    const token = session.getAccessToken();
+    await vi.advanceTimersByTimeAsync(14_900);
+    expect(session.currentRenewal()).not.toBeNull();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(await token).toBeNull();
+    expect(session.currentRenewal()).toBeNull(); // logout() wartet nicht mehr
+    expect(um.signinSilent).not.toHaveBeenCalled();
+    expect(locks.queued()).toBe(0); // abgebrochene Anfrage ist aus der Schlange
+  });
+
+  it("Timeout gilt nur fürs Warten, nicht für die Erneuerung selbst", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    installLocks();
+    stored = expired();
+    const slow = deferred();
+    um.signinSilent.mockImplementation(async () => {
+      await slow.promise;
+      stored = fresh(2);
+    });
+    const renewal = session.renewToken();
+    await vi.advanceTimersByTimeAsync(20_000);
+    slow.resolve();
+    expect(await renewal).toBe("valid");
+  });
+
+  it("Exception unter dem Lock gibt ihn frei", async () => {
+    const locks = installLocks();
+    stored = expired();
+    um.getUser
+      .mockImplementationOnce(async () => stored) // vor dem Lock
+      .mockRejectedValueOnce(new Error("Storage gesperrt")); // unter dem Lock
+    await expect(session.renewToken()).rejects.toThrow("Storage gesperrt");
+    expect(locks.held()).toBe(false);
+    expect(await session.renewToken()).toBe("valid");
+    expect(um.signinSilent).toHaveBeenCalledTimes(1);
   });
 
   it("ohne navigator.locks wie bisher direkt", async () => {

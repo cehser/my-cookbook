@@ -48,6 +48,9 @@ const RENEW_BACKOFF_MS = 30 * 1000;
 /** Web-Lock-Name: eine Erneuerung zur Zeit über alle Tabs. */
 const RENEW_LOCK = "my-cookbook-token-renewal";
 
+/** So lange wird höchstens auf den Lock gewartet (Erneuerung selbst: 10 s). */
+const RENEW_LOCK_TIMEOUT_MS = 15 * 1000;
+
 // --- Hinweise für die Oberfläche ---
 
 /**
@@ -103,11 +106,32 @@ export function classifyRenewError(e: unknown): "offline" | "rejected" {
 /**
  * Führt `fn` unter dem Web Lock aus (ein Tab erneuert zur Zeit). Ohne
  * `navigator.locks` (iOS < 15.4, unsicherer Kontext) direkt.
+ * Das Warten auf den Lock ist begrenzt: Hängt ein anderer Tab (eingefroren,
+ * Debugger), gilt die Erneuerung als `offline`, statt `getAccessToken`, Guard
+ * und `logout()` zu blockieren. Eine Exception in `fn` gibt den Lock frei
+ * (Web-Locks-Semantik) und wird weitergereicht.
  */
-function withRenewLock<T>(fn: () => Promise<T>): Promise<T> {
-  const locks = (navigator as Navigator & { locks?: LockManager }).locks;
+async function withRenewLock(fn: () => Promise<AuthState>): Promise<AuthState> {
+  const locks = (navigator as Navigator & { locks?: LockManager | null }).locks;
   if (!locks?.request) return fn();
-  return locks.request(RENEW_LOCK, fn) as Promise<T>;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RENEW_LOCK_TIMEOUT_MS);
+  try {
+    return await locks.request(
+      RENEW_LOCK,
+      { signal: controller.signal },
+      () => {
+        clearTimeout(timer); // begrenzt nur das Warten, nicht die Erneuerung
+        return fn();
+      },
+    );
+  } catch (e) {
+    if (!controller.signal.aborted) throw e;
+    console.warn("[Auth] Kein Lock für die Token-Erneuerung (Timeout)");
+    return "offline";
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function doRenew(): Promise<AuthState> {
