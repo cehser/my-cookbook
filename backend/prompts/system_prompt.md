@@ -72,6 +72,15 @@ Wenn NUR eine URL übergeben wird (ohne HTML-Inhalt):
 Dann KEIN Bild extrahieren, imageurl null.
 
 ############################################
+### MEHRERE BILDER
+############################################
+
+Kommen mehrere Bilder, sind das die Seiten eines einzigen Rezepts in
+Lesereihenfolge (z. B. Zutaten auf einer, Zubereitung auf der nächsten Seite).
+Lies sie in dieser Reihenfolge und führe sie zu einem Rezept zusammen.
+Nichts doppelt übernehmen, wenn eine Angabe auf mehreren Seiten steht.
+
+############################################
 ### AUSGABE
 ############################################
 

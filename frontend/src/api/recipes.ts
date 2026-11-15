@@ -84,6 +84,8 @@ function buildQuery(
   );
 }
 
+const LIST_PAGE_SIZE = 200; // Maximum des Backends
+
 export const recipeApi = {
   /** List recipes with search, filter, sort, pagination. */
   list(params: ListRecipesParams = {}) {
@@ -91,6 +93,24 @@ export const recipeApi = {
       params as Record<string, string | number | undefined>,
     );
     return api.get<RecipeListResponse>(`/recipes${qs}`);
+  },
+
+  /** Lädt alle Seiten der Rezeptliste; Duplikate (über `id`) werden verworfen. */
+  async listAll(): Promise<RecipeListItem[]> {
+    const items: RecipeListItem[] = [];
+    const seen = new Set<string>();
+    for (let page = 1; ; page++) {
+      const res = await recipeApi.list({ page, page_size: LIST_PAGE_SIZE });
+      for (const item of res.items) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          items.push(item);
+        }
+      }
+      const lastPage =
+        res.items.length < LIST_PAGE_SIZE || page * LIST_PAGE_SIZE >= res.total;
+      if (lastPage) return items;
+    }
   },
 
   /** Get a single recipe by ID. */

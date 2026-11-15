@@ -10,7 +10,8 @@
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
     "typecheck": "vue-tsc --noEmit",
-    "prepare": "cd .. && husky frontend/.husky"
+    "prepare": "cd .. && husky frontend/.husky",
+    "test": "vitest run"
   },
   "dependencies": {
     "@vueuse/core": "^14.2.1",
@@ -33,8 +34,10 @@
     "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/test-utils": "^2.6.0",
     "eslint-plugin-vue": "^10.6.2",
     "globals": "^17.4.0",
+    "happy-dom": "^21.0.4",
     "husky": "^9.1.7",
     "lightningcss": "^1.28.1",
     "lint-staged": "^16.4.0",
@@ -43,6 +46,7 @@
     "unplugin-vue-components": "^32.0.0",
     "vite": "^8.0.3",
     "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^5.1.0",
     "vue-eslint-parser": "^10.4.0",
     "vue-tsc": "^3.2.6"
   },

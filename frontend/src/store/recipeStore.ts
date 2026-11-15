@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { set, get } from "idb-keyval";
 import { loadYamlCookbook, loadSample } from "@/js/recipes";
 import { deepCopyJSON } from "@/js/deepCopy";
+import { detailToRecipe, listItemToRecipe } from "@/js/recipeMapping";
 import {
   serializeRecipePictures,
   deserializeRecipePictures,
@@ -18,11 +19,7 @@ import {
   writeSettings,
 } from "@/js/offlineCache";
 import { api, isClientError } from "@/api/client";
-import {
-  recipeApi,
-  type RecipeDetail,
-  type RecipeListItem,
-} from "@/api/recipes";
+import { recipeApi } from "@/api/recipes";
 import { favoritesApi } from "@/api/favorites";
 import { imageApi } from "@/api/images";
 import { ensureAuth, isAuthenticated } from "@/auth/session";
@@ -40,60 +37,6 @@ const default_settings: Settings = {
   expert_mode: false,
   role: "readonly",
 };
-
-const LIST_PAGE_SIZE = 200; // Maximum des Backends
-
-/** Lädt alle Seiten der Rezeptliste. */
-async function fetchAllRecipeListItems(): Promise<RecipeListItem[]> {
-  const items: RecipeListItem[] = [];
-  const seen = new Set<string>();
-  for (let page = 1; ; page++) {
-    const res = await recipeApi.list({ page, page_size: LIST_PAGE_SIZE });
-    for (const item of res.items) {
-      if (!seen.has(item.id)) {
-        seen.add(item.id);
-        items.push(item);
-      }
-    }
-    const lastPage =
-      res.items.length < LIST_PAGE_SIZE || page * LIST_PAGE_SIZE >= res.total;
-    if (lastPage) return items;
-  }
-}
-
-function listItemToRecipe(item: RecipeListItem): Recipe {
-  return {
-    recipe_uuid: item.id,
-    recipe_name: item.recipe_name,
-    author: item.author ?? undefined,
-    subtitle: item.subtitle ?? undefined,
-    tags: item.tags,
-    imageurl: item.imageurl ?? undefined,
-    first_image_id: item.first_image_id ?? undefined,
-    lastUpdated: item.updated_at,
-    ingredients: [],
-    steps: [],
-    sections: [],
-  };
-}
-
-function detailToRecipe(detail: RecipeDetail): Recipe {
-  const { first_image_id: _fii, ...data } = (detail.data ?? {}) as Record<
-    string,
-    unknown
-  >;
-  return {
-    recipe_uuid: detail.id,
-    recipe_name: detail.recipe_name,
-    lastUpdated: detail.updated_at,
-    ingredients: [],
-    steps: [],
-    sections: [],
-    tags: detail.tags,
-    ...data,
-    first_image_id: detail.first_image_id ?? undefined,
-  };
-}
 
 // Single-Flight für loadAll(): Anfragen während eines Laufs lösen genau einen
 // weiteren Lauf aus, falls der laufende keine API-Daten geliefert hat.
@@ -208,7 +151,7 @@ export const useRecipeStore = defineStore("recipe", {
     },
 
     async saveSettings(settings: Settings) {
-      this.settings = settings;
+      this.settings = deepCopyJSON(settings);
       if (await isAuthenticated()) {
         try {
           const updated = await api.put<Settings>("/me/settings", {
@@ -476,7 +419,7 @@ export const useRecipeStore = defineStore("recipe", {
 
     // --- API-backed actions ---
     async loadRecipesFromApi() {
-      const items = await fetchAllRecipeListItems();
+      const items = await recipeApi.listAll();
       const recipes = items.map(listItemToRecipe);
       this.recipes = recipes;
       void writeRecipes(deepCopyJSON(recipes));

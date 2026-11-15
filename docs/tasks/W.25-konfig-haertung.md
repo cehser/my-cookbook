@@ -59,3 +59,20 @@ Eine geänderte Laufzeitkonfiguration (`config.js`) erreicht installierte PWAs o
 - `uv run pytest` und `pytest -m db` (Wegwerf-Container PG 16) grün, ohne die Warnungen zu `distinct` und `path_separator`; Test `_process_image` grün
 - Bericht nennt den Prüfpunkt `DB_PASSWORD` für die Server-`.env`
 - Verifikation gemäß Projekt-CLAUDE.md (Frontend und Backend, mit Container)
+
+## Nacharbeit (2026-11-15, nach Prüfung)
+
+Ausgangsstand: `e9c451e`. Zuerst `git merge main` (W.10 Vitest, W.13 Foto-Import, README „Upgrade-Hinweise“); Konflikte melden.
+
+- **N1 `config.js` am HTTP-Cache vorbei:** In der NetworkFirst-Route `fetchOptions: { cache: "no-cache" }`, damit der Browser die Datei nicht heuristisch aus dem HTTP-Cache liefert (nginx sendet nur `Last-Modified`). Im gebauten `sw.js` nachweisen.
+- **N2 Keine Aktivierung offline:** `applyUpdate` in `swUpdate.ts` nur bei `navigator.onLine`. Sonst startet die App nach dem Update ohne `config.js` (Cache `runtime-config` ist dann noch leer) und der Login fällt aus.
+- **N3 Reload-Schleife:** Chunk-Neuladen in `router/index.ts` höchstens einmal je 10 s (Zeitstempel in `sessionStorage`); danach Fehler normal durchlassen.
+- **N4 `preloadFailed`:** Das Flag aus `vite:preloadError` nicht über Importe außerhalb des Routers hinweg stehen lassen (z. B. an die laufende Navigation binden oder in `router.beforeEach` zurücksetzen).
+- **N5 `.env.example`:** `DB_PASSWORD=` ohne Vorgabewert, mit Hinweis.
+- **N6 DB-URL kodieren:** `config.py` baut die URL per f-String; Passwörter mit `@ / : # %` brechen die Verbindung. Mit `sqlalchemy.URL.create(...)` bauen (Alembic-`env.py` und alle weiteren Nutzer der URL prüfen). Test mit einem Passwort aus Sonderzeichen (Smoke-Test über die erzeugte URL; DB-Test, falls einfach).
+- README „Upgrade-Hinweise“ (auf `main`) stimmt danach weiter; bei Abweichung anpassen.
+
+### Abnahme Nacharbeit
+- `npm test` (Vitest aus W.10, inkl. `App.spec.ts` mit dem neuen Router-Listener), lint, typecheck, build grün; `dist/sw.js` zeigt `cache:"no-cache"` für `config.js`
+- Backend: ruff, `pytest`, `pytest -m db` (Wegwerf-Container PG 16) grün; Test für Sonderzeichen-Passwort
+- Bericht um Abschnitt „Nacharbeit“ fortschreiben
