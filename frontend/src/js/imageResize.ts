@@ -22,7 +22,7 @@ export class ImageResizeError extends Error {
 }
 
 export interface ResizedImage {
-  /** Verkleinertes JPEG für Upload (und später W.28). */
+  /** Verkleinertes JPEG für den AI-Aufruf und die Vorlage am Rezept. */
   blob: Blob;
   /** Kleines JPEG nur für die Anzeige. */
   thumbnail: Blob;

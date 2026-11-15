@@ -142,8 +142,10 @@ function loadSample() {
   toast("Beispielrezept geladen.", "success");
 }
 
-function onAIImport(recipe: { recipe_name: string }) {
+/** Die Komponente öffnet danach selbst die Bearbeitung des neuen Rezepts. */
+function onAIImport(recipe: { recipe_name: string }, warnings: string[]) {
   toast(`Rezept "${recipe.recipe_name}" importiert.`, "success");
+  warnings.forEach((w) => toast(w, "warning"));
   showAIImport.value = false;
 }
 

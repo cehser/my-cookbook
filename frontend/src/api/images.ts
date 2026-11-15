@@ -6,6 +6,9 @@ import { getAccessToken } from "@/auth/oidc";
 
 const API_BASE = "/api/v1";
 
+/** photo = Rezeptfoto (Titelbild), source = Vorlage des Foto-Imports. */
+export type ImageKind = "photo" | "source";
+
 export interface ImageInfo {
   id: string;
   recipe_id: string;
@@ -13,6 +16,7 @@ export interface ImageInfo {
   mime_type: string;
   file_size: number;
   sort_order: number;
+  kind: ImageKind;
   created_at: string;
 }
 
@@ -26,11 +30,21 @@ async function authHeaders(): Promise<Headers> {
 }
 
 export const imageApi = {
-  /** Upload an image for a recipe. */
-  async upload(recipeId: string, file: File): Promise<ImageInfo> {
+  /** Upload an image for a recipe (Default: Rezeptfoto). */
+  async upload(
+    recipeId: string,
+    file: Blob,
+    kind: ImageKind = "photo",
+  ): Promise<ImageInfo> {
     const headers = await authHeaders();
     const formData = new FormData();
-    formData.append("file", file);
+    // Blobs (verkleinerte Importseiten) haben keinen Namen
+    formData.append(
+      "file",
+      file,
+      file instanceof File ? file.name : "seite.jpg",
+    );
+    formData.append("kind", kind);
 
     const response = await fetch(
       `${API_BASE}/recipes/${encodeURIComponent(recipeId)}/images`,
@@ -45,11 +59,12 @@ export const imageApi = {
     return response.json();
   },
 
-  /** List all images for a recipe. */
-  async list(recipeId: string): Promise<ImageInfo[]> {
+  /** List images for a recipe, optional nur eine Bildart. */
+  async list(recipeId: string, kind?: ImageKind): Promise<ImageInfo[]> {
     const headers = await authHeaders();
+    const query = kind ? `?kind=${kind}` : "";
     const response = await fetch(
-      `${API_BASE}/recipes/${encodeURIComponent(recipeId)}/images`,
+      `${API_BASE}/recipes/${encodeURIComponent(recipeId)}/images${query}`,
       { headers },
     );
 
