@@ -297,6 +297,7 @@ Jeder `git commit` durchläuft automatisch lint-staged via husky:
 ```bash
 npm run lint          # ESLint + Auto-Fix
 npx vue-tsc --noEmit  # TypeScript-Check
+npm test              # Vitest
 npm run build         # Build-Verifizierung
 ```
 
@@ -305,5 +306,20 @@ npm run build         # Build-Verifizierung
 Jeder Push sollte automatisch folgende Checks durchlaufen:
 1. `npm run lint` (kein `--fix`, nur prüfen)
 2. `vue-tsc --noEmit`
-3. `npm run build`
-4. `npm audit --audit-level=high`
+3. `npm test`
+4. `npm run build`
+5. `npm audit --audit-level=high`
+
+---
+
+## 11. Tests
+
+- **Werkzeug:** Vitest mit `@vue/test-utils` und happy-dom, Konfiguration in `vitest.config.ts` (bewusst getrennt von `vite.config.js`: kein SSL-, kein PWA-Plugin). Lauf: `npm test`. Der Pre-Commit-Hook führt keine Tests aus, die CI schon.
+- **Ort und Name:** `*.spec.ts` neben dem getesteten Modul (`src/js/deepCopy.spec.ts`). Imports aus `vitest` explizit, keine Globals.
+- **Was getestet wird:** reine Funktionen (`src/js`), API-Module, Composables und Komponenten mit Logik. Reine Darstellung braucht keinen Test.
+- **Was gemockt wird (`vi.mock`):**
+  - Netz und Sitzung: `@/api/client`, `@/auth/session`, `@/auth/oidc` (kein echter Redirect, kein `oidc-client-ts`).
+  - IndexedDB: `@/js/offlineCache` bzw. `idb-keyval` (happy-dom hat keine).
+  - Router und Store, wenn nur die Schnittstelle zur Komponente zählt (`vue-router`, `@/store/recipeStore`).
+- **Komponenten:** bootstrap-vue-next wird in `vitest.config.ts` wie im Build per Resolver aufgelöst; Komponenten, die nicht Gegenstand des Tests sind, per `stubs` ersetzen. Mit `mount` erzeugte Komponenten nach dem Test mit `unmount()` abräumen, sonst bleiben globale Listener (z. B. `visibilitychange`) aktiv.
+- **Neue Abhängigkeiten für Tests** (`msw`, `fake-indexeddb`, Coverage) nur nach Review (8.1).

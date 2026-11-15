@@ -9,6 +9,7 @@ Frontend (`cd frontend`):
 - `npm run dev` — Dev-Server https://localhost:8080 (selbstsigniert)
 - `npm run lint` / `npm run lint:check` — ESLint mit/ohne Fix
 - `npm run typecheck` — `vue-tsc --noEmit`
+- `npm test` — Vitest (`vitest run`, happy-dom), Specs als `*.spec.ts` neben dem Modul
 - `npm run build` — Production-Build
 
 Backend (`cd backend`, uv-Projekt mit `uv.lock`):
@@ -24,7 +25,7 @@ Betrieb (Repo-Root, `docker-compose.yml` aus `.example` kopiert):
 - `./scripts/backup.sh [dir]` — `pg_dump` als `.sql.gz`, behält 30
 
 ## Verifikation
-- Frontend: `npm run lint:check && npm run typecheck && npm run build`. Der Pre-Commit-Hook prüft nur lint-staged und typecheck.
+- Frontend: `npm run lint:check && npm run typecheck && npm test && npm run build`. Der Pre-Commit-Hook prüft nur lint-staged und typecheck (keine Tests).
 - Backend: `uv sync --frozen && uv run ruff check && uv run ruff format --check && uv run pytest`. Bei Änderungen an Abhängigkeiten, Dockerfile oder Migrationen zusätzlich Container bauen und starten (`docker compose build backend && docker compose up -d`), im Log die erfolgreiche Migration prüfen, `GET /api/health`.
 - DB-Tests (Marker `db`, `backend/tests/db/`: Migrationen up/down/up, Rezept-API, `/me`) laufen nur mit `DB_HOST` und `DB_NAME=test…` (sie leeren das Schema!), sonst übersprungen. Lokal: PostgreSQL 16 starten, dann `DB_HOST=localhost DB_NAME=test_cookbook DB_USER=… DB_PASSWORD=… uv run pytest -m db`. Details im Docstring von `tests/db/conftest.py`.
 - CI: `.github/workflows/ci.yml` (Push auf `main`, Pull Requests) führt Frontend, Backend, DB-Tests und beide Image-Builds aus, ohne Push. Actions per Commit-SHA gepinnt.
