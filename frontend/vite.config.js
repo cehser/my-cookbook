@@ -29,7 +29,19 @@ export default defineConfig({
       registerType: "prompt",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // config.js ist Laufzeitkonfiguration (Container-Env): nicht einfrieren
+        globIgnores: ["config.js"],
         runtimeCaching: [
+          {
+            // config.js: NetworkFirst mit kurzem Timeout, offline aus dem Cache
+            urlPattern: ({ url }) => url.pathname === "/config.js",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "runtime-config",
+              networkTimeoutSeconds: 3,
+              cacheableResponse: { statuses: [200] },
+            },
+          },
           {
             // Thumbnails: CacheFirst — Bilder ändern sich nicht (UUID-basiert)
             urlPattern: /\/api\/v1\/images\/[^/]+\/thumbnail$/,

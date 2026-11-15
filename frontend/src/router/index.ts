@@ -11,6 +11,7 @@ import {
   setLoginTargetResolver,
 } from "@/auth/oidc";
 import { onSessionRejected } from "@/auth/session";
+import { reloadOnce } from "@/js/reload";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -130,15 +131,27 @@ setLoginTargetResolver(() => {
 // Session rejected (expiry timer, 401 retry, store, guard, app resumed)
 onSessionRejected(requestLoginForCurrentRoute);
 
-// Handle chunk load errors after SW update (hash mismatch)
+// Chunk load errors after an update (old chunks gone from the server).
+// Vite wraps every dynamic import and fires `vite:preloadError` when the
+// import or its preload fails, in every browser. The message match is only a
+// fallback: Chrome/Chromium "Failed to fetch dynamically imported module",
+// Firefox "error loading dynamically imported module" (documented in Mozilla
+// bug reports), Safari "Importing a module script failed" (unconfirmed).
+let preloadFailed = false;
+window.addEventListener("vite:preloadError", () => {
+  preloadFailed = true; // not prevented: the error reaches router.onError
+});
+
+const CHUNK_ERROR_PATTERN =
+  /dynamically imported module|Unable to preload CSS|Importing a module script failed/i;
+
 router.onError((error, to) => {
-  if (
-    error.message.includes("Failed to fetch dynamically imported module") ||
-    error.message.includes("Unable to preload CSS")
-  ) {
-    // Force full reload to pick up new SW + assets
-    window.location.assign(to.fullPath);
-  }
+  const failed =
+    preloadFailed || CHUNK_ERROR_PATTERN.test(String(error?.message));
+  preloadFailed = false;
+  if (!failed) return;
+  // Full reload to the target picks up the new SW and assets
+  reloadOnce(to.fullPath);
 });
 
 // --- Session Restore (iOS PWA Fix) ---

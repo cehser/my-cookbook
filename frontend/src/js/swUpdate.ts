@@ -16,6 +16,7 @@
 
 import type { Router } from "vue-router";
 import { registerSW } from "virtual:pwa-register";
+import { reloadOnce } from "./reload";
 
 const CHECK_INTERVAL_MS = 30 * 60 * 1000;
 /** So lange muss die App im Hintergrund gewesen sein, damit die Rückkehr neu lädt. */
@@ -51,7 +52,7 @@ function applyUpdate(): void {
   if (applying || pendingWrites > 0) return;
   if (reloadPending) {
     applying = true;
-    window.location.reload();
+    reloadOnce();
   } else if (updateReady && updateSW) {
     applying = true;
     void updateSW(true);
@@ -79,7 +80,7 @@ export function setupSwUpdate(router: Router): void {
     // location.reload(): auch wenn ein anderer Tab aktiviert hat. Eigene
     // Aktivierung lädt sofort, fremde erst bei Navigation oder Rückkehr.
     onNeedReload() {
-      if (applying) window.location.reload();
+      if (applying) reloadOnce();
       else reloadPending = true;
     },
     onRegisteredSW(_url, reg) {
@@ -100,6 +101,17 @@ export function setupSwUpdate(router: Router): void {
     // Neuladen auf /callback würde den Login unterbrechen (Code nur einmal gültig).
     if (to.name === "Callback") return;
     applyUpdate();
+  });
+
+  // Ein anderer Tab hat aktiviert und der Server liefert die alten Chunks nicht
+  // mehr: die Navigation scheitert, egal in welchem Browser und mit welcher
+  // Meldung. Dann auf das Ziel neu laden (der Router-Handler tut das bei
+  // erkannten Chunk-Fehlern ebenfalls; reloadOnce verhindert doppeltes Laden).
+  router.onError((_error, to) => {
+    if (reloadPending && pendingWrites === 0) {
+      applying = true;
+      reloadOnce(to.fullPath);
+    }
   });
 
   document.addEventListener("visibilitychange", () => {
