@@ -231,7 +231,8 @@ describe("Zustandstabelle: Navigation", () => {
       expect(loginCalls()).toBe(0);
       expect(session.sessionHint.value).toBe(hasCache ? null : "no-data");
       setOnline(true);
-      await session.onOnline();
+      idpUnreachable(); // Folgeauslöser sieht „offline“, nicht „rejected“
+      expect(await session.onOnline()).toBe("offline");
       expect(loginCalls()).toBe(1);
       expect(loginTarget()).toBe("/aktuell");
     },
@@ -279,7 +280,8 @@ describe("Zustandstabelle: Resume", () => {
     await session.onResume();
     expect(loginCalls()).toBe(0);
     setOnline(true);
-    await session.onResume(); // nächster Auslöser mit Netz
+    idpUnreachable(); // nur die Vormerkung kann den Login auslösen
+    expect(await session.onResume()).toBe("offline"); // nächster Auslöser mit Netz
     expect(loginCalls()).toBe(1);
   });
 
@@ -364,8 +366,8 @@ describe("Zustandstabelle: Sitzung abgelehnt", () => {
     expect(await session.ensureAuth()).toBe("rejected"); // Store
     expect(loginCalls()).toBe(0);
     setOnline(true);
-    stored = null;
-    await session.onOnline();
+    idpUnreachable(); // Sitzung jetzt „offline“: nur die Vormerkung zählt
+    expect(await session.onOnline()).toBe("offline");
     expect(loginCalls()).toBe(1);
   });
 
