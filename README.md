@@ -96,6 +96,8 @@ Das Skript übergibt den aktuellen Commit-Hash an den Frontend-Build (Anzeige im
 
 Die App ist unter `http://localhost:8080` erreichbar. In Production einen Reverse-Proxy mit HTTPS davor schalten.
 
+Der äußere Reverse-Proxy darf den Pfad `/api/v1/ai/` nicht enger begrenzen als der mitgelieferte nginx: **Request-Body mindestens 20 MB** (AI-Foto-Import mit bis zu 10 Seiten) und **Lese-/Sende-Timeout mindestens 150 s** (Modellaufrufe dauern). Für den Rest von `/api/` genügen 10 MB.
+
 ### 4. Datenbank-Migrationen
 
 Das Backend führt ausstehende Alembic-Migrationen beim Start automatisch aus (`alembic upgrade head`). Schlägt eine Migration fehl, startet das Backend nicht; Ursache im Log (`docker compose logs backend`).

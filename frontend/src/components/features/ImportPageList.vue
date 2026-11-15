@@ -1,9 +1,5 @@
 <script setup lang="ts">
-export interface ImportPage {
-  id: number;
-  blob: Blob;
-  url: string;
-}
+import type { ImportPage } from "@/composables/useImportPages";
 
 defineProps<{
   pages: ImportPage[];

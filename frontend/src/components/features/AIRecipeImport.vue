@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount } from "vue";
+import { ref, computed } from "vue";
 import { useRecipeStore } from "@/store/recipeStore";
 import { generateUUID } from "@/js/uuid";
 import { initRecipe } from "@/js/recipes";
@@ -11,9 +11,8 @@ import {
   type AIImportResponse,
 } from "@/api/ai";
 import type { Recipe } from "@/types/recipe";
-import ImportPageList, {
-  type ImportPage,
-} from "@/components/features/ImportPageList.vue";
+import { useImportPages } from "@/composables/useImportPages";
+import ImportPageList from "@/components/features/ImportPageList.vue";
 
 const emit = defineEmits<{
   imported: [recipe: Recipe];
@@ -25,8 +24,13 @@ const store = useRecipeStore();
 const fileInput = ref<HTMLInputElement>();
 
 // State
-const pages = ref<ImportPage[]>([]);
+// Seiten bleiben beim Schließen und erneuten Öffnen des Dialogs erhalten.
+const { pages, addPage, removePage, clearPages } = useImportPages();
 const preparing = ref(false);
+/** Fortschritt beim Vorbereiten: aktuelle Seite von Gesamtzahl der Auswahl. */
+const preparingProgress = ref({ done: 0, total: 0 });
+/** Hinweise zur letzten Auswahl (fehlgeschlagene Dateien, Kürzung auf 10 Seiten). */
+const notices = ref<string[]>([]);
 const textInput = ref("");
 const loading = ref(false);
 const result = ref<Recipe | null>(null);
@@ -34,7 +38,6 @@ const error = ref<string | null>(null);
 const rawJson = ref<string | null>(null);
 const downloadImage = ref(true);
 const downloadingImage = ref(false);
-let nextPageId = 1;
 
 // Computed
 const settings = computed(() => store.settings);
@@ -47,18 +50,29 @@ const busy = computed(() => loading.value || preparing.value);
 // Methods
 const pickFiles = () => fileInput.value?.click();
 
-const clearPages = () => {
-  pages.value.forEach((p) => URL.revokeObjectURL(p.url));
-  pages.value = [];
+/** Ein alter Befund oder ein altes Ergebnis passt nicht mehr zur geänderten Seitenliste. */
+const resetFeedback = () => {
+  error.value = null;
+  result.value = null;
+  rawJson.value = null;
+  notices.value = [];
 };
 
-const removePage = (id: number) => {
-  const page = pages.value.find((p) => p.id === id);
-  if (page) URL.revokeObjectURL(page.url);
-  pages.value = pages.value.filter((p) => p.id !== id);
+const onRemovePage = (id: number) => {
+  resetFeedback();
+  removePage(id);
 };
 
-/** Nimmt die gewählten Bilder nacheinander auf und verkleinert sie (iOS-Speicher). */
+const onNew = () => {
+  resetFeedback();
+  clearPages();
+};
+
+/**
+ * Nimmt die gewählten Bilder nacheinander auf und verkleinert sie (iOS-Speicher).
+ * Scheitert eine Datei, werden die übrigen trotzdem verarbeitet; Fehler und
+ * Kürzung über `MAX_PAGES` werden am Ende gesammelt gemeldet.
+ */
 const onFilesChosen = async (event: Event) => {
   const input = event.target as HTMLInputElement;
   const files = Array.from(input.files ?? []);
@@ -66,30 +80,35 @@ const onFilesChosen = async (event: Event) => {
   input.value = "";
   if (files.length === 0) return;
 
-  error.value = null;
-  const free = MAX_PAGES - pages.value.length;
-  const accepted = files.slice(0, Math.max(free, 0));
+  resetFeedback();
+  const free = Math.max(MAX_PAGES - pages.value.length, 0);
+  const accepted = files.slice(0, free);
   const rejected = files.length - accepted.length;
+  const messages: string[] = [];
 
   preparing.value = true;
+  preparingProgress.value = { done: 0, total: accepted.length };
   try {
     for (const file of accepted) {
-      const blob = await resizeImage(file);
-      pages.value.push({
-        id: nextPageId++,
-        blob,
-        url: URL.createObjectURL(blob),
-      });
+      try {
+        const { blob, thumbnail } = await resizeImage(file);
+        addPage(blob, thumbnail);
+      } catch (err: unknown) {
+        messages.push(
+          err instanceof ImageResizeError ? err.message : aiErrorMessage(err),
+        );
+      }
+      preparingProgress.value.done++;
     }
-    if (rejected > 0) {
-      error.value = `Höchstens ${MAX_PAGES} Seiten je Import: ${rejected} Bild${rejected === 1 ? " wurde" : "er wurden"} nicht übernommen.`;
-    }
-  } catch (err: unknown) {
-    error.value =
-      err instanceof ImageResizeError ? err.message : aiErrorMessage(err);
   } finally {
     preparing.value = false;
   }
+  if (rejected > 0) {
+    messages.push(
+      `Höchstens ${MAX_PAGES} Seiten je Import: ${rejected} Bild${rejected === 1 ? " wurde" : "er wurden"} nicht übernommen.`,
+    );
+  }
+  notices.value = messages;
 };
 
 /** Führt einen AI-Aufruf aus und zeigt Ergebnis oder Fehler im Dialog. */
@@ -140,9 +159,6 @@ const importRecipe = async () => {
   textInput.value = "";
   downloadImage.value = true;
 };
-
-// Lifecycle
-onBeforeUnmount(clearPages);
 </script>
 
 <template>
@@ -175,8 +191,22 @@ onBeforeUnmount(clearPages);
               :pages="pages"
               :disabled="busy"
               class="mb-3"
-              @remove="removePage"
+              @remove="onRemovePage"
             />
+
+            <div v-if="preparing" class="text-muted mb-3" role="status">
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              Seiten werden vorbereitet ({{ preparingProgress.done }} von
+              {{ preparingProgress.total }})
+            </div>
+
+            <div
+              v-for="(notice, i) in notices"
+              :key="i"
+              class="alert alert-warning"
+            >
+              <i class="bi bi-exclamation-triangle"></i> {{ notice }}
+            </div>
 
             <div class="d-flex flex-wrap gap-2">
               <BButton
@@ -198,7 +228,7 @@ onBeforeUnmount(clearPages);
                 @click="analyzeImages"
               >
                 <span
-                  v-if="loading || preparing"
+                  v-if="loading"
                   class="spinner-border spinner-border-sm me-2"
                 ></span>
                 <i v-else class="bi bi-magic"></i>
@@ -208,7 +238,7 @@ onBeforeUnmount(clearPages);
                 v-if="pages.length"
                 variant="secondary"
                 :disabled="busy"
-                @click="clearPages"
+                @click="onNew"
               >
                 <i class="bi bi-arrow-counterclockwise"></i> Neu
               </BButton>
