@@ -52,6 +52,13 @@ SYSTEM_PROMPT = _load_system_prompt()
 # ---------------------------------------------------------------------------
 
 
+def _unusable_answer() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        detail="Die AI-Antwort war unvollständig oder ungültig. Bitte erneut versuchen.",
+    )
+
+
 async def _extract_recipe(
     model: str, user_input: str | list[dict[str, Any]], *, web_search: bool = False
 ) -> AIImportResponse:
@@ -60,32 +67,30 @@ async def _extract_recipe(
     if web_search:
         kwargs["tools"] = [{"type": "web_search"}]
 
-    with openai_errors(model):
-        response = await client.responses.parse(
-            model=model,
-            instructions=SYSTEM_PROMPT,
-            input=user_input,
-            text_format=AIRecipe,
-            max_output_tokens=MAX_OUTPUT_TOKENS,
-            **kwargs,
-        )
-
     try:
-        recipe = response.output_parsed
-    except ValidationError:
-        logger.warning("Antwort passt nicht zum Rezeptschema (Modell %s)", model, exc_info=True)
-        recipe = None
-    if recipe is None:
+        with openai_errors(model):
+            response = await client.responses.parse(
+                model=model,
+                instructions=SYSTEM_PROMPT,
+                input=user_input,
+                text_format=AIRecipe,
+                max_output_tokens=MAX_OUTPUT_TOKENS,
+                **kwargs,
+            )
+    except ValidationError as exc:
+        # openai validiert das Schema schon in parse(); das ist kein OpenAIError.
+        logger.warning("Antwort passt nicht zum Rezeptschema (Modell %s): %s", model, exc)
+        raise _unusable_answer() from exc
+
+    recipe = response.output_parsed
+    if response.status != "completed" or recipe is None:
         logger.warning(
             "Keine auswertbare Antwort (Modell %s, Status %s, %s)",
             model,
             response.status,
             response.incomplete_details,
         )
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Die AI-Antwort war nicht auswertbar. Bitte erneut versuchen.",
-        )
+        raise _unusable_answer()
     return AIImportResponse(recipe=recipe, model=model)
 
 

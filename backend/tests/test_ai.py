@@ -8,6 +8,7 @@ import httpx
 import openai
 import pytest
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from app.config import settings
 from app.routes import ai as ai_routes
@@ -150,9 +151,10 @@ async def test_import_image_too_large_413(
 
 
 class _FakeResponses:
-    def __init__(self, parsed, error: Exception | None = None) -> None:
+    def __init__(self, parsed, error: Exception | None = None, status: str = "completed") -> None:
         self.parsed = parsed
         self.error = error
+        self.status = status
         self.calls: list[dict] = []
 
     async def parse(self, **kwargs):
@@ -162,7 +164,7 @@ class _FakeResponses:
         return type(
             "R",
             (),
-            {"output_parsed": self.parsed, "status": "completed", "incomplete_details": None},
+            {"output_parsed": self.parsed, "status": self.status, "incomplete_details": None},
         )()
 
 
@@ -216,14 +218,53 @@ async def test_import_image_uses_image_model(
     assert fake.calls[0]["model"] == "image-model"
 
 
-async def test_unparsable_answer_502(
-    client: httpx.AsyncClient, as_role, with_key, monkeypatch: pytest.MonkeyPatch
+def _validation_error() -> ValidationError:
+    try:
+        AIRecipe.model_validate({})
+    except ValidationError as exc:
+        return exc
+    raise AssertionError("leeres Objekt muss ungültig sein")
+
+
+@pytest.mark.parametrize(
+    "fake",
+    [
+        _FakeResponses(None),  # Modell lieferte nichts Auswertbares
+        _FakeResponses(None, _validation_error()),  # parse() validiert selbst und wirft
+        _FakeResponses(AIRecipe.model_validate(RECIPE_JSON), status="incomplete"),
+    ],
+    ids=["leer", "validation-error", "incomplete"],
+)
+async def test_unusable_answer_502(
+    client: httpx.AsyncClient, as_role, with_key, monkeypatch: pytest.MonkeyPatch, fake
 ) -> None:
     as_role("editor")
-    _install_fake(monkeypatch, _FakeResponses(None))
+    _install_fake(monkeypatch, fake)
     response = await client.post("/api/v1/ai/import", json={"text": "x"})
     assert response.status_code == 502
-    assert "nicht auswertbar" in response.json()["detail"]
+    assert "unvollständig oder ungültig" in response.json()["detail"]
+
+
+async def test_auth_error_log_has_no_key_fragment(
+    client: httpx.AsyncClient,
+    as_role,
+    with_key,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    as_role("editor")
+    error = openai.AuthenticationError(
+        "Incorrect API key provided: sk-proj-****abcd",
+        response=httpx.Response(401, request=REQUEST),
+        body=None,
+    )
+    _install_fake(monkeypatch, _FakeResponses(None, error))
+    with caplog.at_level("WARNING"):
+        response = await client.post("/api/v1/ai/import", json={"text": "x"})
+    assert response.status_code == 503
+    assert "AuthenticationError" in caplog.text
+    assert "abcd" not in caplog.text
+    assert "sk-" not in response.text
 
 
 async def test_openai_error_mapped_in_route(
