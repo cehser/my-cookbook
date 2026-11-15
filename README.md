@@ -225,10 +225,12 @@ gunzip -c backups/cookbook_20260405_030000.sql.gz | docker compose exec -T db sh
 3. **`DB_PASSWORD`:** `POSTGRES_PASSWORD` wirkt nur beim ersten Anlegen des Datenbank-Volumes. Lief die Datenbank bisher ohne gesetztes Passwort (also mit `changeme`), zuerst genau diesen Wert in die `.env` eintragen und deployen. Ein neues Passwort danach in PostgreSQL setzen und erst dann in der `.env` ändern (`<db-user>` = `DB_USER`):
 
    ```bash
-   echo "ALTER ROLE \"<db-user>\" PASSWORD '<neues-passwort>';" | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'
+   docker compose exec db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'
+   # in psql:
+   \password <db-user>
    ```
 
-   In den doppelten Anführungszeichen wertet die Shell `$`, `` ` `` und `\` aus, ein `'` beendet den SQL-String. Solche Zeichen maskieren (`\$`, `''`) oder ein Passwort ohne sie wählen.
+   `\password` fragt das Passwort ab, ohne Shell-Quoting und ohne Eintrag in der Shell-History. Steht das bisherige Passwort **ohne** Anführungszeichen in der `.env` und enthält es `$` oder ` #`, hat Compose es schon beim Anlegen der Datenbank verändert; den Wert dann nicht nachträglich in Anführungszeichen setzen, sondern das Passwort wie oben neu vergeben.
 
 4. **Reverse-Proxy:** für `/api/v1/ai/` Request-Body ≥ 20 MB und Lese-/Sende-Timeout ≥ 150 s.
 5. **Installierte PWAs** (Homescreen) einmal vollständig schließen und neu öffnen: Der Service Worker wechselt von automatischem auf gesteuertes Update; alte Clients übernehmen ihn erst, wenn kein Fenster der App mehr offen ist.
