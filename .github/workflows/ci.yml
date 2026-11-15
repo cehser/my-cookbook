@@ -67,7 +67,8 @@ jobs:
         env:
           POSTGRES_DB: test_cookbook
           POSTGRES_USER: cookbook
-          POSTGRES_PASSWORD: test
+          # Sonderzeichen prüfen die URL-Kodierung (config.database_url, alembic/env.py)
+          POSTGRES_PASSWORD: 'p@ss:w/rd#%?'
         ports:
           - 5432:5432
         options: >-
@@ -80,7 +81,7 @@ jobs:
       DB_PORT: "5432"
       DB_NAME: test_cookbook
       DB_USER: cookbook
-      DB_PASSWORD: test
+      DB_PASSWORD: 'p@ss:w/rd#%?'
     defaults:
       run:
         working-directory: backend
