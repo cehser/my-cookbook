@@ -9,13 +9,13 @@ import {
 } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { onKeyStroke } from "@vueuse/core";
-import { useDebouncedRefHistory } from "@vueuse/core";
 import Sortable from "sortablejs";
 import SectionCard from "@/components/edit/SectionCard.vue";
 import RecipeDisplay from "@/components/recipe/display/RecipeDisplay.vue";
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useToast } from "@/composables/useToast";
 import { useDraft } from "@/composables/useDraft";
+import { useEditHistory } from "@/composables/useEditHistory";
 import { useSectionEditor } from "@/composables/useSectionEditor";
 import { useIngredientEditor } from "@/composables/useIngredientEditor";
 import { useStepEditor } from "@/composables/useStepEditor";
@@ -81,30 +81,18 @@ const { hasDraft, restoreDraft, discardDraft } = useDraft(
   isDirty,
 );
 
-// --- Undo / Redo ---
-const { undo, redo, canUndo, canRedo, pause, resume, clear, commit } =
-  useDebouncedRefHistory(current_recipe, {
-    deep: true,
-    debounce: 500,
-    capacity: 50,
-  });
-
-// Settle history when recipe finishes loading
-pause();
-watch(
+// --- Undo / Redo (inkl. Strg/Cmd+Z/Y) ---
+const { undo, redo, canUndo, canRedo, reset } = useEditHistory(
+  current_recipe,
   isLoaded,
-  (ready) => {
-    if (ready && current_recipe.value) {
+  {
+    onLoaded() {
       loadedSnapshot.value = JSON.stringify(current_recipe.value);
-      commit();
-      clear();
-      resume();
 
-      // Auto-restore draft if one exists
+      // Auto-restore draft if one exists; not undoable
       if (hasDraft.value) {
         restoreDraft();
-        commit();
-        clear();
+        reset();
         toast("Entwurf wiederhergestellt.", "info");
       }
 
@@ -112,11 +100,8 @@ watch(
       if (route.query.draft) {
         router.replace({ ...route, query: {} });
       }
-    } else {
-      pause();
-    }
+    },
   },
-  { immediate: true },
 );
 
 // --- Keyboard Shortcuts ---
@@ -124,24 +109,6 @@ onKeyStroke("s", (e) => {
   if (e.ctrlKey || e.metaKey) {
     e.preventDefault();
     saveRecipe();
-  }
-});
-onKeyStroke("z", (e) => {
-  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && canUndo.value) {
-    e.preventDefault();
-    undo();
-  }
-});
-onKeyStroke("y", (e) => {
-  if ((e.ctrlKey || e.metaKey) && canRedo.value) {
-    e.preventDefault();
-    redo();
-  }
-});
-onKeyStroke("z", (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.shiftKey && canRedo.value) {
-    e.preventDefault();
-    redo();
   }
 });
 
@@ -244,7 +211,7 @@ async function revertRecipe() {
   if (!window.confirm("Alle Änderungen verwerfen?")) return;
   const original = store.recipes[selected.value];
   if (original) {
-    // loadRecipe sets isLoaded=false → watch pauses, then isLoaded=true → watch resumes
+    // loadRecipe sets isLoaded=false → history pauses, then isLoaded=true → history resets
     await loadRecipe(original);
     discardDraft();
     toast("Zurückgesetzt.", "info");
