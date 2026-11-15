@@ -46,3 +46,23 @@ Eine neue App-Version lädt nicht mehr mitten in der Benutzung neu, sondern beim
 - Kein Neuladen auf `/callback` und beim ersten Laden
 - `registration.update()` beim Vordergrundwechsel gedrosselt (Log oder Netzwerkmitschnitt)
 - Verifikation gemäß Projekt-CLAUDE.md (Frontend)
+
+## Nacharbeit (2026-11-15, nach Prüfung)
+
+Ausgangsstand: `cca25c0`. Befunde aus der Abnahme; N2 korrigiert eine Vorgabe dieses Auftrags (Auslöser `hidden`).
+
+- **N1 Navigationsfehler:** `router.afterEach((to, from, failure) => …)` ignoriert abgebrochene, gecancelte und doppelte Navigationen (`failure` gesetzt). `firstNavigation` erst nach einer **erfolgreichen** Navigation zurücksetzen. Hintergrund: `App.vue` cancelt beim Kaltstart die Initialnavigation per `router.replace(savedPath)`; `requireAuth` bricht mit `false` ab und leitet zum IdP.
+- **N2 Kein Neuladen bei `hidden`:** Das Öffnen von Kamera oder Fotoauswahl (`<input type=file>`) setzt die Seite auf Mobilgeräten auf `hidden` (Android bekannt, iOS unbestätigt); ein Neuladen dort verwirft Auswahl und Import-Zustand. Stattdessen:
+  - bei `hidden` nur den Zeitpunkt merken;
+  - bei `visible`: war die App mindestens 10 min im Hintergrund, ein Update bereit und `pendingWrites === 0`, sofort aktivieren; sonst wie bisher gedrosselt `registration.update()`.
+  - Aktivierung bei erfolgreicher Navigation bleibt.
+  - Damit entfällt auch das Neuladen im Hintergrund mitten in einer Request-Kette (z. B. `setRecipePicture`: DELETE, dann POST).
+- **N3 Andere Tabs:** `onNeedReload` in `registerSW` setzen, damit ein Tab, dessen Controller ein anderer Tab gewechselt hat, nicht sofort neu lädt, sondern wie in N1/N2 erst bei erfolgreicher Navigation oder bei Rückkehr nach langer Pause. Verhalten von `register.js` (vite-plugin-pwa) im Quellcode prüfen und im Bericht mit Stelle nennen.
+- **Rule** `.claude/rules/frontend.md` an das geänderte Verhalten anpassen.
+
+### Abnahme Nacharbeit
+- Browserszenarien aus dem Bericht erneut, angepasst an N2 (statt „Hintergrund lädt“: „Rückkehr nach ≥ 10 min lädt“, Zeit simuliert)
+- Kaltstart mit gespeicherter Route (gecancelte Initialnavigation) und wartendem Update: kein Neuladen
+- Kurze `hidden`/`visible`-Folge (< 10 min) mit wartendem Update: kein Neuladen
+- Zwei Tabs: Aktivierung in Tab A, Tab B lädt erst bei Navigation bzw. Rückkehr nach langer Pause
+- Bericht um Abschnitt „Nacharbeit“ fortschreiben; Verifikation gemäß Projekt-CLAUDE.md (Frontend)
