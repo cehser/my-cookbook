@@ -138,6 +138,7 @@ const importRecipe = async () => {
   result.value = null;
   capturedImage.value = null;
   uploadedImage.value = null;
+  uploadedFile.value = null; // gleiche Datei soll erneut wählbar sein
   textInput.value = "";
   downloadImage.value = true;
 };
