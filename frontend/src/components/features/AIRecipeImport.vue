@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRecipeStore } from "@/store/recipeStore";
-import jsyaml from "js-yaml";
 import { generateUUID } from "@/js/uuid";
 import { initRecipe } from "@/js/recipes";
-import { aiApi } from "@/api/ai";
+import { aiApi, aiErrorMessage, type AIImportResponse } from "@/api/ai";
 import type { Recipe } from "@/types/recipe";
 
 const emit = defineEmits<{
@@ -26,7 +25,7 @@ const textInput = ref("");
 const loading = ref(false);
 const result = ref<Recipe | null>(null);
 const error = ref<string | null>(null);
-const rawYaml = ref<string | null>(null);
+const rawJson = ref<string | null>(null);
 const stream = ref<MediaStream | null>(null);
 const downloadImage = ref(true);
 const downloadingImage = ref(false);
@@ -76,86 +75,48 @@ const capturePhoto = () => {
   stopCamera();
 };
 
-const handleFileUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const file = target.files?.[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedImage.value = e.target?.result as string;
-      capturedImage.value = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+watch(uploadedFile, (file) => {
+  if (!file) {
+    uploadedImage.value = null;
+    return;
   }
-};
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    uploadedImage.value = e.target?.result as string;
+    capturedImage.value = e.target?.result as string;
+  };
+  reader.readAsDataURL(file);
+});
 
-const analyzeImage = async () => {
-  if (!capturedImage.value) return;
-
+/** Führt einen AI-Aufruf aus und zeigt Ergebnis oder Fehler im Dialog. */
+const runAnalysis = async (call: () => Promise<AIImportResponse>) => {
   loading.value = true;
   error.value = null;
   result.value = null;
-  rawYaml.value = null;
+  rawJson.value = null;
 
   try {
-    // Convert data URI to Blob for the backend
-    const resp = await fetch(capturedImage.value);
-    const blob = await resp.blob();
-
-    const data = await aiApi.importImage(
-      blob,
-      "photo.jpg",
-      settings.value.gpt_model || "gpt-4o",
-    );
-    const yamlText = data.yaml;
-
-    // Extract YAML from markdown code blocks if present
-    let cleanYaml = yamlText;
-    const yamlMatch = yamlText.match(/```ya?ml\n([\s\S]*?)\n```/);
-    if (yamlMatch) {
-      cleanYaml = yamlMatch[1];
-    }
-
-    rawYaml.value = cleanYaml;
-    result.value = initRecipe(jsyaml.load(cleanYaml) as Partial<Recipe>);
+    const data = await call();
+    rawJson.value = JSON.stringify(data.recipe, null, 2);
+    result.value = initRecipe(data.recipe);
   } catch (err: unknown) {
-    error.value =
-      "Fehler bei der Analyse: " +
-      (err instanceof Error ? err.message : String(err));
+    error.value = aiErrorMessage(err);
   } finally {
     loading.value = false;
   }
 };
 
-const analyzeText = async () => {
-  loading.value = true;
-  error.value = null;
-  result.value = null;
-  rawYaml.value = null;
-
-  try {
-    const modelId = settings.value.gpt_model || "gpt-4o";
-
-    const data = await aiApi.importText(textInput.value, modelId);
-    const yamlText = data.yaml;
-
-    // Extract YAML from markdown code blocks if present
-    let cleanYaml = yamlText;
-    const yamlMatch = yamlText.match(/```ya?ml\n([\s\S]*?)\n```/);
-    if (yamlMatch) {
-      cleanYaml = yamlMatch[1];
-    }
-
-    rawYaml.value = cleanYaml;
-    result.value = initRecipe(jsyaml.load(cleanYaml) as Partial<Recipe>);
-  } catch (err: unknown) {
-    error.value =
-      "Fehler bei der Analyse: " +
-      (err instanceof Error ? err.message : String(err));
-  } finally {
-    loading.value = false;
-  }
+const analyzeImage = () => {
+  const image = capturedImage.value;
+  if (!image) return;
+  return runAnalysis(async () => {
+    // Data URI → Blob für den Upload
+    const blob = await (await fetch(image)).blob();
+    return aiApi.importImage(blob, "photo.jpg");
+  });
 };
+
+const analyzeText = () => runAnalysis(() => aiApi.importText(textInput.value));
 
 const importRecipe = async () => {
   if (!result.value) return;
@@ -177,6 +138,7 @@ const importRecipe = async () => {
   result.value = null;
   capturedImage.value = null;
   uploadedImage.value = null;
+  uploadedFile.value = null; // gleiche Datei soll erneut wählbar sein
   textInput.value = "";
   downloadImage.value = true;
 };
@@ -270,7 +232,6 @@ onBeforeUnmount(() => {
               v-model="uploadedFile"
               accept="image/*"
               placeholder="Wähle ein Foto aus..."
-              @change="handleFileUpload"
             ></BFormFile>
 
             <div v-if="uploadedImage" class="mt-3">
@@ -364,16 +325,15 @@ onBeforeUnmount(() => {
           <i class="bi bi-exclamation-triangle"></i> {{ error }}
         </div>
 
-        <!-- Raw YAML (Expert Mode) -->
-        <details v-if="rawYaml && settings.expert_mode" class="mt-3">
+        <!-- Raw response (Expert Mode) -->
+        <details v-if="rawJson && settings.expert_mode" class="mt-3">
           <summary class="text-muted" style="cursor: pointer">
-            <i class="bi bi-code-slash"></i> Raw YAML anzeigen
+            <i class="bi bi-code-slash"></i> Rohantwort (JSON) anzeigen
           </summary>
           <pre
             class="mt-2 p-3 bg-dark text-light rounded"
             style="max-height: 400px; overflow: auto; font-size: 0.85rem"
-            >{{ rawYaml }}</pre
-          >
+            >{{ rawJson }}</pre>
         </details>
       </BCardBody>
     </BCard>

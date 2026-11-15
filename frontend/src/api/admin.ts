@@ -13,6 +13,19 @@ export interface AdminUser {
 
 export interface SiteSettings {
   max_share_days: number;
+  ai_model_text: string;
+  ai_model_image: string;
+  /** Nur lesen: ob das Backend einen OpenAI-Key hat (der Key selbst bleibt geheim). */
+  openai_key_configured: boolean;
+}
+
+export type SiteSettingsUpdate = Partial<
+  Pick<SiteSettings, "max_share_days" | "ai_model_text" | "ai_model_image">
+>;
+
+export interface AIConnectionTest {
+  ok: boolean;
+  models: { purpose: string; model: string; available: boolean }[];
 }
 
 export interface AdminShare {
@@ -35,8 +48,14 @@ export const adminApi = {
 
   getSettings: () => api.get<SiteSettings>("/admin/settings"),
 
-  updateSettings: (settings: SiteSettings) =>
+  updateSettings: (settings: SiteSettingsUpdate) =>
     api.put<SiteSettings>("/admin/settings", settings),
+
+  // models.retrieve je Modell, braucht eine Antwort von OpenAI
+  testAiConnection: () =>
+    api.post<AIConnectionTest>("/admin/ai/test", undefined, {
+      timeoutMs: 30_000,
+    }),
 
   listShares: () => api.get<AdminShare[]>("/admin/shares"),
 

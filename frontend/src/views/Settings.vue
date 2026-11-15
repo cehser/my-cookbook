@@ -107,49 +107,6 @@ async function saveChanges() {
         </ul>
       </BAlert>
 
-      <!-- GPT Model -->
-      <div class="mt-4">
-        <h5>AI-Integration</h5>
-        <div class="form-group">
-          <label for="gpt_model" class="col-form-label">GPT-Modell</label>
-          <input
-            id="gpt_model"
-            v-model="settings.gpt_model"
-            list="gpt-model-options"
-            autocomplete="off"
-            placeholder="z.B. gpt-5.4-mini"
-            class="form-control"
-            @input="userEdited = true"
-          />
-          <datalist id="gpt-model-options">
-            <option value="gpt-5.4-nano">
-              GPT-5.4 nano – günstigstes GPT-5.4-Modell
-            </option>
-            <option value="gpt-5.4-mini">
-              GPT-5.4 mini – stark, schnell, günstig
-            </option>
-            <option value="gpt-5.4">GPT-5.4 – bestes Frontier-Modell</option>
-            <option value="gpt-5-nano">GPT-5 nano – schnellstes GPT-5</option>
-            <option value="gpt-5-mini">
-              GPT-5 mini – near-frontier, günstig
-            </option>
-            <option value="gpt-5">GPT-5 – leistungsstarkes Reasoning</option>
-            <option value="gpt-4.1-nano">
-              GPT-4.1 nano – schnell, sparsam
-            </option>
-            <option value="gpt-4.1-mini">GPT-4.1 mini – kompakt</option>
-            <option value="gpt-4.1">
-              GPT-4.1 – bestes Non-Reasoning-Modell
-            </option>
-            <option value="gpt-4o-mini">GPT-4o mini – älter, günstig</option>
-            <option value="gpt-4o">GPT-4o – älter, flexibel</option>
-          </datalist>
-          <small class="form-text text-muted">
-            Wähle ein Modell aus der Liste oder gib eine eigene ID ein.
-          </small>
-        </div>
-      </div>
-
       <!-- Save button -->
       <div class="mt-4 mb-4">
         <BButton variant="primary" :disabled="!changed" @click="saveChanges">

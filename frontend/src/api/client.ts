@@ -8,7 +8,8 @@
  *
  * Every request is aborted after DEFAULT_TIMEOUT_MS (hanging connection while
  * `navigator.onLine` is true) and fails with ApiTimeoutError. Long-running
- * calls pass `timeoutMs: 0`. AI import and image uploads use their own fetch.
+ * calls pass `timeoutMs: 0`. Image uploads use their own fetch; the AI import
+ * goes through this client with its own timeout (see api/ai.ts).
  */
 
 import { getAccessToken, renewAfterUnauthorized } from "@/auth/session";
@@ -156,11 +157,17 @@ export const api = {
   get: <T>(path: string, options?: FetchOptions) =>
     apiFetch<T>(path, { ...options, method: "GET" }),
 
+  /** `body` as FormData is sent as is (multipart), anything else as JSON. */
   post: <T>(path: string, body?: unknown, options?: FetchOptions) =>
     apiFetch<T>(path, {
       ...options,
       method: "POST",
-      body: body ? JSON.stringify(body) : undefined,
+      body:
+        body instanceof FormData
+          ? body
+          : body
+            ? JSON.stringify(body)
+            : undefined,
     }),
 
   put: <T>(path: string, body?: unknown, options?: FetchOptions) =>

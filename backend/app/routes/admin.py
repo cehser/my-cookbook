@@ -1,8 +1,10 @@
+import re
 import uuid
 from datetime import datetime
 
+import openai
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,42 +15,71 @@ from app.models.site_settings import SiteSettings
 from app.models.tag import RecipeShare
 from app.models.user import AppUser
 from app.schemas.user import UserResponse, UserRoleUpdate
+from app.services.openai_client import (
+    get_client,
+    openai_errors,
+    openai_key_configured,
+    require_openai_key,
+)
+from app.services.site_settings import SITE_DEFAULTS, get_site_settings
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
 VALID_ROLES = {"pending", "readonly", "editor", "admin"}
 
-# Default site settings
-SITE_DEFAULTS = {"max_share_days": 30}
+MODEL_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$")
 
 
 class SiteSettingsResponse(BaseModel):
-    max_share_days: int = 30
+    max_share_days: int
+    ai_model_text: str
+    ai_model_image: str
+    openai_key_configured: bool
 
 
 class SiteSettingsUpdate(BaseModel):
-    max_share_days: int = 30
+    """Nur gesetzte Felder werden gespeichert (``exclude_unset``)."""
+
+    max_share_days: int | None = Field(default=None, ge=1, le=365)
+    ai_model_text: str | None = None
+    ai_model_image: str | None = None
 
 
-async def _get_site_settings(db: AsyncSession) -> dict:
-    """Return the site settings dict, creating the row if missing."""
-    result = await db.execute(select(SiteSettings).where(SiteSettings.id == 1))
-    row = result.scalar_one_or_none()
-    if row is None:
-        row = SiteSettings(id=1, data=SITE_DEFAULTS)
-        db.add(row)
-        await db.commit()
-        await db.refresh(row)
-    return {**SITE_DEFAULTS, **(row.data or {})}
+def _settings_response(data: dict) -> SiteSettingsResponse:
+    return SiteSettingsResponse(
+        max_share_days=data["max_share_days"],
+        ai_model_text=data["ai_model_text"],
+        ai_model_image=data["ai_model_image"],
+        openai_key_configured=openai_key_configured(),
+    )
+
+
+async def _check_model_available(model: str) -> None:
+    """Raise 422 if the model is unknown to the OpenAI key, or map other OpenAI errors."""
+    if not MODEL_ID_PATTERN.match(model):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, f"Ungültige Modell-ID: '{model}'"
+        )
+    client = get_client()
+    try:
+        with openai_errors(model):
+            await client.models.retrieve(model)
+    except HTTPException as exc:
+        # Modell unbekannt: für den Admin ein 422 an der Eingabe statt eines 503.
+        if isinstance(exc.__cause__, openai.NotFoundError):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                f"Modell '{model}' ist mit dem konfigurierten OpenAI-Key nicht verfügbar.",
+            ) from exc
+        raise
 
 
 @router.get("/settings", response_model=SiteSettingsResponse)
-async def get_site_settings(
+async def get_settings_route(
     _: AppUser = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    data = await _get_site_settings(db)
-    return SiteSettingsResponse(**data)
+    return _settings_response(await get_site_settings(db))
 
 
 @router.put("/settings", response_model=SiteSettingsResponse)
@@ -57,17 +88,52 @@ async def update_site_settings(
     _: AppUser = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    changes = body.model_dump(exclude_unset=True, exclude_none=True)
+    for field in ("ai_model_text", "ai_model_image"):
+        if field in changes:
+            changes[field] = changes[field].strip()
+            await _check_model_available(changes[field])
+
+    await get_site_settings(db)  # legt die Zeile bei Bedarf an
     result = await db.execute(select(SiteSettings).where(SiteSettings.id == 1))
-    row = result.scalar_one_or_none()
-    new_data = body.model_dump()
-    if row is None:
-        row = SiteSettings(id=1, data=new_data)
-        db.add(row)
-    else:
-        row.data = {**(row.data or {}), **new_data}
+    row = result.scalar_one()
+    row.data = {**(row.data or {}), **changes}
     await db.commit()
     await db.refresh(row)
-    return SiteSettingsResponse(**row.data)
+    return _settings_response({**SITE_DEFAULTS, **row.data})
+
+
+class AIModelCheck(BaseModel):
+    purpose: str
+    model: str
+    available: bool
+
+
+class AIConnectionTestResponse(BaseModel):
+    ok: bool
+    models: list[AIModelCheck]
+
+
+@router.post("/ai/test", response_model=AIConnectionTestResponse)
+async def test_ai_connection(
+    _: AppUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Prüft Key und Erreichbarkeit der konfigurierten Modelle (kostenlos: models.retrieve)."""
+    data = await get_site_settings(db)
+    require_openai_key()
+    checks: list[AIModelCheck] = []
+    for purpose, field in (("Text/URL", "ai_model_text"), ("Foto", "ai_model_image")):
+        model = data[field]
+        try:
+            await _check_model_available(model)
+            available = True
+        except HTTPException as exc:
+            if exc.status_code != status.HTTP_422_UNPROCESSABLE_CONTENT:
+                raise
+            available = False
+        checks.append(AIModelCheck(purpose=purpose, model=model, available=available))
+    return AIConnectionTestResponse(ok=all(c.available for c in checks), models=checks)
 
 
 class AdminShareResponse(BaseModel):

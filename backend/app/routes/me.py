@@ -16,7 +16,6 @@ def _build_settings_response(user: AppUser) -> UserSettingsResponse:
     return UserSettingsResponse(
         read_only=raw.get("read_only", not can_edit),
         expert_mode=raw.get("expert_mode", False),
-        gpt_model=raw.get("gpt_model", "gpt-4o-mini"),
         role=user.role,
     )
 
