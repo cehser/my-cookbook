@@ -12,7 +12,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,8 +27,11 @@ router = APIRouter(prefix="/v1/ai", tags=["ai"])
 
 logger = logging.getLogger(__name__)
 
-# Gleiche Grenze wie client_max_body_size für /api/v1/ai/ in prod.conf.
+# Bildgrenzen. MAX_TOTAL_MB entspricht client_max_body_size für /api/v1/ai/ in
+# prod.conf (Multipart-Overhead ist klein gegen die Reserve der Bilder).
 MAX_IMAGE_MB = 10
+MAX_TOTAL_MB = 20
+MAX_PAGES = 10
 MAX_OUTPUT_TOKENS = 8000
 
 # ---------------------------------------------------------------------------
@@ -129,39 +132,63 @@ async def ai_import_text(
 
 @router.post("/import/image", response_model=AIImportResponse)
 async def ai_import_image(
-    file: UploadFile,
+    files: list[UploadFile] = File(default=[]),
     _user: AppUser = Depends(require_editor),
     db: AsyncSession = Depends(get_db),
 ):
-    """Extract a recipe from a photo."""
+    """Extract one recipe from 1–MAX_PAGES photos (pages in order)."""
     require_openai_key()
 
-    if not file.content_type or not file.content_type.startswith("image/"):
+    if not files:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nur Bilddateien erlaubt.",
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Kein Bild übergeben.",
+        )
+    if len(files) > MAX_PAGES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Zu viele Seiten. Maximum: {MAX_PAGES}",
         )
 
-    content = await file.read()
-    if len(content) > MAX_IMAGE_MB * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=f"Bild zu groß. Maximum: {MAX_IMAGE_MB} MB",
+    images: list[dict[str, Any]] = []
+    total = 0
+    for file in files:
+        if not file.content_type or not file.content_type.startswith("image/"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nur Bilddateien erlaubt.",
+            )
+        content = await file.read()
+        if len(content) > MAX_IMAGE_MB * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=f"Bild zu groß. Maximum: {MAX_IMAGE_MB} MB je Bild",
+            )
+        total += len(content)
+        if total > MAX_TOTAL_MB * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=f"Bilder zu groß. Maximum: {MAX_TOTAL_MB} MB gesamt",
+            )
+        b64 = base64.b64encode(content).decode("ascii")
+        images.append(
+            {
+                "type": "input_image",
+                "image_url": f"data:{file.content_type};base64,{b64}",
+                "detail": "high",
+            }
         )
 
-    b64 = base64.b64encode(content).decode("ascii")
-    data_uri = f"data:{file.content_type};base64,{b64}"
+    if len(images) == 1:
+        intro = "Bitte extrahiere das Rezept aus diesem Bild."
+    else:
+        intro = (
+            f"Bitte extrahiere das Rezept aus diesen {len(images)} Bildern. "
+            "Es sind die Seiten eines einzigen Rezepts, in Lesereihenfolge."
+        )
 
     model = (await get_site_settings(db))["ai_model_image"]
     return await _extract_recipe(
         model,
-        [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "input_text", "text": "Bitte extrahiere das Rezept aus diesem Bild."},
-                    {"type": "input_image", "image_url": data_uri},
-                ],
-            }
-        ],
+        [{"role": "user", "content": [{"type": "input_text", "text": intro}, *images]}],
     )
