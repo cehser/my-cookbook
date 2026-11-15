@@ -285,10 +285,12 @@ async function requestLogin(returnUrl: string): Promise<boolean> {
   if (loginStarted || logoutInProgress || !navigator.onLine) return false;
   const target = returnUrl.startsWith("/callback") ? "/" : returnUrl;
   loginStarted = true;
-  loginPending = false;
   sessionStorage.setItem("oidc-return-url", target);
   try {
     await userManager.signinRedirect();
+    // Der Redirect lief (Rückkehr per Zurück): Vormerkung erledigt. Scheitert
+    // er (Discovery-Timeout), bleibt sie für den nächsten Auslöser mit Netz.
+    loginPending = false;
     return true;
   } catch (e) {
     loginStarted = false;

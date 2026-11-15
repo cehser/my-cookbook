@@ -126,6 +126,12 @@ function installLocks() {
 }
 
 const loginCalls = () => um.signinRedirect.mock.calls.length;
+
+/** Abgelaufene Sitzung, Erneuerung läuft in den Timeout → Zustand `offline`. */
+function idpUnreachable() {
+  stored = expired();
+  um.signinSilent.mockRejectedValue(timeoutError());
+}
 const loginTarget = () => sessionStorage.getItem("oidc-return-url");
 
 async function loadSession(): Promise<Session> {
@@ -275,6 +281,20 @@ describe("Zustandstabelle: Resume", () => {
     setOnline(true);
     await session.onResume(); // nächster Auslöser mit Netz
     expect(loginCalls()).toBe(1);
+  });
+
+  it("Vormerkung bleibt, wenn der Redirect scheitert", async () => {
+    stored = null;
+    setOnline(false);
+    await session.onResume();
+    setOnline(true);
+    idpUnreachable();
+    um.signinRedirect.mockRejectedValueOnce(timeoutError()); // Discovery-Timeout
+    await session.onOnline();
+    await flushPromises();
+    expect(loginCalls()).toBe(1);
+    expect(await session.onResume()).toBe("offline");
+    expect(loginCalls()).toBe(2);
   });
 
   it("offline ohne Netz → nichts, auch kein vorgemerkter Login", async () => {
