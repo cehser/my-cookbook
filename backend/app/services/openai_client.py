@@ -106,5 +106,14 @@ def openai_errors(model: str | None = None) -> Iterator[None]:
     try:
         yield
     except openai.OpenAIError as exc:
-        logger.warning("OpenAI-Fehler (Modell %s): %s: %s", model, type(exc).__name__, exc)
+        if isinstance(exc, (openai.AuthenticationError, openai.PermissionDeniedError)):
+            # Die Meldung enthält den maskierten Key: nur Typ und Status loggen.
+            logger.warning(
+                "OpenAI-Fehler (Modell %s): %s, Status %s",
+                model,
+                type(exc).__name__,
+                exc.status_code,
+            )
+        else:
+            logger.warning("OpenAI-Fehler (Modell %s): %s: %s", model, type(exc).__name__, exc)
         raise translate_openai_error(exc, model) from exc
