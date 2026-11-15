@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import logging
+import shutil
 import uuid
 from pathlib import Path
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from PIL import Image as PILImage
 from sqlalchemy import delete, func, select
@@ -16,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import require_admin, require_editor, require_readonly
 from app.config import settings
 from app.database import get_db
-from app.models.image import RecipeImage
+from app.models.image import IMAGE_KIND_PHOTO, ImageKind, RecipeImage
 from app.models.recipe import Recipe
 from app.models.user import AppUser
 
@@ -57,6 +58,45 @@ def _process_image(src_path: Path, thumb_path: Path, optimised_path: Path) -> No
         if max(img.size) > OPTIMISED_MAX:
             img.thumbnail((OPTIMISED_MAX, OPTIMISED_MAX), PILImage.Resampling.LANCZOS)
         img.save(optimised_path, "WEBP", quality=85)
+
+
+async def _next_sort_order(recipe_id: uuid.UUID, kind: ImageKind, db: AsyncSession) -> int:
+    """Nächste ``sort_order`` je Rezept und Bildart (Vorlagen verschieben keine Fotos)."""
+    result = await db.execute(
+        select(func.coalesce(func.max(RecipeImage.sort_order), -1)).where(
+            RecipeImage.recipe_id == recipe_id, RecipeImage.kind == kind
+        )
+    )
+    return result.scalar() + 1
+
+
+def _image_to_dict(img: RecipeImage) -> dict:
+    return {
+        "id": str(img.id),
+        "recipe_id": str(img.recipe_id),
+        "filename": img.filename,
+        "mime_type": img.mime_type,
+        "file_size": img.file_size,
+        "sort_order": img.sort_order,
+        "kind": img.kind,
+        "created_at": img.created_at.isoformat(),
+    }
+
+
+def _delete_image_files(img: RecipeImage) -> None:
+    """Optimiertes Bild, Thumbnail und Original eines Bildes von der Platte löschen."""
+    for rel_path in (img.file_path, img.thumbnail_path):
+        if rel_path:
+            (UPLOAD_DIR / rel_path).unlink(missing_ok=True)
+    originals_dir = UPLOAD_DIR / str(img.recipe_id) / "originals"
+    if originals_dir.is_dir():
+        for f in originals_dir.glob(f"{img.id}.*"):
+            f.unlink(missing_ok=True)
+
+
+def delete_recipe_files(recipe_id: uuid.UUID) -> None:
+    """Alle Bilddateien eines Rezepts löschen (nach dem Löschen der DB-Zeilen)."""
+    shutil.rmtree(UPLOAD_DIR / str(recipe_id), ignore_errors=True)
 
 
 async def _get_recipe_or_404(recipe_id: uuid.UUID, db: AsyncSession) -> Recipe:
@@ -122,13 +162,7 @@ async def download_and_store_image(
         optimised_path.unlink(missing_ok=True)
         return None
 
-    # Determine sort_order
-    result = await db.execute(
-        select(func.coalesce(func.max(RecipeImage.sort_order), -1)).where(
-            RecipeImage.recipe_id == recipe_id
-        )
-    )
-    next_order = result.scalar() + 1
+    next_order = await _next_sort_order(recipe_id, IMAGE_KIND_PHOTO, db)
 
     db_image = RecipeImage(
         id=image_id,
@@ -139,6 +173,7 @@ async def download_and_store_image(
         thumbnail_path=str(thumb_path.relative_to(UPLOAD_DIR)),
         file_size=len(content),
         sort_order=next_order,
+        kind=IMAGE_KIND_PHOTO,
         uploaded_by=uploaded_by,
     )
     db.add(db_image)
@@ -158,10 +193,14 @@ async def download_and_store_image(
 async def upload_image(
     recipe_id: uuid.UUID,
     file: UploadFile,
+    kind: ImageKind = Form(IMAGE_KIND_PHOTO),
     db: AsyncSession = Depends(get_db),
     user: AppUser = Depends(require_editor),
 ):
-    """Upload an image for a recipe. Generates thumbnail + optimised WebP."""
+    """Upload an image for a recipe. Generates thumbnail + optimised WebP.
+
+    ``kind=source`` speichert eine Vorlage des Foto-Imports (nie Titelbild).
+    """
     await _get_recipe_or_404(recipe_id, db)
 
     # Validate MIME type
@@ -179,13 +218,7 @@ async def upload_image(
             detail=f"Datei zu groß. Maximum: {settings.max_upload_size_mb} MB",
         )
 
-    # Determine next sort_order
-    result = await db.execute(
-        select(func.coalesce(func.max(RecipeImage.sort_order), -1)).where(
-            RecipeImage.recipe_id == recipe_id
-        )
-    )
-    next_order = result.scalar() + 1
+    next_order = await _next_sort_order(recipe_id, kind, db)
 
     # Generate unique filename
     image_id = uuid.uuid4()
@@ -226,21 +259,14 @@ async def upload_image(
         thumbnail_path=str(thumb_path.relative_to(UPLOAD_DIR)),
         file_size=len(content),
         sort_order=next_order,
+        kind=kind,
         uploaded_by=user.oidc_sub,
     )
     db.add(db_image)
     await db.commit()
     await db.refresh(db_image)
 
-    return {
-        "id": str(db_image.id),
-        "recipe_id": str(recipe_id),
-        "filename": db_image.filename,
-        "mime_type": db_image.mime_type,
-        "file_size": db_image.file_size,
-        "sort_order": db_image.sort_order,
-        "created_at": db_image.created_at.isoformat(),
-    }
+    return _image_to_dict(db_image)
 
 
 # ---------------------------------------------------------------------------
@@ -251,31 +277,18 @@ async def upload_image(
 @router.get("/recipes/{recipe_id}/images")
 async def list_images(
     recipe_id: uuid.UUID,
+    kind: ImageKind | None = Query(None, description="Nur Bilder dieser Art"),
     db: AsyncSession = Depends(get_db),
     _user: AppUser = Depends(require_readonly),
 ):
-    """List all images for a recipe."""
+    """List all images for a recipe (optional nur eine Bildart)."""
     await _get_recipe_or_404(recipe_id, db)
 
-    result = await db.execute(
-        select(RecipeImage)
-        .where(RecipeImage.recipe_id == recipe_id)
-        .order_by(RecipeImage.sort_order)
-    )
-    images = result.scalars().all()
-
-    return [
-        {
-            "id": str(img.id),
-            "recipe_id": str(img.recipe_id),
-            "filename": img.filename,
-            "mime_type": img.mime_type,
-            "file_size": img.file_size,
-            "sort_order": img.sort_order,
-            "created_at": img.created_at.isoformat(),
-        }
-        for img in images
-    ]
+    query = select(RecipeImage).where(RecipeImage.recipe_id == recipe_id)
+    if kind is not None:
+        query = query.where(RecipeImage.kind == kind)
+    result = await db.execute(query.order_by(RecipeImage.kind, RecipeImage.sort_order))
+    return [_image_to_dict(img) for img in result.scalars().all()]
 
 
 # ---------------------------------------------------------------------------
@@ -356,17 +369,7 @@ async def delete_image(
     if img is None:
         raise HTTPException(status_code=404, detail="Bild nicht gefunden")
 
-    # Delete files from disk
-    for rel_path in (img.file_path, img.thumbnail_path):
-        if rel_path:
-            full = UPLOAD_DIR / rel_path
-            full.unlink(missing_ok=True)
-
-    # Also remove the original if it exists
-    originals_dir = UPLOAD_DIR / str(recipe_id) / "originals"
-    for f in originals_dir.glob(f"{image_id}.*"):
-        f.unlink(missing_ok=True)
-
+    _delete_image_files(img)
     await db.execute(delete(RecipeImage).where(RecipeImage.id == image_id))
     await db.commit()
 
@@ -383,7 +386,7 @@ async def migrate_image_urls(
 ):
     """Download all imageurl references and store them as recipe_images.
 
-    Skips recipes that already have at least one stored image.
+    Skips recipes that already have at least one stored photo (Vorlagen zählen nicht).
     """
     # Find recipes with imageurl in JSONB data but no recipe_images row
     result = await db.execute(
@@ -391,7 +394,9 @@ async def migrate_image_urls(
             Recipe.data["imageurl"].astext.isnot(None),
             Recipe.data["imageurl"].astext != "",
             Recipe.data["imageurl"].astext != "null",
-            ~Recipe.id.in_(select(RecipeImage.recipe_id).distinct()),
+            ~Recipe.id.in_(
+                select(RecipeImage.recipe_id).where(RecipeImage.kind == IMAGE_KIND_PHOTO).distinct()
+            ),
         )
     )
     recipes = result.scalars().all()
@@ -447,14 +452,8 @@ async def cleanup_orphaned_images(
         thumb_exists = thumb_path and thumb_path.is_file()
 
         if not file_exists and not thumb_exists:
-            # Both files missing – remove DB row and any remaining files
-            for rel_path in (img.file_path, img.thumbnail_path):
-                if rel_path:
-                    (UPLOAD_DIR / rel_path).unlink(missing_ok=True)
-            originals_dir = UPLOAD_DIR / str(img.recipe_id) / "originals"
-            if originals_dir.is_dir():
-                for f in originals_dir.glob(f"{img.id}.*"):
-                    f.unlink(missing_ok=True)
+            # Both files missing – remove DB row and any remaining files (jede Bildart)
+            _delete_image_files(img)
             await db.execute(delete(RecipeImage).where(RecipeImage.id == img.id))
             removed += 1
 

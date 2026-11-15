@@ -1,14 +1,17 @@
 """Rezept-API und ``/me`` gegen die echte DB (Rolle über ``get_current_user`` gesetzt)."""
 
+import io
 import uuid
 
 import httpx
 import pytest
+from PIL import Image
 from sqlalchemy import select
 
 from app.auth import dependencies
 from app.models.image import RecipeImage
 from app.models.user import AppUser
+from app.routes import images
 
 pytestmark = pytest.mark.anyio
 
@@ -107,6 +110,76 @@ async def test_list_returns_first_image_per_recipe(
 
     for recipe_id in (with_images, without):
         await db_client.delete(f"/api/v1/recipes/{recipe_id}")
+
+
+def _jpeg() -> bytes:
+    buf = io.BytesIO()
+    Image.new("RGB", (60, 40), (200, 80, 40)).save(buf, "JPEG")
+    return buf.getvalue()
+
+
+async def _upload(client: httpx.AsyncClient, recipe_id: str, kind: str | None) -> httpx.Response:
+    return await client.post(
+        f"/api/v1/recipes/{recipe_id}/images",
+        files={"file": ("seite.jpg", _jpeg(), "image/jpeg")},
+        data={"kind": kind} if kind else None,
+    )
+
+
+async def test_source_images_never_become_title_image(
+    db_client: httpx.AsyncClient, as_db_user, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(images, "UPLOAD_DIR", tmp_path)
+    await as_db_user("admin")
+    tag = f"ci-{uuid.uuid4()}"
+    recipe_id = (
+        await db_client.post("/api/v1/recipes", json={"recipe_name": "Mit Vorlage", "tags": [tag]})
+    ).json()["id"]
+
+    # Vorlagen zuerst hochgeladen: dürfen trotzdem kein Titelbild werden
+    sources = [await _upload(db_client, recipe_id, "source") for _ in range(2)]
+    assert [r.status_code for r in sources] == [201, 201]
+    assert [r.json()["kind"] for r in sources] == ["source", "source"]
+    assert [r.json()["sort_order"] for r in sources] == [0, 1]
+    assert (await db_client.get(f"/api/v1/recipes/{recipe_id}")).json()["first_image_id"] is None
+
+    photo = await _upload(db_client, recipe_id, None)
+    assert photo.json()["kind"] == "photo"
+    assert photo.json()["sort_order"] == 0, "Vorlagen verschieben die Fotos nicht"
+    photo_id = photo.json()["id"]
+
+    detail = (await db_client.get(f"/api/v1/recipes/{recipe_id}")).json()
+    assert detail["first_image_id"] == photo_id
+    listed = (await db_client.get("/api/v1/recipes", params={"tag": tag})).json()["items"]
+    assert listed[0]["first_image_id"] == photo_id
+
+    url = f"/api/v1/recipes/{recipe_id}/images"
+    all_images = (await db_client.get(url)).json()
+    assert [i["kind"] for i in all_images] == ["photo", "source", "source"]
+    only_sources = (await db_client.get(url, params={"kind": "source"})).json()
+    assert [i["id"] for i in only_sources] == [r.json()["id"] for r in sources]
+    assert (await db_client.get(url, params={"kind": "foo"})).status_code == 422
+    assert (await _upload(db_client, recipe_id, "foo")).status_code == 422
+
+    assert (tmp_path / recipe_id).is_dir()
+    assert (await db_client.delete(f"/api/v1/recipes/{recipe_id}")).status_code == 204
+    assert not (tmp_path / recipe_id).exists(), "Dateien aller Bildarten mitgelöscht"
+
+
+async def test_delete_source_image_removes_files(
+    db_client: httpx.AsyncClient, as_db_user, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(images, "UPLOAD_DIR", tmp_path)
+    await as_db_user("admin")
+    recipe_id = (await db_client.post("/api/v1/recipes", json={"recipe_name": "X"})).json()["id"]
+    image_id = (await _upload(db_client, recipe_id, "source")).json()["id"]
+    assert list(tmp_path.rglob(f"{image_id}.*"))
+
+    r = await db_client.delete(f"/api/v1/recipes/{recipe_id}/images/{image_id}")
+    assert r.status_code == 204
+    assert not list(tmp_path.rglob(f"{image_id}.*"))
+
+    await db_client.delete(f"/api/v1/recipes/{recipe_id}")
 
 
 async def test_readonly_cannot_create(db_client: httpx.AsyncClient, as_db_user) -> None:

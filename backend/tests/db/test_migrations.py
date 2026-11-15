@@ -48,3 +48,17 @@ def test_upgrade_downgrade_upgrade() -> None:
 
     command.upgrade(cfg, "head")
     assert EXPECTED_TABLES <= _tables()
+    assert _check_constraints("recipe_images") == {"ck_recipe_images_valid_kind"}
+
+
+def _check_constraints(table: str) -> set[str]:
+    async def _run() -> set[str]:
+        engine = create_async_engine(settings.database_url, poolclass=NullPool)
+        async with engine.connect() as conn:
+            names = await conn.run_sync(
+                lambda c: {ck["name"] for ck in inspect(c).get_check_constraints(table)}
+            )
+        await engine.dispose()
+        return names
+
+    return asyncio.run(_run())
