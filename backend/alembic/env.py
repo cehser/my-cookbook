@@ -2,7 +2,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import pool
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.config import settings
 from app.models.base import Base
@@ -19,16 +19,16 @@ if config.config_file_name is not None:
     # False: sonst deaktiviert fileConfig die Logger der App (und von Uvicorn)
     fileConfig(config.config_file_name, disable_existing_loggers=False)
 
-# Build sqlalchemy.url from app settings (DB_HOST, DB_PORT, etc.)
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# URL aus den App-Settings (DB_HOST, DB_PORT, …) direkt als URL-Objekt verwenden,
+# nicht per config.set_main_option: configparser würde das %-Zeichen eines
+# kodierten Passworts als Interpolation auswerten.
 
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url,
+        url=settings.database_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -44,11 +44,7 @@ def do_run_migrations(connection):
 
 
 async def run_async_migrations() -> None:
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    connectable = create_async_engine(settings.database_url, poolclass=pool.NullPool)
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
     await connectable.dispose()
