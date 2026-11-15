@@ -61,3 +61,6 @@
 - Tests für Einstellungen, Benutzer und `useEditHistory` grün; `useDraft.spec.ts` räumt ab
 - Sichtprüfung im Dev-Server oder Container, soweit ohne Login möglich, sonst begründet; die Szenarien für meine Sichtprüfung (Verwaltung als Admin und als Editor, Undo/Redo in der Bearbeitung inkl. Entwurf) im Bericht auflisten
 - Verifikation gemäß Projekt-CLAUDE.md (Frontend, inkl. `npm test`)
+
+## Korrektur (2026-11-15, nach Prüfung)
+- Abnahme „Einstellungen: Speichern schickt **alle** Felder“ war falsch: `PUT /admin/settings` übernimmt per `exclude_unset` nur gesendete Felder (`backend/app/routes/admin.py`), der W.12-Fallstrick ist dort gelöst. Alle Felder zu senden würde bei jeder Änderung der Share-Laufzeit die Modelle bei OpenAI prüfen (ohne Key 503). Umgesetzt und getestet ist der Ist-Vertrag (nur geänderte Felder).

@@ -23,3 +23,7 @@ Erledigte und verworfene Punkte aus [ROADMAP.md](../ROADMAP.md), wörtlich über
 - [x] W.12 AI-Import robust: Structured Outputs (Responses API), Modell als Admin-Einstellung, Fehlerabbildung, Timeouts/Grenzen, Foto-Upload (A8), Prompt im Image statt Volume (inkl. Nacharbeit N1–N5) · 2026-11-15 · `e9d2689`
 - [x] W.10 Vitest eingeführt (vitest, @vue/test-utils, happy-dom; 63 Tests, CI), Store-Schnitt `recipeMapping.ts` und `recipeApi.listAll`, `saveSettings` speichert Kopie · 2026-11-15 · `6b061b4`
 - [x] W.13 Foto-Import über native Auswahl, 1–10 Seiten in einem Aufruf, Verkleinerung im Client (2000 px, Vorschau 320 px), `detail: "high"`, Grenze `/api/v1/ai/` 20 MB (inkl. Nacharbeit N1–N6; Messung mit synthetischen Seiten, Gerätetest nach Deploy) · 2026-11-15 · `da46b78`
+- [x] W.25 Konfig-Härtung: `config.js` NetworkFirst ohne HTTP-Cache, `DB_PASSWORD` Pflicht ohne Vorgabe, DB-URL per `URL.create` (Sonderzeichen), Chunk-Fehler über `vite:preloadError` mit Schleifenschutz, keine SW-Aktivierung offline (inkl. Nacharbeit N1–N6) · 2026-11-15 · `3562451`
+- [x] W.26 Backend-Warnungen (`distinct_on`, Alembic `path_separator`) und Test `_process_image` · 2026-11-15 · `1565edc`
+- [x] W.27 `Administration.vue` in Abschnittskomponenten unter `components/admin/` aufgeteilt (669 → 44 Zeilen) · 2026-11-15 · `b39d1d5`
+- [x] W.29 Undo/Redo als Composable `useEditHistory` mit Tests, `useDraft.spec.ts` räumt ab · 2026-11-15 · `1da343b`
