@@ -7,6 +7,7 @@ import { useRecipeStore } from "@/store/recipeStore";
 import { useUIStore } from "@/store/uiStore";
 import RecipeDisplay from "@/components/recipe/display/RecipeDisplay.vue";
 import ShareManager from "@/components/recipe/ui/ShareManager.vue";
+import SourceImages from "@/components/recipe/display/SourceImages.vue";
 import jsyaml from "js-yaml";
 import { useToast } from "@/composables/useToast";
 import { generateUUID } from "@/js/uuid";
@@ -217,6 +218,9 @@ function goBack() {
 
     <template v-else>
       <RecipeDisplay :recipe="current_recipe" :image-src="picture_src">
+        <template #after-steps>
+          <SourceImages :recipe-id="current_recipe.recipe_uuid" />
+        </template>
         <template #after-content>
           <!-- Share Manager Overlay -->
           <ShareManager

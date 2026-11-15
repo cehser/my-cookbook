@@ -301,6 +301,8 @@ defineExpose({ reinitObserver });
               key-prefix="desktop-"
               @select-step="selectStep"
             />
+            <!-- Slot unter der Zubereitung (z. B. Vorlage des Imports) -->
+            <slot name="after-steps" />
           </div>
         </div>
       </main>
@@ -358,6 +360,7 @@ defineExpose({ reinitObserver });
             key-prefix="mobile-"
             @select-step="selectStep"
           />
+          <slot name="after-steps" />
         </div>
       </div>
     </div>

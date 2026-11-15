@@ -12,6 +12,7 @@ import { onKeyStroke } from "@vueuse/core";
 import Sortable from "sortablejs";
 import SectionCard from "@/components/edit/SectionCard.vue";
 import RecipeDisplay from "@/components/recipe/display/RecipeDisplay.vue";
+import SourceImages from "@/components/recipe/display/SourceImages.vue";
 import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useToast } from "@/composables/useToast";
 import { useDraft } from "@/composables/useDraft";
@@ -588,6 +589,9 @@ function goBack() {
           </div>
         </BCol>
       </BRow>
+
+      <!-- Vorlage des Foto-Imports zum Abgleich (nur sichtbar, wenn vorhanden) -->
+      <SourceImages :recipe-id="current_recipe.recipe_uuid" />
 
       <!-- ===== Rezept-Inhalt: SectionCards ===== -->
       <h3 class="mt-4 mb-3">Rezept-Inhalt</h3>
