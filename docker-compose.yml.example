@@ -39,7 +39,7 @@ services:
     environment:
       - POSTGRES_DB=${DB_NAME:-cookbook}
       - POSTGRES_USER=${DB_USER:-cookbook}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?DB_PASSWORD in .env setzen}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
