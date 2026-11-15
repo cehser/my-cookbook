@@ -2,9 +2,10 @@
  * Service-Worker-Update steuern (registerType "prompt").
  *
  * Ein neuer SW wartet, bis die App ihn aktiviert. Aktiviert (und neu geladen)
- * wird still bei der nächsten Navigation oder wenn die App in den Hintergrund
- * geht, nie mitten in der Benutzung. Eine schreibende Anfrage, die noch läuft,
- * schiebt das Neuladen auf, bis sie beendet ist.
+ * wird still bei der nächsten erfolgreichen Navigation oder bei der Rückkehr
+ * in den Vordergrund nach mindestens 10 min Hintergrund, nie mitten in der
+ * Benutzung und nie bei kurzem hidden (Kamera, Fotoauswahl). Eine laufende
+ * schreibende Anfrage verhindert die Aktivierung.
  *
  * Nach Updates sucht der Browser von sich aus nur bei Navigation und
  * Registrierung. Eine fortgesetzte PWA prüft deshalb beim Start und beim
@@ -17,6 +18,8 @@ import type { Router } from "vue-router";
 import { registerSW } from "virtual:pwa-register";
 
 const CHECK_INTERVAL_MS = 30 * 60 * 1000;
+/** So lange muss die App im Hintergrund gewesen sein, damit die Rückkehr neu lädt. */
+const HIDDEN_RELOAD_MS = 10 * 60 * 1000;
 
 let updateReady = false;
 let updateSW: ((reloadPage?: boolean) => Promise<void>) | undefined;
@@ -24,6 +27,7 @@ let registration: ServiceWorkerRegistration | undefined;
 let lastCheck = 0;
 let pendingWrites = 0;
 let applying = false;
+let hiddenSince: number | undefined;
 
 /** Zählt laufende schreibende Anfragen (alles außer GET/HEAD) über window.fetch. */
 function trackWrites(): void {
@@ -37,7 +41,6 @@ function trackWrites(): void {
     pendingWrites++;
     return originalFetch(input, init).finally(() => {
       pendingWrites--;
-      if (document.visibilityState === "hidden") applyUpdate();
     });
   };
 }
@@ -86,7 +89,18 @@ export function setupSwUpdate(router: Router): void {
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") applyUpdate();
-    else checkForUpdate();
+    if (document.visibilityState === "hidden") {
+      // Kamera/Fotoauswahl setzen die Seite ebenfalls auf hidden: nicht neu laden.
+      hiddenSince = Date.now();
+      return;
+    }
+    const wasHiddenMs =
+      hiddenSince === undefined ? 0 : Date.now() - hiddenSince;
+    hiddenSince = undefined;
+    if (updateReady && wasHiddenMs >= HIDDEN_RELOAD_MS && pendingWrites === 0) {
+      applyUpdate();
+      return;
+    }
+    checkForUpdate();
   });
 }
