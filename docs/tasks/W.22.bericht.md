@@ -51,3 +51,41 @@ Ein neuer Service Worker wartet (`registerType: "prompt"`, kein `skipWaiting`/`c
 
 ## Vorschlag Roadmap-Zeilen
 `- [x] W.22 Service-Worker-Update steuern · 2026-11-15 · cca25c0`
+
+---
+
+## Nacharbeit
+
+> Ausgangsstand `cca25c0` · Stand `7951515` + Bericht · 2026-11-15 · Dauer: 01:06 – 01:13 (ca. 7 min, kein Warten an Checkpoints) · Status: fertig
+
+### Ergebnis
+- **N1:** `router.afterEach((to, _from, failure) => …)` ignoriert Navigationen mit `failure`; `firstNavigation` wird erst nach einer erfolgreichen Navigation zurückgesetzt.
+- **N2:** Kein Neuladen mehr bei `hidden`. `hidden` merkt nur den Zeitpunkt. Bei `visible` wird aktiviert, wenn die App mindestens 10 min im Hintergrund war, ein Update bereit ist und keine schreibende Anfrage läuft, sonst gedrosselt `registration.update()`. Aktivierung bei erfolgreicher Navigation bleibt. Der Wrapper um `fetch` zählt weiter laufende Schreibzugriffe, löst aber nichts mehr nach deren Ende aus.
+- **N3:** `onNeedReload` ist gesetzt. Eigene Aktivierung (`applying`) lädt sofort neu, fremde (anderer Tab) setzt `reloadPending`; dieser Tab lädt dann unter denselben Bedingungen wie N1/N2.
+- **Rule** `.claude/rules/frontend.md` angepasst.
+
+Beleg zu N3 (Quelle `frontend/node_modules/vite-plugin-pwa/dist/client/build/register.js`, Version 1.3.0 laut Build): Im Modus `prompt` hängt `showSkipWaitingPrompt` (Zeile ~53–62) einen Listener `wb.addEventListener("controlling", …)` an. Bei `event.isUpdate` ruft er `onNeedReload()` auf, falls gesetzt, sonst `window.location.reload()`. `updateServiceWorker(true)` (Zeile ~20) sendet nur `SKIP_WAITING`; das Neuladen kommt allein aus diesem Listener. Er feuert bei jedem Controllerwechsel, auch wenn ein anderer Tab aktiviert hat. Deshalb muss `onNeedReload` selbst entscheiden, ob es sofort lädt (eigene Aktivierung) oder wartet.
+
+### Commits
+- `df965cc` fix(pwa): Navigationsfehler und gecancelte Initialnavigation ignorieren (N1)
+- `be0a56f` fix(pwa): Update nicht bei hidden, sondern bei Rückkehr nach 10 min aktivieren (N2)
+- `8f45b94` fix(pwa): Neuladen durch Aktivierung in anderem Tab aufschieben (N3)
+- `7951515` docs(pwa): Rule an Aktivierung bei Navigation oder Rückkehr anpassen
+
+### Verifikation
+- `npm run lint:check`, `npm run typecheck`, `npm run build` → grün, keine Ausgabe von Fehlern.
+- Browsertest im Build (`vite preview`, Chrome headless, `playwright-core`), Builds A→B→C→D mit Marker `window.__build`, Zeit per `Date.now`-Offset simuliert, `hidden`/`visible` per Event:
+  - S1 B bereit, Tab offen: bleibt A, kein Neuladen. Navigation auf `/callback`: kein Neuladen.
+  - S2 `hidden` → `visible` nach 5 min mit wartendem Update: kein Neuladen.
+  - S3 Kaltstart auf `/` mit gespeicherter Route `/recipe/123` und wartendem Update (anderer Tab offen): kein Neuladen, auch nach weiteren 2,5 s nicht.
+  - S4 Zwei Tabs, beide A, B wartet: Tab 1 navigiert, lädt B. Tab 2 bleibt A, auch 1,5 s später. Tab 2 navigiert, lädt B.
+  - S5 C bereit, Tab 2 `hidden`, Tab 1 navigiert (lädt C): Tab 2 bleibt B. Rückkehr von Tab 2 nach 11 min: lädt C.
+  - S6 D bereit: Rückkehr nach ≥ 10 min bei laufendem POST (3 s): kein Neuladen. Rückkehr nach ≥ 10 min ohne POST: lädt D.
+- **Grenze von S3:** Im Test blieb der Pfad `/`, die Route `/recipe/123` wurde nicht erreicht (kein OIDC konfiguriert, `requireAuth` bricht ab). Die gecancelte Initialnavigation ist damit nicht belegt. Gezeigt ist nur, dass beim Kaltstart mit gespeicherter Route kein Neuladen auftritt. Ein Vergleichslauf mit altem Code (zum Nachweis, dass N1 den Fehler behebt) fehlt.
+- Prüfskript: nur Scratchpad (`…\scratchpad\pw\t2.mjs`).
+
+### Abweichungen vom Auftrag
+- keine. Die geänderte Vorgabe zu `hidden` (N2) ersetzt die frühere Vorgabe des Ursprungsauftrags.
+
+### Offen und Folgepunkte
+- Navigation mit laufender schreibender Anfrage überspringt die Aktivierung; sie erfolgt erst beim nächsten Auslöser (nächste Navigation oder Rückkehr). Bewusst so gelassen (N2: `pendingWrites === 0` als Bedingung).
