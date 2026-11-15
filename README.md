@@ -210,6 +210,25 @@ Für automatische Backups einen Cronjob einrichten:
 gunzip -c backups/cookbook_20260405_030000.sql.gz | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'
 ```
 
+## Upgrade-Hinweise
+
+`docker-compose.yml` und `.env` sind nicht versioniert. Änderungen an `docker-compose.yml.example` und neue Pflichtvariablen vor `./scripts/deploy.sh` von Hand nachziehen. Vorher ein Backup erstellen.
+
+**Upgrade von Ständen vor November 2026:**
+
+1. **Compose-Datei** mit `docker-compose.yml.example` abgleichen:
+   - Mount und Volume `recipe_prompts` entfernen (der AI-Prompt liegt jetzt im Image), danach `docker volume rm <projekt>_recipe_prompts`.
+   - `POSTGRES_PASSWORD=${DB_PASSWORD:?…}` übernehmen (kein Default `changeme` mehr).
+2. **`.env`:** `OIDC_AUTHORITY`, `OIDC_CLIENT_ID` und `DB_PASSWORD` sind Pflicht; ohne sie startet das Backend nicht. Optional `ADMIN_EMAIL` (siehe [Erster Admin](#erster-admin)).
+3. **`DB_PASSWORD`:** `POSTGRES_PASSWORD` wirkt nur beim ersten Anlegen des Datenbank-Volumes. Lief die Datenbank bisher ohne gesetztes Passwort (also mit `changeme`), zuerst genau diesen Wert in die `.env` eintragen und deployen. Ein neues Passwort danach in PostgreSQL setzen und erst dann in der `.env` ändern (`<db-user>` = `DB_USER`):
+
+   ```bash
+   echo "ALTER ROLE \"<db-user>\" PASSWORD '<neues-passwort>';" | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'
+   ```
+
+4. **Reverse-Proxy:** für `/api/v1/ai/` Request-Body ≥ 20 MB und Lese-/Sende-Timeout ≥ 150 s.
+5. **Installierte PWAs** (Homescreen) einmal vollständig schließen und neu öffnen: Der Service Worker wechselt von automatischem auf gesteuertes Update; alte Clients übernehmen ihn erst, wenn kein Fenster der App mehr offen ist.
+
 ## Umgebungsvariablen
 
 | Variable | Pflicht | Default | Beschreibung |
