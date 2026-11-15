@@ -64,3 +64,29 @@ Text-, URL- und Foto-Import liefern per Structured Outputs (Responses API, `AIRe
 
 ## Vorschlag Roadmap-Zeilen
 `- [x] W.12 AI-Import robust, Modell als Admin-Einstellung · 2026-11-15 · e9b9c26`
+
+## Nacharbeit
+
+> Ausgangsstand `fd632ab` · Stand Merge `c96e346` (Bericht-Commit folgt) · 2026-11-15 · Dauer: 01:20 – 01:28 (8 min, kein Warten) · Status: fertig
+
+### Commits
+- `949bbfb` fix(ai): ungültige oder unvollständige AI-Antwort als 502 melden (N1)
+- `0599072` fix(frontend): Dateifeld nach Import zurücksetzen (N2)
+- `f769b84` fix(ai): Auth-Fehler ohne Key-Fragment loggen (N3)
+- `e9d2689` docs(ai): README zu Responses API, Modellwahl und Prompt im Image (N4)
+- `c96e346` Merge branch 'main' into worktree-W.12-ai-import-robust (N5)
+
+### Umsetzung
+- **N1:** Die `ValidationError` aus `responses.parse()` wird um den Aufruf abgefangen, ebenso `status != "completed"` und leere Antwort: 502 „Die AI-Antwort war unvollständig oder ungültig. Bitte erneut versuchen.“ Drei Testfälle (leer, `ValidationError`, `incomplete`); gegen den alten Code laufen alle drei rot (500 bzw. 200), gegen den neuen grün.
+- **N2:** `uploadedFile` wird beim Reset nach „Rezept importieren“ auf `null` gesetzt.
+- **N3:** Bei `AuthenticationError`/`PermissionDeniedError` nur Typ und Status im Log. Der zugehörige Test (Fragment `abcd` weder im Log noch in der Antwort) liegt aus Versehen im Commit von N1, weil beide in `tests/test_ai.py` stehen.
+- **N4:** README: „Responses API, Structured Outputs, Websuche“, Prompt „liegt im Image“, kurzer Absatz zur Modellwahl.
+- **N5:** `git merge main`, Konflikt nur in `CLAUDE.md` (Konventionen). Beide Seiten behalten: Prompt-Zeile aus W.12 (Image, kein Volume) und Commit-Bereiche mit `ci` aus `main`. `README.md` und `backend/app/config.py` ließen sich ohne Konflikt zusammenführen.
+
+### Verifikation (Merge-Stand `c96e346`)
+- Backend: `uv sync --frozen` (x86_64-Python) + `ruff check` + `ruff format --check` + `pytest -m "not db"` → grün, 116 Tests, ~7 s.
+- DB-Tests: Wegwerf-Container `postgres:16-alpine` (Port 55432, danach entfernt), `DB_HOST=localhost DB_NAME=test_cookbook … uv run pytest -m db` → 5 passed (Warnung `distinct`-DISTINCT-ON in `recipes.py`, nicht aus W.12).
+- Frontend: `npm ci` + `lint:check` + `typecheck` + `build` → grün, ~106 s inkl. `npm ci`.
+- Container (Scratch-Compose): Backend, Frontend und DB gebaut und gestartet, Migrationen bis `006_add_pending_role` im Log, `GET /api/health` → `{"status":"ok","database":"connected"}`, `POST /api/v1/ai/import` ohne Token → 401.
+- Sichtprüfung: keine (Dateifeld-Reset N2 nur per `typecheck`/Lint abgesichert, nicht im Browser).
+- Roadmap nicht geändert.
