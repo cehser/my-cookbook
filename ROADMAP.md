@@ -1,6 +1,6 @@
 # Roadmap my-cookbook
 
-Stand: 2026-11-14 · Legende: `[ ]` offen · `[~]` in Arbeit · `[x]` erledigt · `~~…~~` verworfen
+Stand: 2026-11-15 · Legende: `[ ]` offen · `[~]` in Arbeit · `[x]` erledigt · `~~…~~` verworfen
 Aufwand: XS ≲ 30 min · S ≲ 1 h · M ≈ 2–4 h · L ≈ 1 Tag+
 
 Erledigt (Archiv): Sprints 0–3, UX-1 bis UX-7, Sprint 9 (Design-System) → [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md)
@@ -11,7 +11,7 @@ Erledigt (Archiv): W.1, W.2, W.3, W.4, W.5, W.6, W.7, W.8, W.11, W.12, W.14, W.1
 
 - [ ] W.9 Images per GitHub Actions bauen und nach `ghcr.io` pushen (öffentlich, Tags SHA + `main`), `deploy.sh` auf Pull umstellen · M · Sonnet
 - [ ] W.10 Vitest einführen (`vitest`, `@vue/test-utils`, `happy-dom`), erste Tests für `js/` und `composables/` (Skalierung, Draft/Undo); vorher Mapper aus `recipeStore` nach `js/recipeMapping.ts` und `recipeApi.listAll`, Komponententests `Callback.vue`/`App.vue`; `saveSettings` speichert Kopie statt reaktivem Objekt, Tests für `isEqualPlain`/`deepCopyJSON`, `aiErrorMessage` und `api/ai.ts` · M · Sonnet · [Bericht W.11](docs/tasks/W.11.bericht.md)
-- [ ] W.13 Foto im AI-Import über native Kamera/Fotoauswahl statt `getUserMedia`, Bilder clientseitig verkleinern; mehrseitige Vorlagen (1–10 Seiten, ein Modellaufruf), `detail: "high"`, Grenze `/api/v1/ai/` 20 MB je Anfrage · M · Sonnet · nach W.12 · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w13-foto-aufnahme-im-ai-import)
+- [~] W.13 Foto-Import nativ, mehrseitig (1–10), verkleinert · M · Sonnet · 2026-11-15 · [Auftrag](docs/tasks/W.13-foto-import.md) · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w13-foto-aufnahme-im-ai-import)
 - [ ] W.15 Frontend-Majors: bootstrap-vue-next 1.x, vite-plugin-pwa 2 (Override entfernen), pinia 4, vueuse 15, js-yaml 5, lint-staged 17; TypeScript auf 6.0 (`~6.0.3`), TS 7 als Ausnahme bis `vue-tsc` und `typescript-eslint` es unterstützen; `eslint` als direkte devDependency; `tsconfig` `target`/`lib` auf ES2022 · M–L · Sonnet · [Plan](docs/plans/abhaengigkeiten.md)
 - [ ] W.21 PostgreSQL 16 → 18: Dump/Restore, Probelauf mit Kopie der Produktivdaten, Checkpoint vor dem Live-Schritt · M · Opus · nach W.15
 - [ ] W.23 Auth-Feinschliff: Login-Entscheidung zentral in `session.ts`, `userManager` als eigenes Modul (löst Import-Zyklus); damit Login bei offline → online, Cache-Kurzschluss für `requireRole`, keine doppelte Erneuerung beim Resume, Hinweis statt leerem Bildschirm; Web Locks und Backoff, `silent-renew.html` entfernen; Unit-Tests für `session.ts` · S–M · Opus · nach W.12 und W.10 · [Plan](docs/plans/zuverlaessigkeit-login-ai-import.md#w23-auth-feinschliff)
