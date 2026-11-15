@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import RecipeDisplay from "@/components/recipe/display/RecipeDisplay.vue";
 import type { Recipe } from "@/types/recipe";
+import { formatDate } from "@/js/formatDate";
 
 const props = defineProps<{ token: string }>();
 
@@ -11,14 +12,6 @@ const current_recipe = ref<Recipe | null>(null);
 const sharedBy = ref("");
 const sharedAt = ref("");
 const imageSrc = ref<string | null>(null);
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
 
 onMounted(async () => {
   try {

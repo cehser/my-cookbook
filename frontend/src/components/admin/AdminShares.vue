@@ -2,7 +2,7 @@
 import { ref, onMounted } from "vue";
 import { useClipboard } from "@vueuse/core";
 import { adminApi } from "@/api/admin";
-import { formatDate } from "./format";
+import { formatDateTime } from "@/js/formatDate";
 
 interface ShareEntry {
   id: string;
@@ -112,8 +112,8 @@ async function revokeShare(share: ShareEntry) {
               </div>
             </td>
             <td>{{ s.created_by_name }}</td>
-            <td>{{ formatDate(s.created_at) }}</td>
-            <td>{{ s.expires_at ? formatDate(s.expires_at) : "—" }}</td>
+            <td>{{ formatDateTime(s.created_at) }}</td>
+            <td>{{ s.expires_at ? formatDateTime(s.expires_at) : "—" }}</td>
             <td>
               <span v-if="!s.is_active" class="badge bg-secondary"
                 >Widerrufen</span
