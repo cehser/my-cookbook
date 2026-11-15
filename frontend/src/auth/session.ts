@@ -63,8 +63,15 @@ export type SessionHint = "no-data" | "role-unavailable" | null;
 const hint = shallowRef<SessionHint>(null);
 export const sessionHint = readonly(hint);
 
-export function showSessionHint(value: Exclude<SessionHint, null>): void {
-  hint.value = value;
+/**
+ * Rollen-Guard ohne bekannte Rolle: Hinweis nur, wenn die Verbindung fehlt
+ * (kein Netz oder Sitzung `offline`). Bei `rejected` mit Netz startet der
+ * Login, ein Hinweis wäre irreführend.
+ */
+export function onRoleUnavailable(state: AuthState): void {
+  if (state === "offline" || (state === "rejected" && !navigator.onLine)) {
+    hint.value = "role-unavailable";
+  }
 }
 
 // --- Token renewal (single flight, Web Lock, Backoff) ---

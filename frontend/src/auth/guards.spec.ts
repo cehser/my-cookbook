@@ -9,7 +9,7 @@ const s = vi.hoisted(() => ({
   ensureAuth: vi.fn(),
   isAuthenticated: vi.fn(),
   currentUserSub: vi.fn(),
-  showSessionHint: vi.fn(),
+  onRoleUnavailable: vi.fn(),
 }));
 const apiGet = vi.hoisted(() => vi.fn());
 
@@ -89,8 +89,16 @@ describe("requireRole", () => {
     expect(await guards.requireRole("editor")(to, from)).toEqual({
       name: "Gallery",
     });
-    expect(s.showSessionHint).toHaveBeenCalledWith("role-unavailable");
+    expect(s.onRoleUnavailable).toHaveBeenCalledWith("offline");
     expect(apiGet).not.toHaveBeenCalled();
+  });
+
+  it("rejected ohne bekannte Rolle → Startseite, Hinweis entscheidet session.ts", async () => {
+    s.ensureAuth.mockResolvedValue("rejected");
+    expect(await guards.requireRole("editor")(to, from)).toEqual({
+      name: "Gallery",
+    });
+    expect(s.onRoleUnavailable).toHaveBeenCalledWith("rejected");
   });
 
   it("/me scheitert → Startseite", async () => {

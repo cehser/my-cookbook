@@ -424,6 +424,24 @@ describe("Zustandstabelle: IdP hängt", () => {
   });
 });
 
+describe("Zustandstabelle: Navigation mit Rolle, Hinweis", () => {
+  it("Sitzung offline → Hinweis „nicht verfügbar“", () => {
+    session.onRoleUnavailable("offline");
+    expect(session.sessionHint.value).toBe("role-unavailable");
+  });
+
+  it("rejected ohne Netz → Hinweis", () => {
+    setOnline(false);
+    session.onRoleUnavailable("rejected");
+    expect(session.sessionHint.value).toBe("role-unavailable");
+  });
+
+  it("rejected mit Netz (Login startet) → kein Hinweis", () => {
+    session.onRoleUnavailable("rejected");
+    expect(session.sessionHint.value).toBeNull();
+  });
+});
+
 describe("Erneuerung: Single-Flight, Web Lock, Backoff", () => {
   it("parallele Aufrufer teilen sich eine Erneuerung", async () => {
     stored = expired();

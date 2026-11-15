@@ -11,7 +11,7 @@ import {
   currentUserSub,
   ensureAuth,
   onNavigation,
-  showSessionHint,
+  onRoleUnavailable,
 } from "@/auth/session";
 import { fetchRole, readStoredRole, refreshRoleOnce } from "@/auth/role";
 
@@ -25,7 +25,7 @@ export async function requireAuth(
 
 /**
  * Rolle für den Guard: gespeicherte Rolle (auch offline), sonst `/me` mit
- * gültiger Sitzung. Ohne Sitzung bzw. Netz `null` mit Hinweis.
+ * gültiger Sitzung. Sonst `null`; den Hinweis entscheidet `session.ts`.
  */
 async function resolveRole(): Promise<string | null> {
   const stored = readStoredRole(await currentUserSub());
@@ -33,8 +33,9 @@ async function resolveRole(): Promise<string | null> {
     refreshRoleOnce();
     return stored;
   }
-  if ((await ensureAuth()) !== "valid") {
-    showSessionHint("role-unavailable");
+  const state = await ensureAuth();
+  if (state !== "valid") {
+    onRoleUnavailable(state);
     return null;
   }
   return fetchRole();
