@@ -4,6 +4,8 @@ OpenAI wird nie aufgerufen: ohne Key bricht jede Route vorher mit 503 ab, der
 Happy Path läuft gegen einen Fake-Client.
 """
 
+import base64
+
 import httpx
 import openai
 import pytest
@@ -18,7 +20,7 @@ from app.services.site_settings import SITE_DEFAULTS
 
 pytestmark = pytest.mark.anyio
 
-IMAGE = {"file": ("foto.png", b"PNG-fake", "image/png")}
+IMAGE = {"files": ("foto.png", b"PNG-fake", "image/png")}
 
 RECIPE_JSON = {
     "recipe_name": "Pfannkuchen",
@@ -136,7 +138,7 @@ async def test_import_text_empty_400(client: httpx.AsyncClient, as_role, with_ke
 
 async def test_import_image_not_an_image_400(client: httpx.AsyncClient, as_role, with_key) -> None:
     as_role("editor")
-    files = {"file": ("a.txt", b"x", "text/plain")}
+    files = {"files": ("a.txt", b"x", "text/plain")}
     assert (await client.post("/api/v1/ai/import/image", files=files)).status_code == 400
 
 
@@ -148,6 +150,33 @@ async def test_import_image_too_large_413(
     response = await client.post("/api/v1/ai/import/image", files=IMAGE)
     assert response.status_code == 413
     assert "zu groß" in response.json()["detail"]
+
+
+async def test_import_image_total_too_large_413(
+    client: httpx.AsyncClient, as_role, with_key, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    as_role("editor")
+    monkeypatch.setattr(ai_routes, "MAX_TOTAL_MB", 0)
+    response = await client.post("/api/v1/ai/import/image", files=IMAGE)
+    assert response.status_code == 413
+    assert "gesamt" in response.json()["detail"]
+
+
+async def test_import_image_none_422(client: httpx.AsyncClient, as_role, with_key) -> None:
+    as_role("editor")
+    response = await client.post("/api/v1/ai/import/image")
+    assert response.status_code == 422
+    assert "Kein Bild" in response.json()["detail"]
+
+
+async def test_import_image_too_many_pages_422(
+    client: httpx.AsyncClient, as_role, with_key
+) -> None:
+    as_role("editor")
+    files = [("files", (f"{i}.png", b"x", "image/png")) for i in range(ai_routes.MAX_PAGES + 1)]
+    response = await client.post("/api/v1/ai/import/image", files=files)
+    assert response.status_code == 422
+    assert "Zu viele Seiten" in response.json()["detail"]
 
 
 class _FakeResponses:
@@ -315,3 +344,24 @@ def test_recipe_schema_is_strict_compatible() -> None:
     amount = schema["$defs"]["AIAmount"]["properties"]["amount"]
     assert {t["type"] for t in amount["anyOf"]} == {"number", "null"}
     assert schema["$defs"]["AIYield"]["properties"]["value"]["type"] == "number"
+
+
+async def test_import_image_pages_in_order_one_call_detail_high(
+    client: httpx.AsyncClient, as_role, with_key, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    as_role("editor")
+    fake = _FakeResponses(AIRecipe.model_validate(RECIPE_JSON))
+    _install_fake(monkeypatch, fake)
+    files = [("files", (f"{n}.jpg", n.encode(), "image/jpeg")) for n in ("eins", "zwei", "drei")]
+
+    response = await client.post("/api/v1/ai/import/image", files=files)
+
+    assert response.status_code == 200
+    assert len(fake.calls) == 1
+    content = fake.calls[0]["input"][0]["content"]
+    assert "3 Bildern" in content[0]["text"]
+    images = content[1:]
+    assert [i["type"] for i in images] == ["input_image"] * 3
+    assert all(i["detail"] == "high" for i in images)
+    payloads = [base64.b64decode(i["image_url"].split(",", 1)[1]) for i in images]
+    assert payloads == [b"eins", b"zwei", b"drei"]
