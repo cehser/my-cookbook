@@ -9,7 +9,7 @@ Versionen per `npm view` bzw. PyPI am 2026-11-14 ermittelt.
 | Paket | Lock → aktuell | Hinweis |
 |---|---|---|
 | `bootstrap-vue-next` | 0.44.1 → 1.2.4 | erste stabile Major-Version; Breaking Changes aus dem Changelog prüfen (u. a. `BModal`, `BTabs`) |
-| `vite-plugin-pwa` | 1.2.0 → 2.0.0 | 1.2 erlaubt als Peer nur Vite ≤ 7, 2.0 auch Vite 8. Danach `overrides.vite-plugin-pwa` in `package.json` und `--legacy-peer-deps` im Dockerfile entfernen (berührt W.7) |
+| `vite-plugin-pwa` | 1.2.0 → 2.0.0 | 1.2 erlaubt als Peer nur Vite ≤ 7, 2.0 auch Vite 8. Danach `overrides.vite-plugin-pwa` in `package.json` entfernen. `--legacy-peer-deps` im Dockerfile ist schon durch den Override überflüssig (geprüft 2026-11-15: `npm ci` ohne Flag in `node:26-alpine` fehlerfrei) und entfällt mit W.5 |
 | `pinia` | 3.0.4 → 4.1.0 | Changelog |
 | `@vueuse/core` | 14.2.1 → 15.0.0 | Changelog |
 | `js-yaml` | 4.1.1 → 5.5.0 | API-Änderungen prüfen (`load`/`dump`) |

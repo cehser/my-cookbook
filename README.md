@@ -1,5 +1,7 @@
 # my-cookbook
 
+[![CI](https://github.com/cehser/my-cookbook/actions/workflows/ci.yml/badge.svg)](https://github.com/cehser/my-cookbook/actions/workflows/ci.yml)
+
 Ein persönliches Kochbuch als Progressive Web App — selbst gehostet, offline-fähig, mit AI-Import.
 
 ## Features
@@ -69,6 +71,9 @@ Die `.env`-Datei bearbeiten:
 OIDC_AUTHORITY=https://auth.example.com/realms/myrealm
 OIDC_CLIENT_ID=my-cookbook
 
+# Erster Admin (optional, siehe „Erster Admin“)
+ADMIN_EMAIL=admin@example.com
+
 # Datenbank
 DB_NAME=cookbook
 DB_USER=cookbook
@@ -107,6 +112,14 @@ npm run dev
 
 Der Dev-Server startet auf `https://localhost:8080` (mit selbstsigniertem SSL für PWA/OIDC).
 
+OIDC-Werte liest der Dev-Server aus `frontend/.env.local` (gitignored). Vorlage:
+
+```bash
+cp .env.example .env.local   # in frontend/, dann VITE_OIDC_AUTHORITY und VITE_OIDC_CLIENT_ID setzen
+```
+
+`public/config.js` ist im Dev-Server bewusst leer; im Container wird sie beim Start aus `OIDC_AUTHORITY`/`OIDC_CLIENT_ID` erzeugt.
+
 Weitere Befehle:
 
 | Befehl | Beschreibung |
@@ -126,11 +139,12 @@ uv sync
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
-Das Backend erwartet eine laufende PostgreSQL-Instanz (siehe `DB_*`-Variablen).
+Das Backend erwartet eine laufende PostgreSQL-Instanz (siehe `DB_*`-Variablen) und `OIDC_AUTHORITY` sowie `OIDC_CLIENT_ID` in der Umgebung; ohne beide startet es nicht.
 
 | Befehl | Beschreibung |
 |--------|-------------|
-| `uv run pytest` | Smoke-Tests (ohne Datenbank und Netz) |
+| `uv run pytest` | Smoke-Tests (ohne Datenbank und Netz); DB-Tests werden übersprungen |
+| `uv run pytest -m db` | DB-Tests gegen PostgreSQL, braucht `DB_HOST` und `DB_NAME=test…` (leert das Schema), siehe `backend/tests/db/conftest.py` |
 | `uv run ruff check` | Linter |
 | `uv run ruff format` | Formatierer |
 | `uv lock --upgrade-package <paket>` | Einzelnes Paket im Lock aktualisieren |
@@ -200,8 +214,9 @@ gunzip -c backups/cookbook_20260405_030000.sql.gz | docker compose exec -T db sh
 
 | Variable | Pflicht | Default | Beschreibung |
 |----------|---------|---------|-------------|
-| `OIDC_AUTHORITY` | Ja | — | URL des OIDC-Providers |
-| `OIDC_CLIENT_ID` | Ja | — | Client-ID der SPA beim IdP |
+| `OIDC_AUTHORITY` | Ja | — | URL des OIDC-Providers (kein Default; Backend startet ohne) |
+| `OIDC_CLIENT_ID` | Ja | — | Client-ID der SPA beim IdP (kein Default; Backend startet ohne) |
+| `ADMIN_EMAIL` | Nein | — | E-Mail des ersten Admins, siehe „Erster Admin“ |
 | `DB_NAME` | Nein | `cookbook` | PostgreSQL-Datenbankname |
 | `DB_USER` | Nein | `cookbook` | PostgreSQL-Benutzer |
 | `DB_PASSWORD` | Ja | — | PostgreSQL-Passwort |
@@ -219,6 +234,12 @@ Die App benötigt einen OIDC-kompatiblen Identity Provider (z.B. Keycloak):
 5. Optional: `offline_access`-Scope aktivieren (für Token-Refresh bei langer Nutzung)
 
 Neue Benutzer erhalten automatisch die Rolle `pending` und müssen von einem Admin freigeschaltet werden.
+
+## Erster Admin
+
+Damit der erste Admin nicht per SQL gesetzt werden muss, `ADMIN_EMAIL` in der `.env` setzen und das Backend neu starten. Beim Login wird ein User zum `admin`, wenn seine E-Mail aus dem Access-Token (ohne Beachtung der Groß-/Kleinschreibung) mit `ADMIN_EMAIL` übereinstimmt **und** das Claim `email_verified` wahr ist. Das gilt auch für bereits angelegte User. Es wird nur heraufgestuft, nie herabgestuft.
+
+Voraussetzung: Der Access-Token enthält `email` und `email_verified` (bei Keycloak über den Client-Scope `email`). Fehlt `email_verified`, passiert nichts. Nach dem ersten Login `ADMIN_EMAIL` wieder entfernen: Solange der Wert gesetzt ist, wird dieser User bei jedem Login erneut zum Admin, auch nach einer bewussten Herabstufung. Als Rettungsweg (Admin ausgesperrt) lässt er sich jederzeit wieder setzen.
 
 ## Lizenz
 

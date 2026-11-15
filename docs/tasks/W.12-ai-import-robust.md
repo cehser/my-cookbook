@@ -72,3 +72,18 @@ Text-, URL- und Foto-Import funktionieren und melden jeden Fehler verständlich 
 - Admin: Modell speichern mit Verfügbarkeitsprüfung, Key-Status und Verbindungstest funktionieren; Key erscheint in keiner Antwort
 - Smoke-Tests für die geänderten Routen (Rolle, fehlender Key → 503) grün
 - Verifikation gemäß Projekt-CLAUDE.md (Frontend und Backend, mit Container)
+
+## Nacharbeit (2026-11-15, nach Prüfung)
+
+Ausgangsstand: `fd632ab`.
+
+- **N1 Unparsbare Antwort → 500:** openai 3 validiert das Schema schon in `client.responses.parse(...)` (Post-Parser, `model_validate_json`). Die pydantic-`ValidationError` ist kein `OpenAIError` und landet im globalen Handler. `ValidationError` um den `parse`-Aufruf abfangen und als 502 mit verständlicher Meldung („Antwort unvollständig oder ungültig, bitte erneut versuchen“) melden; Antwortstatus `incomplete` (z. B. `max_output_tokens`) ebenso. Test dafür.
+- **N2 Dateifeld zurücksetzen:** Beim Reset nach „Rezept importieren“ auch `uploadedFile` auf `null` setzen, damit dieselbe Datei erneut gewählt werden kann (Vorschau erscheint).
+- **N3 Log ohne Key-Fragment:** Bei Auth- und Permission-Fehlern von OpenAI nur Fehlertyp und Status loggen, nicht `str(exc)` (enthält den maskierten Key).
+- **N4 README:** veraltete Aussagen korrigieren („Chat Completions + Vision“ → Responses API mit Structured Outputs; Prompt nicht mehr extern änderbar, liegt im Image).
+- **N5 main einmergen:** `git merge main` im Worktree. Konflikt in `CLAUDE.md` (Abschnitt Konventionen): beide Änderungen behalten, also die Prompt-Zeile aus W.12 **und** die Commit-Bereiche mit `ci` aus `main`. Danach volle Verifikation auf dem Merge-Stand, einschließlich DB-Tests gegen einen Wegwerf-Container PostgreSQL 16 (siehe `.claude/rules/backend-tooling.md`).
+
+### Abnahme Nacharbeit
+- Test: `ValidationError` und Status `incomplete` → 502 mit Meldung, kein 500
+- Verifikation gemäß Projekt-CLAUDE.md (Frontend und Backend) auf dem Merge-Stand, DB-Tests grün
+- Bericht um Abschnitt „Nacharbeit“ fortschreiben
