@@ -2,10 +2,11 @@
 
 import pytest
 from alembic import command
+from pydantic import ValidationError
 from sqlalchemy.engine import make_url
 
-from app.config import settings
-from tests.db.conftest import alembic_config
+from app.config import Settings, settings
+from tests.alembic_helpers import alembic_config
 
 PASSWORD = "p@ss:w/rd#%?&=+ äö"
 
@@ -40,3 +41,9 @@ def test_alembic_offline_accepts_special_password(
     # set_main_option scheiterte configparser am %-Zeichen der kodierten URL.
     command.upgrade(alembic_config(), "head", sql=True)
     assert "CREATE TABLE" in capsys.readouterr().out
+
+
+def test_empty_db_password_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DB_PASSWORD", "")
+    with pytest.raises(ValidationError, match="db_password"):
+        Settings()
