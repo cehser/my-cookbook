@@ -22,7 +22,7 @@ Erledigt (Archiv): W.1, W.2, W.3, W.4, W.5, W.6, W.7, W.8, W.10, W.11, W.12, W.1
 ## 5 — Einkaufsliste-Export
 Zutaten eines Rezepts als Einkaufsliste per Clipboard und Native Share. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-5-einkaufsliste-export-1-2-tage--quick-win)
 
-- [ ] 5.1 Einkaufsliste-Export · M · Sonnet
+- [ ] 5.1 Einkaufsliste-Export · M · Opus · wartet auf die offizielle pon-API ([developers.pon.app](https://developers.pon.app/de/), Stand 2026-11-15: „Bald verfügbar“, keine Funktionen oder Termin genannt); Zuschnitt erst mit veröffentlichter API
 
 ## 6 — Koch-Notizen
 Persönliche Notizen am Rezept, auch per Spracheingabe. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-6-koch-notizen--spracheingabe-4-5-tage)
