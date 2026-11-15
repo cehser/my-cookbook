@@ -7,7 +7,7 @@ Admins exportieren den gesamten Rezeptbestand als ZIP und spielen ihn wieder ein
 
 ## Entscheidungen (2026-11-14)
 - **Berechtigung:** nur `admin`, UI in der Verwaltung (`Administration.vue`).
-- **Umfang:** Rezepte, Tags, Bilder (Originale). Nicht enthalten: User, Favoriten, Share-Links, Site-Settings.
+- **Umfang:** Rezepte, Tags, Bilder (Originale; nach W.28 auch Vorlagen mit `kind` und `sort_order`). Nicht enthalten: User, Favoriten, Share-Links, Site-Settings.
 - **Konflikt bei gleicher `recipe_uuid`:** im Import-Dialog wählbar „Überspringen“ (Standard) oder „Überschreiben“.
 - **Altlasten:** Der Einzel-Export (YAML je Rezept) bleibt. Der Einzel-Import wird mit 11.2 auf die UUID-Logik umgestellt (keine Duplikate mehr). Der Button „Speichern“ (IndexedDB) entfällt.
 - **Nicht-Scope:** automatisches Server-Backup.

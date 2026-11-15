@@ -97,8 +97,33 @@ Native Kamera statt `getUserMedia`: ein Tab „Foto aufnehmen oder wählen“ mi
 - Unbestätigt, im Auftrag prüfen: EXIF-Ausrichtung beim Zeichnen in den Canvas (Safari), HEIC-Lieferung durch iOS an `<input type="file">`.
 - Abgrenzung zu W.12: W.12 regelt Server-Grenzen (nginx/Backend) und den API-Client, W.13 nur die Bildaufnahme im Frontend.
 
+### Entschieden (2026-11-15): mehrseitige Vorlagen
+Anlass: Rezepte über mehrere Seiten (Kochbuch, Zeitschrift) ließen sich nur mit einem Bild importieren.
+- **1–10 Seiten je Import.** Auswahl mit `multiple` und Button „Seite hinzufügen“ (die Kamera liefert auf iOS je Aufnahme ein Bild). Vorschau aller Seiten, einzelne entfernen; Reihenfolge = Aufnahmereihenfolge.
+- **Ein Modellaufruf** mit allen Seiten als `input_image` in Reihenfolge; der Prompt bekommt den Hinweis, dass es Seiten eines Rezepts sind.
+- **`detail: "high"` ausdrücklich setzen**, statt sich auf `auto` zu verlassen. Laut [OpenAI-Doku](https://developers.openai.com/api/docs/guides/images-vision) skaliert `high` bei den meisten aktuellen Modellen auf 2048×2048; bei `gpt-6-astra` entspricht `auto` dagegen `original`. Für `gpt-6-luna` ist das Verhalten nicht dokumentiert.
+- **Verkleinern** auf lange Kante ~2000 px, JPEG ~0,85: entspricht dem, was das Modell bei `high` nutzt; mehr Auflösung kostet nur Tokens, Zeit und Upload.
+- **Grenzen:** Die 10 MB aus W.12 galten für ein unverkleinertes Foto, OpenAI erlaubt 512 MB je Anfrage. Bei 10 Seiten à 0,5–1 MB (Annahme) reicht 10 MB je Anfrage nicht sicher. Daher für `/api/v1/ai/` 20 MB je Anfrage (nginx und Backend), je Bild weiter höchstens 10 MB. Der äußere Reverse-Proxy auf dem Server muss mitziehen.
+- **Messen** im Auftrag: Dateigröße je Seite, Gesamtgröße und Dauer bei 10 Seiten gegen das Zeitbudget 120/135/150 s; Lesbarkeit kleiner Schrift. Liest das Modell bei 2000 px zu schlecht, ist `detail: "original"` mit größerer Kante der Hebel, dann Grenzen neu bemessen.
+
 ### Abnahme
-Auf iPhone und iPad als installierte PWA: Foto aufnehmen und aus der Mediathek wählen, jeweils Rezept erkennen; Modal mehrfach öffnen und schließen ohne Fehler.
+Auf iPhone und iPad als installierte PWA: Foto aufnehmen und aus der Mediathek wählen, jeweils Rezept erkennen; ein Rezept mit mehreren Seiten (auch 10) erkennen; Modal mehrfach öffnen und schließen ohne Fehler.
+
+## W.28 Vorlage am Rezept speichern
+
+Anlass: Das Foto des Imports wird nicht gespeichert; das KI-Ergebnis lässt sich später nicht mit der Vorlage vergleichen. Der URL-Import speichert seine Quelle schon in `source_url`.
+
+### Ausgangslage
+- `recipe_images` hält mehrere Bilder je Rezept (`sort_order`), die Oberfläche kennt aber nur ein Rezeptbild: `setRecipePicture` (`recipeStore.ts`) löscht vor dem Hochladen alle Bilder, Kachel und Detail zeigen `first_image_id`.
+- Als normales Bild gespeichert, würde die Vorlage das Gerichtfoto ersetzen oder zum Titelbild werden.
+
+### Entschieden (2026-11-15)
+- **Eigene Bildart:** `recipe_images.kind` (`photo` | `source`), Default `photo`, Check-Constraint; Migration.
+- `photo`-Logik berücksichtigt nur `photo`: `_get_first_image_id`, Listenabfrage (`distinct`/`distinct_on`, daher nach W.26), `setRecipePicture` (löscht nur `photo`), Admin-Aufräumfunktion.
+- Nach dem Import lädt das Frontend die verkleinerten Seiten mit `kind=source` und `sort_order` = Seitenreihenfolge zum neuen Rezept hoch.
+- **Anzeige:** aufklappbarer Abschnitt „Vorlage“ mit Vorschaubildern, antippen öffnet das Bild groß; in Detailansicht und Bearbeitung.
+- **Nach dem Import** öffnet die App direkt die Bearbeitung des neuen Rezepts (statt nur Toast), damit man das Ergebnis gleich mit der Vorlage prüft.
+- Export/Import (11.1/11.2) nimmt die Vorlagen samt `kind` mit.
 
 ## W.23 Auth-Feinschliff
 
