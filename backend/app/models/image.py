@@ -1,11 +1,16 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, Text, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
+
+ImageKind = Literal["photo", "source"]
+IMAGE_KIND_PHOTO: ImageKind = "photo"
+IMAGE_KIND_SOURCE: ImageKind = "source"
 
 
 class RecipeImage(Base):
@@ -23,6 +28,8 @@ class RecipeImage(Base):
     thumbnail_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    # photo = Rezeptfoto (Titelbild), source = Vorlage des Foto-Imports; sort_order je kind
+    kind: Mapped[str] = mapped_column(Text, nullable=False, server_default=IMAGE_KIND_PHOTO)
     uploaded_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("app_users.oidc_sub"), nullable=True
     )
@@ -30,4 +37,7 @@ class RecipeImage(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    __table_args__ = (Index("idx_images_recipe", "recipe_id", "sort_order"),)
+    __table_args__ = (
+        Index("idx_images_recipe", "recipe_id", "sort_order"),
+        CheckConstraint("kind IN ('photo', 'source')", name="valid_kind"),
+    )
