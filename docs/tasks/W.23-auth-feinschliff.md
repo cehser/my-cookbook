@@ -85,3 +85,17 @@ Widerspricht die Tabelle beim Umsetzen dem Code oder sich selbst, anhalten und v
 - Browserszenarien im Build (`playwright-core` wie in W.22/W.25, OIDC per Mock-IdP oder gestubbtem `userManager`, im Bericht begründen): offline → online ohne Sitzung führt zum Login; Kaltstart mit hängendem IdP ohne Cache zeigt Hinweis; öffentlicher Link ohne Login
 - Szenarien für meinen Gerätetest (iPhone/iPad, PWA) im Bericht
 - Verifikation gemäß Projekt-CLAUDE.md (Frontend, inkl. `npm test`)
+
+## Nacharbeit (2026-11-16, nach Prüfung)
+
+Ausgangsstand: `d031803`.
+
+- **N1 NUL-Bytes:** `frontend/vitest.config.ts` Zeilen 18 und 20 enthalten rohe NUL-Zeichen im Präfix des virtuellen Moduls. Durch die Escape-Sequenz `"\0virtual:pwa-register"` ersetzen; danach zeigt `git diff` die Datei wieder als Text.
+- **N2 Lock mit Timeout:** `navigator.locks.request` in `session.ts` mit `signal: AbortSignal.timeout(15_000)` (oder gleichwertig); bei Abbruch Ergebnis `offline`, kein Hängen von `getAccessToken`, Guard und `logout()`. Test für den Abbruch und für die Freigabe des Locks bei einer Exception.
+- **N3 Vormerkung erhalten:** `loginPending` erst löschen, wenn `signinRedirect` erfolgreich gestartet ist; scheitert der Redirect, bleibt die Vormerkung.
+- **N4 Vormerk-Tests schärfen:** Die Tests „Navigation ohne Netz“, „Resume ohne Netz“ und „Sitzung abgelehnt ohne Netz“ so anlegen, dass der Folgeauslöser eine Sitzung ≠ `rejected` sieht (z. B. `offline`), damit nur die Vormerkung den Login auslöst.
+- **N5 Hinweistext Rolle:** „Ohne Verbindung nicht verfügbar“ nur bei fehlendem Netz bzw. Sitzung `offline`; bei `rejected` mit Netz (Login startet) keinen Hinweis.
+
+### Abnahme Nacharbeit
+- `git diff --stat` zeigt `vitest.config.ts` als Text; `npm test`, lint, typecheck, build grün
+- Bericht um Abschnitt „Nacharbeit“ fortschreiben
