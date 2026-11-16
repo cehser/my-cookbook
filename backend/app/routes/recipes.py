@@ -15,7 +15,6 @@ from app.models.image import IMAGE_KIND_PHOTO, RecipeImage
 from app.models.recipe import Recipe
 from app.models.tag import RecipeTag, Tag
 from app.models.user import AppUser
-from app.routes.images import delete_recipe_files, download_and_store_image
 from app.schemas.recipe import (
     RecipeCreate,
     RecipeListItem,
@@ -24,6 +23,7 @@ from app.schemas.recipe import (
     RecipeUpdate,
     normalize_recipe_data,
 )
+from app.services.images import delete_recipe_files, download_and_store_image
 
 router = APIRouter(prefix="/v1", tags=["recipes"])
 

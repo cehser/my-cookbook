@@ -11,7 +11,7 @@ from sqlalchemy import select
 from app.auth import dependencies
 from app.models.image import RecipeImage
 from app.models.user import AppUser
-from app.routes import images
+from app.services import images as image_service
 
 pytestmark = pytest.mark.anyio
 
@@ -129,7 +129,7 @@ async def _upload(client: httpx.AsyncClient, recipe_id: str, kind: str | None) -
 async def test_source_images_never_become_title_image(
     db_client: httpx.AsyncClient, as_db_user, tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(images, "UPLOAD_DIR", tmp_path)
+    monkeypatch.setattr(image_service, "UPLOAD_DIR", tmp_path)
     await as_db_user("admin")
     tag = f"ci-{uuid.uuid4()}"
     recipe_id = (
@@ -169,7 +169,7 @@ async def test_source_images_never_become_title_image(
 async def test_delete_source_image_removes_files(
     db_client: httpx.AsyncClient, as_db_user, tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(images, "UPLOAD_DIR", tmp_path)
+    monkeypatch.setattr(image_service, "UPLOAD_DIR", tmp_path)
     await as_db_user("admin")
     recipe_id = (await db_client.post("/api/v1/recipes", json={"recipe_name": "X"})).json()["id"]
     image_id = (await _upload(db_client, recipe_id, "source")).json()["id"]
