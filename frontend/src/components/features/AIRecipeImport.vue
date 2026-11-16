@@ -56,10 +56,6 @@ const downloadingImage = ref(false);
 
 // Computed
 const settings = computed(() => store.settings);
-const hasApiKey = computed(() => {
-  // Backend holds the key — check if user is authenticated
-  return true;
-});
 const busy = computed(
   () => loading.value || preparing.value || importing.value,
 );
@@ -183,12 +179,7 @@ const importRecipe = async () => {
         <h5><i class="bi bi-robot"></i> AI-Rezept-Import</h5>
       </BCardHeader>
       <BCardBody>
-        <div v-if="!hasApiKey" class="alert alert-warning">
-          <i class="bi bi-exclamation-triangle"></i>
-          AI-Import nicht verfügbar. Bitte einloggen.
-        </div>
-
-        <BTabs v-else content-class="mt-3">
+        <BTabs content-class="mt-3">
           <!-- Photo Tab: native Kamera bzw. Fotoauswahl, 1–10 Seiten -->
           <BTab title="Foto aufnehmen oder wählen" active>
             <!-- Ohne capture: iOS bietet Kamera und Mediathek zur Wahl -->
