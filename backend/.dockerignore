@@ -1,0 +1,10 @@
+# Das Dockerfile kopiert nur pyproject.toml, uv.lock, .python-version,
+# app/, alembic/, alembic.ini, prompts/. Alles andere bleibt aus dem
+# Build-Kontext (Tempo, und keine lokalen Geheimnisse im Kontext).
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+tests/
+.env
+.env.*
