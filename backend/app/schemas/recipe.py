@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -183,6 +183,14 @@ class RecipeCreate(BaseModel):
     recipe_name: str = Field(..., min_length=1, max_length=500)
     data: RecipeData = Field(default_factory=RecipeData)
     tags: list[str] | None = None
+
+    @field_validator("id")
+    @classmethod
+    def _reject_nil_uuid(cls, value: uuid.UUID | None) -> uuid.UUID | None:
+        # Nil-UUID ist kein vergebener Wert, sondern ein Platzhalter
+        if value is not None and value.int == 0:
+            raise ValueError("Nil-UUID ist als Rezept-ID nicht erlaubt")
+        return value
 
 
 class RecipeUpdate(BaseModel):

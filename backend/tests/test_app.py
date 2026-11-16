@@ -64,6 +64,11 @@ def test_openapi_schema_builds() -> None:
     assert "/v1/recipes" in schema["paths"]
 
 
+def test_create_recipe_documents_conflict() -> None:
+    responses = app.openapi()["paths"]["/v1/recipes"]["post"]["responses"]
+    assert "409" in responses
+
+
 @pytest.mark.parametrize(("method", "path"), sorted(README_ROUTES))
 def test_readme_route_registered(method: str, path: str) -> None:
     assert (method, path) in set(_registered())
