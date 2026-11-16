@@ -14,6 +14,11 @@ Erledigt (Archiv): W.1, W.2, W.3, W.4, W.5, W.6, W.7, W.8, W.9, W.10, W.11, W.12
 - [~] W.33 `POST /recipes` übernimmt die UUID des Clients (409 bei Kollision): gleiche ID in Client und Backend, Wiederholung legt nichts doppelt an, Grundlage für Offline-Anlage · M · Opus · vor 12.1 · 2026-11-16 · [Auftrag](docs/tasks/W.32-backend-bilder-client-uuid.md) · Backend `e6235ab` · Rest: Frontend, lokale Rezepte vormerken und übertragen, 401-Fall, Backend-Kleinkram · M–L · Opus · 2026-11-16 · [Auftrag](docs/tasks/W.33-client-uuid-lokale-rezepte.md) · Nacharbeit N1–N5 offen · [Bericht W.31](docs/tasks/W.31.bericht.md)
 - [ ] W.34 Rezeptkarten kennzeichnen „nur auf diesem Gerät“, solange ein Rezept vorgemerkt oder abgelehnt ist (`pendingCreates`) · S · Opus · nach W.33 · [Bericht W.33](docs/tasks/W.33.bericht.md)
 
+## U — UX-2
+Bewertung und Verbesserung der Bedienung in Rezeptansicht, Bearbeitung, Profil und Verwaltung. Audit blind (ohne Vorwissen), Abgleich mit den Reizpunkten des Product Owners erst beim `/done`; Befunde werden danach je Ansicht zu Punkten gebündelt.
+
+- [~] U.1 UX-Audit: Kernaufgaben und Personas (Cognitive Walkthrough), Nielsen-Heuristiken, Apple HIG, WCAG 2.2 AA, Screenshots iPhone/Tablet → `docs/plans/ux-audit.md` · M · Opus · 2026-11-17 · [Auftrag](docs/tasks/U.1-ux-audit.md)
+
 ## 5 — Einkaufsliste-Export
 Zutaten eines Rezepts als Einkaufsliste per Clipboard und Native Share. Plan: [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md#sprint-5-einkaufsliste-export-1-2-tage--quick-win)
 
