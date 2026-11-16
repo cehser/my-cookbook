@@ -53,6 +53,9 @@ async function importTwoPages() {
   return { w, blobs };
 }
 
+const created = (id: string) => ({ status: "created", detail: { id } });
+
+// Ablauf im Detail: composables/useRecipeImport.spec.ts. Hier die Verdrahtung.
 describe("AIRecipeImport: Rezept importieren", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -60,7 +63,7 @@ describe("AIRecipeImport: Rezept importieren", () => {
   });
 
   it("legt das Rezept an, speichert die Seiten als Vorlage und öffnet die Bearbeitung", async () => {
-    store.appendRecipe.mockResolvedValue({ id: "neu-1" });
+    store.appendRecipe.mockResolvedValue(created("neu-1"));
     vi.mocked(imageApi.upload).mockResolvedValue({} as never);
 
     const { w, blobs } = await importTwoPages();
@@ -73,45 +76,28 @@ describe("AIRecipeImport: Rezept importieren", () => {
     expect(w.emitted("imported")?.[0]?.[1]).toEqual([]);
     expect(push).toHaveBeenCalledWith("/edit/neu-1/apfelkuchen");
     expect(useImportPages().pages.value).toEqual([]);
+    expect(w.text()).not.toContain("Rezept erfolgreich erkannt");
     w.unmount();
   });
 
-  it("meldet fehlgeschlagene Seiten, das Rezept bleibt", async () => {
-    store.appendRecipe.mockResolvedValue({ id: "neu-2" });
-    vi.mocked(imageApi.upload)
-      .mockResolvedValueOnce({} as never)
-      .mockRejectedValueOnce(new Error("413"));
+  it("abgelehnt: Meldung im Dialog, Ergebnis und Seiten bleiben", async () => {
+    store.appendRecipe.mockResolvedValue({
+      status: "failed",
+      error: new Error("403"),
+    });
 
     const { w } = await importTwoPages();
 
-    expect(imageApi.upload).toHaveBeenCalledTimes(2);
-    expect(w.emitted("imported")?.[0]?.[1]).toEqual([
-      "Vorlage: Seite 2 von 2 konnte nicht gespeichert werden.",
-    ]);
-    expect(push).toHaveBeenCalledWith("/edit/neu-2/apfelkuchen");
-    w.unmount();
-  });
-
-  it("lädt offline nichts hoch und meldet das", async () => {
-    store.appendRecipe.mockResolvedValue(undefined);
-
-    const { w } = await importTwoPages();
-
-    expect(imageApi.upload).not.toHaveBeenCalled();
-    const [recipe, warnings] = w.emitted("imported")![0] as [
-      { recipe_uuid: string },
-      string[],
-    ];
-    expect(warnings[0]).toContain("offline");
-    // Lokale UUID, weil das Backend keine ID vergeben hat
-    expect(push).toHaveBeenCalledWith(
-      `/edit/${recipe.recipe_uuid}/apfelkuchen`,
-    );
+    expect(w.emitted("imported")).toBeUndefined();
+    expect(push).not.toHaveBeenCalled();
+    expect(w.find(".alert-danger").text()).toContain("nicht angelegt");
+    expect(w.text()).toContain("Rezept importieren");
+    expect(useImportPages().pages.value).toHaveLength(2);
     w.unmount();
   });
 
   it("Text-Import öffnet die Bearbeitung ohne Upload", async () => {
-    store.appendRecipe.mockResolvedValue({ id: "neu-3" });
+    store.appendRecipe.mockResolvedValue(created("neu-3"));
     vi.mocked(aiApi.importText).mockResolvedValue(aiRecipe);
     // Seiten aus dem Foto-Weg dürfen beim Text-Import nicht hochgeladen werden
     useImportPages().addPage(page("1"), page("t"));
@@ -129,7 +115,7 @@ describe("AIRecipeImport: Rezept importieren", () => {
   });
 
   it("setzt die Hinweise der Seitenauswahl nach dem Import zurück", async () => {
-    store.appendRecipe.mockResolvedValue({ id: "neu-4" });
+    store.appendRecipe.mockResolvedValue(created("neu-4"));
     vi.mocked(imageApi.upload).mockResolvedValue({} as never);
     vi.mocked(aiApi.importImages).mockResolvedValue(aiRecipe);
     vi.mocked(resizeImage)
