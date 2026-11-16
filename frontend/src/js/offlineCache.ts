@@ -85,20 +85,40 @@ export function writeFavorites(favorites: string[]): Promise<void> {
 
 /**
  * Nur auf diesem Gerät angelegtes Rezept, das noch zum Backend muss.
- * `rejected`: HTTP-Status, mit dem das Backend die Übertragung abgelehnt hat
- * (4xx außer 401/408/429, oder 409 ohne passenden Abgleich); dann wird es
- * nicht automatisch erneut gesendet.
+ * - `sub`: angemeldeter Nutzer beim Anlegen; nur dessen Sitzung überträgt
+ *   und zeigt den Eintrag
+ * - `rejected`: HTTP-Status, mit dem das Backend die Übertragung abgelehnt
+ *   hat (4xx außer 401/408/429, oder 409 eines fremden Rezepts); dann wird
+ *   es nicht automatisch erneut gesendet
  */
 export interface PendingCreate {
   recipe: Recipe;
+  sub: string | null;
   rejected?: number;
 }
 
-/** Vormerkung, getrennt von der Rezeptliste aus der API. */
-export function readPendingCreates(): Promise<PendingCreate[] | undefined> {
-  return read<PendingCreate[]>(KEY_PENDING_CREATES);
+/**
+ * Vormerkung, getrennt von der Rezeptliste aus der API. Anders als der
+ * übrige Cache **wirft** sie Lese- und Schreibfehler: Ein Lesefehler darf
+ * nicht als leere Liste gelten (sonst überschreibt der nächste Schreibvorgang
+ * die Vormerkung), ein Schreibfehler nicht als gespeichert.
+ */
+export async function readPendingCreates(): Promise<PendingCreate[]> {
+  try {
+    return ((await get(KEY_PENDING_CREATES)) as PendingCreate[]) ?? [];
+  } catch (e) {
+    console.warn(`[OfflineCache] Lesen der Vormerkung fehlgeschlagen`, e);
+    throw e;
+  }
 }
 
-export function writePendingCreates(entries: PendingCreate[]): Promise<void> {
-  return write(KEY_PENDING_CREATES, entries);
+export async function writePendingCreates(
+  entries: PendingCreate[],
+): Promise<void> {
+  try {
+    await set(KEY_PENDING_CREATES, entries);
+  } catch (e) {
+    console.warn(`[OfflineCache] Schreiben der Vormerkung fehlgeschlagen`, e);
+    throw e;
+  }
 }

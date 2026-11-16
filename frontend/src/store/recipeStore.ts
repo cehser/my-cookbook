@@ -51,8 +51,9 @@ export type DataSource = "none" | "api" | "cache";
  * - `created`: vom Backend angelegt (`detail.id` ist die Backend-ID)
  * - `local`: auf diesem Gerät vorgemerkt (offline, Timeout, 5xx); wird beim
  *   nächsten Laden mit gültiger Sitzung übertragen (`store/pendingCreates.ts`)
- * - `failed`: vom Backend abgelehnt (4xx, z. B. fehlende Rolle, 422) oder
- *   Sitzung abgelaufen (401, Login folgt), nicht gespeichert
+ * - `failed`: vom Backend abgelehnt (4xx, z. B. fehlende Rolle, 422),
+ *   Sitzung abgelaufen (401, Login folgt) oder Vormerkung nicht speicherbar
+ *   (`LocalSaveError`); nicht gespeichert
  */
 export type AppendResult =
   | { status: "created"; detail: RecipeDetail }
@@ -308,7 +309,9 @@ export const useRecipeStore = defineStore("recipe", {
       createdPending = createdPending.filter(
         (c) => c.recipe.recipe_uuid !== uuid,
       );
-      const wasPending = uuid ? removePending(uuid) : Promise.resolve(false);
+      const wasPending = uuid
+        ? removePending(uuid).catch(() => false)
+        : Promise.resolve(false);
       // Vorgemerkte Rezepte kennt das Backend nicht: kein API-Aufruf
       if (!(await wasPending) && uuid && (await isAuthenticated())) {
         try {
@@ -352,7 +355,12 @@ export const useRecipeStore = defineStore("recipe", {
           console.warn("Failed to create recipe via API, saving locally", e);
         }
       }
-      await addPending(recipeCopy);
+      try {
+        await addPending(recipeCopy);
+      } catch (e) {
+        // IndexedDB gescheitert: nicht als „gespeichert“ melden
+        return { status: "failed", error: e };
+      }
       if (!this.recipes.some((r) => r.recipe_uuid === recipeCopy.recipe_uuid)) {
         this.recipes.push(recipeCopy);
       }
@@ -377,7 +385,10 @@ export const useRecipeStore = defineStore("recipe", {
       const recipeCopy = deepCopyJSON(recipe);
       this.recipes.splice(index, 1, recipeCopy);
       // Vorgemerkt: Das Backend kennt das Rezept noch nicht (PUT gäbe 404)
-      if (recipeCopy.recipe_uuid && (await updatePending(recipeCopy))) {
+      const pending =
+        !!recipeCopy.recipe_uuid &&
+        (await updatePending(recipeCopy).catch(() => false));
+      if (pending) {
         this.saveRecipes();
         return;
       }

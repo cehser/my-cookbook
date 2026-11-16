@@ -5,7 +5,7 @@
 
 import { ApiError } from "@/api/client";
 import type { AppendResult } from "@/store/recipeStore";
-import type { TransferReport } from "@/store/pendingCreates";
+import { LocalSaveError, type TransferReport } from "@/store/pendingCreates";
 import type { Recipe } from "@/types/recipe";
 
 /** Vorgemerkt: wird übertragen, sobald eine gültige Sitzung besteht. */
@@ -14,6 +14,9 @@ export const LOCAL_PENDING_TEXT =
 
 /** Grund einer Ablehnung durch das Backend bzw. einer abgelaufenen Sitzung. */
 function rejectReason(error: unknown): string {
+  if (error instanceof LocalSaveError) {
+    return "konnte auf diesem Gerät nicht gespeichert werden";
+  }
   if (!(error instanceof ApiError)) return "unbekannter Fehler";
   if (error.status === 401) return "Bitte neu anmelden";
   if (error.status === 403) return "keine Berechtigung";
@@ -22,7 +25,10 @@ function rejectReason(error: unknown): string {
   return `Fehler ${error.status}`;
 }
 
-/** Fehlermeldung, wenn das Anlegen abgelehnt wurde (4xx, Sitzung abgelaufen). */
+/**
+ * Fehlermeldung, wenn das Anlegen scheiterte (4xx, Sitzung abgelaufen,
+ * Vormerkung nicht speicherbar).
+ */
 export function appendFailedMessage(error: unknown): string {
   return `Rezept nicht angelegt: ${rejectReason(error)}.`;
 }
