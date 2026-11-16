@@ -24,6 +24,7 @@ import {
 import jsyaml from "js-yaml";
 import { editUrl } from "@/js/slug";
 import { appendedId, appendToast } from "@/js/appendFeedback";
+import { generateUUID } from "@/js/uuid";
 import type { Recipe } from "@/types/recipe";
 
 const router = useRouter();
@@ -170,6 +171,9 @@ function importRecipe(ev: Event) {
   reader.onload = (e) => {
     try {
       const recipe = jsyaml.load(e.target?.result as string) as Recipe;
+      // Import ist ein neues Rezept: Die ID aus der Datei (Export, Beispiel)
+      // wäre beim Anlegen 409 bzw. keine gültige UUID
+      recipe.recipe_uuid = generateUUID();
       void append(recipe, `Rezept "${recipe.recipe_name}" importiert.`);
       input.value = "";
     } catch (error) {
