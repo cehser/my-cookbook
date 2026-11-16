@@ -244,7 +244,19 @@ async def get_recipe(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/recipes", response_model=RecipeResponse, status_code=201)
+@router.post(
+    "/recipes",
+    response_model=RecipeResponse,
+    status_code=201,
+    responses={
+        409: {
+            "description": (
+                "Rezept mit dieser `id` existiert bereits; unverändert. Ein Client gleicht "
+                "per `GET /recipes/{id}` ab, statt 409 blind als Erfolg zu werten."
+            )
+        }
+    },
+)
 async def create_recipe(
     body: RecipeCreate,
     user: AppUser = Depends(require_editor),

@@ -11,7 +11,7 @@ import { useImportPages } from "@/composables/useImportPages";
 import { imageApi } from "@/api/images";
 import { generateUUID } from "@/js/uuid";
 import { editUrl } from "@/js/slug";
-import { appendFailedMessage, LOCAL_ONLY_TEXT } from "@/js/appendFeedback";
+import { appendFailedMessage, LOCAL_PENDING_TEXT } from "@/js/appendFeedback";
 import type { Recipe } from "@/types/recipe";
 
 export interface RecipeImportOptions {
@@ -88,8 +88,8 @@ export function useRecipeImport({ onImported }: RecipeImportOptions) {
         id = recipe.recipe_uuid;
         warnings.push(
           sourceBlobs.length > 0
-            ? `${LOCAL_ONLY_TEXT} Die Vorlage wurde nicht gespeichert.`
-            : LOCAL_ONLY_TEXT,
+            ? `${LOCAL_PENDING_TEXT} Die Vorlage wurde nicht gespeichert.`
+            : LOCAL_PENDING_TEXT,
         );
       }
 

@@ -78,6 +78,14 @@ async def test_create_with_client_id(db_client: httpx.AsyncClient, as_db_user) -
     await db_client.delete(f"/api/v1/recipes/{recipe_id}")
 
 
+async def test_create_with_nil_uuid_is_rejected(db_client: httpx.AsyncClient, as_db_user) -> None:
+    await as_db_user("admin")
+    nil = str(uuid.UUID(int=0))
+    r = await db_client.post("/api/v1/recipes", json={"id": nil, "recipe_name": "Nil"})
+    assert r.status_code == 422
+    assert (await db_client.get(f"/api/v1/recipes/{nil}")).status_code == 404
+
+
 async def test_create_with_client_id_concurrently(db_client: httpx.AsyncClient, as_db_user) -> None:
     await as_db_user("admin")
     recipe_id = str(uuid.uuid4())

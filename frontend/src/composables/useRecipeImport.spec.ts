@@ -73,7 +73,7 @@ describe("useRecipeImport", () => {
     expect(push).toHaveBeenCalledWith("/edit/srv-2/apfelkuchen");
   });
 
-  it("local: kein Upload, Hinweis „nur auf diesem Gerät“, Navigation mit lokaler UUID", async () => {
+  it("local: kein Upload, Hinweis „wird übertragen“, Navigation mit lokaler UUID", async () => {
     twoPages();
     store.appendRecipe.mockResolvedValue({ status: "local" });
     const { importRecipe } = useRecipeImport({ onImported });
@@ -83,9 +83,8 @@ describe("useRecipeImport", () => {
     expect(imageApi.upload).not.toHaveBeenCalled();
     const warnings = onImported.mock.calls[0][1] as string[];
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain("Nur auf diesem Gerät gespeichert");
+    expect(warnings[0]).toContain("wird beim nächsten Online-Start übertragen");
     expect(warnings[0]).toContain("Vorlage wurde nicht gespeichert");
-    expect(warnings[0]).not.toMatch(/später|hochgeladen/);
     expect(push).toHaveBeenCalledWith("/edit/lokal-1/apfelkuchen");
   });
 

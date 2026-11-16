@@ -209,7 +209,7 @@ Das Backend stellt eine REST-API unter `/api` bereit:
 | | `GET/PUT /v1/admin/settings`, `GET /v1/admin/shares`, `DELETE /v1/admin/shares/{id}` | Admin |
 | | `POST /v1/admin/migrate-images`, `/cleanup-images`, `/strip-image-ids` (Wartung) | Admin |
 
-`POST /v1/recipes` nimmt optional eine vom Client vergebene `id` (UUID) an. Existiert sie bereits, antwortet die API mit `409`; bei einer Wiederholung derselben Anlage gilt das als Erfolg.
+`POST /v1/recipes` nimmt optional eine vom Client vergebene `id` (UUID) an. Existiert sie bereits, antwortet die API mit `409` (Rezept existiert, unverändert); der Client gleicht dann per `GET /v1/recipes/{id}` ab, statt `409` blind als Erfolg zu werten. Die Nil-UUID ergibt `422`.
 
 ## Backup & Restore
 
