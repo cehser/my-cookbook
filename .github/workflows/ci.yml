@@ -10,7 +10,10 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Nur PRs abbrechen. Auf main laufen Läufe nacheinander (ein wartender
+  # älterer Lauf wird vom neueren ersetzt), damit publish nie mitten im
+  # Push der :main-Tags abbricht und ein gemischtes Paar hinterlässt.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # Dummy-Werte: die Tests prüfen keine Tokens gegen einen echten IdP
@@ -110,8 +113,8 @@ jobs:
       - run: docker build --pull backend
 
   # Push auf main: nach allen Prüfungen bauen und nach ghcr.io pushen.
-  # Erst beide Builds, dann alle Pushes; :main zuletzt, damit ein Abbruch
-  # (concurrency) höchstens SHA-Tags hinterlässt.
+  # Erst beide Builds, dann alle Pushes; :main zuletzt und nur, wenn dieser
+  # Lauf noch den Kopf von main baut (Re-run eines älteren Laufs: nur SHA-Tags).
   publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [frontend, backend, backend-db]
@@ -146,8 +149,16 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
       - name: Images pushen
+        env:
+          GH_TOKEN: ${{ github.token }} # gh api, contents: read genügt
         run: |
           for svc in frontend backend; do docker push "${PREFIX}-${svc}:${SHORT_SHA}"; done
+          # Scheitert die Abfrage, bricht der Schritt ab (bash -e); :main bleibt dann unverändert.
+          head="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "::warning::main steht auf ${head::7}, dieser Lauf baut ${SHORT_SHA}: nur SHA-Tags gepusht, :main unverändert"
+            exit 0
+          fi
           for svc in frontend backend; do docker push "${PREFIX}-${svc}:main"; done
       - name: Logout
         if: always()
