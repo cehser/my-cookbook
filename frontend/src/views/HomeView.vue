@@ -130,11 +130,12 @@ function handleDeleteRecipe(uuid: string) {
   store.deleteRecipe(uuid);
 }
 
-function newRecipe() {
+async function newRecipe() {
   const recipe = createNewRecipe();
-  store.appendRecipe(recipe);
+  // Erst nach dem Anlegen navigieren: das Backend vergibt die ID
+  const created = await store.appendRecipe(recipe);
   toast("Neues Rezept erstellt.", "success");
-  router.push(editUrl(recipe.recipe_uuid, recipe.recipe_name));
+  router.push(editUrl(created?.id ?? recipe.recipe_uuid, recipe.recipe_name));
 }
 
 function loadSample() {
@@ -142,8 +143,10 @@ function loadSample() {
   toast("Beispielrezept geladen.", "success");
 }
 
-function onAIImport(recipe: { recipe_name: string }) {
+/** Die Komponente öffnet danach selbst die Bearbeitung des neuen Rezepts. */
+function onAIImport(recipe: { recipe_name: string }, warnings: string[]) {
   toast(`Rezept "${recipe.recipe_name}" importiert.`, "success");
+  warnings.forEach((w) => toast(w, "warning"));
   showAIImport.value = false;
 }
 

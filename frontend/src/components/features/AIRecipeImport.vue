@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
 import { useRecipeStore } from "@/store/recipeStore";
+import { imageApi } from "@/api/images";
 import { generateUUID } from "@/js/uuid";
+import { editUrl } from "@/js/slug";
 import { initRecipe } from "@/js/recipes";
 import { ImageResizeError, resizeImage } from "@/js/imageResize";
 import {
@@ -15,10 +18,12 @@ import { useImportPages } from "@/composables/useImportPages";
 import ImportPageList from "@/components/features/ImportPageList.vue";
 
 const emit = defineEmits<{
-  imported: [recipe: Recipe];
+  /** `warnings`: Hinweise zur Vorlage (Upload-Fehler, offline), sonst leer. */
+  imported: [recipe: Recipe, warnings: string[]];
 }>();
 
 const store = useRecipeStore();
+const router = useRouter();
 
 // Template refs
 const fileInput = ref<HTMLInputElement>();
@@ -34,6 +39,11 @@ const notices = ref<string[]>([]);
 const textInput = ref("");
 const loading = ref(false);
 const result = ref<Recipe | null>(null);
+/** Herkunft des Ergebnisses: nur der Foto-Weg speichert die Seiten als Vorlage. */
+const resultFrom = ref<"images" | "text" | null>(null);
+const importing = ref(false);
+/** Fortschritt beim Speichern der Vorlage. */
+const uploadProgress = ref({ done: 0, total: 0 });
 const error = ref<string | null>(null);
 const rawJson = ref<string | null>(null);
 const downloadImage = ref(true);
@@ -45,7 +55,16 @@ const hasApiKey = computed(() => {
   // Backend holds the key — check if user is authenticated
   return true;
 });
-const busy = computed(() => loading.value || preparing.value);
+const busy = computed(
+  () => loading.value || preparing.value || importing.value,
+);
+/** Laufende Seite („k von N“), nicht die Zahl der fertigen. */
+const preparingCurrent = computed(() =>
+  Math.min(preparingProgress.value.done + 1, preparingProgress.value.total),
+);
+const uploadCurrent = computed(() =>
+  Math.min(uploadProgress.value.done + 1, uploadProgress.value.total),
+);
 
 // Methods
 const pickFiles = () => fileInput.value?.click();
@@ -54,6 +73,7 @@ const pickFiles = () => fileInput.value?.click();
 const resetFeedback = () => {
   error.value = null;
   result.value = null;
+  resultFrom.value = null;
   rawJson.value = null;
   notices.value = [];
 };
@@ -112,16 +132,21 @@ const onFilesChosen = async (event: Event) => {
 };
 
 /** Führt einen AI-Aufruf aus und zeigt Ergebnis oder Fehler im Dialog. */
-const runAnalysis = async (call: () => Promise<AIImportResponse>) => {
+const runAnalysis = async (
+  from: "images" | "text",
+  call: () => Promise<AIImportResponse>,
+) => {
   loading.value = true;
   error.value = null;
   result.value = null;
+  resultFrom.value = null;
   rawJson.value = null;
 
   try {
     const data = await call();
     rawJson.value = JSON.stringify(data.recipe, null, 2);
     result.value = initRecipe(data.recipe);
+    resultFrom.value = from;
   } catch (err: unknown) {
     error.value = aiErrorMessage(err);
   } finally {
@@ -132,32 +157,81 @@ const runAnalysis = async (call: () => Promise<AIImportResponse>) => {
 const analyzeImages = () => {
   if (pages.value.length === 0) return;
   const blobs = pages.value.map((p) => p.blob);
-  return runAnalysis(() => aiApi.importImages(blobs));
+  return runAnalysis("images", () => aiApi.importImages(blobs));
 };
 
-const analyzeText = () => runAnalysis(() => aiApi.importText(textInput.value));
+const analyzeText = () =>
+  runAnalysis("text", () => aiApi.importText(textInput.value));
+
+/**
+ * Lädt die Seiten als Vorlage (kind=source) in Seitenreihenfolge hoch, nacheinander.
+ * Einzelne Fehler brechen nicht ab; gibt die Hinweise für die Meldung zurück.
+ */
+const uploadSources = async (
+  recipeId: string,
+  blobs: Blob[],
+): Promise<string[]> => {
+  uploadProgress.value = { done: 0, total: blobs.length };
+  const failed: number[] = [];
+  for (const [i, blob] of blobs.entries()) {
+    try {
+      await imageApi.upload(recipeId, blob, "source");
+    } catch (err: unknown) {
+      console.warn(`Vorlage Seite ${i + 1} nicht gespeichert`, err);
+      failed.push(i + 1);
+    }
+    uploadProgress.value.done++;
+  }
+  if (failed.length === 0) return [];
+  return [
+    `Vorlage: Seite ${failed.join(", ")} von ${blobs.length} konnte nicht gespeichert werden.`,
+  ];
+};
 
 const importRecipe = async () => {
-  if (!result.value) return;
+  if (!result.value || importing.value) return;
+  const recipe = result.value;
 
   // Generate UUID if not present
-  if (!result.value.recipe_uuid) {
-    result.value.recipe_uuid = generateUUID();
+  if (!recipe.recipe_uuid) {
+    recipe.recipe_uuid = generateUUID();
   }
 
-  // imageurl will be auto-downloaded by the backend on save
+  // Blobs vor clearPages() übernehmen; nur der Foto-Weg hat eine Vorlage
+  const sourceBlobs =
+    resultFrom.value === "images" ? pages.value.map((p) => p.blob) : [];
+  const warnings: string[] = [];
 
-  // Dispatch to store
-  store.appendRecipe(result.value);
+  importing.value = true;
+  try {
+    // imageurl will be auto-downloaded by the backend on save
+    const created = await store.appendRecipe(recipe);
+    if (sourceBlobs.length > 0) {
+      if (created) {
+        warnings.push(...(await uploadSources(created.id, sourceBlobs)));
+      } else {
+        warnings.push(
+          "Rezept nur lokal gespeichert (offline): Die Vorlage wurde nicht gespeichert.",
+        );
+      }
+    }
 
-  // Emit success
-  emit("imported", result.value);
+    emit("imported", recipe, warnings);
 
-  // Reset
-  result.value = null;
-  clearPages();
-  textInput.value = "";
-  downloadImage.value = true;
+    // Reset
+    resetFeedback();
+    clearPages();
+    textInput.value = "";
+    downloadImage.value = true;
+
+    // Bearbeitung des neuen Rezepts öffnen (Backend-ID, sonst die lokale UUID)
+    await router.push(
+      editUrl(created?.id ?? recipe.recipe_uuid, recipe.recipe_name),
+    );
+  } finally {
+    importing.value = false;
+    uploadProgress.value = { done: 0, total: 0 };
+  }
 };
 </script>
 
@@ -196,8 +270,8 @@ const importRecipe = async () => {
 
             <div v-if="preparing" class="text-muted mb-3" role="status">
               <span class="spinner-border spinner-border-sm me-2"></span>
-              Seiten werden vorbereitet ({{ preparingProgress.done }} von
-              {{ preparingProgress.total }})
+              Seite {{ preparingCurrent }} von
+              {{ preparingProgress.total }} wird vorbereitet
             </div>
 
             <div
@@ -299,14 +373,28 @@ const importRecipe = async () => {
               Bild wird heruntergeladen...
             </div>
 
+            <div v-if="importing" class="text-muted mb-3" role="status">
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              <template v-if="uploadProgress.total">
+                Vorlage wird gespeichert (Seite {{ uploadCurrent }} von
+                {{ uploadProgress.total }})
+              </template>
+              <template v-else>Rezept wird gespeichert</template>
+            </div>
+
             <BButton
               @click="importRecipe"
               variant="primary"
-              :disabled="downloadingImage"
+              :disabled="downloadingImage || importing"
             >
               <i class="bi bi-download"></i> Rezept importieren
             </BButton>
-            <BButton @click="result = null" variant="secondary" class="ms-2">
+            <BButton
+              @click="result = null"
+              variant="secondary"
+              class="ms-2"
+              :disabled="importing"
+            >
               <i class="bi bi-x"></i> Verwerfen
             </BButton>
           </div>

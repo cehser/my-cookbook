@@ -54,3 +54,18 @@ def test_process_image_rejects_non_image(tmp_path: Path) -> None:
     src.write_bytes(b"kein Bild")
     with pytest.raises(Image.UnidentifiedImageError):
         _run(tmp_path, src)
+
+
+def test_process_image_applies_exif_orientation(tmp_path: Path) -> None:
+    # Querformatige Pixel mit Orientation 6 (90° im Uhrzeigersinn), wie Handy-Hochformatfotos
+    src = tmp_path / "hochformat.jpg"
+    exif = Image.Exif()
+    exif[0x0112] = 6
+    Image.new("RGB", (400, 200), (200, 80, 40)).save(src, "JPEG", exif=exif)
+
+    thumb_path, optimised_path = _run(tmp_path, src)
+
+    with Image.open(optimised_path) as optimised:
+        assert optimised.size == (200, 400), "aufrecht gedreht"
+    with Image.open(thumb_path) as thumb:
+        assert thumb.size[0] < thumb.size[1]

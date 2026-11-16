@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_editor, require_readonly
 from app.database import get_db
-from app.models.image import RecipeImage
+from app.models.image import IMAGE_KIND_PHOTO, RecipeImage
 from app.models.recipe import Recipe
 from app.models.site_settings import SiteSettings
 from app.models.tag import RecipeShare, RecipeTag, Tag
@@ -214,10 +214,10 @@ async def get_shared_recipe(
     )
     shared_by = creator_result.scalar_one_or_none() or "Unbekannt"
 
-    # First image
+    # Titelbild: nur Fotos, Vorlagen bleiben in Share-Links unsichtbar
     img_result = await db.execute(
         select(RecipeImage.id)
-        .where(RecipeImage.recipe_id == recipe.id)
+        .where(RecipeImage.recipe_id == recipe.id, RecipeImage.kind == IMAGE_KIND_PHOTO)
         .order_by(RecipeImage.sort_order)
         .limit(1)
     )

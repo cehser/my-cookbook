@@ -7,6 +7,7 @@ import { useRecipeStore } from "@/store/recipeStore";
 import { useUIStore } from "@/store/uiStore";
 import RecipeDisplay from "@/components/recipe/display/RecipeDisplay.vue";
 import ShareManager from "@/components/recipe/ui/ShareManager.vue";
+import SourceImages from "@/components/recipe/display/SourceImages.vue";
 import jsyaml from "js-yaml";
 import { useToast } from "@/composables/useToast";
 import { generateUUID } from "@/js/uuid";
@@ -70,7 +71,7 @@ function goToEdit() {
   );
 }
 
-function copyRecipe() {
+async function copyRecipe() {
   if (!current_recipe.value) {
     showToast("Rezept konnte nicht dupliziert werden", "danger");
     return;
@@ -79,8 +80,11 @@ function copyRecipe() {
     headerMenuOpen.value = false;
     const recipe = deepCopyJSON(current_recipe.value);
     recipe.recipe_uuid = generateUUID();
-    store.appendRecipe(recipe);
-    router.push(recipeUrl(recipe.recipe_uuid, recipe.recipe_name));
+    // Erst nach dem Anlegen navigieren: das Backend vergibt die ID
+    const created = await store.appendRecipe(recipe);
+    router.push(
+      recipeUrl(created?.id ?? recipe.recipe_uuid, recipe.recipe_name),
+    );
   } catch (error) {
     console.error("Error copying recipe:", error);
     showToast("Fehler beim Duplizieren des Rezepts", "danger");
@@ -217,6 +221,9 @@ function goBack() {
 
     <template v-else>
       <RecipeDisplay :recipe="current_recipe" :image-src="picture_src">
+        <template #after-steps>
+          <SourceImages :recipe-id="current_recipe.recipe_uuid" />
+        </template>
         <template #after-content>
           <!-- Share Manager Overlay -->
           <ShareManager

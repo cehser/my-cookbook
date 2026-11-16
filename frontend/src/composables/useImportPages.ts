@@ -1,16 +1,17 @@
 /**
  * Seiten des AI-Foto-Imports (verkleinerte Blobs + Vorschau).
  *
- * Der Zustand liegt auf Modulebene: Schließt man den Import-Dialog versehentlich
- * (und wird sein Inhalt dabei abgebaut), bleiben die Aufnahmen erhalten. Er wird
- * erst durch `clearPages` (Import, „Neu“) geleert.
+ * Der Zustand liegt auf Modulebene, damit er einen Routenwechsel übersteht: Verlässt
+ * man die Startseite, wird `AIRecipeImport` abgebaut, die Aufnahmen bleiben. (Das
+ * Schließen des Dialogs allein baut nichts ab: `BModal` ohne `lazy` behält seinen
+ * Inhalt.) Geleert wird er erst durch `clearPages` (Import, „Neu“).
  */
 
 import { ref } from "vue";
 
 export interface ImportPage {
   id: number;
-  /** Verkleinertes JPEG (Upload, später W.28). */
+  /** Verkleinertes JPEG (AI-Aufruf, danach Vorlage am Rezept). */
   blob: Blob;
   /** Object-URL des Vorschaubilds. */
   url: string;

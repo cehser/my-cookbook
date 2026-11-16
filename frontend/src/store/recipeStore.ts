@@ -19,7 +19,7 @@ import {
   writeSettings,
 } from "@/js/offlineCache";
 import { api, isClientError } from "@/api/client";
-import { recipeApi } from "@/api/recipes";
+import { recipeApi, type RecipeDetail } from "@/api/recipes";
 import { favoritesApi } from "@/api/favorites";
 import { imageApi } from "@/api/images";
 import { ensureAuth, isAuthenticated } from "@/auth/session";
@@ -236,7 +236,11 @@ export const useRecipeStore = defineStore("recipe", {
       this.saveRecipes();
     },
 
-    async appendRecipe(recipe: Recipe) {
+    /**
+     * Legt ein Rezept an. Gibt das Backend-Rezept (mit der dort vergebenen ID) zurück,
+     * `undefined`, wenn es nur lokal gespeichert wurde (offline oder API-Fehler).
+     */
+    async appendRecipe(recipe: Recipe): Promise<RecipeDetail | undefined> {
       const recipeCopy = deepCopyJSON(recipe);
       if (await isAuthenticated()) {
         try {
@@ -264,6 +268,7 @@ export const useRecipeStore = defineStore("recipe", {
       }
       this.recipes.push(recipeCopy);
       this.saveRecipes();
+      return undefined;
     },
 
     async setRecipe({ index, recipe }: { index: number; recipe: Recipe }) {
@@ -321,8 +326,8 @@ export const useRecipeStore = defineStore("recipe", {
     }) {
       if (picture && (await isAuthenticated())) {
         try {
-          // Delete existing images before uploading the new one
-          const existing = await imageApi.list(uuid);
+          // Vorhandene Fotos ersetzen; Vorlagen (kind=source) bleiben
+          const existing = await imageApi.list(uuid, "photo");
           for (const img of existing) {
             await imageApi.delete(uuid, img.id);
           }
@@ -339,7 +344,7 @@ export const useRecipeStore = defineStore("recipe", {
       }
       if (!picture && (await isAuthenticated())) {
         try {
-          const images = await imageApi.list(uuid);
+          const images = await imageApi.list(uuid, "photo");
           for (const img of images) {
             await imageApi.delete(uuid, img.id);
           }

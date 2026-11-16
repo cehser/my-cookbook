@@ -3,6 +3,7 @@ import { ref, computed, watch } from "vue";
 import { sharesApi, type Share } from "@/api/shares";
 import { useToast } from "@/composables/useToast";
 import { useClipboard } from "@vueuse/core";
+import { formatDateTime } from "@/js/formatDate";
 
 const props = defineProps<{
   show: boolean;
@@ -37,16 +38,6 @@ const expiryOptions = computed(() => {
 
 function shareUrl(token: string): string {
   return `${window.location.origin}/s/${token}`;
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function isExpiringSoon(iso: string): boolean {
@@ -199,7 +190,7 @@ watch(
                       shareUrl(share.token)
                     }}</code>
                     <div class="text-muted mt-1" style="font-size: 0.72rem">
-                      Erstellt: {{ formatDate(share.created_at) }}
+                      Erstellt: {{ formatDateTime(share.created_at) }}
                     </div>
                     <div
                       v-if="share.expires_at"
@@ -212,7 +203,7 @@ watch(
                       "
                     >
                       <i class="bi bi-clock"></i> Läuft ab:
-                      {{ formatDate(share.expires_at) }}
+                      {{ formatDateTime(share.expires_at) }}
                     </div>
                   </div>
                   <div class="d-flex flex-column gap-1">

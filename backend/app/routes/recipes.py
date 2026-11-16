@@ -11,11 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin, require_editor, require_readonly
 from app.database import get_db
-from app.models.image import RecipeImage
+from app.models.image import IMAGE_KIND_PHOTO, RecipeImage
 from app.models.recipe import Recipe
 from app.models.tag import RecipeTag, Tag
 from app.models.user import AppUser
-from app.routes.images import download_and_store_image
+from app.routes.images import delete_recipe_files, download_and_store_image
 from app.schemas.recipe import (
     RecipeCreate,
     RecipeListItem,
@@ -77,7 +77,7 @@ async def _sync_tags(recipe_id: uuid.UUID, tag_names: list[str], db: AsyncSessio
 async def _get_first_image_id(recipe_id: uuid.UUID, db: AsyncSession) -> uuid.UUID | None:
     result = await db.execute(
         select(RecipeImage.id)
-        .where(RecipeImage.recipe_id == recipe_id)
+        .where(RecipeImage.recipe_id == recipe_id, RecipeImage.kind == IMAGE_KIND_PHOTO)
         .order_by(RecipeImage.sort_order)
         .limit(1)
     )
@@ -200,10 +200,11 @@ async def list_recipes(
     recipe_ids = [r.id for r in recipes]
     first_images: dict[uuid.UUID, uuid.UUID] = {}
     if recipe_ids:
-        # Use DISTINCT ON to get the image with lowest sort_order per recipe
+        # DISTINCT ON: Foto mit niedrigster sort_order je Rezept; kind-Filter im WHERE,
+        # damit eine Vorlage nie das Titelbild verdrängt
         img_result = await db.execute(
             select(RecipeImage.recipe_id, RecipeImage.id)
-            .where(RecipeImage.recipe_id.in_(recipe_ids))
+            .where(RecipeImage.recipe_id.in_(recipe_ids), RecipeImage.kind == IMAGE_KIND_PHOTO)
             .order_by(RecipeImage.recipe_id, RecipeImage.sort_order)
             .ext(distinct_on(RecipeImage.recipe_id))
         )
@@ -320,6 +321,8 @@ async def delete_recipe(
     recipe = await _get_recipe_or_404(recipe_id, db)
     await db.delete(recipe)
     await db.commit()
+    # Bildzeilen löscht die DB per CASCADE, die Dateien erst nach erfolgreichem Commit
+    delete_recipe_files(recipe_id)
 
 
 # ---------------------------------------------------------------------------

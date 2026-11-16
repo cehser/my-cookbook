@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings
 from sqlalchemy import URL
 
@@ -8,7 +9,8 @@ class Settings(BaseSettings):
     db_port: int = 5432
     db_name: str = "cookbook"
     db_user: str = "cookbook"
-    db_password: str  # Pflicht, kein Default: ohne DB_PASSWORD startet das Backend nicht
+    # Pflicht, kein Default und nicht leer: ohne DB_PASSWORD startet das Backend nicht
+    db_password: str = Field(min_length=1)
 
     @property
     def database_url(self) -> URL:

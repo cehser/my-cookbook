@@ -18,17 +18,21 @@ vi.mock("@/api/client", () => ({
 }));
 vi.mock("@/api/recipes", () => ({ recipeApi: {} }));
 vi.mock("@/api/favorites", () => ({ favoritesApi: {} }));
-vi.mock("@/api/images", () => ({ imageApi: {} }));
+vi.mock("@/api/images", () => ({
+  imageApi: { list: vi.fn(), upload: vi.fn(), delete: vi.fn() },
+}));
 vi.mock("@/auth/session", () => ({
   ensureAuth: vi.fn(),
   isAuthenticated: vi.fn(),
 }));
 
 import { api } from "@/api/client";
+import { imageApi, type ImageInfo } from "@/api/images";
 import { writeSettings } from "@/js/offlineCache";
 import { isAuthenticated } from "@/auth/session";
 import { useRecipeStore } from "@/store/recipeStore";
 import type { Settings } from "@/types/settings";
+import type { Recipe } from "@/types/recipe";
 
 describe("recipeStore.saveSettings", () => {
   beforeEach(() => {
@@ -100,5 +104,50 @@ describe("recipeStore.saveSettings", () => {
     input.read_only = false;
     expect(store.settings.read_only).toBe(true);
     expect(writeSettings).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("recipeStore.setRecipePicture", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setActivePinia(createPinia());
+    vi.mocked(isAuthenticated).mockResolvedValue(true);
+  });
+
+  it("ersetzt nur Fotos, Vorlagen bleiben", async () => {
+    vi.mocked(imageApi.list).mockResolvedValue([
+      { id: "foto-alt" } as ImageInfo,
+    ]);
+    vi.mocked(imageApi.upload).mockResolvedValue({
+      id: "foto-neu",
+    } as ImageInfo);
+    const store = useRecipeStore();
+    store.recipes = [
+      { recipe_uuid: "r1", first_image_id: "foto-alt" } as Recipe,
+    ];
+
+    const picture = new File(["x"], "foto.jpg", { type: "image/jpeg" });
+    await store.setRecipePicture({ uuid: "r1", picture });
+
+    expect(imageApi.list).toHaveBeenCalledWith("r1", "photo");
+    expect(imageApi.delete).toHaveBeenCalledWith("r1", "foto-alt");
+    expect(imageApi.upload).toHaveBeenCalledWith("r1", picture);
+    expect(store.recipes[0].first_image_id).toBe("foto-neu");
+  });
+
+  it("entfernt beim Löschen nur Fotos", async () => {
+    vi.mocked(imageApi.list).mockResolvedValue([
+      { id: "foto-alt" } as ImageInfo,
+    ]);
+    const store = useRecipeStore();
+    store.recipes = [
+      { recipe_uuid: "r1", first_image_id: "foto-alt" } as Recipe,
+    ];
+
+    await store.setRecipePicture({ uuid: "r1", picture: null });
+
+    expect(imageApi.list).toHaveBeenCalledWith("r1", "photo");
+    expect(imageApi.delete).toHaveBeenCalledTimes(1);
+    expect(store.recipes[0].first_image_id).toBeUndefined();
   });
 });

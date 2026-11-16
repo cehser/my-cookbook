@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { adminApi, type AdminUser } from "@/api/admin";
 import { useToast } from "@/composables/useToast";
-import { formatDate } from "./format";
+import { formatDateTime } from "@/js/formatDate";
 
 interface UserEntry {
   oidc_sub: string;
@@ -118,8 +118,8 @@ async function changeRole(user: UserEntry, newRole: string) {
                 <option value="admin">🛡️ Admin</option>
               </select>
             </td>
-            <td>{{ formatDate(u.created_at) }}</td>
-            <td>{{ u.last_login ? formatDate(u.last_login) : "—" }}</td>
+            <td>{{ formatDateTime(u.created_at) }}</td>
+            <td>{{ u.last_login ? formatDateTime(u.last_login) : "—" }}</td>
           </tr>
         </tbody>
       </table>
