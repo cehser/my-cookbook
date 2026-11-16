@@ -24,7 +24,7 @@ Ein persönliches Kochbuch als Progressive Web App — selbst gehostet, offline-
 | **Datenbank** | PostgreSQL 16 |
 | **Auth** | OIDC (Keycloak oder kompatibler IdP) |
 | **AI** | OpenAI API (Responses API, Structured Outputs, Websuche) |
-| **Deployment** | Docker Compose (nginx + uvicorn + PostgreSQL) |
+| **Deployment** | Docker Compose (nginx + uvicorn + PostgreSQL), Images aus ghcr.io |
 
 ## Projektstruktur
 
@@ -33,8 +33,8 @@ my-cookbook/
 ├── .env                  # Zentrale Konfiguration (nicht eingecheckt)
 ├── .env.example          # Vorlage für .env
 ├── docker-compose.yml.example  # Vorlage Production-Setup (Kopie nicht eingecheckt)
+├── docker-compose.build.yml    # Override: lokal aus dem Quellcode bauen
 ├── scripts/
-│   ├── deploy.sh         # Build mit Commit-Hash + Start
 │   └── backup.sh         # DB-Backup mit Rotation
 ├── frontend/             # Vue 3 SPA
 │   ├── Dockerfile        # Multi-Stage: Node Build → nginx
@@ -89,10 +89,29 @@ CORS_ORIGINS=["https://cookbook.example.com"]
 ### 3. Starten
 
 ```bash
-./scripts/deploy.sh
+docker compose pull && docker compose up -d
 ```
 
-Das Skript übergibt den aktuellen Commit-Hash an den Frontend-Build (Anzeige im Profil) und startet per `docker compose up -d`.
+Frontend und Backend kommen als fertige Images aus der GitHub Container Registry (`ghcr.io/cehser/my-cookbook-frontend`, `…-backend`). Die CI baut sie nach jedem grünen Lauf auf `main` und taggt sie mit dem kurzen Commit-SHA und `main`. Die Images sind instanzneutral: OIDC-Werte, Domains und Geheimnisse kommen zur Laufzeit aus der `.env`.
+
+**Update:** derselbe Befehl. `pull` ist nötig, weil `docker compose up -d` ein vorhandenes Tag `main` nicht neu zieht; mit neuem Image erzeugt Compose die Container selbst neu.
+
+**Rollback:** auf einen älteren Stand per Commit-SHA (7 Zeichen, siehe Commit-Historie oder Paketseite auf GitHub):
+
+```bash
+export IMAGE_TAG=abc1234
+docker compose pull && docker compose up -d
+```
+
+Die Variable gilt nur in dieser Shell; ein späteres `up` ohne sie kehrt zu `main` zurück. Dauerhaft: `IMAGE_TAG=abc1234` in die `.env` schreiben, zurück zu `main` durch Entfernen der Zeile und erneutes `pull`/`up`. Ein Rollback über eine Migration hinweg setzt die Datenbank nicht zurück; das ältere Backend findet die neuere Revision nicht und startet nicht. Dann das Backup von vor dem Update einspielen.
+
+**Lokal bauen** (statt ziehen, z. B. für einen ungemergten Stand):
+
+```bash
+COMMIT_HASH=$(git rev-parse --short HEAD)   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+```
+
+Der Override baut aus `frontend/` und `backend/` und taggt lokal als `my-cookbook-*:local`, überschreibt also die gezogenen Images nicht. Zurück auf die CI-Images: `docker compose pull && docker compose up -d` ohne Override.
 
 Die App ist unter `http://localhost:8080` erreichbar. In Production einen Reverse-Proxy mit HTTPS davor schalten.
 
@@ -214,7 +233,17 @@ gunzip -c backups/cookbook_20260405_030000.sql.gz | docker compose exec -T db sh
 
 ## Upgrade-Hinweise
 
-`docker-compose.yml` und `.env` sind nicht versioniert. Änderungen an `docker-compose.yml.example` und neue Pflichtvariablen vor `./scripts/deploy.sh` von Hand nachziehen. Vorher ein Backup erstellen.
+`docker-compose.yml` und `.env` sind nicht versioniert. Änderungen an `docker-compose.yml.example` und neue Pflichtvariablen vor `docker compose pull && docker compose up -d` von Hand nachziehen. Vorher ein Backup erstellen.
+
+Ein neuer Major von PostgreSQL (`db`-Dienst) geht nicht per Pull: Das Datenformat ändert sich, es braucht Dump und Restore (eigener Hinweis, sobald es so weit ist).
+
+**Umstieg von lokalem Build auf Pull (ghcr.io):**
+
+1. **Paket öffentlich stellen (einmalig, auf GitHub):** Der erste CI-Lauf auf `main` legt die Pakete `my-cookbook-frontend` und `my-cookbook-backend` privat an. Je Paket unter *Profil → Packages → Paket → Package settings → Danger Zone → Change visibility* auf *Public* stellen. Ohne diesen Schritt braucht der Server `docker login ghcr.io` mit einem Token (`read:packages`).
+2. **Compose-Datei** mit `docker-compose.yml.example` abgleichen: bei `frontend` und `backend` den Block `build:` durch die Zeile `image: ghcr.io/cehser/my-cookbook-<dienst>:${IMAGE_TAG:-main}` ersetzen. `COMMIT_HASH` wird nicht mehr gebraucht (steckt im Image).
+3. **Erster Pull und Start:** `docker compose pull && docker compose up -d`. Im Profil steht danach der Commit-Hash des CI-Builds.
+4. **Alte, lokal gebaute Images aufräumen:** `docker image ls` zeigt sie als `<projekt>-frontend` und `<projekt>-backend` (Projekt = Verzeichnisname, z. B. `my-cookbook`); `docker image rm my-cookbook-frontend my-cookbook-backend`, danach optional `docker image prune`.
+5. Das bisherige Deploy-Skript entfällt; Deploy, Rollback und lokales Bauen siehe [Starten](#3-starten).
 
 **Upgrade von Ständen vor November 2026:**
 
