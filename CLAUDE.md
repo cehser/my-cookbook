@@ -21,14 +21,15 @@ Backend (`cd backend`, uv-Projekt mit `uv.lock`):
 - `uv lock --upgrade-package <paket>` — gezieltes Update, Majors je eigener Commit
 
 Betrieb (Repo-Root, `docker-compose.yml` aus `.example` kopiert):
-- `./scripts/deploy.sh` — Build mit Commit-Hash + `docker compose up -d`
+- `docker compose pull && docker compose up -d` — Deploy: Images `ghcr.io/cehser/my-cookbook-*:main` aus der CI; Rollback mit `IMAGE_TAG=<sha>`
+- `COMMIT_HASH=$(git rev-parse --short HEAD) docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build` — lokal aus dem Quellcode bauen
 - `./scripts/backup.sh [dir]` — `pg_dump` als `.sql.gz`, behält 30
 
 ## Verifikation
 - Frontend: `npm run lint:check && npm run typecheck && npm test && npm run build`. Der Pre-Commit-Hook prüft nur lint-staged und typecheck (keine Tests).
-- Backend: `uv sync --frozen && uv run ruff check && uv run ruff format --check && uv run pytest`. Bei Änderungen an Abhängigkeiten, Dockerfile oder Migrationen zusätzlich Container bauen und starten (`docker compose build backend && docker compose up -d`), im Log die erfolgreiche Migration prüfen, `GET /api/health`.
+- Backend: `uv sync --frozen && uv run ruff check && uv run ruff format --check && uv run pytest`. Bei Änderungen an Abhängigkeiten, Dockerfile oder Migrationen zusätzlich Container lokal bauen und starten (`docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build`), im Log die erfolgreiche Migration prüfen, `GET /api/health`.
 - DB-Tests (Marker `db`, `backend/tests/db/`: Migrationen up/down/up, Rezept-API, `/me`) laufen nur mit `DB_HOST` und `DB_NAME=test…` (sie leeren das Schema!), sonst übersprungen. Lokal: PostgreSQL 16 starten, dann `DB_HOST=localhost DB_NAME=test_cookbook DB_USER=… DB_PASSWORD=… uv run pytest -m db`. Details im Docstring von `tests/db/conftest.py`.
-- CI: `.github/workflows/ci.yml` (Push auf `main`, Pull Requests) führt Frontend, Backend, DB-Tests und beide Image-Builds aus, ohne Push. Actions per Commit-SHA gepinnt.
+- CI: `.github/workflows/ci.yml` (Push auf `main`, Pull Requests) führt Frontend, Backend und DB-Tests aus; bei PRs baut `images` beide Images ohne Push, bei Push auf `main` baut `publish` nach allen Prüfungen und pusht nach ghcr.io (Tags: kurzer SHA, `main`). Actions per Commit-SHA gepinnt, Login/Build/Push per `docker`-CLI ohne weitere Actions.
 
 ## Konventionen
 - Frontend-Regeln: [docs/DEVELOPMENT-GUIDELINES.md](docs/DEVELOPMENT-GUIDELINES.md) (script setup, Pinia, strict TS, Named Exports, per ESLint durchgesetzt).
