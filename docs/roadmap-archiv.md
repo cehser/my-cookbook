@@ -27,3 +27,5 @@ Erledigte und verworfene Punkte aus [ROADMAP.md](../ROADMAP.md), wörtlich über
 - [x] W.26 Backend-Warnungen (`distinct_on`, Alembic `path_separator`) und Test `_process_image` · 2026-11-15 · `1565edc`
 - [x] W.27 `Administration.vue` in Abschnittskomponenten unter `components/admin/` aufgeteilt (669 → 44 Zeilen) · 2026-11-15 · `b39d1d5`
 - [x] W.29 Undo/Redo als Composable `useEditHistory` mit Tests, `useDraft.spec.ts` räumt ab · 2026-11-15 · `1da343b`
+- [x] W.28 Vorlage des Foto-Imports am Rezept: `recipe_images.kind` (photo/source, Migration 007), Titelbild nur aus Fotos, Seiten als Vorlage in Reihenfolge, Abschnitt „Vorlage“ in Detail und Bearbeitung, Sprung in die Bearbeitung, EXIF-Drehung; Mitnahmen: Rezept löschen entfernt Bilddateien, Navigation mit Backend-ID · 2026-11-16 · `c2cee7c`
+- [x] W.30 `formatDate` zusammengeführt (leer → „—“), `db_password` nicht leer, Smoke-Test entkoppelt · 2026-11-16 · `c2cee7c`
