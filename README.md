@@ -108,7 +108,8 @@ Die Variable gilt nur in dieser Shell; ein späteres `up` ohne sie kehrt zu `mai
 **Lokal bauen** (statt ziehen, z. B. für einen ungemergten Stand):
 
 ```bash
-COMMIT_HASH=$(git rev-parse --short HEAD)   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+COMMIT_HASH=$(git rev-parse --short HEAD) \
+  docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 ```
 
 Der Override baut aus `frontend/` und `backend/` und taggt lokal als `my-cookbook-*:local`, überschreibt also die gezogenen Images nicht. Zurück auf die CI-Images: `docker compose pull && docker compose up -d` ohne Override.
@@ -237,11 +238,11 @@ gunzip -c backups/cookbook_20260405_030000.sql.gz | docker compose exec -T db sh
 
 `docker-compose.yml` und `.env` sind nicht versioniert. Änderungen an `docker-compose.yml.example` und neue Pflichtvariablen vor `docker compose pull && docker compose up -d` von Hand nachziehen. Vorher ein Backup erstellen.
 
-Ein neuer Major von PostgreSQL (`db`-Dienst) geht nicht per Pull: Das Datenformat ändert sich, es braucht Dump und Restore (eigener Hinweis, sobald es so weit ist).
+Ein neuer Major von PostgreSQL (`db`-Dienst) geht nicht per Pull: Das Datenformat ändert sich, es braucht Dump und Restore. Die Anleitung kommt mit dem Upgrade auf PostgreSQL 18 (Roadmap W.21); bis dahin das Major in der Compose-Datei nicht ändern.
 
 **Umstieg von lokalem Build auf Pull (ghcr.io):**
 
-1. **Paket öffentlich stellen (einmalig, auf GitHub):** Der erste CI-Lauf auf `main` legt die Pakete `my-cookbook-frontend` und `my-cookbook-backend` privat an. Je Paket unter *Profil → Packages → Paket → Package settings → Danger Zone → Change visibility* auf *Public* stellen. Ohne diesen Schritt braucht der Server `docker login ghcr.io` mit einem Token (`read:packages`).
+1. **Paket öffentlich stellen (einmalig, auf GitHub):** Der erste CI-Lauf auf `main` legt die Pakete `my-cookbook-frontend` und `my-cookbook-backend` privat an. Je Paket unter *Profil → Packages → Paket → Package settings → Danger Zone → Change visibility* auf *Public* stellen und mit dem Paketnamen bestätigen. **Nicht umkehrbar:** Ein öffentliches Paket lässt sich nicht wieder privat stellen. Ohne diesen Schritt braucht der Server `docker login ghcr.io` mit einem Token (`read:packages`).
 2. **Compose-Datei** mit `docker-compose.yml.example` abgleichen: bei `frontend` und `backend` den Block `build:` durch die Zeile `image: ghcr.io/cehser/my-cookbook-<dienst>:${IMAGE_TAG:-main}` ersetzen. `COMMIT_HASH` wird nicht mehr gebraucht (steckt im Image).
 3. **Erster Pull und Start:** `docker compose pull && docker compose up -d`. Im Profil steht danach der Commit-Hash des CI-Builds.
 4. **Alte, lokal gebaute Images aufräumen:** `docker image ls` zeigt sie als `<projekt>-frontend` und `<projekt>-backend` (Projekt = Verzeichnisname, z. B. `my-cookbook`); `docker image rm my-cookbook-frontend my-cookbook-backend`, danach optional `docker image prune`.
