@@ -1,6 +1,6 @@
 # Bericht W.31: Auth-Nachzug nach W.23/W.28, Rezept anlegen robust, `useRecipeImport`
 
-> Branch `worktree-W.31-auth-nachzug-anlegen` · Basis `bab174a` (= `df7b1e4` + `docs(roadmap)`) · Stand siehe letzter Commit · 2026-11-16 · Dauer: 18:26 – 18:42 (16 min, davon Warten an Checkpoints 0 min) · Status: fertig
+> Branch `worktree-W.31-auth-nachzug-anlegen` · Basis `bab174a` (= `df7b1e4` + `docs(roadmap)`) · Stand siehe letzter Commit · 2026-11-16 · Dauer: 18:26 – 18:42, Nachtrag 18:45 – 18:47 (18 min, davon Warten an Checkpoints 0 min) · Status: fertig
 
 ## Ergebnis
 Beim Anlegen eines Rezepts ist das Ergebnis jetzt eindeutig: `created`, `local` oder `failed`. Ein Fehler nach dem Anlegen erzeugt keine lokale Kopie und keine Meldung „offline“ mehr. Das Rezept kommt aus der Antwort direkt in die Liste, ohne Neuladen. Bei 4xx wird nichts lokal gespeichert, der Aufrufer zeigt einen Fehler. Alle Aufrufer werten das Ergebnis aus. Der Importablauf liegt in `useRecipeImport` und ist getestet. Netzprüfung und Login-Entscheidung liegen nur noch in `session.ts`. Nach einem Lock-Timeout greift der Backoff. Ein leerer Cache zeigt nicht mehr „Offline-Daten“.
@@ -11,6 +11,7 @@ Beim Anlegen eines Rezepts ist das Ergebnis jetzt eindeutig: `created`, `local` 
 - `80db0cc` refactor(ai): Importablauf in useRecipeImport auslagern
 - `07df57b` docs(frontend): Regeln zu Anlegen, dataSource und Lock-Backoff nachziehen
 - `9d5e307` fix(ai): doppeltes Wort im Hinweis zum Bild-Download entfernen
+- `10841ba` refactor(ai): toten Zweig hasApiKey im Import-Dialog entfernen
 - (dieser Bericht)
 
 ## Umsetzung im Einzelnen
@@ -46,6 +47,7 @@ Beim Anlegen eines Rezepts ist das Ergebnis jetzt eindeutig: `created`, `local` 
 
 ## Mitgenommen
 - `9d5e307` „Lokale Lokale Speicherung“ im Hinweis zum Bild-Download · XS
+- `10841ba` toter Zweig `hasApiKey` (immer `true`) im Import-Dialog entfernt · XS (nachgeholt, war zunächst fälschlich als Folgepunkt gelistet)
 
 ## Abweichungen vom Auftrag
 - **`failed` im Import-Dialog:** Die Meldung erscheint als Fehler im Dialog (`alert-danger`), nicht als Toast. Der Dialog bleibt offen, Ergebnis und Seiten stehen für einen neuen Versuch bereit. Ein Toast neben dem offenen Modal wäre leichter zu übersehen. Die übrigen Aufrufer zeigen einen Toast.
@@ -58,12 +60,11 @@ Beim Anlegen eines Rezepts ist das Ergebnis jetzt eindeutig: `created`, `local` 
 - keine
 
 ## Offen und Folgepunkte
-- **Anlegen bei abgelehnter Sitzung mit Netz** (`isAuthenticated() === false` wegen `rejected`): Das Rezept wird weiterhin lokal gespeichert (`local`), wie bisher, danach folgt der Login. Diese Kopie wird nie übertragen und beim nächsten erfolgreichen Listenabruf durch `writeRecipes` überschrieben. Das betrifft lokale Rezepte allgemein: Sie gehen beim nächsten Online-Laden aus Liste und Cache verloren. Die Meldung „nur auf diesem Gerät“ verspricht zwar keine Übertragung, aber auch keine Dauer. Gehört zu W.33/12.1. Bis dahin denkbar: `local` nur bei `offline`, bei `rejected` `failed` mit „Bitte neu anmelden“ (XS–S, fachliche Entscheidung).
-- **`hasApiKey` in `AIRecipeImport.vue`** ist immer `true`, der Zweig „AI-Import nicht verfügbar“ ist toter Code. XS.
+- **Anlegen bei abgelehnter Sitzung mit Netz** (`isAuthenticated() === false` wegen `rejected`): Das Rezept wird weiterhin lokal gespeichert (`local`), wie bisher, danach folgt der Login. Diese Kopie wird nie übertragen und beim nächsten erfolgreichen Listenabruf durch `writeRecipes` überschrieben. Das betrifft lokale Rezepte allgemein: Sie gehen beim nächsten Online-Laden aus Liste und Cache verloren. Die Meldung „nur auf diesem Gerät“ verspricht zwar keine Übertragung, aber auch keine Dauer. Gehört zu W.33/12.1. Als Mitnahme vorgelegt (`local` nur bei offline/Timeout/5xx, bei `rejected` `failed` mit „Bitte neu anmelden“, S); entschieden: Folgepunkt.
 - **Zwischenstand von `7667314`:** Der Commit ändert die Signatur von `appendRecipe`, `AIRecipeImport.vue` folgt erst in `80db0cc`. Allein ausgecheckt ist `7667314` daher nicht typsauber. Der Pre-Commit-Hook prüft den Arbeitsbaum. Bei einem Squash-Merge spielt das keine Rolle.
 
 ## Status je Roadmap-Punkt
 - `W.31` fertig (Sichtprüfung steht aus)
 
 ## Vorschlag Roadmap-Zeilen
-`- [x] W.31 Auth-Nachzug, Rezept anlegen robust, useRecipeImport · 2026-11-16 · 9d5e307`
+`- [x] W.31 Auth-Nachzug, Rezept anlegen robust, useRecipeImport · 2026-11-16 · 10841ba`
