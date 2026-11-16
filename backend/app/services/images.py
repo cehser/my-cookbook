@@ -169,12 +169,15 @@ async def download_and_store_image(
 
 
 # ---------------------------------------------------------------------------
-# Löschen
+# Löschen: Fehler werden geloggt, nicht geworfen (die DB-Zeilen sind dann schon weg)
 # ---------------------------------------------------------------------------
 
 
 def _unlink(path: Path) -> None:
-    path.unlink(missing_ok=True)
+    try:
+        path.unlink(missing_ok=True)
+    except OSError as e:
+        log.warning("Bilddatei nicht gelöscht: %s (%s)", path, e)
 
 
 def delete_image_files(img: RecipeImage) -> None:
@@ -190,4 +193,11 @@ def delete_image_files(img: RecipeImage) -> None:
 
 def delete_recipe_files(recipe_id: uuid.UUID) -> None:
     """Alle Bilddateien eines Rezepts löschen (nach dem Löschen der DB-Zeilen)."""
-    shutil.rmtree(UPLOAD_DIR / str(recipe_id), ignore_errors=True)
+
+    def _log_error(_func: object, path: str, exc: BaseException) -> None:
+        if not isinstance(exc, FileNotFoundError):
+            log.warning("Bilddatei nicht gelöscht: %s (%s)", path, exc)
+
+    recipe_dir = UPLOAD_DIR / str(recipe_id)
+    if recipe_dir.exists():
+        shutil.rmtree(recipe_dir, onexc=_log_error)
