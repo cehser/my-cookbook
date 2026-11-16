@@ -57,3 +57,15 @@ Nach jedem grünen CI-Lauf auf `main` liegen Frontend- und Backend-Image in `ghc
 - Bestätigung im Bericht: keine Geheimnisse oder Instanzwerte in den Images
 - Verifikation gemäß Projekt-CLAUDE.md (Container bauen und starten)
 - Nach dem Merge (meine Aufgabe): erster CI-Lauf auf `main` pusht beide Images, Paket öffentlich gestellt, Server zieht per Pull
+
+## Nacharbeit (2026-11-16, nach Prüfung)
+
+Ausgangsstand: `e8d44b6`. Vorher `git merge main` im Worktree.
+
+- **N1 Kein Abbruch auf `main`:** `concurrency.cancel-in-progress` nur für Pull Requests (z. B. `${{ github.event_name == 'pull_request' }}`). Grund: Ein Abbruch mitten im Push der `:main`-Tags hinterlässt ein gemischtes Paar (`frontend:main` neu, `backend:main` alt); scheitert der neuere Lauf danach, zieht der Server ein inkonsistentes Paar. Läufe auf `main` warten stattdessen aufeinander.
+- **N2 `:main` nur vom aktuellen Stand:** Vor dem Push der `:main`-Tags prüfen, ob `GITHUB_SHA` noch der Kopf von `main` ist (z. B. `git ls-remote` gegen `origin`; Authentifizierung prüfen, der Checkout läuft mit `persist-credentials: false`). Sonst nur die SHA-Tags pushen und das im Log melden. Grund: Ein manueller Re-run eines älteren Laufs setzt `:main` sonst zurück.
+- **N3 README:** Befehl für lokales Bauen (`README.md` ~Zeile 111) mit korrektem Zeilenumbruch; beim Öffentlichstellen der Pakete Hinweis, dass öffentlich nicht wieder privat gestellt werden kann; Hinweis zum PostgreSQL-Major nennt W.21 bzw. verweist auf die kommende Anleitung.
+
+### Abnahme Nacharbeit
+- YAML gültig; N1/N2 im Bericht begründet (Bedingungen, Verhalten bei Re-run und parallelen Läufen); N2-Prüfung lokal als Shell-Schritt nachgestellt (aktueller und veralteter SHA)
+- Bericht um Abschnitt „Nacharbeit“ fortschreiben
