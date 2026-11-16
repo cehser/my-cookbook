@@ -11,7 +11,9 @@ build/
 out/
 
 # Development files
+.env
 .env.local
+.env.production
 .env.*.local
 .env.development
 .env.test
