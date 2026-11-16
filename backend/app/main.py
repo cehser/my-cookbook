@@ -10,7 +10,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routes import admin, ai, favorites, health, images, me, recipes, shares, tags
+from app.routes import (
+    admin,
+    admin_images,
+    ai,
+    favorites,
+    health,
+    images,
+    me,
+    recipes,
+    shares,
+    tags,
+)
 
 # Uvicorn konfiguriert nur seine eigenen Logger; ohne Handler gingen INFO-Meldungen
 # aus "app.*" verloren. Handler am Logger "app" (nicht am Root), damit Uvicorns Logging
@@ -76,6 +87,7 @@ app.include_router(me.router)
 app.include_router(admin.router)
 app.include_router(recipes.router)
 app.include_router(images.router)
+app.include_router(admin_images.router)
 app.include_router(ai.router)
 app.include_router(favorites.router)
 app.include_router(tags.router)

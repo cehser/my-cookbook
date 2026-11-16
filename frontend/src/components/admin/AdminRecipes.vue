@@ -6,6 +6,7 @@ import { useToast } from "@/composables/useToast";
 import { useRecipeStore } from "@/store/recipeStore";
 import { generateUUID } from "@/js/uuid";
 import { deepCopyJSON } from "@/js/deepCopy";
+import { appendToast } from "@/js/appendFeedback";
 import {
   loadNewRecipe as createNewRecipe,
   loadSample as createSampleRecipe,
@@ -40,18 +41,27 @@ function deleteRecipe(index: number) {
   store.deleteRecipe(index);
 }
 
+/** Legt das Rezept an und meldet das Ergebnis. */
+async function append(recipe: Recipe, successText: string) {
+  const { message, variant } = appendToast(
+    await store.appendRecipe(recipe),
+    successText,
+  );
+  toast(message, variant);
+}
+
 function copyRecipe(index: number) {
   const recipe = deepCopyJSON(store.recipes[index]);
   recipe.recipe_uuid = generateUUID();
-  store.appendRecipe(recipe);
+  void append(recipe, "Rezept dupliziert.");
 }
 
 function newRecipe() {
-  store.appendRecipe(createNewRecipe());
+  void append(createNewRecipe(), "Neues Rezept erstellt.");
 }
 
 function loadSample() {
-  store.appendRecipe(createSampleRecipe());
+  void append(createSampleRecipe(), "Beispielrezept geladen.");
 }
 
 function saveToLocalStorage() {
@@ -72,8 +82,7 @@ function importRecipe(ev: Event) {
   reader.onload = (e) => {
     try {
       const recipe = jsyaml.load(e.target?.result as string) as Recipe;
-      store.appendRecipe(recipe);
-      toast(`Rezept "${recipe.recipe_name}" importiert.`, "success");
+      void append(recipe, `Rezept "${recipe.recipe_name}" importiert.`);
       input.value = "";
     } catch (error) {
       toast("Fehler beim Importieren: " + (error as Error).message, "danger");

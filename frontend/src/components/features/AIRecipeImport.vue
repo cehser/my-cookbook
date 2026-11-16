@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { useRouter } from "vue-router";
 import { useRecipeStore } from "@/store/recipeStore";
-import { imageApi } from "@/api/images";
-import { generateUUID } from "@/js/uuid";
-import { editUrl } from "@/js/slug";
 import { initRecipe } from "@/js/recipes";
 import { ImageResizeError, resizeImage } from "@/js/imageResize";
 import {
@@ -15,15 +11,15 @@ import {
 } from "@/api/ai";
 import type { Recipe } from "@/types/recipe";
 import { useImportPages } from "@/composables/useImportPages";
+import { useRecipeImport } from "@/composables/useRecipeImport";
 import ImportPageList from "@/components/features/ImportPageList.vue";
 
 const emit = defineEmits<{
-  /** `warnings`: Hinweise zur Vorlage (Upload-Fehler, offline), sonst leer. */
+  /** `warnings`: Hinweise (nur lokal gespeichert, Vorlage), sonst leer. */
   imported: [recipe: Recipe, warnings: string[]];
 }>();
 
 const store = useRecipeStore();
-const router = useRouter();
 
 // Template refs
 const fileInput = ref<HTMLInputElement>();
@@ -31,6 +27,18 @@ const fileInput = ref<HTMLInputElement>();
 // State
 // Seiten bleiben beim Schließen und erneuten Öffnen des Dialogs erhalten.
 const { pages, addPage, removePage, clearPages } = useImportPages();
+const {
+  importing,
+  uploadProgress,
+  importRecipe: runImport,
+} = useRecipeImport({
+  onImported: (recipe, warnings) => {
+    emit("imported", recipe, warnings);
+    resetFeedback();
+    textInput.value = "";
+    downloadImage.value = true;
+  },
+});
 const preparing = ref(false);
 /** Fortschritt beim Vorbereiten: aktuelle Seite von Gesamtzahl der Auswahl. */
 const preparingProgress = ref({ done: 0, total: 0 });
@@ -41,9 +49,6 @@ const loading = ref(false);
 const result = ref<Recipe | null>(null);
 /** Herkunft des Ergebnisses: nur der Foto-Weg speichert die Seiten als Vorlage. */
 const resultFrom = ref<"images" | "text" | null>(null);
-const importing = ref(false);
-/** Fortschritt beim Speichern der Vorlage. */
-const uploadProgress = ref({ done: 0, total: 0 });
 const error = ref<string | null>(null);
 const rawJson = ref<string | null>(null);
 const downloadImage = ref(true);
@@ -51,10 +56,6 @@ const downloadingImage = ref(false);
 
 // Computed
 const settings = computed(() => store.settings);
-const hasApiKey = computed(() => {
-  // Backend holds the key — check if user is authenticated
-  return true;
-});
 const busy = computed(
   () => loading.value || preparing.value || importing.value,
 );
@@ -163,75 +164,11 @@ const analyzeImages = () => {
 const analyzeText = () =>
   runAnalysis("text", () => aiApi.importText(textInput.value));
 
-/**
- * Lädt die Seiten als Vorlage (kind=source) in Seitenreihenfolge hoch, nacheinander.
- * Einzelne Fehler brechen nicht ab; gibt die Hinweise für die Meldung zurück.
- */
-const uploadSources = async (
-  recipeId: string,
-  blobs: Blob[],
-): Promise<string[]> => {
-  uploadProgress.value = { done: 0, total: blobs.length };
-  const failed: number[] = [];
-  for (const [i, blob] of blobs.entries()) {
-    try {
-      await imageApi.upload(recipeId, blob, "source");
-    } catch (err: unknown) {
-      console.warn(`Vorlage Seite ${i + 1} nicht gespeichert`, err);
-      failed.push(i + 1);
-    }
-    uploadProgress.value.done++;
-  }
-  if (failed.length === 0) return [];
-  return [
-    `Vorlage: Seite ${failed.join(", ")} von ${blobs.length} konnte nicht gespeichert werden.`,
-  ];
-};
-
+/** Anlegen, Vorlage, Navigation: `useRecipeImport`. Abgelehnt → Meldung, Seiten bleiben. */
 const importRecipe = async () => {
-  if (!result.value || importing.value) return;
-  const recipe = result.value;
-
-  // Generate UUID if not present
-  if (!recipe.recipe_uuid) {
-    recipe.recipe_uuid = generateUUID();
-  }
-
-  // Blobs vor clearPages() übernehmen; nur der Foto-Weg hat eine Vorlage
-  const sourceBlobs =
-    resultFrom.value === "images" ? pages.value.map((p) => p.blob) : [];
-  const warnings: string[] = [];
-
-  importing.value = true;
-  try {
-    // imageurl will be auto-downloaded by the backend on save
-    const created = await store.appendRecipe(recipe);
-    if (sourceBlobs.length > 0) {
-      if (created) {
-        warnings.push(...(await uploadSources(created.id, sourceBlobs)));
-      } else {
-        warnings.push(
-          "Rezept nur lokal gespeichert (offline): Die Vorlage wurde nicht gespeichert.",
-        );
-      }
-    }
-
-    emit("imported", recipe, warnings);
-
-    // Reset
-    resetFeedback();
-    clearPages();
-    textInput.value = "";
-    downloadImage.value = true;
-
-    // Bearbeitung des neuen Rezepts öffnen (Backend-ID, sonst die lokale UUID)
-    await router.push(
-      editUrl(created?.id ?? recipe.recipe_uuid, recipe.recipe_name),
-    );
-  } finally {
-    importing.value = false;
-    uploadProgress.value = { done: 0, total: 0 };
-  }
+  if (!result.value || !resultFrom.value) return;
+  const message = await runImport(result.value, resultFrom.value);
+  if (message) error.value = message;
 };
 </script>
 
@@ -242,12 +179,7 @@ const importRecipe = async () => {
         <h5><i class="bi bi-robot"></i> AI-Rezept-Import</h5>
       </BCardHeader>
       <BCardBody>
-        <div v-if="!hasApiKey" class="alert alert-warning">
-          <i class="bi bi-exclamation-triangle"></i>
-          AI-Import nicht verfügbar. Bitte einloggen.
-        </div>
-
-        <BTabs v-else content-class="mt-3">
+        <BTabs content-class="mt-3">
           <!-- Photo Tab: native Kamera bzw. Fotoauswahl, 1–10 Seiten -->
           <BTab title="Foto aufnehmen oder wählen" active>
             <!-- Ohne capture: iOS bietet Kamera und Mediathek zur Wahl -->
@@ -364,7 +296,7 @@ const importRecipe = async () => {
               </BFormCheckbox>
               <small class="text-muted d-block">
                 URL-Bilder können nach einiger Zeit ungültig werden. Lokale
-                Lokale Speicherung wird empfohlen.
+                Speicherung wird empfohlen.
               </small>
             </div>
 

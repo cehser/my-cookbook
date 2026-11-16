@@ -23,6 +23,7 @@ import {
 } from "@/js/recipes";
 import jsyaml from "js-yaml";
 import { editUrl } from "@/js/slug";
+import { appendedId, appendToast } from "@/js/appendFeedback";
 import type { Recipe } from "@/types/recipe";
 
 const router = useRouter();
@@ -130,17 +131,23 @@ function handleDeleteRecipe(uuid: string) {
   store.deleteRecipe(uuid);
 }
 
+/** Legt das Rezept an und meldet das Ergebnis; liefert die ID oder `null`. */
+async function append(recipe: Recipe, successText: string) {
+  const result = await store.appendRecipe(recipe);
+  const { message, variant } = appendToast(result, successText);
+  toast(message, variant);
+  return appendedId(result, recipe);
+}
+
 async function newRecipe() {
   const recipe = createNewRecipe();
   // Erst nach dem Anlegen navigieren: das Backend vergibt die ID
-  const created = await store.appendRecipe(recipe);
-  toast("Neues Rezept erstellt.", "success");
-  router.push(editUrl(created?.id ?? recipe.recipe_uuid, recipe.recipe_name));
+  const id = await append(recipe, "Neues Rezept erstellt.");
+  if (id) router.push(editUrl(id, recipe.recipe_name));
 }
 
 function loadSample() {
-  store.appendRecipe(createSampleRecipe());
-  toast("Beispielrezept geladen.", "success");
+  void append(createSampleRecipe(), "Beispielrezept geladen.");
 }
 
 /** Die Komponente öffnet danach selbst die Bearbeitung des neuen Rezepts. */
@@ -163,8 +170,7 @@ function importRecipe(ev: Event) {
   reader.onload = (e) => {
     try {
       const recipe = jsyaml.load(e.target?.result as string) as Recipe;
-      store.appendRecipe(recipe);
-      toast(`Rezept "${recipe.recipe_name}" importiert.`, "success");
+      void append(recipe, `Rezept "${recipe.recipe_name}" importiert.`);
       input.value = "";
     } catch (error) {
       toast("Fehler beim Importieren: " + (error as Error).message, "danger");

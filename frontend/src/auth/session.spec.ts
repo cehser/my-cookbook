@@ -442,6 +442,22 @@ describe("Zustandstabelle: Navigation mit Rolle, Hinweis", () => {
   });
 });
 
+describe("Zustandstabelle: Store nach Laden (loginFollows)", () => {
+  it("rejected mit Netz → Login folgt", () => {
+    expect(session.loginFollows("rejected")).toBe(true);
+  });
+
+  it("rejected ohne Netz → kein Login, Offline-Daten", () => {
+    setOnline(false);
+    expect(session.loginFollows("rejected")).toBe(false);
+  });
+
+  it("valid und offline → kein Login", () => {
+    expect(session.loginFollows("valid")).toBe(false);
+    expect(session.loginFollows("offline")).toBe(false);
+  });
+});
+
 describe("Erneuerung: Single-Flight, Web Lock, Backoff", () => {
   it("parallele Aufrufer teilen sich eine Erneuerung", async () => {
     stored = expired();
@@ -504,6 +520,33 @@ describe("Erneuerung: Single-Flight, Web Lock, Backoff", () => {
     expect(session.currentRenewal()).toBeNull(); // logout() wartet nicht mehr
     expect(um.signinSilent).not.toHaveBeenCalled();
     expect(locks.queued()).toBe(0); // abgebrochene Anfrage ist aus der Schlange
+  });
+
+  it("nach Lock-Timeout Backoff: weitere Aufrufe warten nicht erneut 15 s", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    vi.setSystemTime(new Date("2026-11-16T12:00:00Z"));
+    const locks = installLocks();
+    void locks.request(
+      "my-cookbook-token-renewal",
+      () => new Promise(() => undefined),
+    ); // Tab hängt dauerhaft
+    stored = expired();
+    const first = session.renewToken();
+    await vi.advanceTimersByTimeAsync(15_100);
+    expect(await first).toBe("offline");
+    const requests = locks.names.length;
+
+    // Sofort offline, ohne neue Lock-Anfrage und ohne Wartezeit
+    expect(await session.getAccessToken()).toBeNull();
+    expect(locks.names.length).toBe(requests);
+    expect(locks.queued()).toBe(0);
+
+    // Nach Ablauf des Backoffs wird wieder auf den Lock gewartet
+    vi.setSystemTime(new Date("2026-11-16T12:00:46Z"));
+    void session.renewToken();
+    await flushPromises();
+    expect(locks.names.length).toBe(requests + 1);
+    await vi.advanceTimersByTimeAsync(15_100);
   });
 
   it("Timeout gilt nur fürs Warten, nicht für die Erneuerung selbst", async () => {

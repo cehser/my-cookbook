@@ -1,11 +1,11 @@
-"""``_process_image``: Thumbnail und optimiertes Bild (ohne Datenbank, ohne Netz)."""
+"""``process_image``: Thumbnail und optimiertes Bild (ohne Datenbank, ohne Netz)."""
 
 from pathlib import Path
 
 import pytest
 from PIL import Image
 
-from app.routes.images import OPTIMISED_MAX, THUMB_SIZE, _process_image
+from app.services.images import OPTIMISED_MAX, THUMB_SIZE, process_image
 
 
 def _make_source(path: Path, size: tuple[int, int], fmt: str, mode: str = "RGB") -> Path:
@@ -15,7 +15,7 @@ def _make_source(path: Path, size: tuple[int, int], fmt: str, mode: str = "RGB")
 
 def _run(tmp_path: Path, src: Path) -> tuple[Path, Path]:
     thumb, optimised = tmp_path / "thumb.webp", tmp_path / "optimised.webp"
-    _process_image(src, thumb, optimised)
+    process_image(src, thumb, optimised)
     return thumb, optimised
 
 
