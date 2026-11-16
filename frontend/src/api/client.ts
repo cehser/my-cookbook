@@ -2,7 +2,7 @@
  * API Client with automatic Bearer token injection.
  *
  * The token is renewed before the request if it has expired (shared with all
- * other callers, see auth/oidc.ts). On 401 responses, attempts one renewal
+ * other callers, see auth/session.ts). On 401 responses, attempts one renewal
  * and retries once before throwing — covers tokens that expired between the
  * client-side check and the server-side validation.
  *

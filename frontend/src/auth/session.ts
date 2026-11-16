@@ -5,8 +5,9 @@
  * Einstiege je Auslöser (Zustandstabelle in docs/tasks/W.23-auth-feinschliff.md):
  * `onNavigation` (Guards), `onResume` und `onOnline` (App.vue),
  * `onRejected` (abgelehnte Erneuerung: Ablauf-Timer, 401, Store, Guard),
- * `onCallback`/`retryLoginFromCallback` (Callback.vue). Nur diese Einstiege
- * prüfen „Netz“ (`navigator.onLine`) für die Login-Entscheidung.
+ * `onCallback`/`retryLoginFromCallback` (Callback.vue); dazu `loginFollows`
+ * (Store: folgt ein Login?). Nur diese Einstiege prüfen „Netz“
+ * (`navigator.onLine`) für die Login-Entscheidung.
  *
  * Erneuerung: Alle Aufrufer (Guard, API-Client, Store, Ablauf-Timer) teilen
  * sich einen Versuch (Single-Flight); über Tabs hinweg sperrt Web Locks.
@@ -64,12 +65,22 @@ const hint = shallowRef<SessionHint>(null);
 export const sessionHint = readonly(hint);
 
 /**
+ * Folgt auf diesen Zustand ein Login (sofort oder sobald `onRejected` bzw.
+ * der Guard ihn startet)? Nur bei `rejected` mit Netz; ohne Netz wird er
+ * vorgemerkt, bis dahin gelten die Offline-Daten. Für den Store: Bei `true`
+ * kein Offline-Banner und keine Cache-Daten als Ersatz.
+ */
+export function loginFollows(state: AuthState): boolean {
+  return state === "rejected" && navigator.onLine;
+}
+
+/**
  * Rollen-Guard ohne bekannte Rolle: Hinweis nur, wenn die Verbindung fehlt
  * (kein Netz oder Sitzung `offline`). Bei `rejected` mit Netz startet der
  * Login, ein Hinweis wäre irreführend.
  */
 export function onRoleUnavailable(state: AuthState): void {
-  if (state === "offline" || (state === "rejected" && !navigator.onLine)) {
+  if (state === "offline" || (state === "rejected" && !loginFollows(state))) {
     hint.value = "role-unavailable";
   }
 }
@@ -78,6 +89,11 @@ export function onRoleUnavailable(state: AuthState): void {
 
 let renewInFlight: Promise<AuthState> | null = null;
 let backoffUntil = 0;
+
+/** Nach `offline` mit Netz: Erneuerung für RENEW_BACKOFF_MS aussetzen. */
+function startBackoff(): void {
+  if (navigator.onLine) backoffUntil = Date.now() + RENEW_BACKOFF_MS;
+}
 
 function needsRenewal(user: User): boolean {
   const expiresIn = user.expires_in;
@@ -135,6 +151,8 @@ async function withRenewLock(fn: () => Promise<AuthState>): Promise<AuthState> {
   } catch (e) {
     if (!controller.signal.aborted) throw e;
     console.warn("[Auth] Kein Lock für die Token-Erneuerung (Timeout)");
+    // Hängt der andere Tab weiter, nicht bei jedem Aufruf erneut 15 s warten.
+    startBackoff();
     return "offline";
   } finally {
     clearTimeout(timer);
@@ -176,7 +194,7 @@ async function renewOnce(): Promise<AuthState> {
       if (state === "offline") {
         console.warn("[Auth] Token-Erneuerung nicht möglich (offline):", e);
         // Mit Netz (IdP hängt, 5xx): nicht bei jedem API-Aufruf neu versuchen.
-        if (navigator.onLine) backoffUntil = Date.now() + RENEW_BACKOFF_MS;
+        startBackoff();
         return state;
       }
       // Hat ein anderer Tab den Refresh-Token inzwischen rotiert (ohne Lock
@@ -340,7 +358,8 @@ function sessionValid(): void {
  * Navigation auf eine geschützte Route (Guard). `true` = durchlassen.
  * Mit Offline-Daten wartet der Guard nicht auf die Erneuerung; stellt sich
  * die Sitzung danach als abgelehnt heraus, folgt der Login (bzw. vorgemerkt).
- * Ohne Daten wartet er (höchstens bis zum Timeout der Erneuerung) und zeigt
+ * Ohne Daten wartet er auf die Erneuerung (bis zu 15 s auf den Lock plus 10 s
+ * Erneuerung, nach einem Lock-Timeout greift der Backoff) und zeigt
  * statt eines leeren Bildschirms einen Hinweis, wenn er nicht zum Login leiten
  * kann.
  */

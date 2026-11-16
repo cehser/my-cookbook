@@ -11,12 +11,6 @@ import { currentRenewal, setLogoutInProgress } from "@/auth/session";
 import { clearStoredRole } from "@/auth/role";
 
 /**
- * @deprecated Kompatibilität: `api/images.ts` importiert noch von hier
- * (Umstellung auf `@/auth/session` nach dem Merge von W.28).
- */
-export { getAccessToken } from "@/auth/session";
-
-/**
  * Callback bei neuem Token (Login-Callback oder Erneuerung).
  * Liefert eine Funktion zum Abmelden.
  */
