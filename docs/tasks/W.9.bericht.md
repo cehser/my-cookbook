@@ -1,6 +1,6 @@
 # Bericht W.9: Images in der CI bauen und nach ghcr.io pushen, Deploy per Pull
 
-> Branch `worktree-W.9-ghcr-images` · Basis `df7b1e4` · Stand siehe letzter Commit · 2026-11-16 · Dauer: 18:24 – 18:40 (16 min, davon Warten an Checkpoints 0 min) · Status: fertig
+> Branch `worktree-W.9-ghcr-images` · Basis `df7b1e4` · Stand siehe letzter Commit des Branches · 2026-11-16 · Dauer: 18:24 – 18:40, 18:43 – 18:45 (18 min, davon Warten an Checkpoints 0 min) · Status: fertig
 
 ## Ergebnis
 Nach jedem grünen Push auf `main` baut der neue CI-Job `publish` beide Images (`linux/amd64`, `COMMIT_HASH` = kurzer SHA, OCI-Labels `source`/`revision`) und pusht sie als `ghcr.io/<owner kleingeschrieben>/my-cookbook-{frontend,backend}` mit den Tags `<sha7>` und `main`. `docker-compose.yml.example` zieht die Images per `image:` mit `${IMAGE_TAG:-main}`; lokales Bauen geht über den Override `docker-compose.build.yml`. `scripts/deploy.sh` ist entfernt, README beschreibt Deploy, Update, Rollback, lokales Bauen und den Umstieg des Servers.
@@ -9,7 +9,10 @@ Nach jedem grünen Push auf `main` baut der neue CI-Job `publish` beide Images (
 - `f3a71b3` ci(ci): Images auf main nach ghcr.io pushen
 - `89e7853` build(deploy): Images aus ghcr.io ziehen, deploy.sh entfällt
 - `995d4df` docs(deploy): Deploy per Pull, Rollback und Umstieg beschreiben
-- (dieser Bericht) docs(deploy): Bericht W.9
+- `9fba9e9` docs(deploy): Bericht W.9
+- `19264ea` build(frontend): .env und .env.production aus dem Build-Kontext
+- `f373056` build(backend): .dockerignore anlegen
+- (dieser Nachtrag) docs(deploy): Bericht W.9 um Mitnahmen ergänzen
 
 ## Verifikation
 - Workflow per PyYAML (Backend-uv-Umgebung) geparst, ebenso beide Compose-Dateien → gültig. Ausgewertet:
@@ -26,17 +29,19 @@ Nach jedem grünen Push auf `main` baut der neue CI-Job `publish` beide Images (
   - In der CI baut der Checkout nur versionierte Dateien; versioniert ist in `frontend/` nur `.env.example`, das Vite nicht lädt.
 - Frontend: `npm run lint:check && npm run typecheck && npm test && npm run build` → grün, 23 Testdateien / 201 Tests.
 - Backend: `uv sync --frozen && uv run ruff check && uv run ruff format --check && uv run pytest -q` → grün, 128 passed, 8 skipped (DB-Tests ohne `DB_HOST`).
+- Mitnahme `.dockerignore`: Wegwerf-`frontend/.env` und `.env.production` mit Markerwert angelegt, Frontend gebaut → Build vollständig aus dem Cache (Dateien nicht im Kontext), kein Marker im Bundle; Dateien danach gelöscht. Backend-Image mit neuer `.dockerignore` gebaut, `/app` unverändert.
 - Sichtprüfung: keine (Hash per Bundle-Inhalt geprüft, nicht im Browser).
 - Prüfzeit: ~6 min; größter Posten: zwei Image-Builds (je ~1:30 min) und Frontend-Verifikation (2:25 min).
 - Prüfskripte: nur Scratchpad.
 - Nicht geprüft: echter CI-Lauf, Push nach ghcr.io, `--platform linux/amd64` (lokal arm64).
 
 ## Struktur und Doku
-- Gewachsene Dateien, neue Module, bewusste Duplikate: neu `docker-compose.build.yml` (19 Zeilen); `ci.yml` +46 Zeilen.
+- Gewachsene Dateien, neue Module, bewusste Duplikate: neu `docker-compose.build.yml` (19 Zeilen) und `backend/.dockerignore`; `ci.yml` +46 Zeilen.
 - Berührte Aussagen: nachgetragen in `CLAUDE.md` (Befehle Betrieb, Verifikation „Container bauen“, CI-Beschreibung), `.claude/rules/frontend.md` (`__COMMIT_HASH__`), `README.md` (Starten, Update, Rollback, lokal bauen, Verzeichnisbaum, Tech-Stack, Upgrade-Hinweise). Keine Verweise auf `deploy.sh` mehr außer in `ROADMAP.md` und historischen Aufträgen/Berichten.
 
 ## Mitgenommen
-- nichts
+- `19264ea` `frontend/.dockerignore` schließt `.env` und `.env.production` aus · XS (nach Rückfrage, Datei nicht in der Ablage)
+- `f373056` `backend/.dockerignore` neu (`.venv`, Caches, `tests/`, `.env*`) · XS (dito)
 
 ## Abweichungen vom Auftrag
 - `publish` hat kein `needs` auf `images`, sondern baut selbst; `images` läuft nur noch außerhalb von Push. So entfällt der Doppelbau auf `main` ohne zusätzliche Actions (Weitergabe der Images zwischen Jobs bräuchte `actions/upload-artifact`). Der Build bleibt Voraussetzung für den Push, weil beide Builds vor dem ersten Push im selben Job laufen.
@@ -50,8 +55,6 @@ Nach jedem grünen Push auf `main` baut der neue CI-Job `publish` beide Images (
 - keine
 
 ## Offen und Folgepunkte
-- `frontend/.dockerignore` schließt `.env`, `.env.production`, `.env.production.local` nicht aus: Ein lokaler Build (Override) würde vorhandene `VITE_*`-Werte ins Bundle backen. Die CI ist nicht betroffen (nur versionierte Dateien). Vorschlag: Muster ergänzen · XS.
-- `backend/` hat keine `.dockerignore`, der Build-Kontext schickt lokal `.venv` mit (nur Laufzeit des Builds, landet nicht im Image) · XS.
 - README-Pfad zur Sichtbarkeit („Package settings → Danger Zone → Change visibility“) ist aus dem Gedächtnis, nicht gegen die aktuelle GitHub-Oberfläche geprüft · unbestätigt.
 - Nach dem Merge (Master): erster CI-Lauf auf `main` pusht beide Images, Pakete öffentlich stellen, Server nach README umstellen.
 
