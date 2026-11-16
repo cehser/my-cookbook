@@ -305,7 +305,7 @@ const importRecipe = async () => {
               </BFormCheckbox>
               <small class="text-muted d-block">
                 URL-Bilder können nach einiger Zeit ungültig werden. Lokale
-                Lokale Speicherung wird empfohlen.
+                Speicherung wird empfohlen.
               </small>
             </div>
 
