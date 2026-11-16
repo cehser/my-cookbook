@@ -22,15 +22,29 @@ import { api, isClientError } from "@/api/client";
 import { recipeApi, type RecipeDetail } from "@/api/recipes";
 import { favoritesApi } from "@/api/favorites";
 import { imageApi } from "@/api/images";
-import { ensureAuth, isAuthenticated } from "@/auth/session";
+import { ensureAuth, isAuthenticated, loginFollows } from "@/auth/session";
 import type { Recipe, RecipePictures } from "@/types/recipe";
 import type { Settings } from "@/types/settings";
 
 /**
  * Herkunft der geladenen Daten: noch nichts, API (auch eine verbindliche
  * Ablehnung wie 403 für `pending`) oder Offline-Cache (vorläufig oder Ersatz).
+ * `cache` nur, wenn tatsächlich Daten aus dem Cache gelesen wurden.
  */
 export type DataSource = "none" | "api" | "cache";
+
+/**
+ * Ergebnis von `appendRecipe`:
+ * - `created`: vom Backend angelegt (`detail.id` ist die Backend-ID)
+ * - `local`: nur auf diesem Gerät gespeichert (offline, Timeout, 5xx); wird
+ *   nicht nachträglich hochgeladen
+ * - `failed`: vom Backend abgelehnt (4xx, z. B. fehlende Rolle, 422), nicht
+ *   gespeichert
+ */
+export type AppendResult =
+  | { status: "created"; detail: RecipeDetail }
+  | { status: "local" }
+  | { status: "failed"; error: unknown };
 
 const default_settings: Settings = {
   read_only: true,
@@ -42,6 +56,14 @@ const default_settings: Settings = {
 // weiteren Lauf aus, falls der laufende keine API-Daten geliefert hat.
 let loadAllInFlight: Promise<void> | null = null;
 let loadAllRerun = false;
+
+// Angelegte Rezepte gegen parallel laufende Listenabrufe: Eine Liste, deren
+// Abruf vor dem Anlegen begann, enthält das neue Rezept nicht. `listSeq` zählt
+// die Abrufe; ein angelegtes Rezept bleibt vorgemerkt, bis ein danach
+// gestarteter Abruf fertig ist.
+let listSeq = 0;
+let appliedListSeq = 0;
+let createdPending: { seq: number; recipe: Recipe }[] = [];
 
 export const useRecipeStore = defineStore("recipe", {
   state: () => ({
@@ -59,7 +81,8 @@ export const useRecipeStore = defineStore("recipe", {
      * Lädt Settings, Rezepte und Favoriten. Beim ersten Laden zeigt der
      * Cache sofort vorläufige Daten (Quelle „cache“). Nach geklärtem
      * Auth-Zustand: gültig → API (Cache nur bei Ausfall, nicht bei 4xx),
-     * offline → Cache, abgelehnt → Login folgt (ohne Netz: Cache).
+     * offline → Cache, abgelehnt → Login folgt (ohne Netz: Cache). Quelle
+     * `cache` nur mit tatsächlich gelesenen Cache-Daten, sonst `none`.
      */
     loadAll(): Promise<void> {
       if (loadAllInFlight) {
@@ -93,8 +116,8 @@ export const useRecipeStore = defineStore("recipe", {
         this.dataSource === "none" ? this.showCachedData() : undefined;
       const auth = await ensureAuth();
       await preliminary;
-      if (auth === "rejected" && navigator.onLine) {
-        // Login folgt (Guard bzw. onSessionRejected): kein Offline-Banner.
+      if (loginFollows(auth)) {
+        // Login folgt (Guard bzw. onRejected): kein Offline-Banner.
         if (this.dataSource === "cache") this.dataSource = "none";
         return;
       }
@@ -104,7 +127,11 @@ export const useRecipeStore = defineStore("recipe", {
         this.loadRecipes(useApi),
         this.loadFavorites(useApi),
       ]);
-      this.dataSource = sources.every((s) => s === "api") ? "api" : "cache";
+      this.dataSource = sources.every((s) => s === "api")
+        ? "api"
+        : sources.includes("cache")
+          ? "cache"
+          : "none";
     },
 
     /** Zeigt vorhandene Cache-Daten als vorläufigen Stand. */
@@ -144,9 +171,8 @@ export const useRecipeStore = defineStore("recipe", {
         }
       }
       const val = await readSettings();
-      if (val) {
-        this.settings = val;
-      }
+      if (!val) return "none";
+      this.settings = val;
       return "cache";
     },
 
@@ -188,23 +214,27 @@ export const useRecipeStore = defineStore("recipe", {
       const val = await readRecipes();
       if (val) {
         this.recipes = val;
-      } else {
-        console.warn("Fallback to localstorage");
-        let recipes: Recipe[];
-        const recipesStr = localStorage.getItem("recipes");
-
-        if (recipesStr) {
-          recipes = loadYamlCookbook(recipesStr);
-          localStorage.removeItem("recipes");
-        } else {
-          console.warn("Fallback to sample");
-          recipes = [loadSample()];
-        }
-
-        void writeRecipes(recipes);
-        this.recipes = recipes;
+        return "cache";
       }
-      return "cache";
+      console.warn("Fallback to localstorage");
+      let recipes: Recipe[];
+      let source: DataSource;
+      const recipesStr = localStorage.getItem("recipes");
+
+      if (recipesStr) {
+        recipes = loadYamlCookbook(recipesStr);
+        localStorage.removeItem("recipes");
+        source = "cache";
+      } else {
+        // Das Beispielrezept sind keine gelesenen Daten
+        console.warn("Fallback to sample");
+        recipes = [loadSample()];
+        source = "none";
+      }
+
+      void writeRecipes(recipes);
+      this.recipes = recipes;
+      return source;
     },
 
     saveRecipes() {
@@ -237,38 +267,58 @@ export const useRecipeStore = defineStore("recipe", {
     },
 
     /**
-     * Legt ein Rezept an. Gibt das Backend-Rezept (mit der dort vergebenen ID) zurück,
-     * `undefined`, wenn es nur lokal gespeichert wurde (offline oder API-Fehler).
+     * Legt ein Rezept an, Ergebnis siehe `AppendResult`. Nach dem Anlegen
+     * kommt das Rezept aus der Antwort direkt in die Liste (kein Neuladen,
+     * das scheitern und ein Duplikat erzeugen könnte). Nur Ausfälle (offline,
+     * Timeout, 5xx) speichern lokal; eine Ablehnung (4xx) speichert nichts,
+     * weil lokale Rezepte nie zum Backend übertragen werden.
      */
-    async appendRecipe(recipe: Recipe): Promise<RecipeDetail | undefined> {
+    async appendRecipe(recipe: Recipe): Promise<AppendResult> {
       const recipeCopy = deepCopyJSON(recipe);
       if (await isAuthenticated()) {
+        const {
+          recipe_uuid: _uuid,
+          recipe_name,
+          lastUpdated: _updated,
+          first_image_id: _fii,
+          ingredients,
+          steps,
+          sections,
+          tags,
+          ...rest
+        } = recipeCopy;
+        let detail: RecipeDetail | undefined;
         try {
-          const {
-            recipe_uuid: _uuid,
-            recipe_name,
-            lastUpdated: _updated,
-            first_image_id: _fii,
-            ingredients,
-            steps,
-            sections,
-            tags,
-            ...rest
-          } = recipeCopy;
-          const detail = await recipeApi.create({
+          detail = await recipeApi.create({
             recipe_name,
             data: { ingredients, steps, sections, ...rest },
             tags: tags || [],
           });
-          await this.loadRecipesFromApi();
-          return detail;
         } catch (e) {
+          if (isClientError(e)) {
+            console.warn("Recipe rejected by API, not saved", e);
+            return { status: "failed", error: e };
+          }
           console.warn("Failed to create recipe via API, saving locally", e);
+        }
+        if (detail) {
+          this.insertCreated(detailToRecipe(detail));
+          return { status: "created", detail };
         }
       }
       this.recipes.push(recipeCopy);
       this.saveRecipes();
-      return undefined;
+      return { status: "local" };
+    },
+
+    /** Vom Backend angelegtes Rezept in Liste und Cache übernehmen. */
+    insertCreated(recipe: Recipe) {
+      void writeRecipeDetail(recipe);
+      createdPending.push({ seq: listSeq, recipe });
+      if (!this.recipes.some((r) => r.recipe_uuid === recipe.recipe_uuid)) {
+        this.recipes.push(recipe);
+      }
+      this.saveRecipes();
     },
 
     async setRecipe({ index, recipe }: { index: number; recipe: Recipe }) {
@@ -382,9 +432,8 @@ export const useRecipeStore = defineStore("recipe", {
         }
       }
       const val = await readFavorites();
-      if (val) {
-        this.favorites = val;
-      }
+      if (!val) return "none";
+      this.favorites = val;
       return "cache";
     },
 
@@ -424,8 +473,20 @@ export const useRecipeStore = defineStore("recipe", {
 
     // --- API-backed actions ---
     async loadRecipesFromApi() {
+      const seq = ++listSeq;
       const items = await recipeApi.listAll();
+      // Eine neuere Antwort ist schon übernommen: diese ist veraltet.
+      if (seq < appliedListSeq) return;
+      appliedListSeq = seq;
       const recipes = items.map(listItemToRecipe);
+      // Vor diesem Abruf angelegte Rezepte sind in der Antwort enthalten;
+      // während des Abrufs angelegte fehlen womöglich und bleiben erhalten.
+      createdPending = createdPending.filter((c) => c.seq >= seq);
+      for (const { recipe } of createdPending) {
+        if (!recipes.some((r) => r.recipe_uuid === recipe.recipe_uuid)) {
+          recipes.push(recipe);
+        }
+      }
       this.recipes = recipes;
       void writeRecipes(deepCopyJSON(recipes));
       this.prefetchRecipeDetails(recipes);

@@ -13,6 +13,7 @@ import { useToast } from "@/composables/useToast";
 import { generateUUID } from "@/js/uuid";
 import { deepCopyJSON } from "@/js/deepCopy";
 import { recipeUrl, editUrl } from "@/js/slug";
+import { appendedId, appendToast } from "@/js/appendFeedback";
 
 const props = defineProps<{ id: string }>();
 
@@ -81,10 +82,14 @@ async function copyRecipe() {
     const recipe = deepCopyJSON(current_recipe.value);
     recipe.recipe_uuid = generateUUID();
     // Erst nach dem Anlegen navigieren: das Backend vergibt die ID
-    const created = await store.appendRecipe(recipe);
-    router.push(
-      recipeUrl(created?.id ?? recipe.recipe_uuid, recipe.recipe_name),
-    );
+    const result = await store.appendRecipe(recipe);
+    const id = appendedId(result, recipe);
+    // Bei Erfolg zeigt die neue Seite das Duplikat, sonst Hinweis bzw. Fehler
+    if (result.status !== "created") {
+      const { message, variant } = appendToast(result, "Rezept dupliziert.");
+      showToast(message, variant);
+    }
+    if (id) router.push(recipeUrl(id, recipe.recipe_name));
   } catch (error) {
     console.error("Error copying recipe:", error);
     showToast("Fehler beim Duplizieren des Rezepts", "danger");
