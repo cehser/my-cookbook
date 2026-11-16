@@ -29,3 +29,4 @@ Erledigte und verworfene Punkte aus [ROADMAP.md](../ROADMAP.md), wörtlich über
 - [x] W.29 Undo/Redo als Composable `useEditHistory` mit Tests, `useDraft.spec.ts` räumt ab · 2026-11-15 · `1da343b`
 - [x] W.28 Vorlage des Foto-Imports am Rezept: `recipe_images.kind` (photo/source, Migration 007), Titelbild nur aus Fotos, Seiten als Vorlage in Reihenfolge, Abschnitt „Vorlage“ in Detail und Bearbeitung, Sprung in die Bearbeitung, EXIF-Drehung; Mitnahmen: Rezept löschen entfernt Bilddateien, Navigation mit Backend-ID · 2026-11-16 · `c2cee7c`
 - [x] W.30 `formatDate` zusammengeführt (leer → „—“), `db_password` nicht leer, Smoke-Test entkoppelt · 2026-11-16 · `c2cee7c`
+- [x] W.23 Auth-Feinschliff: Login-Entscheidung zentral in `auth/session.ts` nach Zustandstabelle, `userManager.ts`, Callback-Sperre, Web Locks (Warten max. 15 s), Backoff, Login-Vormerkung, Tests (inkl. Nacharbeit N1–N5) · 2026-11-16 · `f759867`
