@@ -1,8 +1,16 @@
 /**
- * Generate a UUID v4 (random UUID)
+ * Generate a UUID v4 (random UUID); without `crypto.randomUUID` a fallback
+ * based on `Math.random`.
  * Public Domain/MIT
  */
 export function generateUUID(): string {
+  // Kryptografisch zufällig, wo verfügbar (sicherer Kontext, also HTTPS)
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
   let d = new Date().getTime();
 
   if (
