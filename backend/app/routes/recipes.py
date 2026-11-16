@@ -7,6 +7,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import distinct_on
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin, require_editor, require_readonly
@@ -15,7 +16,6 @@ from app.models.image import IMAGE_KIND_PHOTO, RecipeImage
 from app.models.recipe import Recipe
 from app.models.tag import RecipeTag, Tag
 from app.models.user import AppUser
-from app.routes.images import delete_recipe_files, download_and_store_image
 from app.schemas.recipe import (
     RecipeCreate,
     RecipeListItem,
@@ -24,8 +24,12 @@ from app.schemas.recipe import (
     RecipeUpdate,
     normalize_recipe_data,
 )
+from app.services.images import delete_recipe_files, download_and_store_image
 
 router = APIRouter(prefix="/v1", tags=["recipes"])
+
+# PostgreSQL-SQLSTATE unique_violation; beim INSERT in recipes nur über den Primärschlüssel
+UNIQUE_VIOLATION = "23505"
 
 
 # ---------------------------------------------------------------------------
@@ -254,8 +258,20 @@ async def create_recipe(
         created_by=user.oidc_sub,
         updated_by=user.oidc_sub,
     )
+    if body.id is not None:
+        recipe.id = body.id
     db.add(recipe)
-    await db.flush()
+    # Erster flush = INSERT: Eine ID-Kollision fällt hier auf, vor Bild-Download und Tags.
+    # Kein Vorab-SELECT, damit auch gleichzeitige Anfragen sicher 409 bekommen.
+    try:
+        await db.flush()
+    except IntegrityError as err:
+        await db.rollback()
+        if body.id is not None and getattr(err.orig, "sqlstate", None) == UNIQUE_VIOLATION:
+            raise HTTPException(
+                status_code=409, detail=f"Rezept mit ID {body.id} existiert bereits"
+            ) from err
+        raise
 
     # Auto-download imageurl if present
     await _auto_download_imageurl(recipe, db, user.oidc_sub)
