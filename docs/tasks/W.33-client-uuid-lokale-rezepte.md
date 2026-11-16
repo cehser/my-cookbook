@@ -61,3 +61,18 @@ Rezepte, die nur auf dem Gerät angelegt wurden (Ergebnis `local` aus W.31), geh
 - Backend: 409 dokumentiert, Nil-UUID 422 (Test)
 - Szenarien für meine Sichtprüfung im Bericht (offline importieren → App schließen → online öffnen; offline anlegen und bearbeiten; als `readonly` offline anlegen und online gehen)
 - Verifikation gemäß Projekt-CLAUDE.md (Frontend und Backend inkl. DB-Tests)
+
+## Nacharbeit (2026-11-17, nach Prüfung)
+
+Ausgangsstand: `58020a1`. Vorher `git merge main` im Worktree.
+
+- **N1 409-Abgleich über den Ersteller statt den Namen** (Befunde B1, B2, B6): Bei 409 per GET prüfen, ob `created_by` dem eigenen `sub` entspricht (vorher klären, dass `created_by` im Backend gleich dem `sub` aus dem Token ist; `currentUserSub()` in `session.ts`). Eigenes Rezept: weicht der Serverstand vom vorgemerkten Stand ab, den vorgemerkten Stand per PUT nachschieben, erst nach Erfolg aus der Vormerkung entfernen; scheitert der PUT, bleibt der Eintrag vorgemerkt und wird beim nächsten Laden erneut versucht. Gleiches gilt für die Bearbeitung während einer laufenden Übertragung (B6: Eintrag erst nach erfolgreichem PUT entfernen). Fremdes Rezept: `rejected` wie bisher. Hintergrund: POST committet, Antwort geht verloren (Timeout/504), Nutzer bearbeitet bzw. benennt um; heute überschreibt der alte Serverstand die Bearbeitung bzw. das Rezept hängt als „abgelehnt“ fest.
+- **N2 Gelöscht während POST** (B3): Liefert `takeAfterCreate` nichts, weil das Rezept während der Anfrage gelöscht wurde, und hat der POST angelegt (201 oder eigenes 409), danach `DELETE` senden.
+- **N3 Vormerkung je Nutzer** (B4): Jeder Eintrag speichert den `sub` beim Anlegen. Liste und Übertragung berücksichtigen nur Einträge des angemeldeten Nutzers; fremde bleiben unberührt in der IndexedDB (nicht übertragen, nicht als abgelehnt markiert, nicht angezeigt). Einträge ohne `sub` (Bestand aus dem Branch) gibt es produktiv nicht; keine Migration.
+- **N4 IndexedDB-Fehler** (B5): Schreibfehler der Vormerkung werfen; `appendRecipe` meldet dann `failed` („konnte auf diesem Gerät nicht gespeichert werden“) statt `local`. Nach einem Lesefehler nicht schreiben (kein Überschreiben der Vormerkung mit einer leeren Liste).
+- **N5 UUID** (B9): `generateUUID` nutzt `crypto.randomUUID()`, wenn verfügbar, sonst die bisherige Funktion.
+
+### Abnahme Nacharbeit
+- Je ein Vitest für B1 (Bearbeitung nach verlorener Antwort bleibt erhalten), B2 (Umbenennung nach verlorener Antwort, Rezept wird eigenes und bleibt bearbeit- und löschbar), B3 (gelöscht während POST, `DELETE` gesendet), B4 (Einträge von Nutzer A werden mit Sitzung B nicht übertragen und nicht angezeigt), B5 (Schreib- und Lesefehler), B6 (PUT scheitert, Eintrag bleibt)
+- Verifikation gemäß Projekt-CLAUDE.md (Frontend; Backend nur, falls geändert)
+- Bericht um Abschnitt „Nacharbeit“ fortschreiben
