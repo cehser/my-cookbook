@@ -1,6 +1,6 @@
 # Bericht W.33: Client-UUID beim Anlegen, lokal gespeicherte Rezepte nachladen statt verlieren
 
-> Branch `worktree-W.33-client-uuid-lokale-rezepte` · Basis `db0dda2` (= `a44d523` + `docs(roadmap)`) · Stand `c6b1b01` (+ dieser Bericht) · 2026-11-16 · Dauer: 23:22 – 23:39 (17 min, davon Warten an Checkpoints 0 min) · Status: fertig
+> Branch `worktree-W.33-client-uuid-lokale-rezepte` · Basis `db0dda2` (= `a44d523` + `docs(roadmap)`) · Stand `e8144c5` (+ dieser Bericht) · 2026-11-16/17 · Dauer: 23:22 – 23:39 und Nacharbeit 00:05 – 00:16 (28 min, davon Warten an Checkpoints 0 min) · Status: fertig
 
 ## Ergebnis
 Ein Rezept, das nur auf dem Gerät angelegt wurde (`local`), steht jetzt dauerhaft in einer eigenen Vormerkung in der IndexedDB. Es übersteht Neuladen und App-Neustart. Beim nächsten Laden mit gültiger Sitzung wird es mit seiner UUID übertragen, danach erscheint der Toast „N Rezepte übertragen“. Eine Wiederholung legt nichts doppelt an: Bei 409 gleicht der Client per GET ab. Vorgemerkte Rezepte lassen sich ohne API-Aufruf bearbeiten und löschen. Bei abgelaufener Sitzung ergibt das Anlegen „Bitte neu anmelden“ statt einer lokalen Kopie. Das Backend dokumentiert 409 und lehnt die Nil-UUID mit 422 ab.
@@ -90,12 +90,60 @@ Ein Rezept, das nur auf dem Gerät angelegt wurde (`local`), steht jetzt dauerha
 ## Offen und Folgepunkte
 - **Bestand vor W.33:** Rezepte, die vor diesem Auftrag als `local` gespeichert wurden, stehen nur im Listen-Cache, nicht in der Vormerkung. Beim nächsten Online-Laden werden sie wie bisher verworfen. Laut Auftrag keine Migration.
 - **Abgelehnte Rezepte nach Neustart:** Der Hinweis erscheint einmal, nämlich bei dem Lauf, der die Ablehnung erhält. In der Liste ist ein abgelehntes, vorgemerktes Rezept danach nicht gekennzeichnet. Vorschlag: Markierung „nur auf diesem Gerät“ an der Rezeptkarte, solange es vorgemerkt ist · S.
-- **Zwei Tabs:** `locked` und der Single-Flight wirken nur innerhalb eines Tabs. Übertragen zwei Tabs gleichzeitig, bekommt der zweite 409 mit passendem Namen und wertet das als `created`. Ergebnis korrekt, nur eine Anfrage zu viel. Kein Handlungsbedarf.
-- **409 nach Umbenennung:** War ein POST auf dem Server erfolgreich, aber die Antwort ging verloren (Timeout), und benennt der Nutzer das vorgemerkte Rezept vor der Wiederholung um, ergibt der Abgleich „fremd“ (409, Hinweis). Das Rezept existiert dann zweimal, auf dem Server unter altem Namen und lokal vorgemerkt. Selten. Bei Bedarf: Abgleich zusätzlich über `created_by` · S.
-- **`generateUUID`** nutzt `Math.random` statt `crypto.randomUUID()`. Für die Kollisionsfreiheit der Client-IDs reicht das praktisch, kryptografisch stark ist es nicht. Umstellung auf `crypto.randomUUID()` (sicherer Kontext ist durch HTTPS gegeben) · XS.
+- **Zwei Tabs:** `locked` und der Single-Flight wirken nur innerhalb eines Tabs. Übertragen zwei Tabs gleichzeitig, bekommt der zweite 409 mit eigenem Ersteller und wertet das als `created` (seit Nacharbeit über `created_by`). Ergebnis korrekt, nur eine Anfrage zu viel. Kein Handlungsbedarf.
+- ~~409 nach Umbenennung~~ und ~~`generateUUID`~~: in der Nacharbeit erledigt (N1, N5).
 
 ## Status je Roadmap-Punkt
 - `W.33` fertig (Sichtprüfung steht aus)
 
 ## Vorschlag Roadmap-Zeilen
-`- [x] W.33 Client-UUID beim Anlegen, lokal angelegte Rezepte vormerken und übertragen · 2026-11-16 · c6b1b01`
+`- [x] W.33 Client-UUID beim Anlegen, lokal angelegte Rezepte vormerken und übertragen · 2026-11-17 · e8144c5`
+
+## Nacharbeit (2026-11-17, N1–N5)
+
+> Ausgangsstand `58020a1`, vorher `git merge main` (`1eddc91`, ohne Konflikt) · Dauer 00:05 – 00:16 (11 min)
+
+### Commits
+- `1eddc91` Merge branch 'main' into worktree-W.33-client-uuid-lokale-rezepte
+- `c3e42c1` fix(frontend): UUID per crypto.randomUUID erzeugen
+- `94d0287` fix(frontend): Vormerkung je Nutzer, 409-Abgleich über den Ersteller
+- `e8144c5` docs(frontend): Rules zur Vormerkung je Nutzer und 409-Abgleich nachziehen
+- (diese Fortschreibung)
+
+### Umsetzung
+- **Vorklärung N1:** `created_by` ist `uuid.UUID(payload["sub"])` aus dem Access-Token (`auth/dependencies.py`). Das Backend prüft `aud`/`azp` gegen die eine Client-ID, ID-Token und Access-Token stammen also vom selben Client und tragen denselben `sub`. Das ist abgeleitet (Keycloak-Verhalten), nicht live geprüft. Verglichen wird ohne Groß-/Kleinschreibung, weil das Backend den `sub` als kanonische UUID ausgibt.
+- **N1:** Bei 409 vergleicht das GET `created_by` mit `currentUserSub()`. Ein fremdes Rezept ergibt `rejected`. Bei einem eigenen Rezept wird der Serverstand mit dem vorgemerkten Stand verglichen (Nutzlast als JSON-Kopie). Weicht er ab, folgt ein PUT.
+  - Ein Eintrag verlässt die Vormerkung erst, wenn der Server den vorgemerkten Stand hat (`settle`). Wurde das Rezept während der Anfrage bearbeitet, folgt ein PUT, höchstens 3 je Lauf. Scheitert der PUT, bleibt der Eintrag vorgemerkt. Beim nächsten Laden kommt 409 mit eigenem Ersteller, dann wieder ein PUT (B6).
+- **N2:** Wird ein Rezept während des POST gelöscht und hat der POST angelegt (201, eigenes 409 oder PUT), folgt ein `DELETE`.
+- **N3:** `PendingCreate.sub` wird beim Anlegen gesetzt. `listPending` liefert nur Einträge des angemeldeten Nutzers, und nur diese werden übertragen und angezeigt. Fremde Einträge bleiben unverändert in der IDB.
+- **N4:** `readPendingCreates`/`writePendingCreates` werfen Fehler, statt `undefined` zu liefern oder sie zu schlucken.
+  - `addPending` wirft `LocalSaveError`, `appendRecipe` meldet dann `failed` mit „Rezept nicht angelegt: konnte auf diesem Gerät nicht gespeichert werden.“.
+  - Nach einem Lesefehler wird nicht geschrieben: Jeder Schreibzugriff liest unter `locked` und bricht beim Fehler ab. `listPending` liefert bei einem Lesefehler eine leere Liste, ohne zu schreiben.
+  - `setRecipe` und `deleteRecipe` behandeln einen IDB-Fehler als „nicht vorgemerkt“ und gehen zur API. Sonst wäre ohne IndexedDB (privater Modus) jedes Bearbeiten gescheitert.
+- **N5:** `generateUUID` nutzt `crypto.randomUUID()`, wenn verfügbar, sonst den bisherigen Rückfall.
+
+### Verifikation
+- `npm run lint:check && npm run typecheck && npm test && npm run build` → grün, 26 Testdateien, 246 Tests (vorher 237: +6 Store B1–B6, +1 B5 Lesefehler, +2 `uuid.spec.ts`), Build in 1,02 s. Prüfzeit 1 min 13 s.
+- Backend nach dem Merge (selbst nicht geändert): `ruff check`, `ruff format --check`, `pytest` → 134 passed, 13 skipped, 2,0 s. Die DB-Tests habe ich nicht erneut ausgeführt, weil das Backend in der Nacharbeit nicht geändert wurde.
+- Abnahmetests (`store/recipeStore.spec.ts`):
+  - B1: Bearbeitung nach verlorener Antwort wird per PUT übertragen.
+  - B2: Nach einer Umbenennung wird das Rezept als eigenes erkannt und danach normal bearbeitet (PUT) und gelöscht (DELETE).
+  - B3: Bei Löschen während des POST geht ein `DELETE` hinaus.
+  - B4: Einträge von Nutzer A werden mit Sitzung B weder angezeigt noch übertragen noch beschrieben, mit A dann übertragen.
+  - B5: Schreibfehler ergibt `failed`. Ein Lesefehler führt nie zu einem Schreibzugriff, die IDB bleibt unverändert.
+  - B6: Scheitert der PUT, bleibt der Eintrag; das nächste Laden schiebt nach.
+- Gegenprobe per Mutation (Scratchpad, jeweils zurückgesetzt). Jede Mutation lässt mindestens einen Test scheitern:
+  - Ersteller ignoriert
+  - kein PUT bei abweichendem Stand
+  - Eintrag vor dem PUT entfernt
+  - kein DELETE
+  - kein `sub`-Filter
+  - Schreibfehler geschluckt
+  - Lesefehler als leer gewertet
+- Sichtprüfung: keine
+
+### Abweichungen und Befunde
+- **N2 greift nur für Admins:** `DELETE /recipes/{id}` verlangt `require_admin`. Bei einem Editor scheitert das nachgeschobene DELETE mit 403 (Warnung im Log), und das Rezept taucht beim nächsten Listenabruf wieder auf. Ob Editoren eigene Rezepte löschen dürfen, ist eine fachliche Entscheidung und nicht Teil dieses Auftrags. Mögliche Folgepunkte: DELETE für den Ersteller erlauben, oder das Löschen eines gerade übertragenen Rezepts für Nicht-Admins sperren · S.
+- **Höchstens 3 PUTs je Rezept und Lauf**, falls der Nutzer während der Übertragung weiter bearbeitet. Danach bleibt der Eintrag für den nächsten Lauf vorgemerkt. Schutz gegen eine Endlosschleife, im Auftrag nicht genannt.
+- **`setRecipe`/`deleteRecipe` bei IDB-Fehler:** gehen zur API, statt zu werfen (siehe N4). Ist das Rezept tatsächlich vorgemerkt und die IDB nur gerade nicht lesbar, ergibt das PUT bzw. DELETE ein 404, das nur protokolliert wird.
+- **Vergleich bei eigenem 409:** Das Backend normalisiert Rezeptdaten (`normalize_recipe_data`, z. B. `sections`). Ein Unterschied nur durch die Normalisierung löst einen überflüssigen, aber harmlosen PUT aus.
