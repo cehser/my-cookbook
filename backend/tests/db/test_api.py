@@ -1,5 +1,6 @@
 """Rezept-API und ``/me`` gegen die echte DB (Rolle über ``get_current_user`` gesetzt)."""
 
+import asyncio
 import io
 import uuid
 
@@ -11,6 +12,7 @@ from sqlalchemy import select
 from app.auth import dependencies
 from app.models.image import RecipeImage
 from app.models.user import AppUser
+from app.routes import recipes
 from app.services import images as image_service
 
 pytestmark = pytest.mark.anyio
@@ -43,6 +45,79 @@ async def test_recipe_lifecycle(db_client: httpx.AsyncClient, as_db_user) -> Non
     deleted = await db_client.delete(f"/api/v1/recipes/{recipe['id']}")
     assert deleted.status_code == 204
     assert (await db_client.get(f"/api/v1/recipes/{recipe['id']}")).status_code == 404
+
+
+async def test_create_with_client_id(db_client: httpx.AsyncClient, as_db_user) -> None:
+    await as_db_user("admin")
+    recipe_id = str(uuid.uuid4())
+
+    created = await db_client.post(
+        "/api/v1/recipes",
+        json={"id": recipe_id, "recipe_name": "Mit Client-ID", "tags": ["Erst"]},
+    )
+    assert created.status_code == 201
+    assert created.json()["id"] == recipe_id
+
+    # Wiederholung bzw. Kollision: 409, das bestehende Rezept bleibt unverändert
+    again = await db_client.post(
+        "/api/v1/recipes",
+        json={"id": recipe_id, "recipe_name": "Überschrieben?", "tags": ["Zweit"]},
+    )
+    assert again.status_code == 409
+    assert recipe_id in again.json()["detail"]
+
+    stored = (await db_client.get(f"/api/v1/recipes/{recipe_id}")).json()
+    assert stored["recipe_name"] == "Mit Client-ID"
+    assert stored["tags"] == ["Erst"]
+    assert stored["updated_at"] == created.json()["updated_at"]
+
+    assert (await db_client.delete(f"/api/v1/recipes/{recipe_id}")).status_code == 204
+    # Kein Grabstein: Nach dem Löschen ist die ID wieder frei
+    reused = await db_client.post("/api/v1/recipes", json={"id": recipe_id, "recipe_name": "Neu"})
+    assert reused.status_code == 201
+    await db_client.delete(f"/api/v1/recipes/{recipe_id}")
+
+
+async def test_create_with_client_id_concurrently(db_client: httpx.AsyncClient, as_db_user) -> None:
+    await as_db_user("admin")
+    recipe_id = str(uuid.uuid4())
+    body = {"id": recipe_id, "recipe_name": "Parallel"}
+
+    results = await asyncio.gather(
+        *(db_client.post("/api/v1/recipes", json=body) for _ in range(3))
+    )
+
+    assert sorted(r.status_code for r in results) == [201, 409, 409]
+    await db_client.delete(f"/api/v1/recipes/{recipe_id}")
+
+
+async def test_create_with_existing_client_id_leaves_no_image_files(
+    db_client: httpx.AsyncClient, as_db_user, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Die Kollision fällt beim ersten flush auf, vor dem Download der imageurl
+    monkeypatch.setattr(image_service, "UPLOAD_DIR", tmp_path)
+
+    async def _no_download(*_args, **_kwargs):
+        raise AssertionError("Download vor der ID-Prüfung")
+
+    monkeypatch.setattr(recipes, "download_and_store_image", _no_download)
+    await as_db_user("admin")
+    recipe_id = str(uuid.uuid4())
+    assert (
+        await db_client.post("/api/v1/recipes", json={"id": recipe_id, "recipe_name": "A"})
+    ).status_code == 201
+
+    r = await db_client.post(
+        "/api/v1/recipes",
+        json={
+            "id": recipe_id,
+            "recipe_name": "B",
+            "data": {"imageurl": "https://example.invalid/bild.jpg"},
+        },
+    )
+    assert r.status_code == 409
+    assert not list(tmp_path.iterdir())
+    await db_client.delete(f"/api/v1/recipes/{recipe_id}")
 
 
 async def test_pagination_with_identical_names_is_stable(

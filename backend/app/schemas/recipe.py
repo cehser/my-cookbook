@@ -178,6 +178,8 @@ def normalize_recipe_data(data: dict) -> dict:
 
 
 class RecipeCreate(BaseModel):
+    # Optional vom Client vergeben (idempotente Wiederholung); 409, falls sie schon existiert
+    id: uuid.UUID | None = None
     recipe_name: str = Field(..., min_length=1, max_length=500)
     data: RecipeData = Field(default_factory=RecipeData)
     tags: list[str] | None = None
