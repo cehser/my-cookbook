@@ -1,0 +1,18 @@
+# Override: Frontend und Backend aus dem Quellcode bauen statt aus ghcr.io ziehen.
+#   COMMIT_HASH=$(git rev-parse --short HEAD) \
+#     docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+# Eigene Image-Namen, damit der lokale Build die gezogenen ghcr.io-Tags nicht überschreibt.
+services:
+  frontend:
+    image: my-cookbook-frontend:local
+    pull_policy: build
+    build:
+      context: ./frontend
+      args:
+        COMMIT_HASH: ${COMMIT_HASH:-dev}
+
+  backend:
+    image: my-cookbook-backend:local
+    pull_policy: build
+    build:
+      context: ./backend

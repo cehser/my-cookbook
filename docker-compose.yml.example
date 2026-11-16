@@ -1,10 +1,7 @@
 services:
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        COMMIT_HASH: ${COMMIT_HASH:-dev}
+    # Images baut die CI (main); Rollback mit IMAGE_TAG=<sha>, lokal bauen: docker-compose.build.yml
+    image: ghcr.io/cehser/my-cookbook-frontend:${IMAGE_TAG:-main}
     ports:
       - "8080:80"
     container_name: my-cookbook-frontend
@@ -15,9 +12,7 @@ services:
     restart: unless-stopped
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/cehser/my-cookbook-backend:${IMAGE_TAG:-main}
     container_name: my-cookbook-backend
     env_file:
       - .env
