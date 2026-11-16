@@ -37,7 +37,7 @@ Rezepte als PDF exportieren (Drucken, Weitergeben). Ansatz offen: Print-CSS im B
 ## 11 — Export/Import
 Admins exportieren den Rezeptbestand samt Bildern als ZIP und spielen ihn wieder ein. Plan: [export-import.md](docs/plans/export-import.md)
 
-- [ ] 11.1 Gesamtexport als ZIP (Rezepte, Tags, Bilder) · M · Opus
+- [~] 11.1 Gesamtexport als ZIP (Rezepte, Tags, Bilder) · M · Opus · 2026-11-17 · [Auftrag](docs/tasks/11.1-gesamtexport-zip.md)
 - [ ] 11.2 Import aus ZIP mit Konfliktwahl, Einzel-Import auf UUID-Logik, IndexedDB-„Speichern“ entfernen · M · Opus · nach 11.1
 
 ## 12 — Offline-Bearbeitung
