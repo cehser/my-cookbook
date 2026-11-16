@@ -1,4 +1,8 @@
-import type { RecipeDetail, RecipeListItem } from "@/api/recipes";
+import type {
+  RecipeCreatePayload,
+  RecipeDetail,
+  RecipeListItem,
+} from "@/api/recipes";
 import type { Recipe } from "@/types/recipe";
 
 /** Listeneintrag der API als Rezept ohne Zutaten, Schritte und Abschnitte. */
@@ -34,5 +38,28 @@ export function detailToRecipe(detail: RecipeDetail): Recipe {
     tags: detail.tags,
     ...data,
     first_image_id: detail.first_image_id ?? undefined,
+  };
+}
+
+/**
+ * Rezept als Nutzlast für `POST`/`PUT`: ID, Zeitstempel und Titelbild sind
+ * keine Rezeptdaten (die ID schickt `recipeApi.create` getrennt mit).
+ */
+export function recipeToPayload(recipe: Recipe): RecipeCreatePayload {
+  const {
+    recipe_uuid: _uuid,
+    recipe_name,
+    lastUpdated: _updated,
+    first_image_id: _fii,
+    ingredients,
+    steps,
+    sections,
+    tags,
+    ...rest
+  } = recipe;
+  return {
+    recipe_name,
+    data: { ingredients, steps, sections, ...rest },
+    tags: tags || [],
   };
 }

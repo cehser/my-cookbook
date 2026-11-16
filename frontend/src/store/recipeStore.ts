@@ -2,7 +2,11 @@ import { defineStore } from "pinia";
 import { set, get } from "idb-keyval";
 import { loadYamlCookbook, loadSample } from "@/js/recipes";
 import { deepCopyJSON } from "@/js/deepCopy";
-import { detailToRecipe, listItemToRecipe } from "@/js/recipeMapping";
+import {
+  detailToRecipe,
+  listItemToRecipe,
+  recipeToPayload,
+} from "@/js/recipeMapping";
 import {
   serializeRecipePictures,
   deserializeRecipePictures,
@@ -18,11 +22,20 @@ import {
   writeRecipes,
   writeSettings,
 } from "@/js/offlineCache";
-import { api, isClientError } from "@/api/client";
+import { api, ApiError, isClientError } from "@/api/client";
 import { recipeApi, type RecipeDetail } from "@/api/recipes";
 import { favoritesApi } from "@/api/favorites";
 import { imageApi } from "@/api/images";
 import { ensureAuth, isAuthenticated, loginFollows } from "@/auth/session";
+import {
+  addPending,
+  createWithClientId,
+  listPending,
+  removePending,
+  transferPending,
+  updatePending,
+  type TransferReport,
+} from "@/store/pendingCreates";
 import type { Recipe, RecipePictures } from "@/types/recipe";
 import type { Settings } from "@/types/settings";
 
@@ -36,10 +49,10 @@ export type DataSource = "none" | "api" | "cache";
 /**
  * Ergebnis von `appendRecipe`:
  * - `created`: vom Backend angelegt (`detail.id` ist die Backend-ID)
- * - `local`: nur auf diesem Gerät gespeichert (offline, Timeout, 5xx); wird
- *   nicht nachträglich hochgeladen
- * - `failed`: vom Backend abgelehnt (4xx, z. B. fehlende Rolle, 422), nicht
- *   gespeichert
+ * - `local`: auf diesem Gerät vorgemerkt (offline, Timeout, 5xx); wird beim
+ *   nächsten Laden mit gültiger Sitzung übertragen (`store/pendingCreates.ts`)
+ * - `failed`: vom Backend abgelehnt (4xx, z. B. fehlende Rolle, 422) oder
+ *   Sitzung abgelaufen (401, Login folgt), nicht gespeichert
  */
 export type AppendResult =
   | { status: "created"; detail: RecipeDetail }
@@ -65,6 +78,23 @@ let listSeq = 0;
 let appliedListSeq = 0;
 let createdPending: { seq: number; recipe: Recipe }[] = [];
 
+/** Hängt die Rezepte aus `extra` an, deren ID in `recipes` noch fehlt. */
+function withPending(
+  recipes: Recipe[],
+  extra: readonly { recipe: Recipe }[],
+): Recipe[] {
+  const known = new Set(recipes.map((r) => r.recipe_uuid));
+  const added = extra
+    .map((e) => e.recipe)
+    .filter((r) => !known.has(r.recipe_uuid));
+  return added.length > 0 ? [...recipes, ...added] : recipes;
+}
+
+/** Login folgt: nichts speichern, der Aufrufer meldet „Bitte neu anmelden“. */
+function sessionExpired(): AppendResult {
+  return { status: "failed", error: new ApiError(401, "Sitzung abgelaufen") };
+}
+
 export const useRecipeStore = defineStore("recipe", {
   state: () => ({
     recipes: [] as Recipe[],
@@ -72,6 +102,8 @@ export const useRecipeStore = defineStore("recipe", {
     recipe_pictures: {} as RecipePictures,
     favorites: [] as string[],
     dataSource: "none" as DataSource,
+    /** Ergebnis der letzten Übertragung vorgemerkter Rezepte (für Toasts) */
+    transferReport: null as TransferReport | null,
   }),
 
   actions: {
@@ -105,8 +137,21 @@ export const useRecipeStore = defineStore("recipe", {
 
     /** Lädt neu, wenn die Daten (noch) nicht von der API stammen. */
     async reloadIfStale(): Promise<void> {
-      if (this.dataSource === "api") return;
-      await this.loadAll();
+      if (this.dataSource !== "api") return this.loadAll();
+      // Daten aktuell, aber vielleicht noch Vorgemerktes (z. B. nach 5xx)
+      if (await isAuthenticated()) await this.transferPending();
+    },
+
+    /** Vorgemerkte Rezepte übertragen (nur mit gültiger Sitzung aufrufen). */
+    async transferPending(): Promise<void> {
+      const report = await transferPending({
+        onCreated: (detail) => this.insertCreated(detailToRecipe(detail)),
+      });
+      // Parallele Aufrufer teilen den Lauf und damit dasselbe Objekt: Die
+      // zweite Zuweisung ändert nichts, der Toast erscheint einmal.
+      if (report.transferred > 0 || report.rejected.length > 0) {
+        this.transferReport = report;
+      }
     },
 
     async loadAllOnce() {
@@ -132,6 +177,7 @@ export const useRecipeStore = defineStore("recipe", {
         : sources.includes("cache")
           ? "cache"
           : "none";
+      if (useApi && sources[1] === "api") await this.transferPending();
     },
 
     /** Zeigt vorhandene Cache-Daten als vorläufigen Stand. */
@@ -213,7 +259,7 @@ export const useRecipeStore = defineStore("recipe", {
       console.warn("Read recipes from idb");
       const val = await readRecipes();
       if (val) {
-        this.recipes = val;
+        this.recipes = withPending(val, await listPending());
         return "cache";
       }
       console.warn("Fallback to localstorage");
@@ -232,6 +278,7 @@ export const useRecipeStore = defineStore("recipe", {
         source = "none";
       }
 
+      recipes = withPending(recipes, await listPending());
       void writeRecipes(recipes);
       this.recipes = recipes;
       return source;
@@ -256,7 +303,14 @@ export const useRecipeStore = defineStore("recipe", {
       }
       if (index < 0) return;
       this.recipes.splice(index, 1);
-      if ((await isAuthenticated()) && uuid) {
+      // Vor jedem await austragen, damit kein laufender Abruf das Rezept
+      // zurückbringt
+      createdPending = createdPending.filter(
+        (c) => c.recipe.recipe_uuid !== uuid,
+      );
+      const wasPending = uuid ? removePending(uuid) : Promise.resolve(false);
+      // Vorgemerkte Rezepte kennt das Backend nicht: kein API-Aufruf
+      if (!(await wasPending) && uuid && (await isAuthenticated())) {
         try {
           await recipeApi.delete(uuid);
         } catch (e) {
@@ -267,46 +321,41 @@ export const useRecipeStore = defineStore("recipe", {
     },
 
     /**
-     * Legt ein Rezept an, Ergebnis siehe `AppendResult`. Nach dem Anlegen
-     * kommt das Rezept aus der Antwort direkt in die Liste (kein Neuladen,
-     * das scheitern und ein Duplikat erzeugen könnte). Nur Ausfälle (offline,
-     * Timeout, 5xx) speichern lokal; eine Ablehnung (4xx) speichert nichts,
-     * weil lokale Rezepte nie zum Backend übertragen werden.
+     * Legt ein Rezept mit seiner `recipe_uuid` als Backend-ID an, Ergebnis
+     * siehe `AppendResult`. Nach dem Anlegen kommt das Rezept aus der Antwort
+     * direkt in die Liste (kein Neuladen). Nur Ausfälle (offline, Timeout,
+     * 5xx) merken das Rezept zur Übertragung vor; eine Ablehnung (4xx) oder
+     * eine abgelaufene Sitzung (Login folgt) speichert nichts.
      */
     async appendRecipe(recipe: Recipe): Promise<AppendResult> {
       const recipeCopy = deepCopyJSON(recipe);
-      if (await isAuthenticated()) {
-        const {
-          recipe_uuid: _uuid,
-          recipe_name,
-          lastUpdated: _updated,
-          first_image_id: _fii,
-          ingredients,
-          steps,
-          sections,
-          tags,
-          ...rest
-        } = recipeCopy;
-        let detail: RecipeDetail | undefined;
+      const auth = await ensureAuth();
+      if (loginFollows(auth)) return sessionExpired();
+      if (auth === "valid") {
         try {
-          detail = await recipeApi.create({
-            recipe_name,
-            data: { ingredients, steps, sections, ...rest },
-            tags: tags || [],
-          });
+          const outcome = await createWithClientId(recipeCopy);
+          if (outcome.status === "rejected") {
+            console.warn("Recipe rejected by API, not saved", outcome.error);
+            return { status: "failed", error: outcome.error };
+          }
+          this.insertCreated(detailToRecipe(outcome.detail));
+          return { status: "created", detail: outcome.detail };
         } catch (e) {
-          if (isClientError(e)) {
-            console.warn("Recipe rejected by API, not saved", e);
-            return { status: "failed", error: e };
+          // 401 nach gescheiterter Erneuerung: neu anmelden statt vormerken
+          if (
+            e instanceof ApiError &&
+            e.status === 401 &&
+            loginFollows(await ensureAuth())
+          ) {
+            return sessionExpired();
           }
           console.warn("Failed to create recipe via API, saving locally", e);
         }
-        if (detail) {
-          this.insertCreated(detailToRecipe(detail));
-          return { status: "created", detail };
-        }
       }
-      this.recipes.push(recipeCopy);
+      await addPending(recipeCopy);
+      if (!this.recipes.some((r) => r.recipe_uuid === recipeCopy.recipe_uuid)) {
+        this.recipes.push(recipeCopy);
+      }
       this.saveRecipes();
       return { status: "local" };
     },
@@ -315,33 +364,29 @@ export const useRecipeStore = defineStore("recipe", {
     insertCreated(recipe: Recipe) {
       void writeRecipeDetail(recipe);
       createdPending.push({ seq: listSeq, recipe });
-      if (!this.recipes.some((r) => r.recipe_uuid === recipe.recipe_uuid)) {
-        this.recipes.push(recipe);
-      }
+      const index = this.recipes.findIndex(
+        (r) => r.recipe_uuid === recipe.recipe_uuid,
+      );
+      // Ein übertragenes Rezept ersetzt seine lokale Fassung (gleiche ID)
+      if (index < 0) this.recipes.push(recipe);
+      else this.recipes.splice(index, 1, recipe);
       this.saveRecipes();
     },
 
     async setRecipe({ index, recipe }: { index: number; recipe: Recipe }) {
       const recipeCopy = deepCopyJSON(recipe);
       this.recipes.splice(index, 1, recipeCopy);
+      // Vorgemerkt: Das Backend kennt das Rezept noch nicht (PUT gäbe 404)
+      if (recipeCopy.recipe_uuid && (await updatePending(recipeCopy))) {
+        this.saveRecipes();
+        return;
+      }
       if ((await isAuthenticated()) && recipeCopy.recipe_uuid) {
         try {
-          const {
-            recipe_uuid,
-            recipe_name,
-            lastUpdated: _updated,
-            first_image_id: _fii,
-            ingredients,
-            steps,
-            sections,
-            tags,
-            ...rest
-          } = recipeCopy;
-          await recipeApi.update(recipe_uuid, {
-            recipe_name,
-            data: { ingredients, steps, sections, ...rest },
-            tags: tags || [],
-          });
+          await recipeApi.update(
+            recipeCopy.recipe_uuid,
+            recipeToPayload(recipeCopy),
+          );
           void writeRecipeDetail(recipeCopy);
         } catch (e) {
           console.warn("Failed to update recipe via API", e);
@@ -475,21 +520,18 @@ export const useRecipeStore = defineStore("recipe", {
     async loadRecipesFromApi() {
       const seq = ++listSeq;
       const items = await recipeApi.listAll();
+      const pending = await listPending();
       // Eine neuere Antwort ist schon übernommen: diese ist veraltet.
       if (seq < appliedListSeq) return;
       appliedListSeq = seq;
-      const recipes = items.map(listItemToRecipe);
+      const fromApi = items.map(listItemToRecipe);
       // Vor diesem Abruf angelegte Rezepte sind in der Antwort enthalten;
       // während des Abrufs angelegte fehlen womöglich und bleiben erhalten.
+      // Vorgemerkte (noch nicht übertragene) Rezepte bleiben sichtbar.
       createdPending = createdPending.filter((c) => c.seq >= seq);
-      for (const { recipe } of createdPending) {
-        if (!recipes.some((r) => r.recipe_uuid === recipe.recipe_uuid)) {
-          recipes.push(recipe);
-        }
-      }
-      this.recipes = recipes;
-      void writeRecipes(deepCopyJSON(recipes));
-      this.prefetchRecipeDetails(recipes);
+      this.recipes = withPending(withPending(fromApi, createdPending), pending);
+      void writeRecipes(deepCopyJSON(this.recipes));
+      this.prefetchRecipeDetails(fromApi);
     },
 
     async loadRecipeDetailFromApi(id: string) {

@@ -1,5 +1,6 @@
 /**
- * Offline-Cache in IndexedDB für Rezepte, Rezeptdetails, Settings und Favoriten.
+ * Offline-Cache in IndexedDB für Rezepte, Rezeptdetails, Settings und Favoriten,
+ * dazu die Vormerkung lokal angelegter Rezepte (`pendingCreates`).
  *
  * Einziger Zugriffspunkt auf diese Schlüssel. Der Cache ist Ersatz für die API
  * bei Offline oder API-Ausfall, keine eigene Datenquelle. Lesefehler (z. B.
@@ -19,6 +20,7 @@ import type { Settings } from "@/types/settings";
 const KEY_RECIPES = "recipes";
 const KEY_SETTINGS = "settings";
 const KEY_FAVORITES = "favorites";
+const KEY_PENDING_CREATES = "pendingCreates";
 const recipeDetailKey = (uuid: string) => `recipe:${uuid}`;
 
 async function read<T>(key: string): Promise<T | undefined> {
@@ -79,4 +81,24 @@ export function readFavorites(): Promise<string[] | undefined> {
 
 export function writeFavorites(favorites: string[]): Promise<void> {
   return write(KEY_FAVORITES, favorites);
+}
+
+/**
+ * Nur auf diesem Gerät angelegtes Rezept, das noch zum Backend muss.
+ * `rejected`: HTTP-Status, mit dem das Backend die Übertragung abgelehnt hat
+ * (4xx außer 401/408/429, oder 409 ohne passenden Abgleich); dann wird es
+ * nicht automatisch erneut gesendet.
+ */
+export interface PendingCreate {
+  recipe: Recipe;
+  rejected?: number;
+}
+
+/** Vormerkung, getrennt von der Rezeptliste aus der API. */
+export function readPendingCreates(): Promise<PendingCreate[] | undefined> {
+  return read<PendingCreate[]>(KEY_PENDING_CREATES);
+}
+
+export function writePendingCreates(entries: PendingCreate[]): Promise<void> {
+  return write(KEY_PENDING_CREATES, entries);
 }

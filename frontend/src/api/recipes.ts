@@ -118,9 +118,12 @@ export const recipeApi = {
     return api.get<RecipeDetail>(`/recipes/${encodeURIComponent(id)}`);
   },
 
-  /** Create a new recipe. */
-  create(payload: RecipeCreatePayload) {
-    return api.post<RecipeDetail>("/recipes", payload);
+  /**
+   * Legt ein Rezept mit der ID des Clients an. 409: Die ID existiert schon,
+   * das Rezept dort bleibt unverändert (Abgleich per `get`).
+   */
+  create(id: string, payload: RecipeCreatePayload) {
+    return api.post<RecipeDetail>("/recipes", { id, ...payload });
   },
 
   /** Update an existing recipe. */

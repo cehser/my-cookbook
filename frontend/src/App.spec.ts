@@ -38,6 +38,7 @@ function mountApp() {
       stubs: {
         BApp: { template: "<div><slot /></div>" },
         BottomNav: true,
+        TransferNotice: true,
         RouterView: true,
       },
     },

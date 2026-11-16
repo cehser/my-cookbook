@@ -7,6 +7,7 @@ import { restoreSession } from "@/router";
 import { onUserLoaded } from "@/auth/oidc";
 import { onOnline, onResume, sessionHint } from "@/auth/session";
 import BottomNav from "@/components/layout/BottomNav.vue";
+import TransferNotice from "@/components/layout/TransferNotice.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -127,6 +128,7 @@ onMounted(() => {
       </router-view>
     </div>
     <BottomNav v-if="showBottomNav" />
+    <TransferNotice />
   </BApp>
 </template>
 
