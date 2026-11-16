@@ -98,7 +98,9 @@ jobs:
       # -rs zeigt übersprungene Tests: ein stilles Überspringen würde die Prüfung aushöhlen
       - run: uv run pytest -m db -rs
 
+  # Pull Requests: Images nur bauen. Auf main baut publish (kein doppelter Build).
   images:
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -106,3 +108,47 @@ jobs:
           persist-credentials: false
       - run: docker build --pull frontend
       - run: docker build --pull backend
+
+  # Push auf main: nach allen Prüfungen bauen und nach ghcr.io pushen.
+  # Erst beide Builds, dann alle Pushes; :main zuletzt, damit ein Abbruch
+  # (concurrency) höchstens SHA-Tags hinterlässt.
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [frontend, backend, backend-db]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Namen und Tags
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}" # ghcr verlangt Kleinschreibung
+          {
+            echo "PREFIX=ghcr.io/${owner}/my-cookbook"
+            echo "SHORT_SHA=${GITHUB_SHA::7}" # wie git rev-parse --short
+          } >> "$GITHUB_ENV"
+      - name: Images bauen
+        run: |
+          for svc in frontend backend; do
+            docker build --pull --platform linux/amd64 \
+              --build-arg "COMMIT_HASH=${SHORT_SHA}" \
+              --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+              --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+              -t "${PREFIX}-${svc}:${SHORT_SHA}" \
+              -t "${PREFIX}-${svc}:main" \
+              "$svc"
+          done
+      - name: Login ghcr.io
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - name: Images pushen
+        run: |
+          for svc in frontend backend; do docker push "${PREFIX}-${svc}:${SHORT_SHA}"; done
+          for svc in frontend backend; do docker push "${PREFIX}-${svc}:main"; done
+      - name: Logout
+        if: always()
+        run: docker logout ghcr.io
