@@ -2,7 +2,7 @@
  * Image API service – upload, list, delete recipe images.
  */
 
-import { getAccessToken } from "@/auth/oidc";
+import { getAccessToken } from "@/auth/session";
 
 const API_BASE = "/api/v1";
 
