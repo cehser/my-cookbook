@@ -1,83 +1,58 @@
 /**
  * Router guards for authentication and role-based access control.
  * Uses return-based guards (Vue Router 5 pattern).
+ *
+ * Ob zum Login geleitet wird, entscheidet allein `onNavigation` in
+ * `auth/session.ts`; die Guards setzen das Ergebnis nur um.
  */
 
 import type { RouteLocationNormalized } from "vue-router";
-import { requestLogin } from "@/auth/oidc";
-import { ensureAuth } from "@/auth/session";
-import { hasCachedRecipes } from "@/js/offlineCache";
-import { api } from "@/api/client";
+import {
+  currentUserSub,
+  ensureAuth,
+  onNavigation,
+  onRoleUnavailable,
+} from "@/auth/session";
+import { fetchRole, readStoredRole, refreshRoleOnce } from "@/auth/role";
 
-interface MeResponse {
-  oidc_sub: string;
-  display_name: string;
-  role: string;
-}
-
-let cachedRole: string | null = null;
-
-/** Fetch and cache the current user's role from the backend */
-async function getUserRole(): Promise<string | null> {
-  if (cachedRole) return cachedRole;
-  try {
-    const me = await api.get<MeResponse>("/me");
-    cachedRole = me.role;
-    return cachedRole;
-  } catch {
-    return null;
-  }
-}
-
-/** Clear cached role (call on logout) */
-export function clearRoleCache(): void {
-  cachedRole = null;
-}
-
-/**
- * Auth guard — redirects to IdP login if the session was rejected.
- * When the token cannot be renewed for lack of network (or without network
- * at all), allows navigation with cached data (read-only mode).
- * With offline data present, the guard does not wait for a token renewal
- * (bad network): it lets the navigation through and starts the login
- * afterwards if the session turns out to be rejected.
- */
+/** Auth guard: durchlassen oder Navigation abbrechen (Login läuft). */
 export async function requireAuth(
   to: RouteLocationNormalized,
   _from: RouteLocationNormalized,
 ) {
-  const auth = ensureAuth();
-  if (await hasCachedRecipes()) {
-    void auth.then((state) => {
-      if (state === "rejected") void requestLogin(to.fullPath);
-    });
-    return true;
+  return onNavigation(to);
+}
+
+/**
+ * Rolle für den Guard: gespeicherte Rolle (auch offline), sonst `/me` mit
+ * gültiger Sitzung. Sonst `null`; den Hinweis entscheidet `session.ts`.
+ */
+async function resolveRole(): Promise<string | null> {
+  const stored = readStoredRole(await currentUserSub());
+  if (stored) {
+    refreshRoleOnce();
+    return stored;
   }
-  const state = await auth;
-  if (state !== "rejected") return true;
-  if (!navigator.onLine) return true;
-  await requestLogin(to.fullPath);
-  return false;
+  const state = await ensureAuth();
+  if (state !== "valid") {
+    onRoleUnavailable(state);
+    return null;
+  }
+  return fetchRole();
 }
 
 /**
  * Role guard factory — requires the user to have one of the specified roles.
+ * Ohne passende oder ohne bekannte Rolle zur Startseite.
  */
 export function requireRole(...roles: string[]) {
   return async (
-    _to: RouteLocationNormalized,
+    to: RouteLocationNormalized,
     _from: RouteLocationNormalized,
   ) => {
-    const state = await ensureAuth();
-    if (state === "offline") return { name: "Gallery" };
-    if (state === "rejected") {
-      if (!navigator.onLine) return { name: "Gallery" };
-      await requestLogin(_to.fullPath);
-      return false;
-    }
-
-    const userRole = await getUserRole();
-    if (userRole && roles.includes(userRole)) return true;
+    if (!(await onNavigation(to))) return false;
+    const role = await resolveRole();
+    if (role && roles.includes(role)) return true;
     return { name: "Gallery" };
   };
 }

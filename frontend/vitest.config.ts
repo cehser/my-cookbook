@@ -11,6 +11,16 @@ export default defineConfig({
     __COMMIT_HASH__: JSON.stringify("test"),
   },
   plugins: [
+    // Das PWA-Plugin fehlt hier bewusst; Specs mocken das virtuelle Modul.
+    {
+      name: "pwa-register-stub",
+      resolveId: (id: string) =>
+        id === "virtual:pwa-register" ? "\0virtual:pwa-register" : undefined,
+      load: (id: string) =>
+        id === "\0virtual:pwa-register"
+          ? "export function registerSW() { return async () => {}; }"
+          : undefined,
+    },
     vue(),
     Components({
       resolvers: [BootstrapVueNextResolver()],

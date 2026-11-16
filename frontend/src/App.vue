@@ -5,7 +5,7 @@ import { useOnline, useColorMode, useDocumentVisibility } from "@vueuse/core";
 import { useRecipeStore } from "@/store/recipeStore";
 import { restoreSession } from "@/router";
 import { onUserLoaded } from "@/auth/oidc";
-import { checkSessionOnResume } from "@/auth/session";
+import { onOnline, onResume, sessionHint } from "@/auth/session";
 import BottomNav from "@/components/layout/BottomNav.vue";
 
 const route = useRoute();
@@ -40,21 +40,31 @@ onUnmounted(() => clearTimeout(cacheHintTimer));
 const showOfflineBanner = computed(
   () => !isOnline.value || usesCachedData.value,
 );
+// Hinweis aus auth/session.ts statt leerem Bildschirm (ohne Daten bzw. Rolle).
+const HINT_TEXT = {
+  "no-data": "Keine Verbindung, noch keine Daten",
+  "role-unavailable": "Ohne Verbindung nicht verfügbar",
+} as const;
+const hintText = computed(() =>
+  sessionHint.value ? HINT_TEXT[sessionHint.value] : null,
+);
 
 // Nachladen, sobald die API wieder erreichbar sein kann: neuer Token
 // (Login-Callback, Erneuerung), wieder online, App wieder im Vordergrund.
 // reloadIfStale() lädt nur, wenn die Daten nicht von der API stammen.
-// Im Vordergrund wird zusätzlich immer der Auth-Zustand geprüft: Ein
-// abgelaufener Token wird erneuert, eine abgelehnte Sitzung führt zum Login
-// (checkSessionOnResume).
+// Wieder online bzw. im Vordergrund entscheidet auth/session.ts über Login
+// bzw. Erneuerung (onOnline, onResume); bei abgelehnter Sitzung folgt der
+// Login, dann nicht nachladen.
 const stopUserLoaded = onUserLoaded(() => void store.reloadIfStale());
 onUnmounted(stopUserLoaded);
-watch(isOnline, (online) => {
-  if (online) void store.reloadIfStale();
+watch(isOnline, async (online) => {
+  if (!online) return;
+  if ((await onOnline()) === "rejected") return;
+  void store.reloadIfStale();
 });
 watch(visibility, async (state) => {
   if (state !== "visible") return;
-  if ((await checkSessionOnResume()) === "rejected") return;
+  if ((await onResume()) === "rejected") return;
   void store.reloadIfStale();
 });
 
@@ -89,7 +99,11 @@ onMounted(() => {
 
 <template>
   <BApp>
-    <div v-if="showOfflineBanner" class="offline-banner" role="status">
+    <div
+      v-if="showOfflineBanner || hintText"
+      class="offline-banner"
+      role="status"
+    >
       <span v-if="!isOnline">
         <i class="bi bi-wifi-off me-1"></i>
         Offline
@@ -98,6 +112,11 @@ onMounted(() => {
       <span v-if="usesCachedData">
         <i class="bi bi-cloud-slash me-1"></i>
         Offline-Daten
+      </span>
+      <span v-if="hintText && (!isOnline || usesCachedData)"> · </span>
+      <span v-if="hintText" class="session-hint">
+        <i class="bi bi-exclamation-circle me-1"></i>
+        {{ hintText }}
       </span>
     </div>
     <div class="app-shell" :class="{ 'has-bottom-nav': showBottomNav }">

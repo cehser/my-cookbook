@@ -128,6 +128,8 @@ Anlass: Das Foto des Imports wird nicht gespeichert; das KI-Ergebnis lässt sich
 
 ## W.23 Auth-Feinschliff
 
+> **Umgesetzt** (2026-11-15, Branch `worktree-W.23-auth-feinschliff`, Bericht `docs/tasks/W.23.bericht.md`): Einstiege in `session.ts`, `auth/userManager.ts`, Web Locks, Backoff, Callback-Sperre, `silent-renew.html` entfernt. Abweichend von „Richtung“ Punkt 4 bleibt `getAccessToken` als markierter Re-Export in `oidc.ts` (W.28 ändert `api/images.ts` parallel).
+
 Stand nach W.11 (2026-11-14): `session.ts` (Erneuerung, Auth-Zustand) und `oidc.ts` (Setup, Redirects, Logout) sind sauber getrennt; der Redirect läuft nur über `requestLogin`.
 
 ### Ursache der Restlücken
