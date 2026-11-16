@@ -86,12 +86,14 @@ def test_delete_recipe_files_logs_failure_with_path(
     upload_dir: Path, warnings_log, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     img = _image(upload_dir)
-    locked = upload_dir / img.file_path
+    # Name nur im Ordner originals vorhanden (.webp gibt es auch als Thumbnail)
+    locked = upload_dir / str(img.recipe_id) / "originals" / f"{img.id}.jpg"
     real_unlink = os.unlink
 
-    # rmtree löscht Dateien über os.unlink; eine gesperrte Datei simulieren
+    # rmtree löscht Dateien über os.unlink (Linux: nur Dateiname mit dir_fd);
+    # eine gesperrte Datei simulieren, Abgleich daher nur über den Namen
     def _os_unlink(path, *args, **kwargs):
-        if Path(path).name == locked.name and Path(path).parent.name == "originals":
+        if Path(path).name == locked.name:
             raise PermissionError("gesperrt")
         return real_unlink(path, *args, **kwargs)
 
