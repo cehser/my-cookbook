@@ -21,7 +21,7 @@ import { useSectionEditor } from "@/composables/useSectionEditor";
 import { useIngredientEditor } from "@/composables/useIngredientEditor";
 import { useStepEditor } from "@/composables/useStepEditor";
 import { useRecipeStore } from "@/store/recipeStore";
-import jsyaml from "js-yaml";
+import * as jsyaml from "js-yaml";
 
 const props = defineProps<{ id: string }>();
 

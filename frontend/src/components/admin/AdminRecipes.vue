@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useEventListener } from "@vueuse/core";
-import jsyaml from "js-yaml";
+import * as jsyaml from "js-yaml";
 import { useToast } from "@/composables/useToast";
 import { useRecipeStore } from "@/store/recipeStore";
 import { generateUUID } from "@/js/uuid";

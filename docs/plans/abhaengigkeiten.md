@@ -19,6 +19,23 @@ Versionen per `npm view` bzw. PyPI am 2026-11-14 ermittelt.
 
 Je Major einen eigenen Commit, nach jedem `lint:check`, `typecheck`, `build`.
 
+Stand nach W.15 (2026-11-17, Versionen per `npm view` am selben Tag): umgesetzt. Der Lock stand vorher auf vite-plugin-pwa 1.3.0, js-yaml 4.3.2, @vueuse/core 14.4.0 und bootstrap-vue-next 0.44.7, nicht auf den Werten der Tabelle.
+
+| Paket | gesetzt | Anpassung |
+|---|---|---|
+| `lint-staged` | 17.6.1 | keine (Node ≥ 22.22.1) |
+| `eslint` | 10.15.0, direkt | – |
+| `js-yaml` | 5.5.0 | kein Default-Export mehr: `import * as`; `@types/js-yaml` entfällt (eigene Typen). Load-Default CORE_SCHEMA (YAML 1.2, Datumswerte bleiben Strings), Load/Dump der Beispielrezepte gegen 4.3.2 identisch |
+| `@vueuse/core` | 15.0.0 | keine. bootstrap-vue-next 1.2.4 pinnt `~14.2.1`, reka-ui `^14.1.0`: zwei weitere 14.x-Kopien im Baum (14.2.1, 14.4.0), `npm dedupe` löst das nicht. Fällt weg, wenn bootstrap-vue-next auf 15 zieht |
+| `pinia` | 4.1.0 | keine; `@vue/devtools-api` ^8.2.1 ist Pflicht-Peer und als dependency aufgenommen (Freigabe 2026-11-17), `nostics` kommt transitiv (stand schon über vue-router im Baum) |
+| `vite-plugin-pwa` | 2.0.0 | `workbox-window` ^7.4.1. Beide Overrides entfernt: `vite-plugin-pwa.vite` (2.0 erlaubt Vite 8), `serialize-javascript` (`@rollup/plugin-terser` 1.x verlangt selbst ^7.0.3). `sw.js` bis auf Revisionen gleich, Workbox-Runtime und Client-Modul `register` byte-identisch |
+| `bootstrap-vue-next` | 1.2.4 | `useToast.create()` zeigt ohne `modelValue` nichts an und kennt `pos`/`props` nicht mehr: Wrapper `composables/useToast.ts` angepasst (Spec). `BFormCheckbox` `uncheckedValue` Default `undefined` statt `false`: `:unchecked-value="false"` an allen Stellen. `vue` auf ^3.5.13 (Peer) |
+| `typescript` | ~6.0.3 | keine Veraltet-Warnungen; `target`/`lib` ES2022, `DOM.Iterable` entfällt (in TS 6 Teil von `DOM`) |
+
+**Ausnahme TS 7** (Stand 2026-11-17: latest 7.0.2, beta 7.1.0-beta): bleibt aus, solange `typescript-eslint` (8.73.0: Peer `>=4.8.4 <6.1.0`) und `vue-tsc` (3.3.14) es nicht ausdrücklich unterstützen. Bedingung zum Anheben: beide Peers schließen 7.x ein, dann eigener Auftrag.
+
+**Override-Regel:** keine Overrides mehr in `package.json`; `npm ci` ohne Peer-Warnungen. Verbleibende Meldung: `glob@11.1.0` deprecated über `workbox-build` 7.4.1 (Upstream), `npm audit` 13 × moderate in derselben Kette (glob/minimatch), unverändert gegenüber vorher.
+
 ## W.16 Verzichtbare Abhängigkeiten
 
 | Paket/Code | Nutzung | Ersatz |
@@ -53,3 +70,5 @@ Stand nach W.4 (2026-11-14): `requirements.txt` ist durch `pyproject.toml` + `uv
 
 ## Beobachtung Lieferkette (2026-11-14, aus W.14)
 `workbox-build` 7.4.1 (Peer von `vite-plugin-pwa`) ersetzt `@surma/rollup-plugin-off-main-thread` durch das Vorab-Release `@trickfilm400/rollup-plugin-off-main-thread@^3.0.0-pre1` (Einzel-Maintainer, wenig verbreitet). Die Abhängigkeit steht im offiziellen Manifest der Workbox-Maintainer, ist also eine Upstream-Entscheidung. Bei W.15 erneut prüfen, ob eine stabile Version vorliegt.
+
+Stand 2026-11-17 (W.15): `@trickfilm400/rollup-plugin-off-main-thread` 4.0.0 ist seit 2026-10-06 stabil, `workbox-build` 7.4.1 ist aber weiter die neueste Version und verlangt `^3.0.0-pre1`; aufgelöst wird 3.0.0-pre1. Erneut prüfen, wenn `workbox-build` ein neues Release hat.

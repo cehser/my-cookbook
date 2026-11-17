@@ -72,6 +72,7 @@ async function saveChanges() {
       <!-- Read-only toggle -->
       <BFormCheckbox
         v-model="settings.read_only"
+        :unchecked-value="false"
         name="read-only"
         switch
         :disabled="
@@ -83,7 +84,12 @@ async function saveChanges() {
       </BFormCheckbox>
 
       <!-- Expert mode toggle -->
-      <BFormCheckbox v-model="settings.expert_mode" name="expert-mode" switch>
+      <BFormCheckbox
+        v-model="settings.expert_mode"
+        name="expert-mode"
+        :unchecked-value="false"
+        switch
+      >
         Experten-Modus
       </BFormCheckbox>
 

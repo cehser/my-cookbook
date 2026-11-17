@@ -100,6 +100,7 @@ async function handleLogout() {
       <div class="settings-card mb-3">
         <BFormCheckbox
           v-model="settings.read_only"
+          :unchecked-value="false"
           name="read-only"
           switch
           :disabled="
@@ -110,7 +111,12 @@ async function handleLogout() {
           Nur lesen
         </BFormCheckbox>
 
-        <BFormCheckbox v-model="settings.expert_mode" name="expert-mode" switch>
+        <BFormCheckbox
+          v-model="settings.expert_mode"
+          name="expert-mode"
+          :unchecked-value="false"
+          switch
+        >
           Experten-Modus
         </BFormCheckbox>
 

@@ -8,7 +8,7 @@ import { useUIStore } from "@/store/uiStore";
 import RecipeDisplay from "@/components/recipe/display/RecipeDisplay.vue";
 import ShareManager from "@/components/recipe/ui/ShareManager.vue";
 import SourceImages from "@/components/recipe/display/SourceImages.vue";
-import jsyaml from "js-yaml";
+import * as jsyaml from "js-yaml";
 import { useToast } from "@/composables/useToast";
 import { generateUUID } from "@/js/uuid";
 import { deepCopyJSON } from "@/js/deepCopy";
