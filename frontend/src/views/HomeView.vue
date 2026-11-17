@@ -21,7 +21,7 @@ import {
   loadNewRecipe as createNewRecipe,
   loadSample as createSampleRecipe,
 } from "@/js/recipes";
-import jsyaml from "js-yaml";
+import * as jsyaml from "js-yaml";
 import { editUrl } from "@/js/slug";
 import { appendedId, appendToast } from "@/js/appendFeedback";
 import { generateUUID } from "@/js/uuid";
