@@ -23,4 +23,4 @@ paths:
 - Rolle: localStorage `my-cookbook-role` je `sub`, damit Rollen-Routen offline nach Kaltstart funktionieren; mit gültiger Sitzung einmal je Seite im Hintergrund aufgefrischt, beim Logout gelöscht. Ohne bekannte Rolle `/me` mit dem Timeout der Erneuerung (10 s). Nur Oberfläche, das Backend prüft selbst.
 - oidc-client-ts: `signinSilent()` ohne `silentRequestTimeoutInSeconds` läuft **ohne** Timeout (das `undefined` überschreibt per Spread den Settings-Default). Immer explizit übergeben.
 - Die Access-Token-Laufzeit im IdP muss über 60 s liegen, sonst feuert der Expiring-Timer (Default 60 s vor Ablauf) sofort wieder und die Erneuerung läuft in Schleife.
-- `npm ci` immer ohne `--legacy-peer-deps`: Den Peer-Konflikt `vite-plugin-pwa` 1.x ↔ Vite 8 löst der Override in `package.json`. Das Flag ignoriert alle Peers (u. a. fehlt dann `eslint`, das bis W.15 nur als Peer im Lock steht).
+- `npm ci` immer ohne `--legacy-peer-deps`: Das Flag ignoriert alle Peers (z. B. `@vue/devtools-api`, Pflicht-Peer von pinia 4). Overrides gibt es seit W.15 keine mehr; `vite-plugin-pwa` 2 erlaubt Vite 8 selbst.
