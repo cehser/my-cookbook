@@ -291,7 +291,7 @@ const importRecipe = async () => {
 
             <!-- Image Download Option -->
             <div v-if="result.imageurl && !downloadingImage" class="mb-3">
-              <BFormCheckbox v-model="downloadImage">
+              <BFormCheckbox v-model="downloadImage" :unchecked-value="false">
                 Bild herunterladen und lokal speichern (empfohlen)
               </BFormCheckbox>
               <small class="text-muted d-block">
