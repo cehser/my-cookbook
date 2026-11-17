@@ -3,6 +3,8 @@
 > **Letzte Aktualisierung:** 11. April 2026
 >
 > **Archiv:** Abgelöst durch [ROADMAP.md](../../ROADMAP.md) (2026-11-14). Offene Sprints 5–7 dort als `5.1`, `6.1`, `7.1`. Dieses Dokument bleibt als Hintergrund für Konzept und Entscheidungen.
+>
+> **Abweichungen vom Ist (2026-11-17):** Das UX-Audit U.1 hat an acht Stellen Unterschiede zwischen diesem Dokument und der umgesetzten App festgestellt, siehe [ux-audit.md, Abschnitt 7](ux-audit.md#7-abweichungen-von-plan-und-ux-konzept). Bei Widerspruch gilt die App bzw. das Audit; Folgearbeiten stehen in [ROADMAP.md](../../ROADMAP.md), Abschnitt U.
 
 ---
 
