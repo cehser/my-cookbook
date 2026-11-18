@@ -238,7 +238,10 @@ export async function deleteOnServer(
       const creator = await creatorBeforeDelete(uuid);
       if (creator === "outage") return false;
       if (creator !== "own") {
-        // Fremd: Das Serverrezept bleibt sichtbar, kein `noteDeleted`
+        // Fremd: kein `noteDeleted` hier, das Serverrezept bleibt bestehen.
+        // Aus `deleteRecipe` kommend hat `forgetRecipe` es schon aus der
+        // Liste genommen (samt `noteDeleted`): Es fehlt bis zum nächsten
+        // Listenabruf, danach erscheint es wieder.
         if (creator === "missing") noteDeleted(uuid);
         await dropAfterDeletion(uuid);
         return true;
