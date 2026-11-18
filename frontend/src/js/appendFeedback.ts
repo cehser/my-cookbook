@@ -61,7 +61,7 @@ export function deleteFailedMessage(error: unknown): string {
   return `Rezept nicht gelöscht: ${rejectReason(error)}.`;
 }
 
-/** Fehlermeldung, wenn `setRecipe` scheiterte (z. B. `LocalReadError`). */
+/** Fehlermeldung, wenn `setRecipe` bzw. `setRecipeTags` scheiterte. */
 export function saveFailedMessage(error: unknown): string {
   return `Rezept nicht gespeichert: ${rejectReason(error)}.`;
 }
