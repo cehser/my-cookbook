@@ -22,11 +22,12 @@ pytestmark = pytest.mark.anyio
 
 SOME_ID = str(uuid.uuid4())
 
-# Je Stufe eine Route ohne Request-Body, dazu die niedrigste erlaubte Rolle.
+# Je Stufe eine Route ohne Request-Body (dazu der Gesamtexport), mit niedrigster erlaubter Rolle.
 STAGE_ROUTES = [
     ("GET", "/api/v1/recipes", "readonly"),
     ("DELETE", f"/api/v1/shares/{SOME_ID}", "editor"),
     ("GET", "/api/v1/admin/users", "admin"),
+    ("GET", "/api/v1/admin/export", "admin"),
 ]
 
 PROTECTED_ROUTES = [("GET", "/api/v1/me")] + [(m, p) for m, p, _ in STAGE_ROUTES]

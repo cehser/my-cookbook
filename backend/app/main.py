@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.routes import (
     admin,
+    admin_export,
     admin_images,
     ai,
     favorites,
@@ -88,6 +89,7 @@ app.include_router(admin.router)
 app.include_router(recipes.router)
 app.include_router(images.router)
 app.include_router(admin_images.router)
+app.include_router(admin_export.router)
 app.include_router(ai.router)
 app.include_router(favorites.router)
 app.include_router(tags.router)

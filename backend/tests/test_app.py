@@ -44,6 +44,7 @@ README_ROUTES = {
     ("POST", "/v1/admin/migrate-images"),
     ("POST", "/v1/admin/cleanup-images"),
     ("POST", "/v1/admin/strip-image-ids"),
+    ("GET", "/v1/admin/export"),
 }
 
 
