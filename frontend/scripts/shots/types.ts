@@ -69,6 +69,8 @@ export interface Scenario {
   themes?: Theme[];
   /** Erst fotografieren, wenn dieser Text sichtbar ist */
   waitForText?: string;
+  /** Danach diese Elemente der Reihe nach anklicken (CSS-Selektoren), z. B. ein Menü öffnen */
+  clicks?: string[];
   /** Ganze Seite statt nur Viewport */
   fullPage?: boolean;
 }

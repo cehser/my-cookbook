@@ -8,6 +8,7 @@ vi.mock("@/auth/session", () => ({
 
 import {
   canDeleteRecipe,
+  canEdit,
   canFavorite,
   normalizeUserId,
   sameUser,
@@ -39,6 +40,21 @@ describe("canFavorite", () => {
     expect(canFavorite("admin")).toBe(true);
     expect(canFavorite("pending")).toBe(false);
     expect(canFavorite(undefined)).toBe(false);
+  });
+});
+
+describe("canEdit", () => {
+  it.each([
+    ["admin", true],
+    ["editor", true],
+    ["readonly", false],
+    ["pending", false],
+    ["unbekannt", false],
+    ["", false],
+    [null, false],
+    [undefined, false],
+  ] as const)("%s → %s", (role, expected) => {
+    expect(canEdit(role)).toBe(expected);
   });
 });
 

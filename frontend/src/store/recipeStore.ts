@@ -29,7 +29,7 @@ import { api, ApiError, isClientError } from "@/api/client";
 import { recipeApi, type RecipeDetail } from "@/api/recipes";
 import { favoritesApi } from "@/api/favorites";
 import { imageApi } from "@/api/images";
-import { canDeleteRecipe } from "@/auth/role";
+import { canDeleteRecipe, canEdit } from "@/auth/role";
 import {
   currentUserSub,
   ensureAuth,
@@ -90,9 +90,8 @@ export type AppendResult =
 export type DeleteResult =
   { status: "deleted" } | { status: "failed"; error: unknown };
 
+// Bis die Rolle feststeht: keine Bearbeiten-Elemente (sicherer Vorgabewert)
 const default_settings: Settings = {
-  read_only: true,
-  expert_mode: false,
   role: "readonly",
 };
 
@@ -124,6 +123,11 @@ export const useRecipeStore = defineStore("recipe", {
   }),
 
   getters: {
+    /**
+     * Bearbeiten-Elemente zeigen? Allein aus der Rolle (`settings.role`, von
+     * `/me/settings`, offline aus dem Cache). Regel in `auth/role.ts`.
+     */
+    canEdit: (state): boolean => canEdit(state.settings.role),
     /** Lösch-Knopf zeigen? Regel in `auth/role.ts` (wie im Backend). */
     canDelete:
       (state) =>
@@ -243,7 +247,9 @@ export const useRecipeStore = defineStore("recipe", {
     async loadSettings(useApi: boolean): Promise<DataSource> {
       if (useApi) {
         try {
-          const settings = await api.get<Settings>("/me/settings");
+          // Nur die Rolle übernehmen; Altfelder der Antwort nicht cachen
+          const { role } = await api.get<Settings>("/me/settings");
+          const settings: Settings = { role };
           this.settings = settings;
           void writeSettings(settings);
           return "api";
@@ -263,24 +269,6 @@ export const useRecipeStore = defineStore("recipe", {
       if (!val) return "none";
       this.settings = val;
       return "cache";
-    },
-
-    async saveSettings(settings: Settings) {
-      this.settings = deepCopyJSON(settings);
-      if (await isAuthenticated()) {
-        try {
-          const updated = await api.put<Settings>("/me/settings", {
-            read_only: settings.read_only,
-            expert_mode: settings.expert_mode,
-          });
-          this.settings = updated;
-          void writeSettings(updated);
-          return;
-        } catch (e) {
-          console.warn("Failed to save settings to API", e);
-        }
-      }
-      void writeSettings(deepCopyJSON(settings));
     },
 
     // --- Recipes ---

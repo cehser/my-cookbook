@@ -20,9 +20,10 @@ import type { Recipe } from "@/types/recipe";
 
 withDefaults(
   defineProps<{
-    readOnly: boolean;
-    expertMode: boolean;
-    /** Gesamtexport (ZIP) anbieten; Sichtbarkeit setzt die Seite. */
+    /**
+     * Gesamtexport (ZIP), YAML-Import und -Export je Rezept (bis 11.2)
+     * anbieten; Sichtbarkeit setzt die Seite.
+     */
     isAdmin?: boolean;
   }>(),
   { isAdmin: false },
@@ -145,16 +146,13 @@ async function exportAll() {
 <template>
   <div class="d-flex flex-wrap">
     <slot name="actions" />
-    <BButton v-if="!readOnly" class="btn m-2" @click="newRecipe"
+    <BButton v-if="store.canEdit" class="btn m-2" @click="newRecipe"
       ><i class="bi bi-file-earmark-plus"></i><br />Neues Rezept</BButton
     >
-    <BButton v-if="!readOnly" class="btn m-2" @click="loadSample"
+    <BButton v-if="store.canEdit" class="btn m-2" @click="loadSample"
       ><i class="bi bi-file-earmark-text"></i><br />Beispielrezept</BButton
     >
-    <BButton
-      v-if="!readOnly && expertMode"
-      class="btn m-2"
-      @click="triggerImport"
+    <BButton v-if="isAdmin" class="btn m-2" @click="triggerImport"
       ><i class="bi bi-upload"></i><br />YAML Import</BButton
     >
     <BButton
@@ -181,18 +179,18 @@ async function exportAll() {
     <BListGroupItem
       >{{ recipe.recipe_name }}
       <BButton
-        v-if="!readOnly && store.canDelete(recipe)"
+        v-if="store.canDelete(recipe)"
         class="btn-sm"
         :aria-label="`Rezept „${recipe.recipe_name}“ löschen`"
         :title="`Rezept „${recipe.recipe_name}“ löschen`"
         @click="deleteRecipe(recipe)"
         ><i class="bi bi-x" aria-hidden="true"></i
       ></BButton>
-      <BButton v-if="!readOnly" class="btn-sm" @click="copyRecipe(index)"
+      <BButton v-if="store.canEdit" class="btn-sm" @click="copyRecipe(index)"
         ><i class="bi bi-files"></i
       ></BButton>
       <BButton
-        v-if="expertMode"
+        v-if="isAdmin"
         class="btn-sm"
         @click="exportRecipe(index)"
         title="Als YAML exportieren"

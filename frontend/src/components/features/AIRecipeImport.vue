@@ -55,7 +55,8 @@ const downloadImage = ref(true);
 const downloadingImage = ref(false);
 
 // Computed
-const settings = computed(() => store.settings);
+// Rohantwort nur für Admins (Fehlersuche im KI-Import)
+const isAdmin = computed(() => store.settings.role === "admin");
 const busy = computed(
   () => loading.value || preparing.value || importing.value,
 );
@@ -336,8 +337,8 @@ const importRecipe = async () => {
           <i class="bi bi-exclamation-triangle"></i> {{ error }}
         </div>
 
-        <!-- Raw response (Expert Mode) -->
-        <details v-if="rawJson && settings.expert_mode" class="mt-3">
+        <!-- Rohantwort (nur admin) -->
+        <details v-if="rawJson && isAdmin" class="mt-3">
           <summary class="text-muted" style="cursor: pointer">
             <i class="bi bi-code-slash"></i> Rohantwort (JSON) anzeigen
           </summary>

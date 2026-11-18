@@ -79,4 +79,25 @@ export const scenarios: Scenario[] = [
     responses: { "GET /recipes/:id": { status: 503 } },
     waitForText: "Rezept konnte nicht geladen werden",
   },
+  {
+    name: "rezept-menue-readonly",
+    description:
+      "Rezeptansicht als readonly (U.15): ⋮-Menü mit „Bildschirm anlassen“, ohne Bearbeiten",
+    route: `/recipe/${SERVER_ID}`,
+    seed: {
+      user: { ...user, role: "readonly" },
+      serverRecipes: [apfelkuchen],
+    },
+    waitForText: "Äpfel schälen.",
+    clicks: ["button[title='Menü']"],
+  },
+  {
+    name: "rezept-menue-editor",
+    description:
+      "Rezeptansicht als editor (U.15): ⋮-Menü mit Bearbeiten-Einträgen und „Als Datei exportieren“",
+    route: `/recipe/${SERVER_ID}`,
+    seed: { user, serverRecipes: [apfelkuchen] },
+    waitForText: "Äpfel schälen.",
+    clicks: ["button[title='Menü']"],
+  },
 ];

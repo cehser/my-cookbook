@@ -17,9 +17,9 @@ const stubs = {
   AdminShares: { template: "<div class='shares' />" },
   AdminMaintenance: { template: "<div class='maintenance' />" },
   AdminRecipes: {
-    props: ["readOnly", "expertMode"],
+    props: ["isAdmin"],
     template:
-      "<div class='recipes' :data-read-only='readOnly' :data-expert='expertMode'><slot name='actions' /></div>",
+      "<div class='recipes' :data-admin='isAdmin'><slot name='actions' /></div>",
   },
 };
 
@@ -30,26 +30,19 @@ function render(settings: Settings) {
 
 describe("Administration", () => {
   it("zeigt Admins alle Abschnitte", () => {
-    const w = render({ role: "admin", read_only: false, expert_mode: true });
+    const w = render({ role: "admin" });
     for (const c of ["users", "settings", "shares", "maintenance", "recipes"])
       expect(w.find(`.${c}`).exists(), c).toBe(true);
-    expect(w.find(".recipes").attributes("data-expert")).toBe("true");
+    expect(w.find(".recipes").attributes("data-admin")).toBe("true");
     w.unmount();
   });
 
   it("verbirgt Admin-Abschnitte vor Editoren", () => {
-    const w = render({ role: "editor", read_only: false, expert_mode: false });
+    const w = render({ role: "editor" });
     expect(w.find(".settings").exists()).toBe(false);
     expect(w.find(".shares").exists()).toBe(false);
     expect(w.find(".maintenance").exists()).toBe(false);
     expect(w.find(".recipes").exists()).toBe(true);
-    w.unmount();
-  });
-
-  it("zeigt Wartung bei read_only nicht und reicht read_only weiter", () => {
-    const w = render({ role: "admin", read_only: true, expert_mode: false });
-    expect(w.find(".maintenance").exists()).toBe(false);
-    expect(w.find(".recipes").attributes("data-read-only")).toBe("true");
     w.unmount();
   });
 });

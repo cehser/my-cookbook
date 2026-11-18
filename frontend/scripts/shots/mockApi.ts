@@ -89,12 +89,14 @@ export function createMockApi(seed: Seed, overrides: MockResponses = {}) {
         : { status: 401, body: { detail: "Nicht angemeldet" } };
     }
     if (method === "GET" && path === "/me/settings") {
+      // wie das Backend seit U.15: read_only aus der Rolle, expert_mode false
+      const role = seed.user?.role ?? "pending";
       return {
         status: 200,
         body: {
-          read_only: false,
+          read_only: role !== "editor" && role !== "admin",
           expert_mode: false,
-          role: seed.user?.role ?? "pending",
+          role,
         },
       };
     }

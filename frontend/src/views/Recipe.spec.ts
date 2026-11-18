@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { ref } from "vue";
 import type { Recipe } from "@/types/recipe";
+import { canEdit } from "@/auth/role";
 import type { Settings } from "@/types/settings";
 
 const { store, push, toast, current } = vi.hoisted(() => ({
@@ -9,6 +10,7 @@ const { store, push, toast, current } = vi.hoisted(() => ({
     settings: {} as Settings,
     favorites: [] as string[],
     recipes: [] as Recipe[],
+    canEdit: false,
     canDelete: (() => false) as (r: Recipe) => boolean,
     localStatus: (() => null) as (id: string) => "pending" | "rejected" | null,
     deleteRecipe: vi.fn(),
@@ -48,6 +50,7 @@ import RecipeView from "./Recipe.vue";
 
 function render(settings: Settings, canDelete = false) {
   store.settings = settings;
+  store.canEdit = canEdit(settings.role);
   store.canDelete = () => canDelete;
   return mount(RecipeView, {
     props: { id: "r1" },
@@ -77,16 +80,40 @@ describe("Recipe: Stern und Löschen", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("readonly mit „Nur lesen“: Stern ja, Menü nein", async () => {
-    const w = render({ role: "readonly", read_only: true, expert_mode: false });
+  it("readonly: Stern ja, Menü mit „Bildschirm anlassen“ ohne Bearbeiten", async () => {
+    const w = render({ role: "readonly" });
     expect(starButton(w).exists()).toBe(true);
-    expect(w.find("button[title='Menü']").exists()).toBe(false);
     await starButton(w).trigger("click");
     expect(store.addFavorite).toHaveBeenCalledWith("r1");
+
+    await openMenu(w);
+    expect(w.text()).toContain("Bildschirm anlassen");
+    for (const text of [
+      "Bearbeiten",
+      "Duplizieren",
+      "Teilen",
+      "Als Datei exportieren",
+      "Löschen",
+    ]) {
+      expect(button(w, text), text).toBeUndefined();
+    }
+  });
+
+  it("Editor: Bearbeiten-Einträge samt Datei-Export ohne Schalter", async () => {
+    const w = render({ role: "editor" });
+    await openMenu(w);
+    for (const text of [
+      "Bearbeiten",
+      "Duplizieren",
+      "Teilen",
+      "Als Datei exportieren",
+    ]) {
+      expect(button(w, text), text).toBeDefined();
+    }
   });
 
   it("Editor ohne Löschrecht: Menü ohne „Löschen“", async () => {
-    const w = render({ role: "editor", read_only: false, expert_mode: false });
+    const w = render({ role: "editor" });
     await openMenu(w);
     expect(button(w, "Bearbeiten")).toBeDefined();
     expect(button(w, "Löschen")).toBeUndefined();
@@ -97,10 +124,7 @@ describe("Recipe: Stern und Löschen", () => {
       status: "failed",
       error: new ApiError(403, ""),
     });
-    const w = render(
-      { role: "editor", read_only: false, expert_mode: false },
-      true,
-    );
+    const w = render({ role: "editor" }, true);
     await openMenu(w);
     await button(w, "Löschen")!.trigger("click");
     await flushPromises();
@@ -115,10 +139,7 @@ describe("Recipe: Stern und Löschen", () => {
 
   it("Löschen erfolgreich: zurück zur Übersicht", async () => {
     store.deleteRecipe.mockResolvedValue({ status: "deleted" });
-    const w = render(
-      { role: "admin", read_only: false, expert_mode: false },
-      true,
-    );
+    const w = render({ role: "admin" }, true);
     await openMenu(w);
     await button(w, "Löschen")!.trigger("click");
     await flushPromises();
@@ -137,7 +158,7 @@ describe("Recipe: Kennzeichnung und Listenzeile", () => {
 
   it("gibt store.localStatus an die Rezeptansicht", () => {
     store.localStatus = (id) => (id === "r1" ? "rejected" : null);
-    store.settings = { role: "editor", read_only: false, expert_mode: false };
+    store.settings = { role: "editor" };
     const w = mount(RecipeView, {
       props: { id: "r1" },
       global: {
@@ -157,11 +178,11 @@ describe("Recipe: Kennzeichnung und Listenzeile", () => {
     ).toBe("rejected");
   });
 
-  it("YAML-Export einer Listenzeile: Meldung, keine Datei", async () => {
+  it("Datei-Export einer Listenzeile: Meldung, keine Datei", async () => {
     current.listOnly = true;
-    const w = render({ role: "editor", read_only: false, expert_mode: true });
+    const w = render({ role: "editor" });
     await openMenu(w);
-    await button(w, "YAML Export")!.trigger("click");
+    await button(w, "Als Datei exportieren")!.trigger("click");
 
     expect(toast).toHaveBeenCalledWith(
       "Rezept nicht exportiert: nicht vollständig geladen.",

@@ -6,11 +6,7 @@ import type { Settings } from "@/types/settings";
 
 const { store, toast, discardDraft, current } = vi.hoisted(() => ({
   store: {
-    settings: {
-      role: "editor",
-      read_only: false,
-      expert_mode: false,
-    } as Settings,
+    settings: { role: "editor" } as Settings,
     recipes: [] as Recipe[],
     setRecipe: vi.fn(),
     setRecipePicture: vi.fn(),

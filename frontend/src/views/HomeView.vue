@@ -22,10 +22,8 @@ import {
   loadNewRecipe as createNewRecipe,
   loadSample as createSampleRecipe,
 } from "@/js/recipes";
-import * as jsyaml from "js-yaml";
 import { editUrl } from "@/js/slug";
 import { appendedId, appendToast } from "@/js/appendFeedback";
-import { generateUUID } from "@/js/uuid";
 import type { Recipe } from "@/types/recipe";
 
 const router = useRouter();
@@ -42,7 +40,6 @@ const { hasDraft, refresh: refreshDrafts } = useDraftIndex();
 
 const sortBy = ref("name-asc");
 const showAIImport = ref(false);
-const fileInput = ref<HTMLInputElement | null>(null);
 const fabOpen = ref(false);
 
 function editUrlWithDraft(uuid: string, name: string) {
@@ -51,6 +48,7 @@ function editUrlWithDraft(uuid: string, name: string) {
 
 // Computed
 const settings = computed(() => store.settings);
+const canEdit = computed(() => store.canEdit);
 const recipes = computed(() => store.recipes);
 
 const recentRecipes = computed(() => {
@@ -157,31 +155,6 @@ function onAIImport(recipe: { recipe_name: string }, warnings: string[]) {
   warnings.forEach((w) => toast(w, "warning"));
   showAIImport.value = false;
 }
-
-function triggerImport() {
-  fileInput.value?.click();
-}
-
-function importRecipe(ev: Event) {
-  const input = ev.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const recipe = jsyaml.load(e.target?.result as string) as Recipe;
-      // Import ist ein neues Rezept: Die ID aus der Datei (Export, Beispiel)
-      // wäre beim Anlegen 409 bzw. keine gültige UUID
-      recipe.recipe_uuid = generateUUID();
-      void append(recipe, `Rezept "${recipe.recipe_name}" importiert.`);
-      input.value = "";
-    } catch (error) {
-      toast("Fehler beim Importieren: " + (error as Error).message, "danger");
-    }
-  };
-  reader.readAsText(file);
-}
 </script>
 
 <template>
@@ -194,7 +167,7 @@ function importRecipe(ev: Event) {
         size="xl"
         no-footer
       >
-        <AIRecipeImport v-if="!settings.read_only" @imported="onAIImport" />
+        <AIRecipeImport v-if="canEdit" @imported="onAIImport" />
       </BModal>
 
       <!-- Pending User Alert -->
@@ -230,7 +203,6 @@ function importRecipe(ev: Event) {
                     (r) => r.recipe_uuid === recipe.recipe_uuid,
                   )
                 "
-                :read_only="settings.read_only"
                 compact
                 @delete="handleDeleteRecipe(recipe.recipe_uuid)"
               />
@@ -277,26 +249,13 @@ function importRecipe(ev: Event) {
             </BFormSelect>
           </div>
 
-          <RecipeGrid
-            :recipes="sortedRecipes"
-            :read-only="settings.read_only"
-            @delete="handleDeleteRecipe"
-          />
+          <RecipeGrid :recipes="sortedRecipes" @delete="handleDeleteRecipe" />
         </section>
       </template>
-
-      <!-- Hidden file input for YAML import -->
-      <input
-        ref="fileInput"
-        type="file"
-        accept=".yaml,.yml"
-        @change="importRecipe"
-        style="display: none"
-      />
     </BContainer>
 
     <!-- FAB -->
-    <div v-if="!settings.read_only" class="fab-container" @click.stop>
+    <div v-if="canEdit" class="fab-container" @click.stop>
       <transition name="fab-items">
         <div v-if="fabOpen" class="fab-menu">
           <button
@@ -325,16 +284,6 @@ function importRecipe(ev: Event) {
             "
           >
             <i class="bi bi-file-earmark-text"></i> Beispiel
-          </button>
-          <button
-            v-if="settings.expert_mode"
-            class="fab-menu-item"
-            @click="
-              triggerImport();
-              fabOpen = false;
-            "
-          >
-            <i class="bi bi-upload"></i> YAML Import
           </button>
         </div>
       </transition>

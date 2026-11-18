@@ -36,7 +36,7 @@ class CurrentUserResponse(BaseModel):
 
 
 class UserSettings(BaseModel):
-    """User-specific settings stored in the DB."""
+    """Body von ``PUT /me/settings`` alter PWA-Stände; wird ignoriert (U.15)."""
 
     read_only: bool = True
     expert_mode: bool = False
@@ -45,7 +45,8 @@ class UserSettings(BaseModel):
 
 
 class UserSettingsResponse(BaseModel):
-    """Full settings response — includes derived fields."""
+    """Antwort von ``/me/settings``: ``read_only`` aus der Rolle, ``expert_mode`` immer
+    ``false``; beide nur für alte PWA-Stände."""
 
     read_only: bool
     expert_mode: bool

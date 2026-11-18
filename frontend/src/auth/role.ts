@@ -106,7 +106,15 @@ export function sameUser(
   return !!a && !!b && normalizeUserId(a) === normalizeUserId(b);
 }
 
-/** Favoriten ab `readonly`, unabhängig vom Schalter „Nur lesen“. */
+/**
+ * Darf bearbeiten (anlegen, ändern, duplizieren, exportieren): `editor` und
+ * `admin`, wie `require_editor` im Backend. Unbekannte Rolle: nein.
+ */
+export function canEdit(role: string | null | undefined): boolean {
+  return role === "editor" || role === "admin";
+}
+
+/** Favoriten ab `readonly`. */
 export function canFavorite(role: string | null | undefined): boolean {
   return role === "readonly" || role === "editor" || role === "admin";
 }

@@ -13,7 +13,6 @@ const selectedAuthor = ref<string | null>(null);
 const selectedDifficulty = ref<string | null>(null);
 
 // Computed
-const settings = computed(() => store.settings);
 
 const allTags = computed(() => {
   const tags = new Set<string>();
@@ -194,7 +193,6 @@ onMounted(() => {
         </p>
         <RecipeGrid
           :recipes="filteredRecipes"
-          :read-only="settings.read_only"
           :highlight="filter"
           @delete="handleDeleteRecipe"
         />

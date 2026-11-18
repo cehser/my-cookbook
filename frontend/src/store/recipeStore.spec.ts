@@ -77,76 +77,50 @@ import { appendFailedMessage } from "@/js/appendFeedback";
 import type { Settings } from "@/types/settings";
 import type { Recipe } from "@/types/recipe";
 
-describe("recipeStore.saveSettings", () => {
+describe("recipeStore: Rolle und Bearbeitungsrecht", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setActivePinia(createPinia());
   });
 
-  it("speichert eine Kopie, nicht das übergebene Objekt (offline)", async () => {
-    vi.mocked(isAuthenticated).mockResolvedValue(false);
-    const store = useRecipeStore();
-    const input: Settings = {
-      read_only: false,
-      expert_mode: false,
-      role: "editor",
-    };
-    await store.saveSettings(input);
-
-    expect(store.settings).toEqual(input);
-    expect(store.settings).not.toBe(input);
-
-    input.expert_mode = true;
-    input.role = "admin";
-    expect(store.settings).toEqual({
-      read_only: false,
-      expert_mode: false,
-      role: "editor",
-    });
-    const written = vi.mocked(writeSettings).mock.calls[0][0];
-    expect(written).not.toBe(input);
-    expect(written.expert_mode).toBe(false);
+  it("canEdit vor dem ersten Laden: nein (sicherer Vorgabewert)", () => {
+    expect(useRecipeStore().canEdit).toBe(false);
   });
 
-  it("übernimmt bei Erfolg die Antwort der API", async () => {
-    vi.mocked(isAuthenticated).mockResolvedValue(true);
-    const updated: Settings = {
-      read_only: false,
-      expert_mode: true,
-      role: "editor",
-    };
-    vi.mocked(api.put).mockResolvedValue(updated);
+  it("canEdit folgt allein der Rolle", () => {
     const store = useRecipeStore();
-    const input: Settings = {
-      read_only: false,
-      expert_mode: true,
-      role: "editor",
-    };
-    await store.saveSettings(input);
-
-    expect(api.put).toHaveBeenCalledWith("/me/settings", {
-      read_only: false,
-      expert_mode: true,
-    });
-    expect(store.settings).toEqual(updated);
-    expect(writeSettings).toHaveBeenCalledWith(updated);
+    const cases: [string, boolean][] = [
+      ["admin", true],
+      ["editor", true],
+      ["readonly", false],
+      ["pending", false],
+    ];
+    for (const [role, expected] of cases) {
+      store.settings = { role };
+      expect(store.canEdit).toBe(expected);
+    }
   });
 
-  it("behält bei API-Fehler die Kopie und schreibt den Cache", async () => {
-    vi.mocked(isAuthenticated).mockResolvedValue(true);
-    vi.mocked(api.put).mockRejectedValue(new Error("netz"));
-    vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const store = useRecipeStore();
-    const input: Settings = {
-      read_only: true,
-      expert_mode: false,
+  it("übernimmt aus /me/settings nur die Rolle, Altfelder nicht", async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      read_only: false,
+      expert_mode: true,
       role: "readonly",
-    };
-    await store.saveSettings(input);
+    });
+    const store = useRecipeStore();
+    await store.loadSettings(true);
 
-    input.read_only = false;
-    expect(store.settings.read_only).toBe(true);
-    expect(writeSettings).toHaveBeenCalledTimes(1);
+    const expected: Settings = { role: "readonly" };
+    expect(store.settings).toEqual(expected);
+    expect(writeSettings).toHaveBeenCalledWith(expected);
+    expect(store.canEdit).toBe(false);
+  });
+
+  it("offline: Rolle aus dem Cache", async () => {
+    vi.mocked(readSettings).mockResolvedValue({ role: "editor" });
+    const store = useRecipeStore();
+    expect(await store.loadSettings(false)).toBe("cache");
+    expect(store.canEdit).toBe(true);
   });
 });
 
@@ -419,8 +393,6 @@ describe("recipeStore: vorgemerkte Rezepte", () => {
     idb.pending = undefined;
     localStorage.clear();
     vi.mocked(api.get).mockResolvedValue({
-      read_only: false,
-      expert_mode: false,
       role: "editor",
     });
     vi.mocked(readSettings).mockResolvedValue(undefined);
@@ -1137,19 +1109,19 @@ describe("recipeStore.deleteRecipe: Ergebnis und Rechte", () => {
     const foreign = own("r2", "11111111-2222-3333-4444-555555555555");
     const legacy = own("r3");
 
-    store.settings = { read_only: false, expert_mode: false, role: "editor" };
+    store.settings = { role: "editor" };
     expect([mine, foreign, legacy].map((r) => store.canDelete(r))).toEqual([
       true,
       false,
       false,
     ]);
-    store.settings = { read_only: false, expert_mode: false, role: "admin" };
+    store.settings = { role: "admin" };
     expect([mine, foreign, legacy].map((r) => store.canDelete(r))).toEqual([
       true,
       true,
       true,
     ]);
-    store.settings = { read_only: true, expert_mode: false, role: "readonly" };
+    store.settings = { role: "readonly" };
     expect(store.canDelete(mine)).toBe(false);
     session("offline");
     vi.mocked(currentUserSub).mockResolvedValue(SUB);
@@ -1773,7 +1745,7 @@ describe("W.38: fremdes 409", () => {
 
   it("Admin: nach Bearbeitung weiter abgelehnt, keine neue Übertragung, Löschen ohne DELETE", async () => {
     const store = useRecipeStore();
-    store.settings = { role: "admin", read_only: false, expert_mode: false };
+    store.settings = { role: "admin" };
     store.userSub = "user-a";
     store.recipes = [newRecipe()];
     store.pendingIds = ["lokal-1"];
@@ -1814,7 +1786,7 @@ describe("W.38: fremdes 409", () => {
 
   it("Admin löscht während der Übertragung, Server meldet fremdes 409: nie DELETE", async () => {
     const store = useRecipeStore();
-    store.settings = { role: "admin", read_only: false, expert_mode: false };
+    store.settings = { role: "admin" };
     store.recipes = [newRecipe()];
     store.pendingIds = ["lokal-1"];
     const conflict = deferred<RecipeDetail>();
@@ -1856,7 +1828,7 @@ describe("W.41: Ersteller-Abgleich vor dem DELETE", () => {
 
   function pendingStore(role: "editor" | "admin" = "editor") {
     const store = useRecipeStore();
-    store.settings = { role, read_only: false, expert_mode: false };
+    store.settings = { role };
     store.userSub = "user-a";
     store.recipes = [newRecipe()];
     store.pendingIds = ["lokal-1"];

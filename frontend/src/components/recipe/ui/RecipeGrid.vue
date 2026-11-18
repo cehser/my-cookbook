@@ -10,7 +10,6 @@ interface RecipeWithIndex extends Recipe {
 
 defineProps<{
   recipes: RecipeWithIndex[];
-  readOnly?: boolean;
   highlight?: string;
 }>();
 
@@ -32,7 +31,6 @@ const picture_src = recipeThumbnailSrc;
         :picture_src="picture_src(recipe)"
         :index="recipe.originalIndex"
         :highlight="highlight"
-        :read_only="readOnly"
         @delete="emit('delete', recipe.recipe_uuid)"
       />
     </div>
