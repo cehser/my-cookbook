@@ -61,6 +61,8 @@ Eine Seite, Abschnitte durch `<hr>` getrennt, ohne Kopfzeile und Zurück (V-05, 
 
 ## 2. „Nur lesen“ und Experten-Modus
 
+> **Umgesetzt mit U.15** (E1 C, E2 B, E3 nein). Abweichung: „Teilen“ bleibt im ⋮-Menü an `canEdit`, weil Links anlegen und widerrufen im Backend `require_editor` verlangt.
+
 ### 2.1 „Nur lesen“ (`settings.read_only`)
 
 **Was es ausblendet** (bei `read_only = true`):

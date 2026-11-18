@@ -3,6 +3,7 @@ paths:
   - backend/alembic/**
   - backend/app/models/**
   - backend/app/routes/recipes.py
+  - backend/app/routes/me.py
   - backend/app/schemas/recipe.py
   - backend/app/services/images.py
   - backend/app/services/export.py
@@ -18,3 +19,4 @@ paths:
 - **PUT gegen leeres `data`** (`PUT /v1/recipes/{id}`): PUT ersetzt `data` vollständig, kein Merge. Hat das gespeicherte Rezept Zutaten oder Schritte und die neue Fassung weder noch, antwortet der Endpunkt mit **422** (`detail` „Zutaten und Schritte würden geleert, Rezept unverändert …“ als Klartext für den Client, in der OpenAPI unter `responses`); Rezept, Tags und `updated_at` bleiben unverändert. Geprüft wird vor jeder Änderung am Objekt (vor `_auto_download_imageurl` und `_sync_tags`), Regel in `would_empty_recipe` (`schemas/recipe.py`); `sections` zählt nicht (`ensure_sections` füllt sie). Erlaubt bleiben: schon leeres Rezept leer lassen, nur Zutaten oder nur Schritte leeren, PUT ohne `data` (nur `tags`/`recipe_name`). Zweck: alte PWA-Stände (vor W.37) schrieben die Listenzeile als `data` zurück.
 - **Löschrecht** (`DELETE /v1/recipes/{id}`): `admin` alle Rezepte, `editor` nur eigene (`created_by` = eigener `sub`), Rezepte ohne `created_by` (Altbestand) nur `admin`; sonst 403, `readonly` schon an `require_editor`. Regel an einer Stelle: `can_delete_recipe` in `app/auth/dependencies.py`, das Frontend spiegelt sie in `src/auth/role.ts` (`canDeleteRecipe`). Ein unbekanntes Rezept ergibt für Editoren 404 vor 403. Bearbeiten bleibt für Editoren bei allen Rezepten erlaubt.
 - **Bilddateien:** `recipe_images.mime_type` ist immer `image/webp` und `file_path` zeigt auf die optimierte Fassung `originals/<id>.webp`. Das Original liegt daneben als `originals/<id>.<ext>`, die Endung stammt aus dem Dateinamen des Uploads (nicht aus der DB); auffindbar nur per Glob `<id>.*` (`delete_image_files`, `export.find_image_source`). Bei einem WebP-Upload überschreibt die Verarbeitung das Original.
+- **`/me/settings`** (seit U.15): `read_only` und `expert_mode` nur noch zur Kompatibilität mit alten PWA-Ständen. `read_only` immer aus der Rolle (`not in editor/admin`), `expert_mode` immer `false`; `PUT` ignoriert gesendete Werte (kein 422, nichts gespeichert). Altwerte in `app_users.settings` werden nicht gelesen, keine Migration. Bearbeiten steuert allein die Rolle.
