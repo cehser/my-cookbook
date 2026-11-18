@@ -26,7 +26,6 @@ import {
   LOCAL_REJECTED_TEXT,
   saveFailedMessage,
 } from "@/js/appendFeedback";
-import * as jsyaml from "js-yaml";
 
 const props = defineProps<{ id: string }>();
 
@@ -125,15 +124,7 @@ onKeyStroke("s", (e) => {
 const file = ref<File | null>(null);
 const delete_image = ref(false);
 const inputFoto = ref<{ reset: () => void } | null>(null);
-const showYaml = ref(false);
 const showPreview = ref(false);
-
-// Computed — JSON roundtrip forces Vue to track all nested properties
-const yaml = computed(() =>
-  jsyaml.dump(JSON.parse(JSON.stringify(current_recipe.value))),
-);
-
-const settings = computed(() => store.settings);
 
 // Detail nicht ladbar: Die Listenzeile hat keine Zutaten und Schritte, ein
 // Speichern ersetzte das Rezept auf dem Server (der Store lehnt es zusätzlich ab)
@@ -675,20 +666,6 @@ function goBack() {
       <BButton variant="outline-secondary" class="mt-2" @click="addSection">
         <i class="bi bi-plus"></i> Abschnitt hinzufügen
       </BButton>
-
-      <!-- YAML-Debug (nur im Expertenmodus) -->
-      <div v-if="settings.expert_mode" class="mt-4 mb-4">
-        <BButton size="sm" variant="link" @click="showYaml = !showYaml">
-          {{ showYaml ? "YAML verbergen" : "YAML anzeigen" }}
-        </BButton>
-        <BFormTextarea
-          v-if="showYaml"
-          readonly
-          rows="10"
-          :model-value="yaml"
-          class="mt-2"
-        />
-      </div>
     </BContainer>
 
     <!-- Preview Modal -->

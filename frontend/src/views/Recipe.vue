@@ -39,8 +39,9 @@ const showShareManager = ref(false);
 
 // Computed
 const settings = computed(() => store.settings);
-// Stern ab Rolle `readonly`, unabhängig vom Schalter „Nur lesen“
+// Stern ab Rolle `readonly`; ⋮-Menü für alle, Bearbeiten-Einträge nach Recht
 const showStar = computed(() => canFavorite(settings.value.role));
+const mayEdit = computed(() => store.canEdit);
 // Ersteller aus der Liste (frisch aus der API); ältere Detail-Caches kennen
 // `created_by` noch nicht
 const mayDelete = computed(() => {
@@ -173,10 +174,7 @@ function goBack() {
       <span class="view-header-title">{{
         current_recipe?.recipe_name || "Rezept"
       }}</span>
-      <div
-        v-if="current_recipe && (showStar || !settings.read_only)"
-        class="view-header-actions"
-      >
+      <div v-if="current_recipe" class="view-header-actions">
         <button
           v-if="showStar"
           class="btn-icon"
@@ -190,7 +188,7 @@ function goBack() {
             :class="isFavorite ? 'bi-star-fill text-warning' : 'bi-star'"
           ></i>
         </button>
-        <div v-if="!settings.read_only" class="header-menu-wrapper">
+        <div class="header-menu-wrapper">
           <button
             class="btn-icon"
             @click="headerMenuOpen = !headerMenuOpen"
@@ -200,22 +198,22 @@ function goBack() {
           </button>
           <transition name="header-menu">
             <div v-if="headerMenuOpen" class="header-dropdown" @click.stop>
-              <button class="header-dropdown-item" @click="goToEdit">
-                <i class="bi bi-pencil-square"></i> Bearbeiten
-              </button>
-              <button class="header-dropdown-item" @click="copyRecipe">
-                <i class="bi bi-files"></i> Duplizieren
-              </button>
-              <button class="header-dropdown-item" @click="shareRecipe">
-                <i class="bi bi-share"></i> Teilen
-              </button>
-              <button
-                v-if="settings.expert_mode"
-                class="header-dropdown-item"
-                @click="exportRecipe"
-              >
-                <i class="bi bi-download"></i> YAML Export
-              </button>
+              <template v-if="mayEdit">
+                <button class="header-dropdown-item" @click="goToEdit">
+                  <i class="bi bi-pencil-square"></i> Bearbeiten
+                </button>
+                <button class="header-dropdown-item" @click="copyRecipe">
+                  <i class="bi bi-files"></i> Duplizieren
+                </button>
+                <!-- Links anlegen und widerrufen erst ab `editor` (Backend) -->
+                <button class="header-dropdown-item" @click="shareRecipe">
+                  <i class="bi bi-share"></i> Teilen
+                </button>
+                <button class="header-dropdown-item" @click="exportRecipe">
+                  <i class="bi bi-download"></i> Als Datei exportieren
+                </button>
+                <hr class="dropdown-divider" />
+              </template>
               <button
                 v-if="wakeLockSupported"
                 class="header-dropdown-item"

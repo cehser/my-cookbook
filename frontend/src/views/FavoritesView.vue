@@ -6,8 +6,6 @@ import RecipeGrid from "@/components/recipe/ui/RecipeGrid.vue";
 
 const store = useRecipeStore();
 
-const settings = computed(() => store.settings);
-
 const favoriteRecipes = computed(() => {
   return store.recipes
     .map((recipe, index) => ({ ...recipe, originalIndex: index }))
@@ -29,11 +27,7 @@ const { deleteRecipe: handleDeleteRecipe } = useRecipeDelete();
             favoriteRecipes.length !== 1 ? "en" : ""
           }}
         </h6>
-        <RecipeGrid
-          :recipes="favoriteRecipes"
-          :read-only="settings.read_only"
-          @delete="handleDeleteRecipe"
-        />
+        <RecipeGrid :recipes="favoriteRecipes" @delete="handleDeleteRecipe" />
       </template>
 
       <!-- Empty state -->

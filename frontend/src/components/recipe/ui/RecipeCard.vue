@@ -16,7 +16,6 @@ const props = defineProps<{
   picture_src: string;
   index: number;
   highlight?: string;
-  read_only: boolean;
   compact?: boolean;
 }>();
 
@@ -40,11 +39,12 @@ onKeyStroke("Escape", () => {
   }
 });
 
-// Stern ab Rolle `readonly`, unabhängig vom Schalter „Nur lesen“
+// Stern ab Rolle `readonly`; Bearbeiten-Elemente nur mit Bearbeitungsrecht
 const showStar = computed(
   () => !props.compact && canFavorite(store.settings.role),
 );
 const mayDelete = computed(() => store.canDelete(props.recipe));
+const mayEdit = computed(() => store.canEdit);
 
 const isFavorite = computed(() => {
   return store.favorites.includes(props.recipe.recipe_uuid);
@@ -202,11 +202,7 @@ const localStatus = computed(() => store.localStatus(props.recipe.recipe_uuid));
         </div>
 
         <!-- FAB mit Menü (rechts unten in der Karte) -->
-        <div
-          v-if="!read_only && !compact"
-          class="card-fab-container"
-          @click.stop
-        >
+        <div v-if="mayEdit && !compact" class="card-fab-container" @click.stop>
           <transition name="fab-items">
             <div v-if="fabMenuOpen" class="card-fab-menu">
               <BButton
@@ -319,7 +315,7 @@ const localStatus = computed(() => store.localStatus(props.recipe.recipe_uuid));
 
     <!-- Tag-Editor außerhalb des Links -->
     <div
-      v-if="!read_only && showTagEditor"
+      v-if="mayEdit && showTagEditor"
       class="tag-editor"
       @click.stop
       @mousedown.stop

@@ -5,6 +5,7 @@ import type { Recipe } from "@/types/recipe";
 const { store, toast, exportAll, saveBlob } = vi.hoisted(() => ({
   store: {
     recipes: [] as Recipe[],
+    canEdit: true,
     canDelete: (() => true) as (r: Recipe) => boolean,
     deleteRecipe: vi.fn(),
     appendRecipe: vi.fn(),
@@ -29,7 +30,7 @@ const recipe = (id: string, recipe_name: string) =>
 
 function render(isAdmin = false) {
   return mount(AdminRecipes, {
-    props: { readOnly: false, expertMode: false, isAdmin },
+    props: { isAdmin },
   });
 }
 

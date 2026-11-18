@@ -9,9 +9,8 @@ import AdminRecipes from "@/components/admin/AdminRecipes.vue";
 
 const store = useRecipeStore();
 
-// Sichtbarkeit je Abschnitt: Rolle, read_only, expert_mode
-const settings = computed(() => store.settings);
-const isAdmin = computed(() => settings.value.role === "admin");
+// Sichtbarkeit je Abschnitt allein nach Rolle
+const isAdmin = computed(() => store.settings.role === "admin");
 </script>
 
 <template>
@@ -31,13 +30,9 @@ const isAdmin = computed(() => settings.value.role === "admin");
 
       <hr />
 
-      <AdminRecipes
-        :read-only="settings.read_only"
-        :expert-mode="settings.expert_mode"
-        :is-admin="isAdmin"
-      >
+      <AdminRecipes :is-admin="isAdmin">
         <template #actions>
-          <AdminMaintenance v-if="!settings.read_only && isAdmin" />
+          <AdminMaintenance v-if="isAdmin" />
         </template>
       </AdminRecipes>
     </BContainer>

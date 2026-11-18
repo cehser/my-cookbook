@@ -1,77 +1,35 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useColorMode } from "@vueuse/core";
 import { useRecipeStore } from "@/store/recipeStore";
-import { useToast } from "@/composables/useToast";
 import { logout } from "@/auth/oidc";
-import { isEqualPlain } from "@/js/isEqualPlain";
 
 declare const __COMMIT_HASH__: string;
 const commitHash = __COMMIT_HASH__;
 
 const router = useRouter();
 const recipeStore = useRecipeStore();
-const { toast } = useToast();
 const { store: colorMode } = useColorMode({
   attribute: "data-bs-theme",
   storageKey: "my-cookbook-color-mode",
 });
 
-// Local copy of settings for editing
-const settings = ref(JSON.parse(JSON.stringify(recipeStore.settings)));
-const userEdited = ref(false);
-
-const store_settings = computed(() => recipeStore.settings);
-
-// Watch store settings — update local copy unless user is editing
-watch(
-  () => recipeStore.settings,
-  (newVal) => {
-    if (!userEdited.value) {
-      settings.value = JSON.parse(JSON.stringify(newVal));
-    }
-  },
-  { deep: true },
-);
-
-// Watch local settings — mark as edited when they diverge
-watch(
-  settings,
-  () => {
-    if (settings.value && !isEqualPlain(settings.value, recipeStore.settings)) {
-      userEdited.value = true;
-    }
-  },
-  { deep: true },
-);
-
-const changed = computed(
-  () => !isEqualPlain(settings.value, recipeStore.settings),
-);
+const role = computed(() => recipeStore.settings.role);
 
 const roleBadgeClass = computed(() => {
-  const role = settings.value?.role || recipeStore.settings?.role;
-  if (role === "admin") return "bg-danger";
-  if (role === "editor") return "bg-success";
+  if (role.value === "admin") return "bg-danger";
+  if (role.value === "editor") return "bg-success";
   return "bg-secondary";
 });
 
 const roleLabel = computed(() => {
-  const role = settings.value?.role || recipeStore.settings?.role;
-  if (role === "admin") return "Administrator";
-  if (role === "editor") return "Bearbeiter";
+  if (role.value === "admin") return "Administrator";
+  if (role.value === "editor") return "Bearbeiter";
   return "Nur Lesen";
 });
 
-const isAdmin = computed(() => recipeStore.settings?.role === "admin");
-
-async function saveChanges() {
-  await recipeStore.saveSettings(settings.value);
-  settings.value = JSON.parse(JSON.stringify(recipeStore.settings));
-  userEdited.value = false;
-  toast("Einstellungen gespeichert.", "success");
-}
+const isAdmin = computed(() => role.value === "admin");
 
 async function handleLogout() {
   if (!window.confirm("Möchtest du dich wirklich abmelden?")) return;
@@ -92,45 +50,6 @@ async function handleLogout() {
         <div>
           <span class="badge" :class="roleBadgeClass">{{ roleLabel }}</span>
         </div>
-      </div>
-
-      <!-- Settings -->
-      <h6 class="section-label">Einstellungen</h6>
-
-      <div class="settings-card mb-3">
-        <BFormCheckbox
-          v-model="settings.read_only"
-          :unchecked-value="false"
-          name="read-only"
-          switch
-          :disabled="
-            store_settings.role === 'pending' ||
-            store_settings.role === 'readonly'
-          "
-        >
-          Nur lesen
-        </BFormCheckbox>
-
-        <BFormCheckbox
-          v-model="settings.expert_mode"
-          name="expert-mode"
-          :unchecked-value="false"
-          switch
-        >
-          Experten-Modus
-        </BFormCheckbox>
-
-        <BAlert
-          v-if="settings.expert_mode"
-          variant="info"
-          :model-value="true"
-          class="mt-2 mb-0"
-        >
-          <small>
-            <i class="bi bi-info-circle-fill"></i>
-            YAML-Import/Export, erweiterte Verwaltungsoptionen.
-          </small>
-        </BAlert>
       </div>
 
       <!-- Appearance -->
@@ -161,17 +80,6 @@ async function handleLogout() {
           </button>
         </div>
       </div>
-
-      <!-- Save -->
-      <BButton
-        variant="primary"
-        size="sm"
-        :disabled="!changed"
-        @click="saveChanges"
-        class="mb-4"
-      >
-        <i class="bi bi-check-lg"></i> Speichern
-      </BButton>
 
       <!-- Admin -->
       <template v-if="isAdmin">

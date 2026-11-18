@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { LocalReadError } from "@/store/pendingCreates";
+import { canEdit } from "@/auth/role";
 import type { Settings } from "@/types/settings";
 import type { Recipe } from "@/types/recipe";
 
@@ -8,6 +9,7 @@ const store = vi.hoisted(() => ({
   settings: {} as Settings,
   favorites: [] as string[],
   recipes: [] as Recipe[],
+  canEdit: false,
   canDelete: (() => false) as (r: Recipe) => boolean,
   localStatus: (() => null) as (uuid: string) => "pending" | "rejected" | null,
   addFavorite: vi.fn(),
@@ -34,13 +36,13 @@ const recipe = {
 function render(
   settings: Settings,
   {
-    readOnly = settings.read_only,
     canDelete = false,
     local = null as "pending" | "rejected" | null,
     compact = false,
   } = {},
 ) {
   store.settings = settings;
+  store.canEdit = canEdit(settings.role);
   store.canDelete = () => canDelete;
   store.localStatus = () => local;
   return mount(RecipeCard, {
@@ -48,7 +50,6 @@ function render(
       recipe: structuredClone(recipe),
       picture_src: "",
       index: 0,
-      read_only: readOnly,
       compact,
     },
     global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
@@ -66,19 +67,19 @@ async function openMenu(w: ReturnType<typeof render>) {
 describe("RecipeCard", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("Stern für readonly mit „Nur lesen“, ohne Aktionsmenü", () => {
-    const w = render({ role: "readonly", read_only: true, expert_mode: false });
+  it("Stern für readonly, ohne Aktionsmenü", () => {
+    const w = render({ role: "readonly" });
     expect(star(w).exists()).toBe(true);
     expect(w.find("button[aria-label='Aktionen']").exists()).toBe(false);
   });
 
   it("kein Stern für pending", () => {
-    const w = render({ role: "pending", read_only: true, expert_mode: false });
+    const w = render({ role: "pending" });
     expect(star(w).exists()).toBe(false);
   });
 
   it("Stern setzt den Favoriten", async () => {
-    const w = render({ role: "readonly", read_only: true, expert_mode: false });
+    const w = render({ role: "readonly" });
     await star(w).trigger("click");
     expect(store.addFavorite).toHaveBeenCalledWith("r1");
   });
@@ -86,8 +87,6 @@ describe("RecipeCard", () => {
   it("Löschen nur mit Recht", async () => {
     const editor: Settings = {
       role: "editor",
-      read_only: false,
-      expert_mode: false,
     };
     const without = render(editor, { canDelete: false });
     await openMenu(without);
@@ -102,7 +101,7 @@ describe("RecipeCard", () => {
   it("Tag nicht gespeichert: Toast mit Grund, Tag in der Anzeige zurück", async () => {
     const answer = deferredResult();
     store.setRecipeTags.mockReturnValueOnce(answer.promise);
-    const w = render({ role: "editor", read_only: false, expert_mode: false });
+    const w = render({ role: "editor" });
     await openTagEditor(w);
     await w.find("input").setValue("Kuchen");
     await w.find("input").trigger("keyup.enter");
@@ -128,7 +127,7 @@ describe("RecipeCard", () => {
 
   it("Tag entfernen gelingt: kein Toast", async () => {
     store.setRecipeTags.mockResolvedValueOnce({ status: "saved" });
-    const w = render({ role: "editor", read_only: false, expert_mode: false });
+    const w = render({ role: "editor" });
     await openTagEditor(w);
     await w.find(".tag-editor .badge.bg-primary").trigger("click");
     await flushPromises();
@@ -144,8 +143,6 @@ describe("RecipeCard", () => {
     (local, text) => {
       const settings: Settings = {
         role: "editor",
-        read_only: false,
-        expert_mode: false,
       };
       expect(render(settings, { local }).find(".local-badge").text()).toBe(
         text,
