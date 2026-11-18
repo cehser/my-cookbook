@@ -5,6 +5,7 @@ import { useDraftIndex } from "@/composables/useDraftIndex";
 import { useRouter } from "vue-router";
 import { onKeyStroke } from "@vueuse/core";
 import type { Recipe } from "@/types/recipe";
+import LocalStatusBadge from "@/components/recipe/ui/LocalStatusBadge.vue";
 import { recipeUrl, editUrl } from "@/js/slug";
 import { canFavorite } from "@/auth/role";
 import { useToast } from "@/composables/useToast";
@@ -270,16 +271,11 @@ const localStatus = computed(() => store.localStatus(props.recipe.recipe_uuid));
 
       <div class="card-bottom" :class="{ 'card-body-compact': compact }">
         <!-- Tags floating on image (above title overlay) -->
-        <span
+        <LocalStatusBadge
           v-if="localStatus"
-          class="local-badge"
-          :class="{ 'local-badge-rejected': localStatus === 'rejected' }"
-          >{{
-            localStatus === "rejected"
-              ? "Vom Server abgelehnt"
-              : "Nur auf diesem Gerät"
-          }}</span
-        >
+          class="card-local-badge"
+          :status="localStatus"
+        />
         <div v-if="!compact && tags.length" class="recipe-tags-floating">
           <span
             v-for="(tag, idx) in tags"
@@ -433,22 +429,9 @@ const localStatus = computed(() => store.localStatus(props.recipe.recipe_uuid));
   gap: var(--space-1);
 }
 
-/* Nur auf diesem Gerät bzw. abgelehnt: Text, nicht größer als ein Tag-Chip */
-.local-badge {
+/* Nur auf diesem Gerät bzw. abgelehnt (LocalStatusBadge) */
+.card-local-badge {
   margin: 0 var(--space-2) var(--space-1);
-  padding: 0.2em 0.5em;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  line-height: 1.2;
-  background-color: var(--color-warning-bg);
-  color: var(--color-warning-text);
-  box-shadow: var(--shadow-sm);
-}
-
-.local-badge-rejected {
-  background-color: var(--color-danger);
-  color: var(--color-text-on-primary);
 }
 
 .recipe_title {

@@ -227,3 +227,27 @@ describe("RecipeDisplay am iPhone", () => {
     expect(w.find(".bottom-bar-collapsed").text()).toContain("7 Portionen");
   });
 });
+
+describe("RecipeDisplay: Kennzeichnung im Kopf", () => {
+  it.each([
+    [1024, "pending", "Nur auf diesem Gerät"],
+    [1024, "rejected", "Vom Server abgelehnt"],
+    [375, "pending", "Nur auf diesem Gerät"],
+    [375, "rejected", "Vom Server abgelehnt"],
+  ] as const)("Breite %i, %s: „%s“", async (width, status, text) => {
+    setWidth(width);
+    wrapper = mount(RecipeDisplay, {
+      props: { recipe: lasagne(), imageSrc: "", localStatus: status },
+      attachTo: document.body,
+    });
+    await flushPromises();
+    const badge = wrapper.find("#recipe_title .local-badge");
+    expect(badge.text()).toBe(text);
+    expect(badge.classes("local-badge-rejected")).toBe(status === "rejected");
+  });
+
+  it("ohne Status keine Kennzeichnung", async () => {
+    const w = await render(lasagne());
+    expect(w.find(".local-badge").exists()).toBe(false);
+  });
+});
