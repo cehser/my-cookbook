@@ -9,6 +9,7 @@ from pathlib import Path
 import httpx
 import pytest
 from PIL import Image
+from sqlalchemy import text
 
 from app.services import export as export_service
 from app.services import images as image_service
@@ -138,3 +139,11 @@ async def test_export_falls_back_to_webp(
     assert doc["images"][0]["file"] == f"images/{image['id']}.webp"
     assert zf.read(doc["images"][0]["file"]).startswith(b"RIFF")
     await db_client.delete(f"/api/v1/recipes/{rid}")
+
+
+async def test_export_reads_one_snapshot(db_session) -> None:
+    async with export_service.snapshot_session(db_session) as snapshot:
+        isolation = (await snapshot.execute(text("SHOW transaction_isolation"))).scalar()
+        read_only = (await snapshot.execute(text("SHOW transaction_read_only"))).scalar()
+    assert isolation == "repeatable read"
+    assert read_only == "on"

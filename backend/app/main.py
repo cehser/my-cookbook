@@ -23,6 +23,7 @@ from app.routes import (
     shares,
     tags,
 )
+from app.services import export as export_service
 
 # Uvicorn konfiguriert nur seine eigenen Logger; ohne Handler gingen INFO-Meldungen
 # aus "app.*" verloren. Handler am Logger "app" (nicht am Root), damit Uvicorns Logging
@@ -58,6 +59,7 @@ async def run_migrations() -> None:
 async def lifespan(app: FastAPI):
     # Startup
     await run_migrations()
+    export_service.remove_stale_exports()
     yield
     # Shutdown
 

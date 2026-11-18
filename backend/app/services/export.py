@@ -8,7 +8,8 @@ Aufbau, beschrieben in ``docs/plans/export-import.md``:
 
 Pfade im ZIP entstehen nur aus IDs, nie aus ``filename`` oder ``recipe_name``. Das ZIP wird
 in eine temporäre Datei außerhalb von ``UPLOAD_DIR`` geschrieben (``zipfile`` braucht ``seek``);
-der Aufrufer löscht sie nach dem Ausliefern.
+der Aufrufer löscht sie nach dem Ausliefern, liegengebliebene räumt der Start auf
+(``remove_stale_exports``).
 """
 
 from __future__ import annotations
@@ -21,12 +22,14 @@ import tempfile
 import uuid
 import zipfile
 from collections import defaultdict
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
@@ -40,6 +43,9 @@ log = logging.getLogger(__name__)
 
 EXPORT_FORMAT = "my-cookbook-export"
 EXPORT_VERSION = 1
+
+# Präfix der temporären Dateien im Temp-Verzeichnis (mkstemp hängt Zufall und .zip an)
+TEMP_PREFIX = "my-cookbook-export-"
 
 # Die Endung des Originals stammt aus dem Dateinamen des Uploads; nur harmlose übernehmen
 _SAFE_EXT = re.compile(r"^\.[a-z0-9]{1,10}$")
@@ -85,6 +91,24 @@ def find_image_source(img: RecipeImage) -> Path | None:
     return optimised if optimised.is_file() else None
 
 
+def remove_stale_exports() -> int:
+    """Liegengebliebene Export-Dateien im Temp-Verzeichnis löschen (Aufruf beim Start).
+
+    Der ``BackgroundTask`` der Route entfällt, wenn das Senden scheitert (Client-Abbruch).
+    Fehler werden geloggt, der Start läuft weiter.
+    """
+    removed = 0
+    for path in Path(tempfile.gettempdir()).glob(f"{TEMP_PREFIX}*.zip"):
+        try:
+            path.unlink()
+            removed += 1
+        except OSError as e:
+            log.warning("Export-Datei nicht gelöscht: %s (%s)", path, e)
+    if removed:
+        log.info("%d liegengebliebene Export-Datei(en) gelöscht", removed)
+    return removed
+
+
 def _image_arcname(img: RecipeImage, source: Path) -> str:
     ext = source.suffix.lower()
     if not _SAFE_EXT.match(ext):
@@ -124,6 +148,22 @@ def _recipe_document(recipe: Recipe, plan: _Plan) -> dict[str, Any]:
     }
 
 
+@asynccontextmanager
+async def snapshot_session(db: AsyncSession) -> AsyncIterator[AsyncSession]:
+    """Eigene Verbindung mit einer Transaktion ``REPEATABLE READ, READ ONLY``.
+
+    Rezepte, Tags und Bilder stammen so aus einem Stand, auch wenn parallel geändert wird.
+    Die Session des Requests bleibt unberührt.
+    """
+    async with db.bind.connect() as conn:
+        await conn.execution_options(isolation_level="REPEATABLE READ")
+        async with conn.begin():
+            # Erste Anweisung der Transaktion, sonst lehnt PostgreSQL SET TRANSACTION ab
+            await conn.execute(text("SET TRANSACTION READ ONLY"))
+            async with AsyncSession(bind=conn, expire_on_commit=False) as session:
+                yield session
+
+
 async def _load_plan(db: AsyncSession) -> _Plan:
     recipes = list(
         (await db.execute(select(Recipe).order_by(Recipe.created_at, Recipe.id))).scalars()
@@ -149,70 +189,84 @@ async def _load_plan(db: AsyncSession) -> _Plan:
     return plan
 
 
-def _resolve_files(plan: _Plan) -> None:
-    """Bilddateien suchen; fehlende ins Manifest und ins Log, der Export läuft weiter."""
+def _mark_missing(plan: _Plan, entry: _ImageEntry) -> None:
+    """Bild als fehlend in Manifest und Log; das Rezept bleibt im Export (``file: null``)."""
+    log.warning(
+        "Export: Bilddatei fehlt (Rezept %s, Bild %s, %s)",
+        entry.row.recipe_id,
+        entry.row.id,
+        entry.row.kind,
+    )
+    plan.missing.append(
+        {
+            "recipe_id": str(entry.row.recipe_id),
+            "image_id": str(entry.row.id),
+            "kind": entry.row.kind,
+        }
+    )
+    entry.source = None
+    entry.arcname = None
+
+
+def _write_images(zf: zipfile.ZipFile, plan: _Plan) -> int:
+    """Bilder unverändert (``ZIP_STORED``) schreiben; gibt die Anzahl geschriebener zurück.
+
+    Fehlt die Datei schon beim Suchen oder verschwindet sie bis zum Schreiben, gilt sie als
+    fehlend. ``ZipFile.write`` öffnet die Quelle, bevor es einen Eintrag anlegt, ein
+    ``FileNotFoundError`` hinterlässt also keinen halben Eintrag.
+    """
+    written = 0
     for entries in plan.images.values():
         for entry in entries:
             source = find_image_source(entry.row)
             if source is None:
-                log.warning(
-                    "Export: Bilddatei fehlt (Rezept %s, Bild %s, %s)",
-                    entry.row.recipe_id,
-                    entry.row.id,
-                    entry.row.kind,
-                )
-                plan.missing.append(
-                    {
-                        "recipe_id": str(entry.row.recipe_id),
-                        "image_id": str(entry.row.id),
-                        "kind": entry.row.kind,
-                    }
-                )
+                _mark_missing(plan, entry)
+                continue
+            arcname = _image_arcname(entry.row, source)
+            try:
+                zf.write(source, arcname, compress_type=zipfile.ZIP_STORED)
+            except FileNotFoundError:
+                _mark_missing(plan, entry)
                 continue
             entry.source = source
-            entry.arcname = _image_arcname(entry.row, source)
+            entry.arcname = arcname
+            written += 1
+    return written
 
 
 def _json_bytes(value: Any) -> bytes:
     return json.dumps(value, ensure_ascii=False, indent=2).encode("utf-8")
 
 
-def _write_zip(target: Path, plan: _Plan, manifest: dict[str, Any]) -> None:
+def _write_zip(target: Path, plan: _Plan, exported_at: datetime) -> dict[str, Any]:
+    """Bilder zuerst, dann Rezepte und Manifest: Erst danach steht fest, was fehlt."""
     with zipfile.ZipFile(target, "w") as zf:
-        zf.writestr("manifest.json", _json_bytes(manifest), compress_type=zipfile.ZIP_DEFLATED)
+        image_count = _write_images(zf, plan)
         for recipe in plan.recipes:
             zf.writestr(
                 f"recipes/{recipe.id}.json",
                 _json_bytes(_recipe_document(recipe, plan)),
                 compress_type=zipfile.ZIP_DEFLATED,
             )
-        for entries in plan.images.values():
-            for entry in entries:
-                if entry.source is not None and entry.arcname is not None:
-                    # Bilder sind schon komprimiert: unverändert ablegen
-                    zf.write(entry.source, entry.arcname, compress_type=zipfile.ZIP_STORED)
+        manifest: dict[str, Any] = {
+            "format": EXPORT_FORMAT,
+            "version": EXPORT_VERSION,
+            "exported_at": exported_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "app_commit": settings.commit_hash or "dev",
+            "recipe_count": len(plan.recipes),
+            "image_count": image_count,
+            "missing_images": plan.missing,
+        }
+        zf.writestr("manifest.json", _json_bytes(manifest), compress_type=zipfile.ZIP_DEFLATED)
+    return manifest
 
 
 def _build(plan: _Plan, exported_at: datetime) -> ExportFile:
-    _resolve_files(plan)
-    exported_images = sum(
-        1 for entries in plan.images.values() for e in entries if e.source is not None
-    )
-    manifest: dict[str, Any] = {
-        "format": EXPORT_FORMAT,
-        "version": EXPORT_VERSION,
-        "exported_at": exported_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "app_commit": settings.commit_hash or "dev",
-        "recipe_count": len(plan.recipes),
-        "image_count": exported_images,
-        "missing_images": plan.missing,
-    }
-
-    fd, name = tempfile.mkstemp(prefix="my-cookbook-export-", suffix=".zip")
+    fd, name = tempfile.mkstemp(prefix=TEMP_PREFIX, suffix=".zip")
     os.close(fd)
     path = Path(name)
     try:
-        _write_zip(path, plan, manifest)
+        manifest = _write_zip(path, plan, exported_at)
     except BaseException:
         path.unlink(missing_ok=True)
         raise
@@ -224,6 +278,7 @@ def _build(plan: _Plan, exported_at: datetime) -> ExportFile:
 
 
 async def create_export(db: AsyncSession) -> ExportFile:
-    """Rezepte laden und das ZIP im Threadpool schreiben (Datei-I/O blockiert sonst die Loop)."""
-    plan = await _load_plan(db)
+    """Stand lesen (eine Transaktion) und das ZIP im Threadpool schreiben (Datei-I/O)."""
+    async with snapshot_session(db) as snapshot:
+        plan = await _load_plan(snapshot)
     return await run_in_threadpool(_build, plan, datetime.now(UTC))
