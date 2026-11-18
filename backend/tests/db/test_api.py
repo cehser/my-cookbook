@@ -7,10 +7,11 @@ import uuid
 import httpx
 import pytest
 from PIL import Image
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.auth import dependencies
 from app.models.image import RecipeImage
+from app.models.recipe import Recipe
 from app.models.user import AppUser
 from app.routes import recipes
 from app.services import images as image_service
@@ -269,6 +270,52 @@ async def test_readonly_cannot_create(db_client: httpx.AsyncClient, as_db_user) 
     await as_db_user("readonly")
     r = await db_client.post("/api/v1/recipes", json={"recipe_name": "X"})
     assert r.status_code == 403
+
+
+async def _create_as(db_client: httpx.AsyncClient, as_db_user, role: str) -> str:
+    await as_db_user(role)
+    r = await db_client.post("/api/v1/recipes", json={"recipe_name": f"CI-{role}"})
+    assert r.status_code == 201
+    return r.json()["id"]
+
+
+async def test_admin_deletes_foreign_recipe(db_client: httpx.AsyncClient, as_db_user) -> None:
+    recipe_id = await _create_as(db_client, as_db_user, "editor")
+    await as_db_user("admin")
+    assert (await db_client.delete(f"/api/v1/recipes/{recipe_id}")).status_code == 204
+    assert (await db_client.get(f"/api/v1/recipes/{recipe_id}")).status_code == 404
+
+
+async def test_editor_deletes_own_recipe(db_client: httpx.AsyncClient, as_db_user) -> None:
+    recipe_id = await _create_as(db_client, as_db_user, "editor")
+    assert (await db_client.delete(f"/api/v1/recipes/{recipe_id}")).status_code == 204
+    assert (await db_client.get(f"/api/v1/recipes/{recipe_id}")).status_code == 404
+
+
+@pytest.mark.parametrize("role", ["editor", "readonly"])
+async def test_foreign_recipe_delete_forbidden(
+    db_client: httpx.AsyncClient, as_db_user, role: str
+) -> None:
+    recipe_id = await _create_as(db_client, as_db_user, "admin")
+    await as_db_user(role)
+    assert (await db_client.delete(f"/api/v1/recipes/{recipe_id}")).status_code == 403
+    assert (await db_client.get(f"/api/v1/recipes/{recipe_id}")).status_code == 200
+    await as_db_user("admin")
+    await db_client.delete(f"/api/v1/recipes/{recipe_id}")
+
+
+async def test_recipe_without_creator_only_admin_deletes(
+    db_client: httpx.AsyncClient, as_db_user, db_session
+) -> None:
+    recipe_id = await _create_as(db_client, as_db_user, "admin")
+    await db_session.execute(
+        update(Recipe).where(Recipe.id == uuid.UUID(recipe_id)).values(created_by=None)
+    )
+    await db_session.commit()
+    await as_db_user("editor")
+    assert (await db_client.delete(f"/api/v1/recipes/{recipe_id}")).status_code == 403
+    await as_db_user("admin")
+    assert (await db_client.delete(f"/api/v1/recipes/{recipe_id}")).status_code == 204
 
 
 async def test_me_creates_new_user(
