@@ -5,6 +5,14 @@ import Components from "unplugin-vue-components/vite";
 import { BootstrapVueNextResolver } from "bootstrap-vue-next";
 
 // Bewusst getrennt von vite.config.js (SSL- und PWA-Plugin gehören nicht in Tests).
+
+// Windows mit kleinem Laufwerksbuchstaben (`c:`, so liefern VS Code und
+// Claude-Code-Sitzungen das Arbeitsverzeichnis): Mit dem Standard-Pool lädt
+// Vitest Module doppelt, alle Dateien scheitern („failed to find the current
+// suite“, „reading 'config'“). `vmThreads` umgeht das. Sonst und in CI der
+// Standard. Entfällt, sobald vitest-dev/vitest#9507 behoben ist.
+const lowerDriveLetter =
+  process.platform === "win32" && /^[a-z]:/.test(process.cwd());
 // eslint-disable-next-line no-restricted-exports
 export default defineConfig({
   define: {
@@ -36,5 +44,6 @@ export default defineConfig({
     environment: "happy-dom",
     environmentOptions: { happyDOM: { url: "http://localhost/" } },
     include: ["src/**/*.spec.ts"],
+    ...(lowerDriveLetter ? { pool: "vmThreads" as const } : {}),
   },
 });
