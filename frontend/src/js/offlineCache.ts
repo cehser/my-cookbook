@@ -95,6 +95,8 @@ export interface PendingCreate {
   recipe: Recipe;
   sub: string | null;
   rejected?: number;
+  /** Gelöscht; bleibt vorgemerkt, bis der Server das `DELETE` bestätigt. */
+  deleted?: true;
 }
 
 /**

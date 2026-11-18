@@ -11,7 +11,9 @@
  * Abgleich per GET über den Ersteller).
  *
  * Ein Eintrag verlässt die Vormerkung erst, wenn der Server seinen aktuellen
- * Stand hat (nach POST bzw. nachgeschobenem PUT). Alle Zugriffe laufen
+ * Stand hat (nach POST bzw. nachgeschobenem PUT). Gelöschte Einträge bleiben
+ * als Löschung vorgemerkt (`deleted`), bis der Server das `DELETE`
+ * bestätigt; bis dahin blenden Listenabrufe sie aus. Alle Zugriffe laufen
  * nacheinander (`locked`), die Übertragung als Single-Flight. Lese- und
  * Schreibfehler der IndexedDB werden geworfen; nach einem Lesefehler wird
  * nie geschrieben. Der Store ist dünner Aufrufer.
@@ -29,6 +31,7 @@ import {
   type PendingCreate,
 } from "@/js/offlineCache";
 import { detailToRecipe, recipeToPayload } from "@/js/recipeMapping";
+import { noteDeleted } from "@/store/listSync";
 import type { Recipe } from "@/types/recipe";
 
 /** Die Vormerkung konnte nicht gespeichert werden (IndexedDB). */
@@ -69,22 +72,51 @@ function locked<T>(fn: () => Promise<T>): Promise<T> {
 // Gelöscht, aber noch nicht geschrieben: Eine vorher begonnene Lesung darf
 // das Rezept nicht zurück in die Liste bringen.
 const removing = new Set<string>();
+// `DELETE` eines vorgemerkten Rezepts läuft: Listenabrufe blenden es aus.
+const deleting = new Set<string>();
+// Rezept, dessen Übertragung gerade läuft: Seine Löschmarkierung entfernt
+// erst die Übertragung (sie kann es nach einem 404 noch anlegen).
+let transferring: string | null = null;
+
+/** Einträge des angemeldeten Nutzers; wirft bei Lese- oder Sitzungsfehler. */
+async function ownEntries(): Promise<PendingCreate[]> {
+  const sub = await currentUserSub();
+  const entries = await locked(readPendingCreates);
+  return entries.filter((e) => sameUser(e.sub, sub));
+}
+
+export interface PendingState {
+  /** Vorgemerkte Rezepte (auch abgelehnte, sie bleiben sichtbar) */
+  pending: PendingCreate[];
+  /** Gelöschte, deren `DELETE` aussteht: im Listenabruf ausblenden */
+  deleted: Set<string>;
+}
 
 /**
- * Vorgemerkte Rezepte des angemeldeten Nutzers (auch abgelehnte, sie bleiben
- * sichtbar). Ein Lese- oder Sitzungsfehler ergibt eine leere Liste, ohne
- * zu schreiben.
+ * Stand der Vormerkung des angemeldeten Nutzers. Ein Lese- oder
+ * Sitzungsfehler ergibt eine leere Vormerkung, ohne zu schreiben.
  */
-export async function listPending(): Promise<PendingCreate[]> {
+export async function readPending(): Promise<PendingState> {
+  let entries: PendingCreate[] = [];
   try {
-    const sub = await currentUserSub();
-    const entries = await locked(readPendingCreates);
-    return entries.filter(
-      (e) => sameUser(e.sub, sub) && !removing.has(e.recipe.recipe_uuid),
-    );
+    entries = await ownEntries();
   } catch {
-    return [];
+    // leer lassen
   }
+  // Nach dem Lesen auswerten: Eine Löschung kann währenddessen begonnen haben
+  const deleted = new Set([...removing, ...deleting]);
+  for (const e of entries) {
+    if (e.deleted) deleted.add(e.recipe.recipe_uuid);
+  }
+  return {
+    pending: entries.filter((e) => !deleted.has(e.recipe.recipe_uuid)),
+    deleted,
+  };
+}
+
+/** Vorgemerkte Rezepte des angemeldeten Nutzers (siehe `readPending`). */
+export async function listPending(): Promise<PendingCreate[]> {
+  return (await readPending()).pending;
 }
 
 /**
@@ -127,7 +159,7 @@ export function updatePending(recipe: Recipe): Promise<boolean> {
     const entry = entries.find(
       (e) => e.recipe.recipe_uuid === copy.recipe_uuid,
     );
-    if (!entry) return false;
+    if (!entry || entry.deleted) return false;
     entry.recipe = copy;
     delete entry.rejected;
     await writePendingCreates(entries);
@@ -136,18 +168,79 @@ export function updatePending(recipe: Recipe): Promise<boolean> {
 }
 
 /**
- * Aus der Vormerkung entfernen; `true`, wenn es vorgemerkt war. Wirft bei
- * IndexedDB-Fehlern.
+ * Vorgemerktes Rezept löschen. Der Server kann es schon haben (verlorene
+ * Antwort, laufende Übertragung), deshalb bleibt die Löschung vorgemerkt
+ * (`marked`), bis `deleteOnServer` sie bestätigt; Listenabrufe blenden das
+ * Rezept so lange aus. Ein abgelehntes Rezept hat der Server nicht (bzw. bei
+ * fremdem 409 gehört es einem anderen): sofort entfernen (`removed`).
+ * `none`: nicht vorgemerkt. Wirft bei IndexedDB-Fehlern.
  */
-export function removePending(uuid: string): Promise<boolean> {
+export function markDeleted(
+  uuid: string,
+): Promise<"none" | "removed" | "marked"> {
   removing.add(uuid);
   return locked(async () => {
     const entries = await readPendingCreates();
-    const rest = entries.filter((e) => e.recipe.recipe_uuid !== uuid);
-    if (rest.length === entries.length) return false;
-    await writePendingCreates(rest);
-    return true;
+    const entry = entries.find((e) => e.recipe.recipe_uuid === uuid);
+    if (!entry) return "none" as const;
+    if (entry.deleted) return "marked" as const;
+    if (entry.rejected !== undefined) {
+      await writePendingCreates(entries.filter((e) => e !== entry));
+      return "removed" as const;
+    }
+    entry.deleted = true;
+    await writePendingCreates(entries);
+    return "marked" as const;
   }).finally(() => removing.delete(uuid));
+}
+
+/** Eintrag endgültig entfernen. */
+function dropEntry(uuid: string): Promise<void> {
+  return locked(async () => {
+    const entries = await readPendingCreates();
+    const rest = entries.filter((e) => e.recipe.recipe_uuid !== uuid);
+    if (rest.length !== entries.length) await writePendingCreates(rest);
+  });
+}
+
+/**
+ * Vorgemerkte Löschung an den Server senden (nur mit gültiger Sitzung).
+ * Bestätigt (204, 404) oder endgültig abgelehnt (übrige 4xx): Markierung
+ * entfernen, `true`. Ausfall (offline, Timeout, 5xx, 401): bleibt
+ * vorgemerkt, die nächste Übertragung sendet erneut, `false`. Läuft gerade
+ * die Übertragung dieses Rezepts, entfernt erst sie die Markierung.
+ */
+export async function deleteOnServer(
+  uuid: string,
+  { fromTransfer = false } = {},
+): Promise<boolean> {
+  deleting.add(uuid);
+  try {
+    try {
+      await recipeApi.delete(uuid);
+    } catch (e) {
+      if (!isClientError(e)) {
+        console.warn("Delete of pending recipe failed, will retry", e);
+        return false;
+      }
+      if (!(e instanceof ApiError && e.status === 404)) {
+        console.warn("Delete of pending recipe rejected", e);
+      }
+    }
+    // Abrufe, die vor der Bestätigung begannen, zeigen es nicht wieder
+    noteDeleted(uuid);
+    if (fromTransfer || transferring !== uuid) {
+      try {
+        await dropEntry(uuid);
+      } catch (e) {
+        // Markierung bleibt: nächste Übertragung, `DELETE` → 404, entfernt
+        console.warn("Pending deletion not cleared", e);
+      }
+    }
+    return true;
+  } finally {
+    deleting.delete(uuid);
+  }
 }
 
 /** Übertragung abgelehnt: vorgemerkt lassen, nicht automatisch wiederholen. */
@@ -180,7 +273,7 @@ function settle(
     const entry = entries.find(
       (e) => e.recipe.recipe_uuid === sent.recipe_uuid,
     );
-    if (!entry) return { status: "deleted" as const };
+    if (!entry || entry.deleted) return { status: "deleted" as const };
     if (!isEqualPlain(entry.recipe, sent)) {
       return { status: "changed" as const, recipe: entry.recipe };
     }
@@ -310,10 +403,31 @@ async function doTransfer({
     rejected: [],
     updateRejected: [],
   };
-  const open = (await listPending()).filter((e) => e.rejected === undefined);
+  let entries: PendingCreate[];
   try {
+    entries = await ownEntries();
+  } catch (e) {
+    console.warn("Pending recipes not readable", e);
+    return report;
+  }
+  try {
+    // Erst vorgemerkte Löschungen, dann Anlagen
+    for (const entry of entries.filter((e) => e.deleted)) {
+      if (!(await finishDeletion(entry))) {
+        throw new Error("Löschen nicht bestätigt");
+      }
+    }
+    const open = entries.filter(
+      (e) =>
+        !e.deleted &&
+        e.rejected === undefined &&
+        !removing.has(e.recipe.recipe_uuid),
+    );
     for (const { recipe } of open) {
-      const outcome = await transferOne(recipe, onCreated);
+      transferring = recipe.recipe_uuid;
+      const outcome = await transferOne(recipe, onCreated).finally(() => {
+        transferring = null;
+      });
       if (outcome === "skipped") continue;
       if (outcome === "transferred") {
         report.transferred++;
@@ -331,6 +445,17 @@ async function doTransfer({
 }
 
 type TransferItem = TransferReport["rejected"][number];
+
+/** Vorgemerkte Löschung abschließen; `false` bei Ausfall. */
+async function finishDeletion(entry: PendingCreate): Promise<boolean> {
+  const uuid = entry.recipe.recipe_uuid;
+  // Abgelehnt (auch während der Löschung): Der Server hat es nicht
+  if (entry.rejected !== undefined) {
+    await dropEntry(uuid);
+    return true;
+  }
+  return deleteOnServer(uuid, { fromTransfer: true });
+}
 
 /** Ein Rezept übertragen; wirft bei Ausfall (Netz, Server, IndexedDB). */
 async function transferOne(
@@ -366,11 +491,10 @@ async function transferOne(
       };
     }
     if (settled.status === "deleted") {
-      // Während der Anfrage gelöscht: Der Server hat es trotzdem angelegt
-      try {
-        await recipeApi.delete(recipe.recipe_uuid);
-      } catch (e) {
-        console.warn("Delete after transfer failed", e);
+      // Während der Anfrage gelöscht: Der Server hat es trotzdem angelegt.
+      // Ausfall: Die Löschung bleibt vorgemerkt, der Lauf endet.
+      if (!(await deleteOnServer(recipe.recipe_uuid, { fromTransfer: true }))) {
+        throw new Error("Löschen nach Übertragung nicht bestätigt");
       }
       return "skipped";
     }

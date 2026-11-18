@@ -192,7 +192,7 @@ function importRecipe(ev: Event) {
         v-model="showAIImport"
         title="AI-Rezept-Import"
         size="xl"
-        hide-footer
+        no-footer
       >
         <AIRecipeImport v-if="!settings.read_only" @imported="onAIImport" />
       </BModal>
