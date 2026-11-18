@@ -33,7 +33,7 @@ Vitest läuft unter Windows auch aus `c:` (alle 394 Tests grün, per `pool: 'vmT
 
 ## Struktur und Doku
 - Gewachsene Dateien, neue Module, bewusste Duplikate: keine
-- Berührte Aussagen in CLAUDE.md, Rules: nachgetragen in `.claude/rules/frontend.md` (Absatz „Windows: Laufwerksbuchstabe“: Tests per `vmThreads`, Build per Alias, Dev-Server ungeprüft) und `.claude/rules/screenshots.md` (Build-Hinweis, `@types/node`). Veraltet: `frontend.md` Absatz „Vormerkung“, „fremd → … kein `noteDeleted` (das fremde Rezept bleibt sichtbar)“, siehe Folgepunkte.
+- Berührte Aussagen in CLAUDE.md, Rules: nachgetragen in `.claude/rules/frontend.md` (Absatz „Windows: Laufwerksbuchstabe“: Tests per `vmThreads`, Build per Alias, Dev-Server nicht betroffen) und `.claude/rules/screenshots.md` (Build-Hinweis, `@types/node`). Absatz „Vormerkung“ korrigiert (siehe Nachtrag).
 
 ## Mitgenommen
 - `03617f2` `screenshots.md`: „Build nur aus großem `C:`“ und „`@types/node` kommt transitiv“ waren durch W.43 überholt · XS. Im selben Commit wie `frontend.md`, nicht als eigener Commit.
@@ -52,11 +52,13 @@ Vitest läuft unter Windows auch aus `c:` (alle 394 Tests grün, per `pool: 'vmT
 - Claude Code (Werkzeug, kein Projekt): `EnterWorktree` mit `name` verweigert den Einstieg, wenn die Sitzung mit kleinem `c:` läuft („git resolves its working tree to C:/…“), obwohl der Worktree korrekt angelegt ist. Einstieg per `path` mit `C:/…` funktioniert. · Beleg: live verifiziert
 
 ## Offen und Folgepunkte
-- `frontend.md`, Absatz „Vormerkung“: „das fremde Rezept bleibt sichtbar“ ist falsch, analog zu Punkt 3 (es fehlt bis zum nächsten Listenabruf). Nicht geändert, weil der Auftrag Änderungen an `frontend.md` auf den Windows-Absatz beschränkt (U.15 parallel). · XS
 - Merge-Hinweis: U.15 ändert ebenfalls `frontend/src/store/recipeStore.spec.ts` (hier nur ein neuer Test im Block „W.41“), Konflikt unwahrscheinlich, beim Merge prüfen.
-- `test_recipe_lifecycle` hängt an der DB-Collation; Projekt-CLAUDE.md „Verifikation“ nennt nur „PostgreSQL 16“. Entweder `postgres:16-alpine` dort nennen oder den Test collation-unabhängig machen. · XS
-- Backend lokal auf Windows ARM64: `uv sync` braucht x86_64-Python oder MSVC Build Tools, solange `cryptography` kein win_arm64-Wheel liefert; gehört in `.claude/rules/backend-tooling.md`. · XS
-- Dev-Server (`npm run dev`) aus `c:` ungeprüft; der Alias-Fix greift dort vermutlich ebenfalls (unbestätigt).
+
+## Nachtrag: Folgepunkte auf Anweisung umgesetzt
+- `c51ef72` `frontend.md`, Absatz „Vormerkung“: Aussage zum fremden Rezept wie der Kommentar aus Punkt 3 korrigiert. Bewusst außerhalb des Windows-Absatzes, auf ausdrückliche Anweisung.
+- `c4c253f` Projekt-CLAUDE.md „Verifikation“: DB-Tests lokal mit `postgres:16-alpine`, Verweis auf `backend-tooling.md`.
+- ARM64-Hinweis (x86_64-Python) und Collation-Falle standen bereits in `.claude/rules/backend-tooling.md`; die Folgepunkte dazu im ursprünglichen Bericht waren falsch, nichts zu tun.
+- Dev-Server aus `c:` geprüft (Wegwerfskript mit `playwright-core`/Edge, `pageerror` und Konsolenfehler erfasst): `cwd=c:\…`, App rendert, keine Fehler. Gegenprobe ohne Alias-Fix (Vite-Neustart im Log belegt): ebenfalls fehlerfrei. Der Dev-Server ist nicht betroffen, Rule angepasst.
 
 ## Status je Roadmap-Punkt
 - `W.43` fertig
