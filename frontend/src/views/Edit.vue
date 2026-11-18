@@ -35,6 +35,7 @@ const idRef = computed(() => props.id);
 const {
   current_recipe,
   isLoaded,
+  loadFailed,
   do_recalc,
   selected,
   picture_src,
@@ -90,6 +91,8 @@ const { undo, redo, canUndo, canRedo, reset } = useEditHistory(
   {
     onLoaded() {
       loadedSnapshot.value = JSON.stringify(current_recipe.value);
+      // Nur die Listenzeile: kein Editor, also auch keinen Entwurf darüber
+      if (loadFailed.value) return;
 
       // Auto-restore draft if one exists; not undoable
       if (hasDraft.value) {
@@ -127,6 +130,15 @@ const yaml = computed(() =>
 );
 
 const settings = computed(() => store.settings);
+
+// Detail nicht ladbar: Die Listenzeile hat keine Zutaten und Schritte, ein
+// Speichern ersetzte das Rezept auf dem Server (der Store lehnt es zusätzlich ab)
+const listRowOnly = computed(() => current_recipe.value?.listOnly === true);
+const notLoadable = computed(
+  () => isLoaded.value && (loadFailed.value || listRowOnly.value),
+);
+const NOT_LOADABLE_TEXT =
+  "Rezept konnte nicht geladen werden. Bearbeiten ist erst wieder möglich, wenn der Server erreichbar ist.";
 
 // Combined source field — heuristic: starts with http → source_url, else → source_book
 const source = computed({
@@ -170,6 +182,10 @@ function preview_image(f: File | null) {
 
 function saveRecipe() {
   if (!current_recipe.value) return;
+  if (listRowOnly.value || notLoadable.value) {
+    toast(NOT_LOADABLE_TEXT, "danger");
+    return;
+  }
   if (isDirty.value || file.value || delete_image.value) {
     current_recipe.value.lastUpdated = new Date().toISOString();
 
@@ -335,14 +351,28 @@ function goBack() {
           @click="saveRecipe"
           title="Speichern (Ctrl+S)"
           aria-label="Speichern"
-          :disabled="!isDirty && !file && !delete_image"
+          :disabled="listRowOnly || (!isDirty && !file && !delete_image)"
         >
           <i class="bi bi-check-lg"></i>
         </button>
       </div>
     </div>
 
-    <BContainer v-if="current_recipe" class="mt-3 mb-5">
+    <BContainer v-if="notLoadable" class="mt-5">
+      <div class="alert alert-warning text-center" role="alert">
+        <i class="bi bi-cloud-slash"></i>
+        {{ NOT_LOADABLE_TEXT }}
+      </div>
+    </BContainer>
+
+    <!-- Listenzeile, Detail wird geladen -->
+    <div v-else-if="listRowOnly" class="text-center mt-5">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Laden...</span>
+      </div>
+    </div>
+
+    <BContainer v-else-if="current_recipe" class="mt-3 mb-5">
       <datalist id="ingredient-units-list">
         <option
           v-for="unit in ingredient_units"

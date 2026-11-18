@@ -10,6 +10,7 @@ const { store, push, toast, current } = vi.hoisted(() => ({
     favorites: [] as string[],
     recipes: [] as Recipe[],
     canDelete: (() => false) as (r: Recipe) => boolean,
+    localStatus: (() => null) as (id: string) => "pending" | "rejected" | null,
     deleteRecipe: vi.fn(),
     addFavorite: vi.fn(),
     removeFavorite: vi.fn(),
@@ -124,5 +125,47 @@ describe("Recipe: Stern und Löschen", () => {
 
     expect(push).toHaveBeenCalledWith("/");
     expect(toast).not.toHaveBeenCalled();
+  });
+});
+
+describe("Recipe: Kennzeichnung und Listenzeile", () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    store.localStatus = () => null;
+    delete current.listOnly;
+  });
+
+  it("gibt store.localStatus an die Rezeptansicht", () => {
+    store.localStatus = (id) => (id === "r1" ? "rejected" : null);
+    store.settings = { role: "editor", read_only: false, expert_mode: false };
+    const w = mount(RecipeView, {
+      props: { id: "r1" },
+      global: {
+        stubs: {
+          RecipeDisplay: {
+            name: "RecipeDisplay",
+            props: ["recipe", "imageSrc", "localStatus"],
+            template: "<div />",
+          },
+          ShareManager: true,
+          SourceImages: true,
+        },
+      },
+    });
+    expect(
+      w.findComponent({ name: "RecipeDisplay" }).props("localStatus"),
+    ).toBe("rejected");
+  });
+
+  it("YAML-Export einer Listenzeile: Meldung, keine Datei", async () => {
+    current.listOnly = true;
+    const w = render({ role: "editor", read_only: false, expert_mode: true });
+    await openMenu(w);
+    await button(w, "YAML Export")!.trigger("click");
+
+    expect(toast).toHaveBeenCalledWith(
+      "Rezept nicht exportiert: nicht vollständig geladen.",
+      "danger",
+    );
   });
 });

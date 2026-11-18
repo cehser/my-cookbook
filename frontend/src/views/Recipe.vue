@@ -143,6 +143,11 @@ function shareRecipe() {
 function exportRecipe() {
   if (!current_recipe.value) return;
   headerMenuOpen.value = false;
+  // Listenzeile (Detail nicht geladen): Export wäre ohne Zutaten und Schritte
+  if (current_recipe.value.listOnly) {
+    showToast("Rezept nicht exportiert: nicht vollständig geladen.", "danger");
+    return;
+  }
   const yaml = jsyaml.dump(current_recipe.value);
   saveBlob(
     new Blob([yaml], { type: "text/yaml" }),
@@ -259,7 +264,11 @@ function goBack() {
     </div>
 
     <template v-else>
-      <RecipeDisplay :recipe="current_recipe" :image-src="picture_src">
+      <RecipeDisplay
+        :recipe="current_recipe"
+        :image-src="picture_src"
+        :local-status="store.localStatus(current_recipe.recipe_uuid)"
+      >
         <template #after-steps>
           <SourceImages :recipe-id="current_recipe.recipe_uuid" />
         </template>

@@ -17,7 +17,7 @@ const { store, toast, discardDraft, current } = vi.hoisted(() => ({
   },
   toast: vi.fn(),
   discardDraft: vi.fn(),
-  current: { value: null as Recipe | null },
+  current: { value: null as Recipe | null, loadFailed: false },
 }));
 
 vi.mock("@/store/recipeStore", () => ({ useRecipeStore: () => store }));
@@ -28,6 +28,7 @@ vi.mock("@/composables/useRecipeHelper", () => ({
     return {
       current_recipe,
       isLoaded: ref(true),
+      loadFailed: ref(current.loadFailed),
       do_recalc: ref(false),
       selected: ref(0),
       picture_src: ref(""),
@@ -75,13 +76,15 @@ import { ApiError, OfflineError } from "@/api/client";
 import { LOCAL_PENDING_TEXT } from "@/js/appendFeedback";
 import EditView from "./Edit.vue";
 
-function render() {
+function render(over: Partial<Recipe> = {}, loadFailed = false) {
+  current.loadFailed = loadFailed;
   current.value = {
     recipe_uuid: "r1",
     recipe_name: "Apfelkuchen",
     ingredients: [],
     steps: [],
     sections: [],
+    ...over,
   } as unknown as Recipe;
   return mount(EditView, {
     props: { id: "r1" },
@@ -158,5 +161,27 @@ describe("Edit: Speichern meldet ehrlich", () => {
 
     expect(toast).toHaveBeenCalledWith(LOCAL_PENDING_TEXT, "warning");
     expect(discardDraft).toHaveBeenCalled();
+  });
+});
+
+describe("Edit: Detail nicht ladbar", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("Listenzeile: Meldung statt Editor, Speichern gesperrt, kein setRecipe", async () => {
+    const w = render({ listOnly: true }, true);
+    await flushPromises();
+
+    expect(w.text()).toContain("Rezept konnte nicht geladen werden");
+    expect(w.find("input").exists()).toBe(false);
+    expect(saveButton(w).attributes("disabled")).toBeDefined();
+
+    // Strg+S umgeht den Knopf: auch dann kein Speichern
+    (w.vm as unknown as { saveRecipe: () => void }).saveRecipe();
+    await flushPromises();
+    expect(store.setRecipe).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(
+      expect.stringContaining("Rezept konnte nicht geladen werden"),
+      "danger",
+    );
   });
 });

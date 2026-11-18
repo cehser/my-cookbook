@@ -8,6 +8,7 @@
  * laufende Übertragung), bis ein danach gestarteter Abruf fertig ist.
  */
 
+import { looksLikeListRow } from "@/js/recipeMapping";
 import type { Recipe } from "@/types/recipe";
 
 let listSeq = 0;
@@ -25,6 +26,23 @@ export function withPending(
     .map((e) => e.recipe)
     .filter((r) => !known.has(r.recipe_uuid));
   return added.length > 0 ? [...recipes, ...added] : recipes;
+}
+
+/**
+ * Rezeptliste aus dem Cache: Listenzeilen wieder als `listOnly`
+ * kennzeichnen (das Kennzeichen wird nicht gespeichert). Vorgemerkte Rezepte
+ * sind vollständig und bleiben ungekennzeichnet.
+ */
+export function markListRows(
+  recipes: Recipe[],
+  pending: readonly { recipe: Recipe }[],
+): Recipe[] {
+  const pendingIds = new Set(pending.map((e) => e.recipe.recipe_uuid));
+  return recipes.map((r) =>
+    !pendingIds.has(r.recipe_uuid) && looksLikeListRow(r)
+      ? { ...r, listOnly: true }
+      : r,
+  );
 }
 
 /** Vor dem Listenabruf aufrufen; das Ergebnis an `mergeFetched` geben. */

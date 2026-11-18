@@ -62,10 +62,22 @@ async function append(recipe: Recipe, successText: string) {
   toast(message, variant);
 }
 
-function copyRecipe(index: number) {
-  const recipe = deepCopyJSON(store.recipes[index]);
+/** Vollständige Fassung statt Listenzeile; `null` mit Meldung. */
+async function completeRecipe(index: number, what: string) {
+  const listed = store.recipes[index];
+  const recipe = listed ? await store.loadCompleteRecipe(listed) : null;
+  if (!recipe) {
+    toast(`Rezept nicht ${what}: nicht vollständig geladen.`, "danger");
+  }
+  return recipe;
+}
+
+async function copyRecipe(index: number) {
+  const complete = await completeRecipe(index, "dupliziert");
+  if (!complete) return;
+  const recipe = deepCopyJSON(complete);
   recipe.recipe_uuid = generateUUID();
-  void append(recipe, "Rezept dupliziert.");
+  await append(recipe, "Rezept dupliziert.");
 }
 
 function newRecipe() {
@@ -106,8 +118,9 @@ function importRecipe(ev: Event) {
   reader.readAsText(file);
 }
 
-function exportRecipe(index: number) {
-  const recipe = store.recipes[index];
+async function exportRecipe(index: number) {
+  const recipe = await completeRecipe(index, "exportiert");
+  if (!recipe) return;
   const yaml = jsyaml.dump(recipe);
   saveBlob(
     new Blob([yaml], { type: "text/yaml" }),

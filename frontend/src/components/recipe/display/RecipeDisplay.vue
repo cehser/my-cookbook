@@ -17,6 +17,7 @@ import IngredientsSection from "@/components/recipe/display/IngredientsSection.v
 import IngredientFilterToggle from "@/components/recipe/display/IngredientFilterToggle.vue";
 import MobileIngredientsBar from "@/components/recipe/display/MobileIngredientsBar.vue";
 import StepSection from "@/components/recipe/display/StepSection.vue";
+import LocalStatusBadge from "@/components/recipe/ui/LocalStatusBadge.vue";
 import { effectiveSections } from "@/js/recipeSections";
 import type { Recipe } from "@/types/recipe";
 
@@ -25,9 +26,12 @@ const props = withDefaults(
     recipe: Recipe;
     imageSrc: string;
     editMode?: boolean;
+    /** Kennzeichnung im Kopf (`store.localStatus`), wie an der Karte */
+    localStatus?: "pending" | "rejected" | null;
   }>(),
   {
     editMode: false,
+    localStatus: null,
   },
 );
 
@@ -230,6 +234,11 @@ defineExpose({ reinitObserver });
             />
 
             <div class="card-body" id="recipe_title">
+              <LocalStatusBadge
+                v-if="localStatus"
+                class="title-local-badge"
+                :status="localStatus"
+              />
               <h2 class="card-title">
                 <slot name="title">
                   {{ recipe.recipe_name }}
@@ -291,6 +300,11 @@ defineExpose({ reinitObserver });
             <i class="bi bi-info-circle" title="Metadaten anzeigen"></i>
           </div>
           <div class="card-body" id="recipe_title">
+            <LocalStatusBadge
+              v-if="localStatus"
+              class="title-local-badge"
+              :status="localStatus"
+            />
             <h2 class="card-title">
               <slot name="title">
                 {{ recipe.recipe_name }}
@@ -359,4 +373,8 @@ defineExpose({ reinitObserver });
 
 <style scoped>
 @import "@/assets/recipe-layout.css";
+
+.title-local-badge {
+  margin-bottom: var(--space-1);
+}
 </style>

@@ -20,14 +20,15 @@ import type { Recipe } from "@/types/recipe";
  * Ergebnis von `setRecipe` bzw. `setRecipeTags`:
  * - `saved`: Der Server hat die Änderung (`detail` ist seine Antwort)
  * - `local`: vorgemerktes Rezept, nur in der Vormerkung geändert; wird mit
- *   der Vormerkung übertragen
+ *   der Vormerkung übertragen. `stillRejected`: fremdes 409, die Ablehnung
+ *   bleibt trotz Bearbeitung
  * - `failed`: nicht gespeichert (`ApiError` 4xx/5xx, `OfflineError` ohne
  *   Verbindung, `ApiTimeoutError`, `TypeError`, 401 bei abgelehnter Sitzung,
  *   `LocalReadError`)
  */
 export type SaveResult =
   | { status: "saved"; detail?: RecipeDetail }
-  | { status: "local" }
+  | { status: "local"; stillRejected?: boolean }
   | { status: "failed"; error: unknown };
 
 /** Fehler ohne gültige Sitzung: Login folgt → 401, sonst offline. */
@@ -52,7 +53,12 @@ export async function saveChange(
   const uuid = recipe.recipe_uuid;
   if (!uuid) return { status: "failed", error: new Error("Rezept ohne ID") };
   try {
-    if (await updatePending(recipe)) return { status: "local" };
+    const updated = await updatePending(recipe);
+    if (updated) {
+      return updated.stillRejected
+        ? { status: "local", stillRejected: true }
+        : { status: "local" };
+    }
   } catch (e) {
     if (knownPending) {
       return { status: "failed", error: new LocalReadError(e) };

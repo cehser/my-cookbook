@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   detailToRecipe,
   listItemToRecipe,
+  looksLikeListRow,
   recipeToPayload,
+  withoutListOnly,
 } from "@/js/recipeMapping";
 import type { RecipeDetail, RecipeListItem } from "@/api/recipes";
 
@@ -39,6 +41,7 @@ const detail: RecipeDetail = {
 describe("listItemToRecipe", () => {
   it("übernimmt Kopfdaten und setzt leere Listen", () => {
     expect(listItemToRecipe(listItem)).toEqual({
+      listOnly: true,
       recipe_uuid: "r1",
       recipe_name: "Pfannkuchen",
       author: "Oma",
@@ -66,6 +69,38 @@ describe("listItemToRecipe", () => {
     expect(r.subtitle).toBeUndefined();
     expect(r.imageurl).toBeUndefined();
     expect(r.first_image_id).toBeUndefined();
+  });
+});
+
+describe("Kennzeichen listOnly", () => {
+  it("nie im Payload, auch nicht aus der Listenzeile", () => {
+    const payload = recipeToPayload(listItemToRecipe(listItem));
+    expect(payload).not.toHaveProperty("listOnly");
+    expect(payload.data).not.toHaveProperty("listOnly");
+    expect(JSON.stringify(payload)).not.toContain("listOnly");
+  });
+
+  it("Detail ist nie gekennzeichnet, auch wenn data es enthielte", () => {
+    const r = detailToRecipe({
+      ...detail,
+      data: { ...detail.data, listOnly: true },
+    });
+    expect(r).not.toHaveProperty("listOnly");
+  });
+
+  it("withoutListOnly entfernt es, ohne das Original zu ändern", () => {
+    const row = listItemToRecipe(listItem);
+    const plain = withoutListOnly(row);
+    expect(plain).not.toHaveProperty("listOnly");
+    expect(row.listOnly).toBe(true);
+    const full = detailToRecipe(detail);
+    expect(withoutListOnly(full)).toBe(full);
+  });
+
+  it("looksLikeListRow: ohne Zutaten und Schritte", () => {
+    const row = withoutListOnly(listItemToRecipe(listItem));
+    expect(looksLikeListRow(row)).toBe(true);
+    expect(looksLikeListRow(detailToRecipe(detail))).toBe(false);
   });
 });
 
