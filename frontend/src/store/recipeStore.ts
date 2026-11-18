@@ -43,6 +43,13 @@ import {
   updatePending,
   type TransferReport,
 } from "@/store/pendingCreates";
+import {
+  mergeFetched,
+  noteCreated,
+  noteDeleted,
+  startListFetch,
+  withPending,
+} from "@/store/listSync";
 import type { Recipe, RecipePictures } from "@/types/recipe";
 import type { Settings } from "@/types/settings";
 
@@ -86,34 +93,6 @@ const default_settings: Settings = {
 // weiteren Lauf aus, falls der laufende keine API-Daten geliefert hat.
 let loadAllInFlight: Promise<void> | null = null;
 let loadAllRerun = false;
-
-// Angelegte Rezepte gegen parallel laufende Listenabrufe: Eine Liste, deren
-// Abruf vor dem Anlegen begann, enthält das neue Rezept nicht. `listSeq` zählt
-// die Abrufe; ein angelegtes Rezept bleibt vorgemerkt, bis ein danach
-// gestarteter Abruf fertig ist.
-let listSeq = 0;
-let appliedListSeq = 0;
-let createdPending: { seq: number; recipe: Recipe }[] = [];
-// Gelöschte Rezepte gegen Abrufe, die vor dem Löschen begannen, und gegen
-// eine gleichzeitig laufende Übertragung (sonst kämen sie als Geist zurück).
-// Gleiches Verfahren wie `createdPending`.
-let deletedRecently: { seq: number; uuid: string }[] = [];
-
-function isDeletedRecently(uuid: string): boolean {
-  return deletedRecently.some((d) => d.uuid === uuid);
-}
-
-/** Hängt die Rezepte aus `extra` an, deren ID in `recipes` noch fehlt. */
-function withPending(
-  recipes: Recipe[],
-  extra: readonly { recipe: Recipe }[],
-): Recipe[] {
-  const known = new Set(recipes.map((r) => r.recipe_uuid));
-  const added = extra
-    .map((e) => e.recipe)
-    .filter((r) => !known.has(r.recipe_uuid));
-  return added.length > 0 ? [...recipes, ...added] : recipes;
-}
 
 /** Login folgt: nichts speichern, der Aufrufer meldet „Bitte neu anmelden“. */
 function sessionExpired(): AppendResult {
@@ -405,12 +384,9 @@ export const useRecipeStore = defineStore("recipe", {
       return { status: "deleted" };
     },
 
-    /** Gelöschtes Rezept aus Liste, Vormerk-IDs und `createdPending` tilgen. */
+    /** Gelöschtes Rezept aus Liste, Vormerk-IDs und Listen-Abgleich tilgen. */
     forgetRecipe(uuid: string) {
-      deletedRecently.push({ seq: listSeq, uuid });
-      createdPending = createdPending.filter(
-        (c) => c.recipe.recipe_uuid !== uuid,
-      );
+      noteDeleted(uuid);
       this.pendingIds = this.pendingIds.filter((id) => id !== uuid);
       const index = this.recipes.findIndex((r) => r.recipe_uuid === uuid);
       if (index >= 0) this.recipes.splice(index, 1);
@@ -473,7 +449,7 @@ export const useRecipeStore = defineStore("recipe", {
         (id) => id !== recipe.recipe_uuid,
       );
       void writeRecipeDetail(recipe);
-      createdPending.push({ seq: listSeq, recipe });
+      noteCreated(recipe);
       const index = this.recipes.findIndex(
         (r) => r.recipe_uuid === recipe.recipe_uuid,
       );
@@ -640,25 +616,14 @@ export const useRecipeStore = defineStore("recipe", {
 
     // --- API-backed actions ---
     async loadRecipesFromApi() {
-      const seq = ++listSeq;
+      const seq = startListFetch();
       const items = await recipeApi.listAll();
       const pending = await listPending();
-      // Eine neuere Antwort ist schon übernommen: diese ist veraltet.
-      if (seq < appliedListSeq) return;
-      appliedListSeq = seq;
       const fromApi = items.map(listItemToRecipe);
-      // Vor diesem Abruf angelegte Rezepte sind in der Antwort enthalten;
-      // während des Abrufs angelegte fehlen womöglich und bleiben erhalten.
+      const merged = mergeFetched(seq, fromApi);
+      if (!merged) return;
       // Vorgemerkte (noch nicht übertragene) Rezepte bleiben sichtbar.
-      createdPending = createdPending.filter((c) => c.seq >= seq);
-      deletedRecently = deletedRecently.filter((d) => d.seq >= seq);
-      this.recipes = this.withPendingIds(
-        withPending(
-          fromApi.filter((r) => !isDeletedRecently(r.recipe_uuid)),
-          createdPending,
-        ),
-        pending,
-      );
+      this.recipes = this.withPendingIds(merged, pending);
       void writeRecipes(deepCopyJSON(this.recipes));
       this.prefetchRecipeDetails(fromApi);
     },
