@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import type { Recipe } from "@/types/recipe";
 
-const { store, toast } = vi.hoisted(() => ({
+const { store, toast, exportAll, saveBlob } = vi.hoisted(() => ({
   store: {
     recipes: [] as Recipe[],
     canDelete: (() => true) as (r: Recipe) => boolean,
@@ -12,10 +12,14 @@ const { store, toast } = vi.hoisted(() => ({
     saveRecipePictures: vi.fn(),
   },
   toast: vi.fn(),
+  exportAll: vi.fn(),
+  saveBlob: vi.fn(),
 }));
 
 vi.mock("@/store/recipeStore", () => ({ useRecipeStore: () => store }));
 vi.mock("@/composables/useToast", () => ({ useToast: () => ({ toast }) }));
+vi.mock("@/api/admin", () => ({ adminApi: { exportAll } }));
+vi.mock("@/js/download", () => ({ saveBlob }));
 
 import { ApiError } from "@/api/client";
 import AdminRecipes from "./AdminRecipes.vue";
@@ -23,11 +27,14 @@ import AdminRecipes from "./AdminRecipes.vue";
 const recipe = (id: string, recipe_name: string) =>
   ({ recipe_uuid: id, recipe_name }) as Recipe;
 
-function render() {
+function render(isAdmin = false) {
   return mount(AdminRecipes, {
-    props: { readOnly: false, expertMode: false },
+    props: { readOnly: false, expertMode: false, isAdmin },
   });
 }
+
+const exportButton = (w: ReturnType<typeof render>) =>
+  w.findAll("button").find((b) => b.text().includes("Gesamtexport (ZIP)"));
 
 const deleteButton = (w: ReturnType<typeof render>, name: string) =>
   w.find(`button[aria-label='Rezept „${name}“ löschen']`);
@@ -79,5 +86,64 @@ describe("AdminRecipes: Löschen", () => {
     const w = render();
     expect(deleteButton(w, "Apfelkuchen").exists()).toBe(true);
     expect(deleteButton(w, "Birnenkuchen").exists()).toBe(false);
+  });
+});
+
+describe("AdminRecipes: Gesamtexport", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    store.recipes = [];
+  });
+
+  it("nur für Admins sichtbar", () => {
+    expect(exportButton(render(false))).toBeUndefined();
+    expect(exportButton(render(true))).toBeDefined();
+  });
+
+  it("lädt das ZIP und bietet es mit dem Namen vom Server an", async () => {
+    const blob = new Blob(["zip"], { type: "application/zip" });
+    let resolve!: (v: unknown) => void;
+    exportAll.mockReturnValue(new Promise((r) => (resolve = r)));
+    const w = render(true);
+
+    await exportButton(w)!.trigger("click");
+    expect(exportButton(w)!.attributes("disabled")).toBeDefined();
+
+    resolve({ blob, filename: "my-cookbook-export-2026-11-18.zip" });
+    await flushPromises();
+
+    expect(exportAll).toHaveBeenCalledOnce();
+    expect(saveBlob).toHaveBeenCalledWith(
+      blob,
+      "my-cookbook-export-2026-11-18.zip",
+    );
+    expect(exportButton(w)!.attributes("disabled")).toBeUndefined();
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it("ohne Dateinamen vom Server ein Standardname", async () => {
+    const blob = new Blob(["zip"]);
+    exportAll.mockResolvedValue({ blob, filename: null });
+    const w = render(true);
+
+    await exportButton(w)!.trigger("click");
+    await flushPromises();
+
+    expect(saveBlob).toHaveBeenCalledWith(blob, "my-cookbook-export.zip");
+  });
+
+  it("meldet einen Fehler und gibt den Knopf wieder frei", async () => {
+    exportAll.mockRejectedValue(new ApiError(403, "Forbidden"));
+    const w = render(true);
+
+    await exportButton(w)!.trigger("click");
+    await flushPromises();
+
+    expect(saveBlob).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(
+      "Gesamtexport fehlgeschlagen: API Error 403: Forbidden",
+      "danger",
+    );
+    expect(exportButton(w)!.attributes("disabled")).toBeUndefined();
   });
 });
