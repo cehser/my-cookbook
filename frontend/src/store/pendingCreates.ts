@@ -19,6 +19,7 @@
 
 import { ApiError, isClientError } from "@/api/client";
 import { recipeApi, type RecipeDetail } from "@/api/recipes";
+import { sameUser } from "@/auth/role";
 import { currentUserSub } from "@/auth/session";
 import { deepCopyJSON } from "@/js/deepCopy";
 import { isEqualPlain } from "@/js/isEqualPlain";
@@ -38,9 +39,20 @@ export class LocalSaveError extends Error {
   }
 }
 
-/** Gleicher Nutzer? `sub` des Tokens und `created_by` (kanonische UUID). */
-function sameSub(a: string | null | undefined, b: string | null | undefined) {
-  return !!a && !!b && a.toLowerCase() === b.toLowerCase();
+/** Die Vormerkung war nicht lesbar (IndexedDB). */
+export class LocalReadError extends Error {
+  constructor(public readonly reason: unknown) {
+    super("Vormerkung nicht lesbar");
+    this.name = "LocalReadError";
+  }
+}
+
+/** Ohne angemeldeten Nutzer (`sub`) wird nichts vorgemerkt. */
+export class NotSignedInError extends Error {
+  constructor() {
+    super("Kein angemeldeter Nutzer");
+    this.name = "NotSignedInError";
+  }
 }
 
 // --- Vormerkung ---
@@ -60,14 +72,15 @@ const removing = new Set<string>();
 
 /**
  * Vorgemerkte Rezepte des angemeldeten Nutzers (auch abgelehnte, sie bleiben
- * sichtbar). Ein Lesefehler ergibt eine leere Liste, ohne zu schreiben.
+ * sichtbar). Ein Lese- oder Sitzungsfehler ergibt eine leere Liste, ohne
+ * zu schreiben.
  */
 export async function listPending(): Promise<PendingCreate[]> {
-  const sub = await currentUserSub();
   try {
+    const sub = await currentUserSub();
     const entries = await locked(readPendingCreates);
     return entries.filter(
-      (e) => e.sub === sub && !removing.has(e.recipe.recipe_uuid),
+      (e) => sameUser(e.sub, sub) && !removing.has(e.recipe.recipe_uuid),
     );
   } catch {
     return [];
@@ -76,11 +89,18 @@ export async function listPending(): Promise<PendingCreate[]> {
 
 /**
  * Rezept für den angemeldeten Nutzer vormerken (ersetzt einen Eintrag mit
- * derselben ID). Wirft `LocalSaveError`, wenn die IndexedDB scheitert.
+ * derselben ID). Wirft `NotSignedInError` ohne `sub` und `LocalSaveError`,
+ * wenn die Sitzung nicht lesbar ist oder die IndexedDB scheitert.
  */
 export async function addPending(recipe: Recipe): Promise<void> {
   const copy = deepCopyJSON(recipe);
-  const sub = await currentUserSub();
+  let sub: string | null;
+  try {
+    sub = await currentUserSub();
+  } catch (e) {
+    throw new LocalSaveError(e);
+  }
+  if (!sub) throw new NotSignedInError();
   try {
     await locked(async () => {
       const entries = await readPendingCreates();
@@ -145,9 +165,12 @@ function markRejected(uuid: string, status: number): Promise<void> {
  * Der Server hat `sent`. Ist der vorgemerkte Stand unverändert, Eintrag
  * entfernen (`done`); wurde er inzwischen bearbeitet, den neueren Stand
  * liefern (bleibt vorgemerkt); `deleted`, wenn er inzwischen gelöscht wurde.
+ * `force`: Eintrag auch bei neuerem Stand entfernen (der PUT wurde abgelehnt,
+ * eine Wiederholung hülfe nicht; das Rezept existiert auf dem Server).
  */
 function settle(
   sent: Recipe,
+  force = false,
 ): Promise<
   | { status: "done" }
   | { status: "deleted" }
@@ -159,7 +182,7 @@ function settle(
       (e) => e.recipe.recipe_uuid === sent.recipe_uuid,
     );
     if (!entry) return { status: "deleted" as const };
-    if (!isEqualPlain(entry.recipe, sent)) {
+    if (!force && !isEqualPlain(entry.recipe, sent)) {
       return { status: "changed" as const, recipe: entry.recipe };
     }
     await writePendingCreates(entries.filter((e) => e !== entry));
@@ -169,8 +192,13 @@ function settle(
 
 // --- Anlegen mit Client-ID ---
 
+/**
+ * `created` mit `updateError`: Das Rezept existiert auf dem Server, aber der
+ * nachgeschobene PUT des neueren Stands wurde abgelehnt (`detail` ist der
+ * Serverstand ohne die letzte Änderung).
+ */
 export type CreateOutcome =
-  | { status: "created"; detail: RecipeDetail }
+  | { status: "created"; detail: RecipeDetail; updateError?: unknown }
   | { status: "rejected"; error: unknown };
 
 /** 4xx (außer 401/408/429) als Ablehnung, alles andere als Ausfall werfen. */
@@ -199,7 +227,9 @@ async function pushUpdate(recipe: Recipe): Promise<CreateOutcome> {
  * Serverstand vom übergebenen ab (inzwischen bearbeitet), wird der
  * übergebene per PUT nachgeschoben. Ein fremdes Rezept wird weder
  * überschrieben noch übernommen (`rejected`). Weitere 4xx: `rejected`.
- * Ausfälle (offline, Timeout, 5xx, 401) wirft die Funktion weiter.
+ * Lehnt das Backend den PUT ab, ist das Rezept trotzdem angelegt
+ * (`created` mit `updateError`). Ausfälle (offline, Timeout, 5xx, 401) wirft
+ * die Funktion weiter.
  */
 export async function createWithClientId(
   recipe: Recipe,
@@ -213,7 +243,7 @@ export async function createWithClientId(
   } catch (e) {
     if (!(e instanceof ApiError && e.status === 409)) return rejectedOrThrow(e);
     const existing = await recipeApi.get(recipe.recipe_uuid);
-    if (!sameSub(existing.created_by, await currentUserSub())) {
+    if (!sameUser(existing.created_by, await currentUserSub())) {
       return { status: "rejected", error: e };
     }
     // JSON-Kopien: `undefined`-Felder zählen nicht als Unterschied
@@ -221,9 +251,11 @@ export async function createWithClientId(
       deepCopyJSON(recipeToPayload(detailToRecipe(existing))),
       deepCopyJSON(recipeToPayload(recipe)),
     );
-    return unchanged
-      ? { status: "created", detail: existing }
-      : pushUpdate(recipe);
+    if (unchanged) return { status: "created", detail: existing };
+    const updated = await pushUpdate(recipe);
+    return updated.status === "rejected"
+      ? { status: "created", detail: existing, updateError: updated.error }
+      : updated;
   }
 }
 
@@ -234,6 +266,11 @@ export interface TransferReport {
   transferred: number;
   /** In diesem Lauf abgelehnt (vorgemerkt, nicht automatisch wiederholt) */
   rejected: { recipe_name: string; error: unknown }[];
+  /**
+   * Angelegt (in `transferred` mitgezählt), aber der PUT der letzten
+   * Änderung wurde abgelehnt; die Änderung ist verworfen.
+   */
+  updateRejected: { recipe_name: string; error: unknown }[];
 }
 
 export interface TransferHandlers {
@@ -269,13 +306,24 @@ const MAX_UPDATES = 3;
 async function doTransfer({
   onCreated,
 }: TransferHandlers): Promise<TransferReport> {
-  const report: TransferReport = { transferred: 0, rejected: [] };
+  const report: TransferReport = {
+    transferred: 0,
+    rejected: [],
+    updateRejected: [],
+  };
   const open = (await listPending()).filter((e) => e.rejected === undefined);
   try {
     for (const { recipe } of open) {
       const outcome = await transferOne(recipe, onCreated);
-      if (outcome === "transferred") report.transferred++;
-      else if (outcome !== "skipped") report.rejected.push(outcome);
+      if (outcome === "skipped") continue;
+      if (outcome === "transferred") {
+        report.transferred++;
+      } else if (outcome.kind === "updateRejected") {
+        report.transferred++;
+        report.updateRejected.push(outcome.item);
+      } else {
+        report.rejected.push(outcome.item);
+      }
     }
   } catch (e) {
     console.warn("Transfer of pending recipes interrupted", e);
@@ -283,24 +331,40 @@ async function doTransfer({
   return report;
 }
 
+type TransferItem = TransferReport["rejected"][number];
+
 /** Ein Rezept übertragen; wirft bei Ausfall (Netz, Server, IndexedDB). */
 async function transferOne(
   recipe: Recipe,
   onCreated: (detail: RecipeDetail) => void,
-): Promise<"transferred" | "skipped" | TransferReport["rejected"][number]> {
+): Promise<
+  | "transferred"
+  | "skipped"
+  | { kind: "rejected" | "updateRejected"; item: TransferItem }
+> {
   let sent = recipe;
-  let outcome = await createWithClientId(sent);
+  const created = await createWithClientId(sent);
+  if (created.status === "rejected") {
+    const status =
+      created.error instanceof ApiError ? created.error.status : 400;
+    await markRejected(recipe.recipe_uuid, status);
+    return {
+      kind: "rejected",
+      item: { recipe_name: sent.recipe_name, error: created.error },
+    };
+  }
+  // Ab hier existiert das Rezept auf dem Server
+  let { detail, updateError } = created;
   for (let updates = 0; ; updates++) {
-    if (outcome.status === "rejected") {
-      const status =
-        outcome.error instanceof ApiError ? outcome.error.status : 400;
-      await markRejected(recipe.recipe_uuid, status);
-      return { recipe_name: sent.recipe_name, error: outcome.error };
-    }
-    const settled = await settle(sent);
+    // PUT abgelehnt: nicht vorgemerkt lassen (Wiederholung hülfe nicht)
+    const settled = await settle(sent, updateError !== undefined);
     if (settled.status === "done") {
-      onCreated(outcome.detail);
-      return "transferred";
+      onCreated(detail);
+      if (updateError === undefined) return "transferred";
+      return {
+        kind: "updateRejected",
+        item: { recipe_name: sent.recipe_name, error: updateError },
+      };
     }
     if (settled.status === "deleted") {
       // Während der Anfrage gelöscht: Der Server hat es trotzdem angelegt
@@ -315,6 +379,8 @@ async function transferOne(
     // vorgemerkt, bis der PUT gelingt
     if (updates >= MAX_UPDATES) return "skipped";
     sent = settled.recipe;
-    outcome = await pushUpdate(sent);
+    const updated = await pushUpdate(sent);
+    if (updated.status === "rejected") updateError = updated.error;
+    else detail = updated.detail;
   }
 }

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { detailToRecipe, listItemToRecipe } from "@/js/recipeMapping";
+import {
+  detailToRecipe,
+  listItemToRecipe,
+  recipeToPayload,
+} from "@/js/recipeMapping";
 import type { RecipeDetail, RecipeListItem } from "@/api/recipes";
 
 const listItem: RecipeListItem = {
@@ -42,6 +46,7 @@ describe("listItemToRecipe", () => {
       tags: ["süß"],
       imageurl: "https://example.org/p.jpg",
       first_image_id: "img1",
+      created_by: "u1",
       lastUpdated: "2026-01-01T00:00:00Z",
       ingredients: [],
       steps: [],
@@ -74,6 +79,18 @@ describe("detailToRecipe", () => {
     expect(r.author).toBe("Oma");
     expect(r.ingredients).toHaveLength(1);
     expect(r.steps).toHaveLength(1);
+  });
+
+  it("created_by aus der Antwort, nicht aus data, nie im Payload", () => {
+    const r = detailToRecipe({
+      ...detail,
+      data: { ...detail.data, created_by: "aus-data" },
+    });
+    expect(r.created_by).toBe("u1");
+    expect(recipeToPayload(r).data).not.toHaveProperty("created_by");
+    expect(recipeToPayload(listItemToRecipe(listItem)).data).not.toHaveProperty(
+      "created_by",
+    );
   });
 
   it("nimmt first_image_id aus der Antwort, nicht aus data", () => {

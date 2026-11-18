@@ -6,6 +6,7 @@ import { useRouter } from "vue-router";
 import { onKeyStroke } from "@vueuse/core";
 import type { Recipe } from "@/types/recipe";
 import { recipeUrl, editUrl } from "@/js/slug";
+import { canFavorite } from "@/auth/role";
 
 const props = defineProps<{
   recipe: Recipe;
@@ -34,6 +35,12 @@ onKeyStroke("Escape", () => {
     showTagEditor.value = false;
   }
 });
+
+// Stern ab Rolle `readonly`, unabhängig vom Schalter „Nur lesen“
+const showStar = computed(
+  () => !props.compact && canFavorite(store.settings.role),
+);
+const mayDelete = computed(() => store.canDelete(props.recipe));
 
 const isFavorite = computed(() => {
   return store.favorites.includes(props.recipe.recipe_uuid);
@@ -125,6 +132,13 @@ const deleteRecipe = () => {
   }
 };
 
+// Fehler meldet die Bearbeitungsansicht; hier nur protokollieren
+const saveTags = () => {
+  store
+    .setRecipe({ index: props.index, recipe: props.recipe })
+    .catch((e) => console.warn("Failed to save tags", e));
+};
+
 const addTag = () => {
   if (!newTag.value.trim()) return;
 
@@ -134,7 +148,7 @@ const addTag = () => {
 
   if (!props.recipe.tags.includes(newTag.value.trim())) {
     props.recipe.tags.push(newTag.value.trim());
-    store.setRecipe({ index: props.index, recipe: props.recipe });
+    saveTags();
   }
 
   newTag.value = "";
@@ -143,7 +157,7 @@ const addTag = () => {
 const removeTag = (index: number) => {
   if (props.recipe.tags) {
     props.recipe.tags.splice(index, 1);
-    store.setRecipe({ index: props.index, recipe: props.recipe });
+    saveTags();
   }
 };
 
@@ -154,7 +168,7 @@ const addExistingTag = (tag: string) => {
 
   if (!props.recipe.tags.includes(tag)) {
     props.recipe.tags.push(tag);
-    store.setRecipe({ index: props.index, recipe: props.recipe });
+    saveTags();
   }
 };
 </script>
@@ -171,7 +185,7 @@ const addExistingTag = (tag: string) => {
 
         <!-- Favoriten-Stern (immer sichtbar, linke obere Ecke) -->
         <div
-          v-if="!read_only && !compact"
+          v-if="showStar"
           class="favorite-star"
           role="button"
           :aria-label="
@@ -226,6 +240,7 @@ const addExistingTag = (tag: string) => {
                 <span>Bearbeiten</span>
               </BButton>
               <BButton
+                v-if="mayDelete"
                 @click.prevent="
                   deleteRecipe();
                   fabMenuOpen = false;

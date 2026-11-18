@@ -22,15 +22,22 @@ import {
   writeRecipes,
   writeSettings,
 } from "@/js/offlineCache";
-import { api, ApiError, isClientError } from "@/api/client";
+import { api, ApiError, isClientError, OfflineError } from "@/api/client";
 import { recipeApi, type RecipeDetail } from "@/api/recipes";
 import { favoritesApi } from "@/api/favorites";
 import { imageApi } from "@/api/images";
-import { ensureAuth, isAuthenticated, loginFollows } from "@/auth/session";
+import { canDeleteRecipe } from "@/auth/role";
+import {
+  currentUserSub,
+  ensureAuth,
+  isAuthenticated,
+  loginFollows,
+} from "@/auth/session";
 import {
   addPending,
   createWithClientId,
   listPending,
+  LocalReadError,
   removePending,
   transferPending,
   updatePending,
@@ -48,17 +55,26 @@ export type DataSource = "none" | "api" | "cache";
 
 /**
  * Ergebnis von `appendRecipe`:
- * - `created`: vom Backend angelegt (`detail.id` ist die Backend-ID)
+ * - `created`: vom Backend angelegt (`detail.id` ist die Backend-ID); mit
+ *   `updateError`: angelegt, aber die letzte Änderung abgelehnt
  * - `local`: auf diesem Gerät vorgemerkt (offline, Timeout, 5xx); wird beim
  *   nächsten Laden mit gültiger Sitzung übertragen (`store/pendingCreates.ts`)
  * - `failed`: vom Backend abgelehnt (4xx, z. B. fehlende Rolle, 422),
- *   Sitzung abgelaufen (401, Login folgt) oder Vormerkung nicht speicherbar
+ *   Sitzung abgelaufen (401, Login folgt), ohne angemeldeten Nutzer
+ *   (`NotSignedInError`) oder Vormerkung nicht speicherbar
  *   (`LocalSaveError`); nicht gespeichert
  */
 export type AppendResult =
-  | { status: "created"; detail: RecipeDetail }
+  | { status: "created"; detail: RecipeDetail; updateError?: unknown }
   | { status: "local" }
   | { status: "failed"; error: unknown };
+
+/**
+ * Ergebnis von `deleteRecipe`. `failed`: Das Rezept bleibt in der Liste
+ * (`ApiError`, `OfflineError`, Netzfehler, `LocalReadError`).
+ */
+export type DeleteResult =
+  { status: "deleted" } | { status: "failed"; error: unknown };
 
 const default_settings: Settings = {
   read_only: true,
@@ -78,6 +94,14 @@ let loadAllRerun = false;
 let listSeq = 0;
 let appliedListSeq = 0;
 let createdPending: { seq: number; recipe: Recipe }[] = [];
+// Gelöschte Rezepte gegen Abrufe, die vor dem Löschen begannen, und gegen
+// eine gleichzeitig laufende Übertragung (sonst kämen sie als Geist zurück).
+// Gleiches Verfahren wie `createdPending`.
+let deletedRecently: { seq: number; uuid: string }[] = [];
+
+function isDeletedRecently(uuid: string): boolean {
+  return deletedRecently.some((d) => d.uuid === uuid);
+}
 
 /** Hängt die Rezepte aus `extra` an, deren ID in `recipes` noch fehlt. */
 function withPending(
@@ -105,7 +129,24 @@ export const useRecipeStore = defineStore("recipe", {
     dataSource: "none" as DataSource,
     /** Ergebnis der letzten Übertragung vorgemerkter Rezepte (für Toasts) */
     transferReport: null as TransferReport | null,
+    /** IDs der vorgemerkten (nur auf diesem Gerät gespeicherten) Rezepte */
+    pendingIds: [] as string[],
+    /** `sub` der Sitzung (auch abgelaufen), für Rechte in der Oberfläche */
+    userSub: null as string | null,
   }),
+
+  getters: {
+    /** Lösch-Knopf zeigen? Regel in `auth/role.ts` (wie im Backend). */
+    canDelete:
+      (state) =>
+      (recipe: Recipe): boolean =>
+        canDeleteRecipe({
+          role: state.settings.role,
+          sub: state.userSub,
+          createdBy: recipe.created_by,
+          pending: state.pendingIds.includes(recipe.recipe_uuid),
+        }),
+  },
 
   actions: {
     // --- Laden (Start, Login, Token-Erneuerung, wieder online) ---
@@ -162,6 +203,7 @@ export const useRecipeStore = defineStore("recipe", {
         this.dataSource === "none" ? this.showCachedData() : undefined;
       const auth = await ensureAuth();
       await preliminary;
+      this.userSub = await currentUserSub().catch(() => null);
       if (loginFollows(auth)) {
         // Login folgt (Guard bzw. onRejected): kein Offline-Banner.
         if (this.dataSource === "cache") this.dataSource = "none";
@@ -260,7 +302,7 @@ export const useRecipeStore = defineStore("recipe", {
       console.warn("Read recipes from idb");
       const val = await readRecipes();
       if (val) {
-        this.recipes = withPending(val, await listPending());
+        this.recipes = this.withPendingIds(val, await listPending());
         return "cache";
       }
       console.warn("Fallback to localstorage");
@@ -279,7 +321,7 @@ export const useRecipeStore = defineStore("recipe", {
         source = "none";
       }
 
-      recipes = withPending(recipes, await listPending());
+      recipes = this.withPendingIds(recipes, await listPending());
       void writeRecipes(recipes);
       this.recipes = recipes;
       return source;
@@ -292,34 +334,86 @@ export const useRecipeStore = defineStore("recipe", {
       });
     },
 
-    async deleteRecipe(idOrIndex: string | number) {
-      let index: number;
-      let uuid: string | undefined;
-      if (typeof idOrIndex === "string") {
-        index = this.recipes.findIndex((r) => r.recipe_uuid === idOrIndex);
-        uuid = idOrIndex;
-      } else {
-        index = idOrIndex;
-        uuid = this.recipes[index]?.recipe_uuid;
+    /** Vorgemerkte Rezepte übernehmen und ihre IDs merken. */
+    withPendingIds(
+      recipes: Recipe[],
+      pending: readonly { recipe: Recipe }[],
+    ): Recipe[] {
+      this.pendingIds = pending.map((e) => e.recipe.recipe_uuid);
+      return withPending(recipes, pending);
+    },
+
+    /**
+     * Löscht ein Rezept, Ergebnis siehe `DeleteResult`. Aus der Liste
+     * verschwindet es erst nach Erfolg; scheitert das Löschen, bleibt es und
+     * der Aufrufer meldet den Fehler.
+     * - vorgemerkt: aus der Vormerkung entfernen; mit gültiger Sitzung
+     *   trotzdem `DELETE` (eine laufende Übertragung kann es schon angelegt
+     *   haben), 404 und andere Fehler nur protokolliert
+     * - Vormerkung nicht lesbar: bei einem bekannt vorgemerkten Rezept
+     *   Fehler, sonst wie nicht vorgemerkt
+     * - sonst `DELETE` nur mit gültiger Sitzung (offline nicht möglich,
+     *   12.1); 404 gilt als gelöscht
+     */
+    async deleteRecipe(idOrIndex: string | number): Promise<DeleteResult> {
+      const uuid =
+        typeof idOrIndex === "string"
+          ? idOrIndex
+          : this.recipes[idOrIndex]?.recipe_uuid;
+      if (!uuid) return { status: "deleted" };
+
+      let wasPending: boolean;
+      try {
+        wasPending = await removePending(uuid);
+      } catch (e) {
+        // Ohne lesbare Vormerkung wüsste die API nichts von dem Rezept
+        if (this.pendingIds.includes(uuid)) {
+          return { status: "failed", error: new LocalReadError(e) };
+        }
+        wasPending = false;
       }
-      if (index < 0) return;
-      this.recipes.splice(index, 1);
-      // Vor jedem await austragen, damit kein laufender Abruf das Rezept
-      // zurückbringt
+      if (wasPending) {
+        this.forgetRecipe(uuid);
+        if (await isAuthenticated()) {
+          try {
+            await recipeApi.delete(uuid);
+          } catch (e) {
+            if (!(e instanceof ApiError && e.status === 404)) {
+              console.warn("Delete of pending recipe via API failed", e);
+            }
+          }
+        }
+        return { status: "deleted" };
+      }
+
+      const auth = await ensureAuth();
+      if (auth !== "valid") {
+        const error = loginFollows(auth)
+          ? new ApiError(401, "Sitzung abgelaufen")
+          : new OfflineError();
+        return { status: "failed", error };
+      }
+      try {
+        await recipeApi.delete(uuid);
+      } catch (e) {
+        if (!(e instanceof ApiError && e.status === 404)) {
+          console.warn("Failed to delete recipe via API", e);
+          return { status: "failed", error: e };
+        }
+      }
+      this.forgetRecipe(uuid);
+      return { status: "deleted" };
+    },
+
+    /** Gelöschtes Rezept aus Liste, Vormerk-IDs und `createdPending` tilgen. */
+    forgetRecipe(uuid: string) {
+      deletedRecently.push({ seq: listSeq, uuid });
       createdPending = createdPending.filter(
         (c) => c.recipe.recipe_uuid !== uuid,
       );
-      const wasPending = uuid
-        ? removePending(uuid).catch(() => false)
-        : Promise.resolve(false);
-      // Vorgemerkte Rezepte kennt das Backend nicht: kein API-Aufruf
-      if (!(await wasPending) && uuid && (await isAuthenticated())) {
-        try {
-          await recipeApi.delete(uuid);
-        } catch (e) {
-          console.warn("Failed to delete recipe via API", e);
-        }
-      }
+      this.pendingIds = this.pendingIds.filter((id) => id !== uuid);
+      const index = this.recipes.findIndex((r) => r.recipe_uuid === uuid);
+      if (index >= 0) this.recipes.splice(index, 1);
       this.saveRecipes();
     },
 
@@ -332,6 +426,8 @@ export const useRecipeStore = defineStore("recipe", {
      */
     async appendRecipe(recipe: Recipe): Promise<AppendResult> {
       const recipeCopy = deepCopyJSON(recipe);
+      // Ersteller setzt das Backend (Duplikat, Import: nicht übernehmen)
+      delete recipeCopy.created_by;
       const auth = await ensureAuth();
       if (loginFollows(auth)) return sessionExpired();
       if (auth === "valid") {
@@ -342,7 +438,7 @@ export const useRecipeStore = defineStore("recipe", {
             return { status: "failed", error: outcome.error };
           }
           this.insertCreated(detailToRecipe(outcome.detail));
-          return { status: "created", detail: outcome.detail };
+          return outcome;
         } catch (e) {
           // 401 nach gescheiterter Erneuerung: neu anmelden statt vormerken
           if (
@@ -358,8 +454,11 @@ export const useRecipeStore = defineStore("recipe", {
       try {
         await addPending(recipeCopy);
       } catch (e) {
-        // IndexedDB gescheitert: nicht als „gespeichert“ melden
+        // Ohne Nutzer oder IndexedDB gescheitert: nicht als „gespeichert“
         return { status: "failed", error: e };
+      }
+      if (!this.pendingIds.includes(recipeCopy.recipe_uuid)) {
+        this.pendingIds.push(recipeCopy.recipe_uuid);
       }
       if (!this.recipes.some((r) => r.recipe_uuid === recipeCopy.recipe_uuid)) {
         this.recipes.push(recipeCopy);
@@ -370,6 +469,11 @@ export const useRecipeStore = defineStore("recipe", {
 
     /** Vom Backend angelegtes Rezept in Liste und Cache übernehmen. */
     insertCreated(recipe: Recipe) {
+      this.pendingIds = this.pendingIds.filter(
+        (id) => id !== recipe.recipe_uuid,
+      );
+      // Inzwischen gelöscht (Löschen während der Übertragung): kein Geist
+      if (isDeletedRecently(recipe.recipe_uuid)) return;
       void writeRecipeDetail(recipe);
       createdPending.push({ seq: listSeq, recipe });
       const index = this.recipes.findIndex(
@@ -384,10 +488,19 @@ export const useRecipeStore = defineStore("recipe", {
     async setRecipe({ index, recipe }: { index: number; recipe: Recipe }) {
       const recipeCopy = deepCopyJSON(recipe);
       this.recipes.splice(index, 1, recipeCopy);
-      // Vorgemerkt: Das Backend kennt das Rezept noch nicht (PUT gäbe 404)
-      const pending =
-        !!recipeCopy.recipe_uuid &&
-        (await updatePending(recipeCopy).catch(() => false));
+      // Vorgemerkt: Das Backend kennt das Rezept noch nicht (PUT gäbe 404).
+      // Vormerkung nicht lesbar: bei einem bekannt vorgemerkten Rezept
+      // Fehler (wirft `LocalReadError`), sonst wie nicht vorgemerkt.
+      let pending = false;
+      if (recipeCopy.recipe_uuid) {
+        try {
+          pending = await updatePending(recipeCopy);
+        } catch (e) {
+          if (this.pendingIds.includes(recipeCopy.recipe_uuid)) {
+            throw new LocalReadError(e);
+          }
+        }
+      }
       if (pending) {
         this.saveRecipes();
         return;
@@ -540,7 +653,14 @@ export const useRecipeStore = defineStore("recipe", {
       // während des Abrufs angelegte fehlen womöglich und bleiben erhalten.
       // Vorgemerkte (noch nicht übertragene) Rezepte bleiben sichtbar.
       createdPending = createdPending.filter((c) => c.seq >= seq);
-      this.recipes = withPending(withPending(fromApi, createdPending), pending);
+      deletedRecently = deletedRecently.filter((d) => d.seq >= seq);
+      this.recipes = this.withPendingIds(
+        withPending(
+          fromApi.filter((r) => !isDeletedRecently(r.recipe_uuid)),
+          createdPending,
+        ),
+        pending,
+      );
       void writeRecipes(deepCopyJSON(this.recipes));
       this.prefetchRecipeDetails(fromApi);
     },

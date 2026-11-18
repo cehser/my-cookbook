@@ -51,6 +51,8 @@ export interface Recipe {
   lastUpdated: string;
   first_image_id?: string;
   tags?: string[];
+  /** `sub` des Erstellers laut Backend (keine Rezeptdaten, nicht im Payload) */
+  created_by?: string;
 }
 
 export interface RecipePictures {

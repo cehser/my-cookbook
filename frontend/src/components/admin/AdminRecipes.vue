@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { useEventListener } from "@vueuse/core";
 import * as jsyaml from "js-yaml";
 import { useToast } from "@/composables/useToast";
+import { useRecipeDelete } from "@/composables/useRecipeDelete";
 import { useRecipeStore } from "@/store/recipeStore";
 import { generateUUID } from "@/js/uuid";
 import { deepCopyJSON } from "@/js/deepCopy";
@@ -27,6 +28,7 @@ defineSlots<{
 
 const store = useRecipeStore();
 const { toast } = useToast();
+const { deleteRecipe: removeRecipe } = useRecipeDelete();
 
 const fileInput = ref<HTMLInputElement | null>(null);
 
@@ -37,8 +39,10 @@ useEventListener("keydown", (event: KeyboardEvent) => {
   }
 });
 
-function deleteRecipe(index: number) {
-  store.deleteRecipe(index);
+/** Löscht nach Rückfrage; die Liste verschiebt sich, daher per ID. */
+function deleteRecipe(recipe: Recipe) {
+  if (!confirm(`Rezept "${recipe.recipe_name}" wirklich löschen?`)) return;
+  void removeRecipe(recipe.recipe_uuid);
 }
 
 /** Legt das Rezept an und meldet das Ergebnis. */
@@ -136,8 +140,13 @@ function exportRecipe(index: number) {
   <BListGroup flush v-for="(recipe, index) in store.recipes" :key="index">
     <BListGroupItem
       >{{ recipe.recipe_name }}
-      <BButton v-if="!readOnly" class="btn-sm" @click="deleteRecipe(index)"
-        ><i class="bi bi-x"></i
+      <BButton
+        v-if="!readOnly && store.canDelete(recipe)"
+        class="btn-sm"
+        :aria-label="`Rezept „${recipe.recipe_name}“ löschen`"
+        :title="`Rezept „${recipe.recipe_name}“ löschen`"
+        @click="deleteRecipe(recipe)"
+        ><i class="bi bi-x" aria-hidden="true"></i
       ></BButton>
       <BButton v-if="!readOnly" class="btn-sm" @click="copyRecipe(index)"
         ><i class="bi bi-files"></i
