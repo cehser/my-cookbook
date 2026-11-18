@@ -1920,6 +1920,17 @@ describe("W.41: Ersteller-Abgleich vor dem DELETE", () => {
     expect(entries()).toEqual([]);
   });
 
+  it("sonstiges 4xx beim GET (403): Eintrag entfernt, kein DELETE", async () => {
+    const store = pendingStore("admin");
+    vi.mocked(recipeApi.get).mockRejectedValue(new ApiError(403, ""));
+
+    expect(await store.deleteRecipe("lokal-1")).toEqual({ status: "deleted" });
+
+    expect(recipeApi.get).toHaveBeenCalledWith("lokal-1");
+    expect(recipeApi.delete).not.toHaveBeenCalled();
+    expect(entries()).toEqual([]);
+  });
+
   it("ohne angemeldeten Nutzer nicht entscheidbar: Markierung bleibt", async () => {
     const store = pendingStore();
     vi.mocked(currentUserSub).mockResolvedValue(null);
