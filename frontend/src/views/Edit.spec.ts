@@ -172,7 +172,7 @@ describe("Edit: Speichern meldet ehrlich", () => {
     expect(toast).toHaveBeenCalledWith(LOCAL_REJECTED_TEXT, "warning");
     expect(toast).not.toHaveBeenCalledWith(LOCAL_PENDING_TEXT, "warning");
     expect(LOCAL_REJECTED_TEXT).toContain("abgelehnt");
-    expect(LOCAL_REJECTED_TEXT).toContain("nur");
+    expect(LOCAL_REJECTED_TEXT).toContain("Nur auf diesem Gerät");
     expect(LOCAL_REJECTED_TEXT).not.toContain("wird beim nächsten");
     expect(discardDraft).toHaveBeenCalled();
   });
