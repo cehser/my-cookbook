@@ -34,6 +34,7 @@ const isAdmin = computed(() => settings.value.role === "admin");
       <AdminRecipes
         :read-only="settings.read_only"
         :expert-mode="settings.expert_mode"
+        :is-admin="isAdmin"
       >
         <template #actions>
           <AdminMaintenance v-if="!settings.read_only && isAdmin" />

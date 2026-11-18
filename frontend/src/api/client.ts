@@ -21,6 +21,23 @@ interface FetchOptions extends globalThis.RequestInit {
   skipAuth?: boolean;
   /** Abort after this many ms; 0 = no timeout. Default: DEFAULT_TIMEOUT_MS */
   timeoutMs?: number;
+  /** Reads a successful response; default: JSON. See `readDownload`. */
+  parse?: (response: Response) => Promise<unknown>;
+}
+
+/** File from a download endpoint: body as Blob, name from Content-Disposition. */
+export interface DownloadedFile {
+  blob: Blob;
+  filename: string | null;
+}
+
+/** `parse` for downloads (`filename="…"` as sent by FastAPI's FileResponse). */
+export async function readDownload(
+  response: Response,
+): Promise<DownloadedFile> {
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const match = /filename="?([^";]+)"?/i.exec(disposition);
+  return { blob: await response.blob(), filename: match?.[1] ?? null };
 }
 
 /** Runs `run` with an AbortSignal that fires after `timeoutMs` (0 = never). */
@@ -57,7 +74,12 @@ async function apiFetch<T>(
   options: FetchOptions = {},
   _isRetry = false,
 ): Promise<T> {
-  const { skipAuth, timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options;
+  const {
+    skipAuth,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    parse = (r: Response) => r.json(),
+    ...fetchOptions
+  } = options;
   const headers = new Headers(fetchOptions.headers);
 
   let token: string | null = null;
@@ -98,7 +120,7 @@ async function apiFetch<T>(
       }
       return {
         unauthorized: false as const,
-        data: (await response.json()) as T,
+        data: (await parse(response)) as T,
       };
     },
   );

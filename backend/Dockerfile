@@ -20,6 +20,11 @@ COPY prompts/ ./prompts/
 
 ENV PATH="/app/.venv/bin:$PATH"
 
+# Commit des Builds (CI bzw. docker-compose.build.yml), erscheint im Export als app_commit.
+# Spät gesetzt, damit ein neuer Hash die Layer davor nicht invalidiert.
+ARG COMMIT_HASH=dev
+ENV COMMIT_HASH=$COMMIT_HASH
+
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

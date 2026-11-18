@@ -2,12 +2,14 @@
 import { ref } from "vue";
 import { useEventListener } from "@vueuse/core";
 import * as jsyaml from "js-yaml";
+import { adminApi } from "@/api/admin";
 import { useToast } from "@/composables/useToast";
 import { useRecipeDelete } from "@/composables/useRecipeDelete";
 import { useRecipeStore } from "@/store/recipeStore";
 import { generateUUID } from "@/js/uuid";
 import { deepCopyJSON } from "@/js/deepCopy";
 import { appendToast } from "@/js/appendFeedback";
+import { saveBlob } from "@/js/download";
 import {
   loadNewRecipe as createNewRecipe,
   loadSample as createSampleRecipe,
@@ -16,10 +18,15 @@ import type { Recipe } from "@/types/recipe";
 
 // Unverändert aus Administration.vue verschoben; Umbau mit 11.2.
 
-defineProps<{
-  readOnly: boolean;
-  expertMode: boolean;
-}>();
+withDefaults(
+  defineProps<{
+    readOnly: boolean;
+    expertMode: boolean;
+    /** Gesamtexport (ZIP) anbieten; Sichtbarkeit setzt die Seite. */
+    isAdmin?: boolean;
+  }>(),
+  { isAdmin: false },
+);
 
 defineSlots<{
   /** Weitere Knöpfe am Anfang der Knopfleiste (Wartung). */
@@ -31,6 +38,7 @@ const { toast } = useToast();
 const { deleteRecipe: removeRecipe } = useRecipeDelete();
 
 const fileInput = ref<HTMLInputElement | null>(null);
+const exportRunning = ref(false);
 
 useEventListener("keydown", (event: KeyboardEvent) => {
   if (event.ctrlKey && event.code === "KeyS") {
@@ -101,15 +109,23 @@ function importRecipe(ev: Event) {
 function exportRecipe(index: number) {
   const recipe = store.recipes[index];
   const yaml = jsyaml.dump(recipe);
-  const blob = new Blob([yaml], { type: "text/yaml" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${recipe.recipe_name || "recipe"}.yaml`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  saveBlob(
+    new Blob([yaml], { type: "text/yaml" }),
+    `${recipe.recipe_name || "recipe"}.yaml`,
+  );
+}
+
+/** Lädt den Gesamtexport mit Auth-Header als Blob und bietet ihn als Datei an. */
+async function exportAll() {
+  exportRunning.value = true;
+  try {
+    const { blob, filename } = await adminApi.exportAll();
+    saveBlob(blob, filename ?? "my-cookbook-export.zip");
+  } catch (e) {
+    toast("Gesamtexport fehlgeschlagen: " + (e as Error).message, "danger");
+  } finally {
+    exportRunning.value = false;
+  }
 }
 </script>
 
@@ -127,6 +143,17 @@ function exportRecipe(index: number) {
       class="btn m-2"
       @click="triggerImport"
       ><i class="bi bi-upload"></i><br />YAML Import</BButton
+    >
+    <BButton
+      v-if="isAdmin"
+      class="btn m-2"
+      :disabled="exportRunning"
+      @click="exportAll"
+      ><BSpinner v-if="exportRunning" small /><i
+        v-else
+        class="bi bi-file-earmark-zip"
+      ></i
+      ><br />Gesamtexport (ZIP)</BButton
     >
     <input
       ref="fileInput"

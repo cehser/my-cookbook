@@ -13,6 +13,7 @@ import { useToast } from "@/composables/useToast";
 import { useWakeLock } from "@/composables/useWakeLock";
 import { generateUUID } from "@/js/uuid";
 import { deepCopyJSON } from "@/js/deepCopy";
+import { saveBlob } from "@/js/download";
 import { recipeUrl, editUrl } from "@/js/slug";
 import { appendedId, appendToast } from "@/js/appendFeedback";
 import { canFavorite } from "@/auth/role";
@@ -143,15 +144,10 @@ function exportRecipe() {
   if (!current_recipe.value) return;
   headerMenuOpen.value = false;
   const yaml = jsyaml.dump(current_recipe.value);
-  const blob = new Blob([yaml], { type: "text/yaml" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${current_recipe.value.recipe_name || "recipe"}.yaml`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  saveBlob(
+    new Blob([yaml], { type: "text/yaml" }),
+    `${current_recipe.value.recipe_name || "recipe"}.yaml`,
+  );
 }
 function goBack() {
   // If opened via direct link (no previous route), go to gallery

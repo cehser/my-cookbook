@@ -1,4 +1,11 @@
-import { api } from "./client";
+import { api, readDownload, type DownloadedFile } from "./client";
+
+/**
+ * Gesamtexport: Der Timeout gilt auch für den Body. Erstellen dauert Sekunden
+ * (200 Rezepte, 400 Bilder: ca. 6 s, 340 MiB), die Übertragung über einen
+ * langsamen Uplink kann Minuten brauchen.
+ */
+export const EXPORT_TIMEOUT_MS = 15 * 60_000;
 
 export interface AdminUser {
   oidc_sub: string;
@@ -68,6 +75,13 @@ export const adminApi = {
       undefined,
       { timeoutMs: 0 },
     ),
+
+  /** ZIP mit allen Rezepten, Tags und Bildern (Format im Plan export-import). */
+  exportAll: () =>
+    api.get<DownloadedFile>("/admin/export", {
+      timeoutMs: EXPORT_TIMEOUT_MS,
+      parse: readDownload,
+    }),
 
   stripImageIds: () =>
     api.post<{ cleaned: number }>("/admin/strip-image-ids", undefined, {

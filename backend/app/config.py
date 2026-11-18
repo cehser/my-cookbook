@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     upload_dir: str = "/app/uploads"
     max_upload_size_mb: int = 5
 
+    # Build-Commit (Image-ENV COMMIT_HASH aus der CI bzw. docker-compose.build.yml)
+    commit_hash: str = "dev"
+
     # CORS
     cors_origins: list[str] = ["http://localhost:8080"]
 

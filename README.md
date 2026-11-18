@@ -194,7 +194,7 @@ Das Backend stellt eine REST-API unter `/api` bereit:
 | Health | `GET /health` | Nein |
 | Rezepte | `GET /v1/recipes`, `GET /v1/recipes/{id}` | Readonly+ |
 | | `POST /v1/recipes`, `PUT /v1/recipes/{id}`, `POST /v1/recipes/{id}/tags` | Editor+ |
-| | `DELETE /v1/recipes/{id}` | Admin |
+| | `DELETE /v1/recipes/{id}` | Admin, Editor nur eigene |
 | Bilder | `GET /v1/recipes/{id}/images` | Readonly+ |
 | | `POST /v1/recipes/{id}/images`, `DELETE /v1/recipes/{id}/images/{image_id}` | Editor+ |
 | | `GET /v1/images/{id}`, `GET /v1/images/{id}/thumbnail` | Öffentlich |
@@ -208,6 +208,7 @@ Das Backend stellt eine REST-API unter `/api` bereit:
 | Admin | `GET /v1/admin/users`, `PUT /v1/admin/users/{id}/role` | Admin |
 | | `GET/PUT /v1/admin/settings`, `GET /v1/admin/shares`, `DELETE /v1/admin/shares/{id}` | Admin |
 | | `POST /v1/admin/migrate-images`, `/cleanup-images`, `/strip-image-ids` (Wartung) | Admin |
+| | `GET /v1/admin/export` (Gesamtexport als ZIP) | Admin |
 
 `POST /v1/recipes` nimmt optional eine vom Client vergebene `id` (UUID) an. Existiert sie bereits, antwortet die API mit `409` (Rezept existiert, unverändert); der Client gleicht dann per `GET /v1/recipes/{id}` ab, statt `409` blind als Erfolg zu werten. Die Nil-UUID ergibt `422`.
 
@@ -227,6 +228,14 @@ Für automatische Backups einen Cronjob einrichten:
 # Täglich um 3:00 Uhr
 0 3 * * * cd /path/to/my-cookbook && ./scripts/backup.sh
 ```
+
+### Gesamtexport (ZIP)
+
+In der Verwaltung lädt ein Admin mit „Gesamtexport (ZIP)“ alle Rezepte mit Tags und Bildern (Fotos und Vorlagen, jeweils das Original) herunter (`GET /api/v1/admin/export`). Das ZIP enthält `manifest.json` (Formatversion, Zeitpunkt, App-Commit, Anzahlen, fehlende Bilddateien), `recipes/<id>.json` und `images/<id>.<ext>`; das Format beschreibt [docs/plans/export-import.md](docs/plans/export-import.md). Nutzer, Favoriten, Share-Links und Einstellungen sind nicht enthalten.
+
+Der Export ergänzt `backup.sh`, ersetzt es aber nicht: Das SQL-Dump sichert die ganze Datenbank, aber keine Bilddateien; die liegen im Volume `recipe_uploads`. Das Wiedereinspielen eines Exports folgt mit Roadmap 11.2.
+
+Das Backend schreibt das ZIP zunächst in sein temporäres Verzeichnis (`/tmp` im Container) und löscht es nach dem Ausliefern (nach einem Abbruch beim nächsten Start); dort muss Platz für den gesamten Bildbestand sein.
 
 ### Backup einspielen
 
