@@ -6,10 +6,10 @@ Aufwand: XS ≲ 30 min · S ≲ 1 h · M ≈ 2–4 h · L ≈ 1 Tag+
 Erledigt (Archiv): Sprints 0–3, UX-1 bis UX-7, Sprint 9 (Design-System) → [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md)
 
 ## W — Wartung 🔜
-Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Reihenfolge der offenen Punkte: W.43 frei; W.21 frei (11.1 erledigt: vor dem Umzug Gesamtexport ziehen).
+Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Reihenfolge der offenen Punkte: W.43 frei; W.21 nach Release von PostgreSQL 19.1 (vor dem Umzug Gesamtexport ziehen).
 Erledigt (Archiv): W.1, W.2, W.3, W.4, W.5, W.6, W.7, W.8, W.9, W.10, W.11, W.12, W.13, W.14, W.15, W.16, W.17, W.18, W.19, W.20, W.22, W.23, W.25, W.26, W.27, W.28, W.29, W.30, W.31, W.32, W.33, W.34, W.35, W.36, W.37, W.38, W.40, W.41, W.42 · verworfen: W.39 → [roadmap-archiv.md](docs/roadmap-archiv.md)
 
-- [ ] W.21 PostgreSQL 16 → 18: Dump/Restore als Skript (`scripts/pg-major-upgrade.sh`: Backup, Stopp, neues Volume auf `/var/lib/postgresql`, Restore, Gegenprüfung; altes Volume als Rückweg), Probelauf mit Kopie der Produktivdaten, Checkpoint vor dem Live-Schritt · M · Opus · Server ohne Git-Checkout (Skript per `scp`), vorher Backup laut README
+- [ ] W.21 PostgreSQL 16 → 19: Dump/Restore als Skript mit Zielversion als Parameter (`scripts/pg-major-upgrade.sh`: Backup, Stopp, neues Volume an `/var/lib/postgresql` – ab 18 liegt PGDATA unter `/<major>/docker`, Restore, Gegenprüfung; altes Volume als Rückweg), CI, DB-Tests, Compose-Beispiel und Doku auf 19, Probelauf mit Kopie der Produktivdaten, Checkpoint vor dem Live-Schritt · M · Opus · nach Release von 19.1 (voraussichtlich 2027-02; PG 16 hat Support bis 2028-11) · Server ohne Git-Checkout (Skript per `scp`), vorher Backup laut README
 - [ ] W.43 Kleinkram nach W.40: `@types/node` direkt als devDependency (freigeben), Test für sonstiges 4xx beim Ersteller-GET (Eintrag weg, kein `DELETE`), Kommentar „fremd: kein noteDeleted“ in `pendingCreates.ts` korrigieren, 422-Text beim bewussten Leeren (Hinweis „Rezept löschen statt leeren“) · XS · Opus · [Bericht W.40](docs/tasks/W.40.bericht.md)
 
 ## U — UX-2
