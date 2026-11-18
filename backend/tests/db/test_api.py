@@ -337,3 +337,112 @@ async def test_me_creates_new_user(
     stored = (await db_session.execute(select(AppUser).where(AppUser.oidc_sub == sub))).scalar_one()
     assert stored.display_name == "neu"
     assert stored.email == "neu@example.com"
+
+
+# ---------------------------------------------------------------------------
+# PUT: Sperre gegen das Leeren von Zutaten und Schritten (W.40)
+# ---------------------------------------------------------------------------
+
+_FULL_DATA = {
+    "author": "CI",
+    "ingredients": [{"name": "Mehl", "amounts": [{"amount": 500, "unit": "g"}]}],
+    "steps": [{"step": "Kneten"}],
+}
+
+
+async def _create_full(db_client: httpx.AsyncClient, as_db_user, tags: list[str]) -> dict:
+    await as_db_user("editor")
+    r = await db_client.post(
+        "/api/v1/recipes", json={"recipe_name": "CI-Voll", "data": _FULL_DATA, "tags": tags}
+    )
+    assert r.status_code == 201
+    return r.json()
+
+
+async def test_put_emptying_ingredients_and_steps_is_rejected(
+    db_client: httpx.AsyncClient, as_db_user
+) -> None:
+    created = await _create_full(db_client, as_db_user, ["Erst"])
+
+    r = await db_client.put(
+        f"/api/v1/recipes/{created['id']}",
+        json={"recipe_name": "Umbenannt", "data": {"author": "Leer"}},
+    )
+    assert r.status_code == 422
+    assert "Zutaten und Schritte" in r.json()["detail"]
+
+    stored = (await db_client.get(f"/api/v1/recipes/{created['id']}")).json()
+    assert stored["recipe_name"] == "CI-Voll"
+    assert stored["data"] == created["data"]
+    assert stored["tags"] == ["Erst"]
+    assert stored["updated_at"] == created["updated_at"]
+
+    await db_client.delete(f"/api/v1/recipes/{created['id']}")
+
+
+async def test_put_like_old_list_row_is_rejected(db_client: httpx.AsyncClient, as_db_user) -> None:
+    # Alter PWA-Stand: Tags an der Karte geändert, Listenzeile als `data` mitgeschickt
+    created = await _create_full(db_client, as_db_user, ["Erst"])
+
+    r = await db_client.put(
+        f"/api/v1/recipes/{created['id']}",
+        json={
+            "recipe_name": "CI-Voll",
+            "data": {"author": "CI", "subtitle": None, "imageurl": None},
+            "tags": ["Erst", "Neu"],
+        },
+    )
+    assert r.status_code == 422
+
+    stored = (await db_client.get(f"/api/v1/recipes/{created['id']}")).json()
+    assert stored["data"] == created["data"]
+    assert stored["tags"] == ["Erst"]
+    assert stored["updated_at"] == created["updated_at"]
+
+    await db_client.delete(f"/api/v1/recipes/{created['id']}")
+
+
+async def test_put_keeps_empty_recipe_empty(db_client: httpx.AsyncClient, as_db_user) -> None:
+    # Schon leer (z. B. beschädigt durch den Tag-Fehler): bleibt bearbeitbar
+    await as_db_user("editor")
+    created = (
+        await db_client.post("/api/v1/recipes", json={"recipe_name": "CI-Leer", "data": {}})
+    ).json()
+
+    r = await db_client.put(
+        f"/api/v1/recipes/{created['id']}", json={"data": {"author": "Jetzt mit Autor"}}
+    )
+    assert r.status_code == 200
+    assert r.json()["data"]["author"] == "Jetzt mit Autor"
+
+    refilled = await db_client.put(f"/api/v1/recipes/{created['id']}", json={"data": _FULL_DATA})
+    assert refilled.status_code == 200
+    assert refilled.json()["data"]["steps"][0]["step"] == "Kneten"
+
+    await db_client.delete(f"/api/v1/recipes/{created['id']}")
+
+
+@pytest.mark.parametrize("emptied", ["ingredients", "steps"])
+async def test_put_emptying_one_of_both_is_allowed(
+    db_client: httpx.AsyncClient, as_db_user, emptied: str
+) -> None:
+    created = await _create_full(db_client, as_db_user, [])
+
+    r = await db_client.put(
+        f"/api/v1/recipes/{created['id']}", json={"data": {**_FULL_DATA, emptied: []}}
+    )
+    assert r.status_code == 200
+    assert r.json()["data"][emptied] == []
+
+    await db_client.delete(f"/api/v1/recipes/{created['id']}")
+
+
+async def test_put_only_tags_is_allowed(db_client: httpx.AsyncClient, as_db_user) -> None:
+    created = await _create_full(db_client, as_db_user, ["Erst"])
+
+    r = await db_client.put(f"/api/v1/recipes/{created['id']}", json={"tags": ["Neu"]})
+    assert r.status_code == 200
+    assert r.json()["tags"] == ["Neu"]
+    assert r.json()["data"] == created["data"]
+
+    await db_client.delete(f"/api/v1/recipes/{created['id']}")
