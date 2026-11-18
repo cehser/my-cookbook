@@ -32,6 +32,7 @@ import {
 } from "@/js/offlineCache";
 import { detailToRecipe, recipeToPayload } from "@/js/recipeMapping";
 import { noteDeleted } from "@/store/listSync";
+import { isOwnRecipe, serverCreator } from "@/store/serverCreator";
 import type { Recipe } from "@/types/recipe";
 
 /** Die Vormerkung konnte nicht gespeichert werden (IndexedDB). */
@@ -220,14 +221,29 @@ function dropEntry(uuid: string): Promise<void> {
  * vorgemerkt, die nächste Übertragung sendet erneut, `false`. Läuft gerade
  * die Übertragung dieses Rezepts, sendet erst sie das `DELETE` (`false`):
  * Nur sie weiß, ob ihr POST das Rezept angelegt hat oder die ID fremd ist.
+ *
+ * Ohne bestätigte Anlage (`knownOwn`) prüft vorher ein GET den Ersteller
+ * (`serverCreator`): Die ID kann einem fremden Rezept gehören, das ein
+ * Admin sonst löschte. Fehlt es (404) oder ist es fremd, entfällt der
+ * Eintrag ohne `DELETE`.
  */
 export async function deleteOnServer(
   uuid: string,
-  { fromTransfer = false } = {},
+  { fromTransfer = false, knownOwn = false } = {},
 ): Promise<boolean> {
   if (!fromTransfer && transferring === uuid) return false;
   deleting.add(uuid);
   try {
+    if (!knownOwn) {
+      const creator = await creatorBeforeDelete(uuid);
+      if (creator === "outage") return false;
+      if (creator !== "own") {
+        // Fremd: Das Serverrezept bleibt sichtbar, kein `noteDeleted`
+        if (creator === "missing") noteDeleted(uuid);
+        await dropAfterDeletion(uuid);
+        return true;
+      }
+    }
     try {
       await recipeApi.delete(uuid);
     } catch (e) {
@@ -241,16 +257,45 @@ export async function deleteOnServer(
     }
     // Abrufe, die vor der Bestätigung begannen, zeigen es nicht wieder
     noteDeleted(uuid);
-    // Eine danach gestartete Übertragung prüft den Eintrag vor dem POST
-    try {
-      await dropEntry(uuid);
-    } catch (e) {
-      // Markierung bleibt: nächste Übertragung, `DELETE` → 404, entfernt
-      console.warn("Pending deletion not cleared", e);
-    }
+    await dropAfterDeletion(uuid);
     return true;
   } finally {
     deleting.delete(uuid);
+  }
+}
+
+/**
+ * Ersteller vor dem `DELETE`; `outage` bei Ausfall (Markierung bleibt). Ein
+ * abgelehntes GET (übrige 4xx) gibt die Löschung auf: ohne Bestätigung nie
+ * `DELETE`.
+ */
+async function creatorBeforeDelete(
+  uuid: string,
+): Promise<"missing" | "own" | "foreign" | "outage"> {
+  try {
+    const creator = await serverCreator(uuid);
+    if (creator === "foreign") {
+      console.warn("Pending recipe id belongs to another user, no DELETE");
+    }
+    return creator;
+  } catch (e) {
+    if (!isClientError(e)) {
+      console.warn("Creator check before delete failed, will retry", e);
+      return "outage";
+    }
+    console.warn("Creator check before delete rejected, giving up", e);
+    return "missing";
+  }
+}
+
+/** Eintrag nach erledigter Löschung entfernen. */
+async function dropAfterDeletion(uuid: string): Promise<void> {
+  // Eine danach gestartete Übertragung prüft den Eintrag vor dem POST
+  try {
+    await dropEntry(uuid);
+  } catch (e) {
+    // Markierung bleibt: nächste Übertragung prüft erneut und entfernt
+    console.warn("Pending deletion not cleared", e);
   }
 }
 
@@ -366,7 +411,7 @@ export async function createWithClientId(
   } catch (e) {
     if (!(e instanceof ApiError && e.status === 409)) return rejectedOrThrow(e);
     const existing = await recipeApi.get(recipe.recipe_uuid);
-    if (!sameUser(existing.created_by, await currentUserSub())) {
+    if (!(await isOwnRecipe(existing))) {
       return { status: "rejected", error: e };
     }
     // JSON-Kopien: `undefined`-Felder zählen nicht als Unterschied
@@ -531,7 +576,11 @@ async function transferOne(
     if (settled.status === "deleted") {
       // Während der Anfrage gelöscht: Der Server hat es trotzdem angelegt.
       // Ausfall: Die Löschung bleibt vorgemerkt, der Lauf endet.
-      if (!(await deleteOnServer(recipe.recipe_uuid, { fromTransfer: true }))) {
+      const confirmed = await deleteOnServer(recipe.recipe_uuid, {
+        fromTransfer: true,
+        knownOwn: true,
+      });
+      if (!confirmed) {
         throw new Error("Löschen nach Übertragung nicht bestätigt");
       }
       return "skipped";
