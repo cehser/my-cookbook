@@ -188,9 +188,12 @@ def would_empty_recipe(stored: dict | None, new: dict) -> bool:
     return _has_content(stored) and not _has_content(new)
 
 
-# Der Client zeigt den Text als Grund an („Rezept nicht gespeichert: …“)
+# Der Client zeigt den Text als Grund an („Rezept nicht gespeichert: …“), auch
+# alte PWA-Stände: kurz halten. Deckt beide Ursachen ab: Fassung nicht
+# vollständig geladen (neu laden) und bewusst geleert (löschen statt leeren).
 EMPTYING_UPDATE_DETAIL = (
-    "Zutaten und Schritte würden geleert, Rezept unverändert. Bitte neu laden und erneut bearbeiten"
+    "Zutaten und Schritte würden geleert, Rezept unverändert. "
+    "Bitte neu laden oder, falls gewollt, das Rezept löschen"
 )
 
 

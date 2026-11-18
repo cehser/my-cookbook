@@ -64,11 +64,11 @@ describe("appendFeedback", () => {
     const body = JSON.stringify({
       detail:
         "Zutaten und Schritte würden geleert, Rezept unverändert. " +
-        "Bitte neu laden und erneut bearbeiten",
+        "Bitte neu laden oder, falls gewollt, das Rezept löschen",
     });
     expect(saveFailedMessage(new ApiError(422, body))).toBe(
       "Rezept nicht gespeichert: Zutaten und Schritte würden geleert, " +
-        "Rezept unverändert. Bitte neu laden und erneut bearbeiten.",
+        "Rezept unverändert. Bitte neu laden oder, falls gewollt, das Rezept löschen.",
     );
     // Validierungsfehler (detail als Liste) und kein JSON: allgemeiner Text
     const validation = JSON.stringify({ detail: [{ msg: "x" }] });
