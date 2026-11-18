@@ -188,9 +188,10 @@ def would_empty_recipe(stored: dict | None, new: dict) -> bool:
     return _has_content(stored) and not _has_content(new)
 
 
+# Der Client zeigt den Text als Grund an („Rezept nicht gespeichert: …“)
 EMPTYING_UPDATE_DETAIL = (
-    "Zutaten und Schritte würden geleert. Das Rezept hat Inhalt, die neue Fassung "
-    "hat weder Zutaten noch Schritte; unverändert. Rezept neu laden und erneut bearbeiten."
+    "Zutaten und Schritte würden geleert, Rezept unverändert. "
+    "Bitte neu laden und erneut bearbeiten"
 )
 
 
