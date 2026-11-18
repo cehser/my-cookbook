@@ -15,6 +15,11 @@ try {
   // git not available (e.g. Docker build) — use COMMIT_HASH env or fallback
 }
 
+// Windows mit kleinem Laufwerksbuchstaben (`c:`, VS Code, Claude Code): Der
+// `@`-Alias ergäbe `c:/…`, relative Importe `C:/…`; Rollup bündelt dieselben
+// Module dann doppelt (Pinia doppelt, App startet nicht). Linux: wirkungslos.
+const upperDrive = (path) => path.replace(/^[a-z]:/, (d) => d.toUpperCase());
+
 export default defineConfig({
   define: {
     __COMMIT_HASH__: JSON.stringify(commitHash),
@@ -141,7 +146,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@": upperDrive(fileURLToPath(new URL("./src", import.meta.url))),
     },
   },
   server: {
