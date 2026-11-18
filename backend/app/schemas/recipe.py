@@ -190,8 +190,7 @@ def would_empty_recipe(stored: dict | None, new: dict) -> bool:
 
 # Der Client zeigt den Text als Grund an („Rezept nicht gespeichert: …“)
 EMPTYING_UPDATE_DETAIL = (
-    "Zutaten und Schritte würden geleert, Rezept unverändert. "
-    "Bitte neu laden und erneut bearbeiten"
+    "Zutaten und Schritte würden geleert, Rezept unverändert. Bitte neu laden und erneut bearbeiten"
 )
 
 
