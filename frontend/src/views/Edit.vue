@@ -21,6 +21,7 @@ import { useSectionEditor } from "@/composables/useSectionEditor";
 import { useIngredientEditor } from "@/composables/useIngredientEditor";
 import { useStepEditor } from "@/composables/useStepEditor";
 import { useRecipeStore } from "@/store/recipeStore";
+import { saveFailedMessage } from "@/js/appendFeedback";
 import * as jsyaml from "js-yaml";
 
 const props = defineProps<{ id: string }>();
@@ -200,7 +201,7 @@ function saveRecipe() {
         loadedSnapshot.value = JSON.stringify(current_recipe.value);
         toast("Gespeichert.", "success");
       })
-      .catch(() => toast("Rezept konnte nicht gespeichert werden.", "danger"));
+      .catch((e) => toast(saveFailedMessage(e), "danger"));
   } else {
     toast("Unverändert.", "success");
   }

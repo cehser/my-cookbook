@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
+import { LocalReadError } from "@/store/pendingCreates";
 import type { Settings } from "@/types/settings";
 import type { Recipe } from "@/types/recipe";
 
@@ -15,6 +16,8 @@ const store = vi.hoisted(() => ({
 
 vi.mock("@/store/recipeStore", () => ({ useRecipeStore: () => store }));
 vi.mock("vue-router", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+const toast = vi.hoisted(() => vi.fn());
+vi.mock("@/composables/useToast", () => ({ useToast: () => ({ toast }) }));
 
 import RecipeCard from "./RecipeCard.vue";
 
@@ -78,5 +81,20 @@ describe("RecipeCard", () => {
     const allowed = render(editor, { canDelete: true });
     await openMenu(allowed);
     expect(deleteButton(allowed)).toBeDefined();
+  });
+
+  it("Tags nicht gespeichert: Toast mit Grund", async () => {
+    store.setRecipe.mockRejectedValueOnce(new LocalReadError(new Error("idb")));
+    const w = render({ role: "editor", read_only: false, expert_mode: false });
+    await openMenu(w);
+    const tagsButton = w.findAll("button").find((b) => b.text() === "Tags");
+    await tagsButton!.trigger("click");
+    await w.find("input").setValue("Kuchen");
+    await w.find("input").trigger("keyup.enter");
+    await flushPromises();
+    expect(toast).toHaveBeenCalledWith(
+      "Rezept nicht gespeichert: auf diesem Gerät nicht lesbar.",
+      "danger",
+    );
   });
 });

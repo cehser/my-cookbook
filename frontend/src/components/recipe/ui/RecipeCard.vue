@@ -7,6 +7,8 @@ import { onKeyStroke } from "@vueuse/core";
 import type { Recipe } from "@/types/recipe";
 import { recipeUrl, editUrl } from "@/js/slug";
 import { canFavorite } from "@/auth/role";
+import { useToast } from "@/composables/useToast";
+import { saveFailedMessage } from "@/js/appendFeedback";
 
 const props = defineProps<{
   recipe: Recipe;
@@ -25,6 +27,7 @@ const emit = defineEmits<{
 const store = useRecipeStore();
 const { hasDraft } = useDraftIndex();
 const router = useRouter();
+const { toast } = useToast();
 const newTag = ref("");
 const showTagEditor = ref(false);
 const fabMenuOpen = ref(false);
@@ -132,11 +135,10 @@ const deleteRecipe = () => {
   }
 };
 
-// Fehler meldet die Bearbeitungsansicht; hier nur protokollieren
 const saveTags = () => {
   store
     .setRecipe({ index: props.index, recipe: props.recipe })
-    .catch((e) => console.warn("Failed to save tags", e));
+    .catch((e) => toast(saveFailedMessage(e), "danger"));
 };
 
 const addTag = () => {

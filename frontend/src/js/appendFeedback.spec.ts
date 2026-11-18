@@ -8,6 +8,7 @@ import {
   appendFailedMessage,
   appendToast,
   deleteFailedMessage,
+  saveFailedMessage,
   transferToasts,
 } from "@/js/appendFeedback";
 
@@ -114,6 +115,12 @@ describe("appendFeedback", () => {
     );
     expect(deleteFailedMessage(new LocalReadError(new Error("idb")))).toBe(
       "Rezept nicht gelöscht: auf diesem Gerät nicht lesbar.",
+    );
+  });
+
+  it("Speichern gescheitert: Grund statt allgemeiner Meldung", () => {
+    expect(saveFailedMessage(new LocalReadError(new Error("idb")))).toBe(
+      "Rezept nicht gespeichert: auf diesem Gerät nicht lesbar.",
     );
   });
 });

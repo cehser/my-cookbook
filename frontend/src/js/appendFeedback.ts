@@ -1,7 +1,7 @@
 /**
  * Meldungen und Ziel-ID nach `recipeStore.appendRecipe` für alle Aufrufer,
  * dazu die Meldungen nach der Übertragung vorgemerkter Rezepte und nach
- * einem gescheiterten Löschen.
+ * einem gescheiterten Löschen oder Speichern.
  */
 
 import { ApiError, ApiTimeoutError, OfflineError } from "@/api/client";
@@ -59,6 +59,11 @@ function updateRejectedMessage(error: unknown, name?: string): string {
 /** Fehlermeldung, wenn das Löschen scheiterte; das Rezept bleibt. */
 export function deleteFailedMessage(error: unknown): string {
   return `Rezept nicht gelöscht: ${rejectReason(error)}.`;
+}
+
+/** Fehlermeldung, wenn `setRecipe` scheiterte (z. B. `LocalReadError`). */
+export function saveFailedMessage(error: unknown): string {
+  return `Rezept nicht gespeichert: ${rejectReason(error)}.`;
 }
 
 /** Toasts nach einer Übertragung: Erfolg gesammelt, Ablehnung je Rezept. */
