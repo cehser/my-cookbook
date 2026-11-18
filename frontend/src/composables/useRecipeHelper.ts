@@ -1,8 +1,6 @@
 import { ref, computed, watch, type Ref, type ComputedRef } from "vue";
 import { useRecipeStore } from "@/store/recipeStore";
 import { deepCopyJSON } from "@/js/deepCopy";
-import { readRecipeDetail } from "@/js/offlineCache";
-import { isAuthenticated } from "@/auth/session";
 import { imageApi } from "@/api/images";
 import type { Recipe } from "@/types/recipe";
 
@@ -13,6 +11,8 @@ interface RecipeHelperOptions {
 interface RecipeHelperReturn {
   current_recipe: Ref<Recipe | null>;
   isLoaded: Ref<boolean>;
+  /** Nur die Listenzeile verfügbar (Detail weder von der API noch im Cache) */
+  loadFailed: Ref<boolean>;
   do_recalc: Ref<boolean>;
   selected: ComputedRef<number>;
   recipes_list: ComputedRef<Array<{ value: string; text: string }>>;
@@ -39,6 +39,8 @@ export function useRecipeHelper(
   const store = useRecipeStore();
   const current_recipe = ref<Recipe | null>(null);
   const isLoaded = ref(false);
+  const loadFailed = ref(false);
+  let loadSeq = 0;
   const do_recalc = ref(true); // enable amounts recalculation
 
   // Computed properties from Pinia store
@@ -161,12 +163,15 @@ export function useRecipeHelper(
   }
 
   /**
-   * Load a recipe (creates a deep copy).
-   * If the recipe was loaded from the API list (no ingredients),
-   * fetch the full detail from the backend, with IDB fallback for offline.
+   * Rezept laden (tiefe Kopie). Eine Listenzeile wird über
+   * `store.loadCompleteRecipe` vervollständigt (API, sonst Detail-Cache);
+   * gelingt das nicht, bleibt die Listenzeile mit `listOnly` stehen und
+   * `loadFailed` ist gesetzt (Edit sperrt dann das Speichern).
    */
   async function loadRecipe(recipe: Recipe): Promise<void> {
+    const seq = ++loadSeq;
     isLoaded.value = false;
+    loadFailed.value = false;
 
     // Set immediately with safe defaults so the template never sees null
     const safeCopy = deepCopyJSON(recipe);
@@ -175,30 +180,11 @@ export function useRecipeHelper(
     safeCopy.sections = safeCopy.sections || [{ section: "" }];
     current_recipe.value = safeCopy;
 
-    // API list items have empty ingredients — need to fetch detail
-    if (
-      (!recipe.ingredients || recipe.ingredients.length === 0) &&
-      recipe.recipe_uuid
-    ) {
-      // API first if online and authenticated
-      if (navigator.onLine && (await isAuthenticated())) {
-        try {
-          const detail = await store.loadRecipeDetailFromApi(
-            recipe.recipe_uuid,
-          );
-          current_recipe.value = deepCopyJSON(detail);
-          isLoaded.value = true;
-          return;
-        } catch {
-          // API unreachable — fall through to IDB
-        }
-      }
-      // Fallback: offline cache
-      const cached = await readRecipeDetail(recipe.recipe_uuid);
-      if (cached) {
-        current_recipe.value = deepCopyJSON(cached);
-      }
-    }
+    const complete = await store.loadCompleteRecipe(recipe);
+    // Inzwischen ein anderes Rezept geöffnet: dessen Laden gilt
+    if (seq !== loadSeq) return;
+    if (!complete) loadFailed.value = true;
+    else if (complete !== recipe) current_recipe.value = deepCopyJSON(complete);
 
     isLoaded.value = true;
   }
@@ -270,6 +256,7 @@ export function useRecipeHelper(
   return {
     current_recipe,
     isLoaded,
+    loadFailed,
     do_recalc,
     selected,
     recipes_list,

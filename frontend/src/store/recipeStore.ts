@@ -4,8 +4,11 @@ import { loadYamlCookbook, loadSample } from "@/js/recipes";
 import { deepCopyJSON } from "@/js/deepCopy";
 import {
   detailToRecipe,
+  IncompleteRecipeError,
   listItemToRecipe,
+  looksLikeListRow,
   recipeToPayload,
+  withoutListOnly,
 } from "@/js/recipeMapping";
 import {
   serializeRecipePictures,
@@ -46,6 +49,7 @@ import {
 } from "@/store/pendingCreates";
 import { saveChange, sessionError, type SaveResult } from "@/store/saveRecipe";
 import {
+  markListRows,
   mergeFetched,
   noteCreated,
   noteDeleted,
@@ -70,8 +74,9 @@ export type DataSource = "none" | "api" | "cache";
  *   nächsten Laden mit gültiger Sitzung übertragen (`store/pendingCreates.ts`)
  * - `failed`: vom Backend abgelehnt (4xx, z. B. fehlende Rolle, 422),
  *   Sitzung abgelaufen (401, Login folgt), ohne angemeldeten Nutzer
- *   (`NotSignedInError`) oder Vormerkung nicht speicherbar
- *   (`LocalSaveError`); nicht gespeichert
+ *   (`NotSignedInError`), Vormerkung nicht speicherbar
+ *   (`LocalSaveError`) oder nur eine Listenzeile (`IncompleteRecipeError`);
+ *   nicht gespeichert
  */
 export type AppendResult =
   | { status: "created"; detail: RecipeDetail; updateError?: unknown }
@@ -219,16 +224,17 @@ export const useRecipeStore = defineStore("recipe", {
 
     /** Zeigt vorhandene Cache-Daten als vorläufigen Stand. */
     async showCachedData() {
-      const [settings, recipes, favorites] = await Promise.all([
+      const [settings, recipes, favorites, pending] = await Promise.all([
         readSettings(),
         readRecipes(),
         readFavorites(),
+        listPending(),
       ]);
       if (!settings && !recipes && !favorites) return;
       // Nur übernehmen, solange nichts Verbindliches geladen ist
       if (this.dataSource !== "none") return;
       if (settings) this.settings = settings;
-      if (recipes) this.recipes = recipes;
+      if (recipes) this.recipes = markListRows(recipes, pending);
       if (favorites) this.favorites = favorites;
       this.dataSource = "cache";
     },
@@ -296,7 +302,8 @@ export const useRecipeStore = defineStore("recipe", {
       console.warn("Read recipes from idb");
       const val = await readRecipes();
       if (val) {
-        this.recipes = this.withPendingIds(val, await listPending());
+        const pending = await listPending();
+        this.recipes = this.withPendingIds(markListRows(val, pending), pending);
         return "cache";
       }
       console.warn("Fallback to localstorage");
@@ -417,6 +424,10 @@ export const useRecipeStore = defineStore("recipe", {
      * eine abgelaufene Sitzung (Login folgt) speichert nichts.
      */
     async appendRecipe(recipe: Recipe): Promise<AppendResult> {
+      // Kopie einer Listenzeile (Duplizieren, Export) wäre ein leeres Rezept
+      if (recipe.listOnly) {
+        return { status: "failed", error: new IncompleteRecipeError() };
+      }
       const recipeCopy = deepCopyJSON(recipe);
       // Ersteller setzt das Backend (Duplikat, Import: nicht übernehmen)
       delete recipeCopy.created_by;
@@ -481,9 +492,15 @@ export const useRecipeStore = defineStore("recipe", {
     /**
      * Speichert ein geändertes Rezept, Ergebnis siehe `SaveResult`. Liste und
      * Cache übernehmen die Änderung erst nach Erfolg; `failed` lässt alles
-     * beim alten Stand.
+     * beim alten Stand. Eine Listenzeile (`listOnly`) geht nie als `data`
+     * raus: Das Backend ersetzt `data` vollständig, Zutaten und Schritte
+     * wären weg (`failed` mit `IncompleteRecipeError`, unabhängig vom
+     * Aufrufer).
      */
     async setRecipe(recipe: Recipe): Promise<SaveResult> {
+      if (recipe.listOnly) {
+        return { status: "failed", error: new IncompleteRecipeError() };
+      }
       const copy = deepCopyJSON(recipe);
       const result = await saveChange(
         copy,
@@ -526,8 +543,9 @@ export const useRecipeStore = defineStore("recipe", {
       update: (current: Recipe) => Recipe,
       result: SaveResult,
     ) {
-      // Eine Bearbeitung hebt die Ablehnung auf (`updatePending`)
-      if (result.status === "local") {
+      // Eine Bearbeitung hebt die Ablehnung auf (`updatePending`), außer bei
+      // fremdem 409
+      if (result.status === "local" && !result.stillRejected) {
         this.rejectedIds = this.rejectedIds.filter((id) => id !== uuid);
       }
       const index = this.recipes.findIndex((r) => r.recipe_uuid === uuid);
@@ -672,6 +690,31 @@ export const useRecipeStore = defineStore("recipe", {
       this.recipes = this.withPendingIds(merged, pending);
       void writeRecipes(deepCopyJSON(this.recipes));
       this.prefetchRecipeDetails(fromApi);
+    },
+
+    /**
+     * Vollständige Fassung zum Bearbeiten, Duplizieren oder Exportieren:
+     * Listenzeile (`listOnly`, ohne Zutaten) → Detail von der API, sonst aus
+     * dem Detail-Cache. `null`, wenn eine Listenzeile nicht vervollständigt
+     * werden kann; nie die Listenzeile selbst.
+     */
+    async loadCompleteRecipe(recipe: Recipe): Promise<Recipe | null> {
+      if (!recipe.listOnly && recipe.ingredients?.length) return recipe;
+      if (navigator.onLine && (await isAuthenticated())) {
+        try {
+          return await this.loadRecipeDetailFromApi(recipe.recipe_uuid);
+        } catch {
+          // API nicht erreichbar: Detail-Cache
+        }
+      }
+      const cached = await readRecipeDetail(recipe.recipe_uuid);
+      // Ein leerer Cache-Eintrag kann eine früher gespeicherte Listenzeile
+      // sein (Tag-Fehler vor W.37): nicht als vollständig nehmen
+      if (cached && !(recipe.listOnly && looksLikeListRow(cached))) {
+        return withoutListOnly(cached);
+      }
+      // Vorgemerkt bzw. neu ohne Zutaten: ist bereits vollständig
+      return recipe.listOnly ? null : recipe;
     },
 
     async loadRecipeDetailFromApi(id: string) {

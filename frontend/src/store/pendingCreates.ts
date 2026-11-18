@@ -146,13 +146,21 @@ export async function addPending(recipe: Recipe): Promise<void> {
   }
 }
 
+/** Die ID gehört einem anderen Nutzer (fremdes 409; Altbestand ohne Feld). */
+function isForeign(entry: PendingCreate): boolean {
+  return entry.foreign === true || entry.rejected === 409;
+}
+
 /**
  * Vorgemerktes Rezept ändern. Eine frühere Ablehnung entfällt: Der Nutzer
  * hat das Rezept bearbeitet, die nächste Übertragung versucht es erneut.
- * Liefert `false`, wenn das Rezept nicht vorgemerkt ist; wirft bei
- * IndexedDB-Fehlern.
+ * Ausnahme fremdes 409: Die ID bleibt fremd, die Ablehnung bleibt
+ * (`stillRejected`). Liefert `false`, wenn das Rezept nicht vorgemerkt
+ * ist; wirft bei IndexedDB-Fehlern.
  */
-export function updatePending(recipe: Recipe): Promise<boolean> {
+export function updatePending(
+  recipe: Recipe,
+): Promise<false | { stillRejected: boolean }> {
   const copy = deepCopyJSON(recipe);
   return locked(async () => {
     const entries = await readPendingCreates();
@@ -161,9 +169,10 @@ export function updatePending(recipe: Recipe): Promise<boolean> {
     );
     if (!entry || entry.deleted) return false;
     entry.recipe = copy;
-    delete entry.rejected;
+    const stillRejected = isForeign(entry);
+    if (!stillRejected) delete entry.rejected;
     await writePendingCreates(entries);
-    return true;
+    return { stillRejected };
   });
 }
 
@@ -172,7 +181,8 @@ export function updatePending(recipe: Recipe): Promise<boolean> {
  * Antwort, laufende Übertragung), deshalb bleibt die Löschung vorgemerkt
  * (`marked`), bis `deleteOnServer` sie bestätigt; Listenabrufe blenden das
  * Rezept so lange aus. Ein abgelehntes Rezept hat der Server nicht (bzw. bei
- * fremdem 409 gehört es einem anderen): sofort entfernen (`removed`).
+ * fremdem 409 gehört es einem anderen, auch nach einer Bearbeitung): sofort
+ * entfernen (`removed`), nie ein `DELETE`.
  * `none`: nicht vorgemerkt. Wirft bei IndexedDB-Fehlern.
  */
 export function markDeleted(
@@ -184,7 +194,7 @@ export function markDeleted(
     const entry = entries.find((e) => e.recipe.recipe_uuid === uuid);
     if (!entry) return "none" as const;
     if (entry.deleted) return "marked" as const;
-    if (entry.rejected !== undefined) {
+    if (entry.rejected !== undefined || isForeign(entry)) {
       await writePendingCreates(entries.filter((e) => e !== entry));
       return "removed" as const;
     }
@@ -208,12 +218,14 @@ function dropEntry(uuid: string): Promise<void> {
  * Bestätigt (204, 404) oder endgültig abgelehnt (übrige 4xx): Markierung
  * entfernen, `true`. Ausfall (offline, Timeout, 5xx, 401): bleibt
  * vorgemerkt, die nächste Übertragung sendet erneut, `false`. Läuft gerade
- * die Übertragung dieses Rezepts, entfernt erst sie die Markierung.
+ * die Übertragung dieses Rezepts, sendet erst sie das `DELETE` (`false`):
+ * Nur sie weiß, ob ihr POST das Rezept angelegt hat oder die ID fremd ist.
  */
 export async function deleteOnServer(
   uuid: string,
   { fromTransfer = false } = {},
 ): Promise<boolean> {
+  if (!fromTransfer && transferring === uuid) return false;
   deleting.add(uuid);
   try {
     try {
@@ -229,13 +241,12 @@ export async function deleteOnServer(
     }
     // Abrufe, die vor der Bestätigung begannen, zeigen es nicht wieder
     noteDeleted(uuid);
-    if (fromTransfer || transferring !== uuid) {
-      try {
-        await dropEntry(uuid);
-      } catch (e) {
-        // Markierung bleibt: nächste Übertragung, `DELETE` → 404, entfernt
-        console.warn("Pending deletion not cleared", e);
-      }
+    // Eine danach gestartete Übertragung prüft den Eintrag vor dem POST
+    try {
+      await dropEntry(uuid);
+    } catch (e) {
+      // Markierung bleibt: nächste Übertragung, `DELETE` → 404, entfernt
+      console.warn("Pending deletion not cleared", e);
     }
     return true;
   } finally {
@@ -243,14 +254,34 @@ export async function deleteOnServer(
   }
 }
 
-/** Übertragung abgelehnt: vorgemerkt lassen, nicht automatisch wiederholen. */
+/**
+ * Übertragung abgelehnt: vorgemerkt lassen, nicht automatisch wiederholen.
+ * 409 heißt hier immer „ID gehört einem anderen“ (`createWithClientId`).
+ */
 function markRejected(uuid: string, status: number): Promise<void> {
   return locked(async () => {
     const entries = await readPendingCreates();
     const entry = entries.find((e) => e.recipe.recipe_uuid === uuid);
     if (!entry) return;
     entry.rejected = status;
+    if (status === 409) entry.foreign = true;
     await writePendingCreates(entries);
+  });
+}
+
+/**
+ * Aktueller Stand eines Eintrags direkt vor dem POST, `null`, wenn er
+ * inzwischen gelöscht, entfernt oder abgelehnt ist. Die Liste des Laufs ist
+ * ein älterer Schnappschuss: Ein dazwischen gelöschtes Rezept (`DELETE` →
+ * 404, Eintrag entfernt) darf nicht doch noch angelegt werden.
+ */
+function stillOpen(uuid: string): Promise<Recipe | null> {
+  return locked(async () => {
+    const entry = (await readPendingCreates()).find(
+      (e) => e.recipe.recipe_uuid === uuid,
+    );
+    if (!entry || entry.deleted || entry.rejected !== undefined) return null;
+    return entry.recipe;
   });
 }
 
@@ -423,11 +454,17 @@ async function doTransfer({
         e.rejected === undefined &&
         !removing.has(e.recipe.recipe_uuid),
     );
-    for (const { recipe } of open) {
-      transferring = recipe.recipe_uuid;
-      const outcome = await transferOne(recipe, onCreated).finally(() => {
-        transferring = null;
-      });
+    for (const { recipe: listed } of open) {
+      // Vor der Prüfung setzen: Eine Löschung danach überlässt das `DELETE`
+      // diesem Lauf (`deleteOnServer`)
+      transferring = listed.recipe_uuid;
+      const outcome = await stillOpen(listed.recipe_uuid)
+        .then((recipe) =>
+          recipe ? transferOne(recipe, onCreated) : ("skipped" as const),
+        )
+        .finally(() => {
+          transferring = null;
+        });
       if (outcome === "skipped") continue;
       if (outcome === "transferred") {
         report.transferred++;
@@ -449,8 +486,9 @@ type TransferItem = TransferReport["rejected"][number];
 /** Vorgemerkte Löschung abschließen; `false` bei Ausfall. */
 async function finishDeletion(entry: PendingCreate): Promise<boolean> {
   const uuid = entry.recipe.recipe_uuid;
-  // Abgelehnt (auch während der Löschung): Der Server hat es nicht
-  if (entry.rejected !== undefined) {
+  // Abgelehnt (auch während der Löschung): Der Server hat es nicht bzw.
+  // es gehört einem anderen (fremdes 409): nie `DELETE`
+  if (entry.rejected !== undefined || isForeign(entry)) {
     await dropEntry(uuid);
     return true;
   }

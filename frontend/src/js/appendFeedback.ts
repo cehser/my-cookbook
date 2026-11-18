@@ -5,6 +5,7 @@
  */
 
 import { ApiError, ApiTimeoutError, OfflineError } from "@/api/client";
+import { IncompleteRecipeError } from "@/js/recipeMapping";
 import type { AppendResult } from "@/store/recipeStore";
 import {
   LocalReadError,
@@ -27,6 +28,9 @@ function rejectReason(error: unknown): string {
     return "auf diesem Gerät nicht lesbar";
   }
   if (error instanceof NotSignedInError) return "Bitte anmelden";
+  if (error instanceof IncompleteRecipeError) {
+    return "Rezept nicht vollständig geladen";
+  }
   if (
     error instanceof OfflineError ||
     error instanceof ApiTimeoutError ||

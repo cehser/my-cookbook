@@ -8,12 +8,15 @@
  * werden nur protokolliert.
  *
  * Werte müssen per Structured Clone speicherbar sein: keine reaktiven
- * Vue-Proxies übergeben, sondern Kopien (`deepCopyJSON`).
+ * Vue-Proxies übergeben, sondern Kopien (`deepCopyJSON`). Das Kennzeichen
+ * `listOnly` wird nie gespeichert; der Store leitet es beim Lesen der
+ * Rezeptliste neu ab.
  *
  * Bilder (`recipe_pictures`) liegen weiterhin im Store (Altbestand).
  */
 
 import { get, set } from "idb-keyval";
+import { withoutListOnly } from "@/js/recipeMapping";
 import type { Recipe } from "@/types/recipe";
 import type { Settings } from "@/types/settings";
 
@@ -49,7 +52,7 @@ export function readRecipes(): Promise<Recipe[] | undefined> {
 
 export function writeRecipes(recipes: Recipe[]): Promise<void> {
   knownRecipes = true;
-  return write(KEY_RECIPES, recipes);
+  return write(KEY_RECIPES, recipes.map(withoutListOnly));
 }
 
 /** Liegt eine Rezeptliste im Cache? (einmal gelesen, danach gemerkt) */
@@ -64,7 +67,7 @@ export function readRecipeDetail(uuid: string): Promise<Recipe | undefined> {
 }
 
 export function writeRecipeDetail(recipe: Recipe): Promise<void> {
-  return write(recipeDetailKey(recipe.recipe_uuid), recipe);
+  return write(recipeDetailKey(recipe.recipe_uuid), withoutListOnly(recipe));
 }
 
 export function readSettings(): Promise<Settings | undefined> {
@@ -90,11 +93,15 @@ export function writeFavorites(favorites: string[]): Promise<void> {
  * - `rejected`: HTTP-Status, mit dem das Backend die Übertragung abgelehnt
  *   hat (4xx außer 401/408/429, oder 409 eines fremden Rezepts); dann wird
  *   es nicht automatisch erneut gesendet
+ * - `foreign`: 409, die ID gehört einem anderen Nutzer. Anders als
+ *   `rejected` hebt eine Bearbeitung das nicht auf, und Löschen sendet nie
+ *   ein `DELETE` (Altbestand: `rejected === 409`)
  */
 export interface PendingCreate {
   recipe: Recipe;
   sub: string | null;
   rejected?: number;
+  foreign?: true;
   /** Gelöscht; bleibt vorgemerkt, bis der Server das `DELETE` bestätigt. */
   deleted?: true;
 }
@@ -118,7 +125,10 @@ export async function writePendingCreates(
   entries: PendingCreate[],
 ): Promise<void> {
   try {
-    await set(KEY_PENDING_CREATES, entries);
+    await set(
+      KEY_PENDING_CREATES,
+      entries.map((e) => ({ ...e, recipe: withoutListOnly(e.recipe) })),
+    );
   } catch (e) {
     console.warn(`[OfflineCache] Schreiben der Vormerkung fehlgeschlagen`, e);
     throw e;

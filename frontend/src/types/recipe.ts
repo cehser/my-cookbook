@@ -53,6 +53,12 @@ export interface Recipe {
   tags?: string[];
   /** `sub` des Erstellers laut Backend (keine Rezeptdaten, nicht im Payload) */
   created_by?: string;
+  /**
+   * Nur Listenzeile (ohne Zutaten, Schritte, Notizen): Speichern und
+   * Anlegen lehnt der Store ab. Nur im Speicher, nie in IndexedDB oder im
+   * Payload (`recipeMapping.ts`).
+   */
+  listOnly?: true;
 }
 
 export interface RecipePictures {

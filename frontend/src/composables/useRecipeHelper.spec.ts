@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 
-vi.mock("@/store/recipeStore", () => ({
-  useRecipeStore: () => ({ recipes: [], loadRecipeDetailFromApi: vi.fn() }),
+const { loadCompleteRecipe } = vi.hoisted(() => ({
+  loadCompleteRecipe: vi.fn(),
 }));
-vi.mock("@/js/offlineCache", () => ({ readRecipeDetail: vi.fn() }));
-vi.mock("@/auth/session", () => ({ isAuthenticated: vi.fn() }));
+vi.mock("@/store/recipeStore", () => ({
+  useRecipeStore: () => ({ recipes: [], loadCompleteRecipe }),
+}));
 vi.mock("@/api/images", () => ({
   imageApi: {
     thumbnailUrl: (id: string) => `/t/${id}`,
@@ -44,8 +45,41 @@ function amountOf(h: Awaited<ReturnType<typeof setup>>, index: number) {
   return h.current_recipe.value!.ingredients[index].amounts[0]?.amount;
 }
 
+describe("useRecipeHelper: Laden", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    loadCompleteRecipe.mockImplementation(async (r: Recipe) => r);
+  });
+
+  it("Listenzeile wird durch die vollständige Fassung ersetzt", async () => {
+    const row: Recipe = { ...recipe({ ingredients: [] }), listOnly: true };
+    loadCompleteRecipe.mockResolvedValueOnce(recipe({ recipe_name: "Voll" }));
+
+    const h = await setup(row);
+
+    expect(loadCompleteRecipe).toHaveBeenCalledWith(row);
+    expect(h.loadFailed.value).toBe(false);
+    expect(h.current_recipe.value?.listOnly).toBeUndefined();
+    expect(h.current_recipe.value?.ingredients).toHaveLength(4);
+  });
+
+  it("nicht ladbar: loadFailed, Listenzeile bleibt gekennzeichnet", async () => {
+    const row: Recipe = { ...recipe({ ingredients: [] }), listOnly: true };
+    loadCompleteRecipe.mockResolvedValueOnce(null);
+
+    const h = await setup(row);
+
+    expect(h.loadFailed.value).toBe(true);
+    expect(h.isLoaded.value).toBe(true);
+    expect(h.current_recipe.value?.listOnly).toBe(true);
+  });
+});
+
 describe("useRecipeHelper: Skalierung", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    loadCompleteRecipe.mockImplementation(async (r: Recipe) => r);
+  });
 
   it("skaliert Mengen linear mit der Portionszahl", async () => {
     const h = await setup(recipe());
