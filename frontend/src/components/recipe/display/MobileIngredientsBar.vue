@@ -161,7 +161,7 @@ useEventListener(document, "keydown", (ev: KeyboardEvent) => {
   position: fixed;
   inset: 0;
   z-index: calc(var(--z-mobile-bar) - 1);
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--color-surface-overlay);
 }
 
 .sheet-backdrop-enter-active,
