@@ -1,6 +1,6 @@
 # Bericht U.3: Koch-Modus – Kernfunktionen
 
-> Branch `worktree-U.3-koch-modus` · Basis `66a2125` (= `b98024f` + `docs(roadmap)`) · Stand `6c87842` · 2026-11-18 · Dauer: 08:59 – 11:16 (137 min, davon Warten an Checkpoints 106 min) · Status: fertig
+> Branch `worktree-U.3-koch-modus` · Basis `66a2125` (= `b98024f` + `docs(roadmap)`) · Stand `2b12ec2` · 2026-11-18 · Dauer: 08:59 – 11:16 (137 min, davon Warten an Checkpoints 106 min) · Status: fertig
 
 ## Ergebnis
 Die Befunde R-01, R-02, R-05, R-06, R-07, R-10 und R-11 sind behoben:
@@ -130,7 +130,7 @@ Nebenbei behoben: Die Editor-Vorschau änderte beim Antippen von ± Portionen un
 - `U.3` fertig (Szenarien am Gerät offen)
 
 ## Vorschlag Roadmap-Zeilen
-`- [x] U.3 Koch-Modus: Kernfunktionen · 2026-11-18 · fa6b7b3`
+`- [x] U.3 Koch-Modus: Kernfunktionen · 2026-11-18 · 2b12ec2`
 
 ## Nachtrag: Merge von `main` (2026-11-18, 11:27 – 11:31, 4 min)
 Auf deine Freigabe habe ich `main` (`39914c0`, mit W.35 und U.12) in den Branch gemergt. Der Merge-Commit ist `fa6b7b3`. Ein Probe-Merge nach `main` (`git merge-tree`) ist jetzt konfliktfrei.
@@ -145,3 +145,14 @@ Auf deine Freigabe habe ich `main` (`39914c0`, mit W.35 und U.12) in den Branch 
   - Sichtprüfung des gemergten Builds: Aufnahmen und Messung wie oben, keine Ziele unter 44 px außer dem bekannten Schritt-Knopf. Im ⋮-Menü erscheint „Bildschirm anlassen“ korrekt, beim Editor ohne Löschrecht ohne Trenner und ohne „Löschen“.
   - Backend nicht geprüft: Der Branch ändert dort nichts, die Backend-Änderungen kommen unverändert aus `main`.
 - **Folgepunkt unverändert:** Das ⋮-Menü hängt auch nach W.35 an `!settings.read_only`. Den Schalter für `readonly` gibt es also weiterhin nicht.
+
+## Nachtrag: Overlay-Token und Schlussverifikation (2026-11-18, 11:34 – 11:39, 5 min)
+- **Merge mit Mock-Fix:** war bereits abgeschlossen (`fa6b7b3`, siehe oben).
+- `2b12ec2` fix(frontend): Sheet-Hintergrund über Token `--color-surface-overlay`.
+  - Statt der festen Farbe `rgba(0, 0, 0, 0.35)` gilt jetzt das vorhandene Token: hell 0,5, dunkel 0,65.
+  - Der Hintergrund dunkelt dadurch stärker ab als vorher, im Dunkelmodus deutlich. Geprüft am iPhone dunkel: Der Rezepttext dahinter tritt klar zurück, das Sheet bleibt gut abgesetzt.
+- **Volle Verifikation auf dem Merge-Stand** (`npm run lint:check && npm run typecheck && npm test && npm run build`, aus `C:`):
+  - grün: 36 Testdateien, 325 Tests in 14,70 s, Build in 978 ms
+  - Lauf von 11:35:51 bis 11:37:11
+- **Sichtprüfung:** Aufnahmen des gemergten Builds wiederholt, Lauf ohne Fehler.
+- **Merge nach `main`:** Ein Probe-Merge per `git merge-tree` ist konfliktfrei.
