@@ -9,6 +9,8 @@ interface GalleryState {
 
 interface RecipeViewState {
   showIngredients: boolean;
+  /** Bildschirm in der Rezeptansicht anlassen (Wake Lock) */
+  keepAwake: boolean;
 }
 
 export const useUIStore = defineStore("ui", {
@@ -21,6 +23,7 @@ export const useUIStore = defineStore("ui", {
     } as GalleryState,
     recipe: {
       showIngredients: true,
+      keepAwake: true,
     } as RecipeViewState,
   }),
 
@@ -51,6 +54,10 @@ export const useUIStore = defineStore("ui", {
     },
     setRecipeShowIngredients(show: boolean) {
       this.recipe.showIngredients = show;
+      this._saveToLocalStorage();
+    },
+    setRecipeKeepAwake(on: boolean) {
+      this.recipe.keepAwake = on;
       this._saveToLocalStorage();
     },
     restoreUIState() {

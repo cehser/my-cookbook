@@ -10,6 +10,7 @@ import ShareManager from "@/components/recipe/ui/ShareManager.vue";
 import SourceImages from "@/components/recipe/display/SourceImages.vue";
 import * as jsyaml from "js-yaml";
 import { useToast } from "@/composables/useToast";
+import { useWakeLock } from "@/composables/useWakeLock";
 import { generateUUID } from "@/js/uuid";
 import { deepCopyJSON } from "@/js/deepCopy";
 import { recipeUrl, editUrl } from "@/js/slug";
@@ -53,6 +54,11 @@ onMounted(() => {
   uiStore.restoreUIState();
   if (props.id) trackRecipe(props.id);
 });
+
+// Bildschirm anlassen (R-02). Nach dem onMounted oben aufrufen: Die Hooks
+// laufen in Reihenfolge, die Einstellung ist dann schon geladen.
+const keepAwake = computed(() => uiStore.recipe.keepAwake);
+const { isSupported: wakeLockSupported } = useWakeLock(keepAwake);
 
 // Methods
 function toggleFavorite() {
@@ -196,6 +202,25 @@ function goBack() {
               >
                 <i class="bi bi-download"></i> YAML Export
               </button>
+              <button
+                v-if="wakeLockSupported"
+                class="header-dropdown-item"
+                role="switch"
+                :aria-checked="keepAwake"
+                @click="uiStore.setRecipeKeepAwake(!keepAwake)"
+              >
+                <i class="bi bi-brightness-high"></i> Bildschirm anlassen
+                <i
+                  class="bi ms-auto"
+                  :class="
+                    keepAwake ? 'bi-toggle-on text-primary' : 'bi-toggle-off'
+                  "
+                ></i>
+              </button>
+              <div v-else class="header-dropdown-hint">
+                <i class="bi bi-brightness-high"></i> Bildschirm anlassen: von
+                diesem Gerät nicht unterstützt
+              </div>
               <hr class="dropdown-divider" />
               <button
                 class="header-dropdown-item text-danger"
@@ -277,6 +302,7 @@ function goBack() {
   align-items: center;
   gap: var(--space-2);
   width: 100%;
+  min-height: var(--action-btn-size);
   padding: var(--space-2) var(--space-3);
   border: none;
   background: none;
@@ -284,6 +310,22 @@ function goBack() {
   color: var(--color-text);
   cursor: pointer;
   text-align: left;
+}
+
+.header-dropdown-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  max-width: 240px;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.header-dropdown-item .bi-toggle-on,
+.header-dropdown-item .bi-toggle-off {
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
 .header-dropdown-item:hover {
