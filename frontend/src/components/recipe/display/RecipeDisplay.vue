@@ -5,15 +5,19 @@ import {
   onMounted,
   onBeforeUnmount,
   nextTick,
+  toRef,
   watch,
 } from "vue";
 import { useViewport } from "@/composables/useViewport";
+import { usePortions } from "@/composables/usePortions";
 import { useDebounceFn } from "@vueuse/core";
 import MetadataOverlay from "@/components/recipe/display/MetadataOverlay.vue";
 import PortionControl from "@/components/recipe/display/PortionControl.vue";
 import IngredientsSection from "@/components/recipe/display/IngredientsSection.vue";
+import IngredientFilterToggle from "@/components/recipe/display/IngredientFilterToggle.vue";
 import MobileIngredientsBar from "@/components/recipe/display/MobileIngredientsBar.vue";
 import StepSection from "@/components/recipe/display/StepSection.vue";
+import { effectiveSections } from "@/js/recipeSections";
 import type { Recipe } from "@/types/recipe";
 
 const props = withDefaults(
@@ -27,102 +31,70 @@ const props = withDefaults(
   },
 );
 
-// Yields — computed from recipe prop, mutated in-place
-const yieldsVal = computed(() => {
-  if (props.recipe.yields?.length) return props.recipe.yields[0].value;
-  return 1;
-});
-const yieldsUnitVal = computed(() => {
-  if (props.recipe.yields?.length) return props.recipe.yields[0].unit;
-  return "Units";
-});
-function setYieldsValue(val: number) {
-  if (!props.recipe.yields?.length || val <= 0) return;
-  const oldVal = props.recipe.yields[0].value;
-  props.recipe.yields[0].value = val;
-  const exp = props.recipe.recalc_exp || 1;
-  props.recipe.ingredients.forEach((ing) => {
-    if (ing.amounts?.[0] && typeof ing.amounts[0].amount === "number") {
-      ing.amounts[0].amount =
-        (ing.amounts[0].amount * Math.pow(val, exp)) / Math.pow(oldVal, exp);
-    }
-  });
-}
+// Portionen: nur Anzeige, das Rezept bleibt unverändert
+const { portions, unit, factor, hasYields, setPortions } = usePortions(
+  toRef(props, "recipe"),
+);
 
 const { isMobile, isDesktopOrTablet } = useViewport();
 
 // UI state
 const showMetadata = ref(false);
-const showAllIngredients = ref(true);
-const showOnlyCurrentSection = ref(true);
+const onlyCurrentDesktop = ref(false);
+const onlyCurrentMobile = ref(true);
 const ingredientsExpanded = ref(false);
-const activeSection = ref<string | null>(null);
 
-// Desktop sections filter
-const visibleDesktopSections = computed(() => {
-  if (!showAllIngredients.value && activeSection.value) {
-    return props.recipe.sections.filter(
-      (s) => s.section === activeSection.value,
-    );
+// Aktiver Abschnitt: Ein markierter Schritt hat Vorrang vor der
+// Scroll-Erkennung (R-05).
+const scrolledSection = ref<string | null>(null);
+const activeStep = ref<number | null>(null);
+const activeSection = computed<string | null>(() => {
+  if (activeStep.value !== null) {
+    const step = props.recipe.steps[activeStep.value];
+    if (step) return step.section ?? "";
   }
-  return props.recipe.sections;
+  return scrolledSection.value;
 });
 
-// Mobile sections filter
-const visibleIngredientSections = computed(() => {
-  if (showOnlyCurrentSection.value && activeSection.value) {
-    return props.recipe.sections.filter(
-      (s) => s.section === activeSection.value,
-    );
-  }
-  return props.recipe.sections;
-});
-
-// Step selection highlighting
-function selectStep(ev: Event) {
-  const target = ev.target as HTMLElement;
-  const doHighlight = !target.classList.contains("list-group-item-primary");
-  document.querySelectorAll("#steps .list-group-item").forEach((el) => {
-    el.classList.remove("list-group-item-primary");
-  });
-  target.classList.toggle("list-group-item-primary", doHighlight);
-
-  document
-    .querySelectorAll("#ingredients .ingredients-section")
-    .forEach((el) => {
-      el.classList.remove(
-        "highlighted",
-        "list-group-item-primary",
-        "border-primary",
-      );
-    });
-  const section = target.dataset.section;
-  const box = document.querySelector("#box-ing-" + section);
-  if (box) {
-    box.classList.toggle("highlighted", doHighlight);
-    box.classList.toggle("list-group-item-primary", doHighlight);
-    box.classList.toggle("border-primary", doHighlight);
-  }
+function selectStep(index: number) {
+  activeStep.value = activeStep.value === index ? null : index;
 }
 
-function scrollToIngredientSection(sectionName: string) {
-  const el = document.querySelector(
-    `.ingredient-section[data-section="${sectionName}"]`,
+const hasSeveralIngredientSections = computed(
+  () =>
+    effectiveSections(props.recipe.sections, props.recipe.ingredients).length >
+    1,
+);
+
+// Tablet: aktiven Zutatenblock in der Sticky-Spalte sichtbar halten (R-06)
+const stickyEl = ref<HTMLElement | null>(null);
+
+function revealActiveIngredients() {
+  const container = stickyEl.value;
+  const el = container?.querySelector<HTMLElement>(
+    ".ingredients-section.active",
   );
-  el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!container || !el) return;
+  const c = container.getBoundingClientRect();
+  const e = el.getBoundingClientRect();
+  const pad = 8;
+  let delta = 0;
+  if (e.top < c.top) {
+    delta = e.top - c.top - pad;
+  } else if (e.bottom > c.bottom) {
+    // so weit, dass das Blockende sichtbar ist, höchstens bis zum Blockanfang
+    delta = Math.min(e.bottom - c.bottom + pad, e.top - c.top - pad);
+  }
+  if (delta === 0) return;
+  const reduce = window.matchMedia?.(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+  container.scrollBy({ top: delta, behavior: reduce ? "auto" : "smooth" });
 }
 
-function openIngredientsBar() {
-  ingredientsExpanded.value = true;
-  if (!showOnlyCurrentSection.value && activeSection.value) {
-    nextTick(() => {
-      const sectionEl = document.querySelector(
-        `.ingredient-section[data-section="${activeSection.value}"]`,
-      );
-      sectionEl?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
-}
+watch(activeSection, () => {
+  if (isDesktopOrTablet.value) nextTick(revealActiveIngredients);
+});
 
 // Intersection Observer for active section tracking
 let observer: IntersectionObserver | null = null;
@@ -144,7 +116,7 @@ const updateActiveSection = useDebounceFn(() => {
       best = (el as HTMLElement).dataset.stepSection || null;
     }
   });
-  if (best) activeSection.value = best;
+  if (best) scrolledSection.value = best;
 }, 100);
 
 function observeStepSections() {
@@ -177,6 +149,8 @@ onBeforeUnmount(() => {
 watch(
   () => props.recipe.recipe_uuid,
   () => {
+    activeStep.value = null;
+    scrolledSection.value = null;
     reinitObserver();
   },
 );
@@ -190,50 +164,35 @@ defineExpose({ reinitObserver });
     <div class="split-layout">
       <!-- Left Column: Sticky Ingredients -->
       <aside class="ingredients-column">
-        <div class="sticky-wrapper">
+        <div ref="stickyEl" class="sticky-wrapper">
           <div class="card rounded-0">
             <div class="card-header">
               <h3 class="card-title mb-0">Zutaten</h3>
 
               <PortionControl
                 v-if="!editMode"
-                :yields-value="yieldsVal"
-                :yields-unit="yieldsUnitVal"
+                :portions="portions"
+                :unit="unit"
                 variant="desktop"
-                @update:yields="setYieldsValue"
+                @update:portions="setPortions"
               />
 
-              <div
-                v-if="!editMode && recipe.sections.length > 1"
-                class="filter-controls mt-3"
-              >
-                <BButton
-                  size="sm"
-                  :variant="
-                    showAllIngredients ? 'primary' : 'outline-secondary'
-                  "
-                  @click="showAllIngredients = true"
-                >
-                  Alle Zutaten
-                </BButton>
-                <BButton
-                  v-if="activeSection"
-                  size="sm"
-                  :variant="
-                    !showAllIngredients ? 'primary' : 'outline-secondary'
-                  "
-                  @click="showAllIngredients = false"
-                >
-                  Nur aktuell
-                </BButton>
-              </div>
+              <IngredientFilterToggle
+                v-if="!editMode && hasSeveralIngredientSections"
+                class="mt-3"
+                :only-current="onlyCurrentDesktop"
+                @update:only-current="onlyCurrentDesktop = $event"
+              />
             </div>
             <div class="card-body">
               <IngredientsSection
-                :sections="visibleDesktopSections"
+                :sections="recipe.sections"
                 :active-section="activeSection"
                 :ingredients="recipe.ingredients"
-                :yields-value="yieldsVal"
+                :only-current="
+                  onlyCurrentDesktop && hasSeveralIngredientSections
+                "
+                :factor="factor"
               />
             </div>
           </div>
@@ -265,8 +224,8 @@ defineExpose({ reinitObserver });
               :show="showMetadata && !isMobile"
               :is-mobile="false"
               :recipe="recipe"
-              :yields-value="yieldsVal"
-              :yields-unit="yieldsUnitVal"
+              :yields-value="hasYields ? portions : null"
+              :yields-unit="hasYields ? unit : null"
               @close="showMetadata = false"
             />
 
@@ -298,6 +257,7 @@ defineExpose({ reinitObserver });
               :sections="recipe.sections"
               :steps="recipe.steps"
               :edit-mode="editMode"
+              :active-step="activeStep"
               key-prefix="desktop-"
               @select-step="selectStep"
             />
@@ -357,6 +317,7 @@ defineExpose({ reinitObserver });
             :sections="recipe.sections"
             :steps="recipe.steps"
             :edit-mode="editMode"
+            :active-step="activeStep"
             key-prefix="mobile-"
             @select-step="selectStep"
           />
@@ -368,18 +329,17 @@ defineExpose({ reinitObserver });
     <!-- Mobile Bottom Bar -->
     <MobileIngredientsBar
       :is-expanded="ingredientsExpanded"
-      :yields-value="yieldsVal"
-      :yields-unit="yieldsUnitVal"
-      :show-only-current-section="showOnlyCurrentSection"
-      :visible-sections="visibleIngredientSections"
+      :portions="portions"
+      :unit="unit"
+      :factor="factor"
+      :only-current="onlyCurrentMobile"
       :sections="recipe.sections"
       :active-section="activeSection"
       :ingredients="recipe.ingredients"
-      @open="openIngredientsBar"
+      @open="ingredientsExpanded = true"
       @close="ingredientsExpanded = false"
-      @update:yields="setYieldsValue"
-      @update:show-only-current-section="showOnlyCurrentSection = $event"
-      @scroll-to-section="scrollToIngredientSection"
+      @update:portions="setPortions"
+      @update:only-current="onlyCurrentMobile = $event"
     />
   </div>
 
@@ -388,8 +348,8 @@ defineExpose({ reinitObserver });
     :show="isMobile && showMetadata"
     :is-mobile="true"
     :recipe="recipe"
-    :yields-value="yieldsVal"
-    :yields-unit="yieldsUnitVal"
+    :yields-value="hasYields ? portions : null"
+    :yields-unit="hasYields ? unit : null"
     @close="showMetadata = false"
   />
 

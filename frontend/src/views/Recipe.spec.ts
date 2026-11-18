@@ -24,7 +24,11 @@ const { store, push, toast, current } = vi.hoisted(() => ({
 
 vi.mock("@/store/recipeStore", () => ({ useRecipeStore: () => store }));
 vi.mock("@/store/uiStore", () => ({
-  useUIStore: () => ({ restoreUIState: vi.fn() }),
+  useUIStore: () => ({
+    restoreUIState: vi.fn(),
+    recipe: { keepAwake: true },
+    setRecipeKeepAwake: vi.fn(),
+  }),
 }));
 vi.mock("@/composables/useToast", () => ({ useToast: () => ({ toast }) }));
 vi.mock("@/composables/useRecentRecipes", () => ({
