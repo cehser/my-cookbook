@@ -1,0 +1,162 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { flushPromises, mount } from "@vue/test-utils";
+import { ref } from "vue";
+import type { Recipe } from "@/types/recipe";
+import type { Settings } from "@/types/settings";
+
+const { store, toast, discardDraft, current } = vi.hoisted(() => ({
+  store: {
+    settings: {
+      role: "editor",
+      read_only: false,
+      expert_mode: false,
+    } as Settings,
+    recipes: [] as Recipe[],
+    setRecipe: vi.fn(),
+    setRecipePicture: vi.fn(),
+  },
+  toast: vi.fn(),
+  discardDraft: vi.fn(),
+  current: { value: null as Recipe | null },
+}));
+
+vi.mock("@/store/recipeStore", () => ({ useRecipeStore: () => store }));
+vi.mock("@/composables/useToast", () => ({ useToast: () => ({ toast }) }));
+vi.mock("@/composables/useRecipeHelper", () => ({
+  useRecipeHelper: () => {
+    const current_recipe = ref(current.value);
+    return {
+      current_recipe,
+      isLoaded: ref(true),
+      do_recalc: ref(false),
+      selected: ref(0),
+      picture_src: ref(""),
+      yields_unit: ref(""),
+      yields_value: ref(1),
+      setYieldsUnit: vi.fn(),
+      setYieldsValue: vi.fn(),
+      loadRecipe: vi.fn(),
+    };
+  },
+}));
+vi.mock("@/composables/useDraft", () => ({
+  useDraft: () => ({
+    hasDraft: ref(false),
+    restoreDraft: vi.fn(),
+    discardDraft,
+  }),
+}));
+// Geladen melden, ohne Entwurf wiederherzustellen
+vi.mock("@/composables/useEditHistory", () => ({
+  useEditHistory: (
+    _source: unknown,
+    _loaded: unknown,
+    opts: { onLoaded?: () => void },
+  ) => {
+    opts.onLoaded?.();
+    return {
+      undo: vi.fn(),
+      redo: vi.fn(),
+      canUndo: ref(false),
+      canRedo: ref(false),
+      reset: vi.fn(),
+    };
+  },
+}));
+vi.mock("sortablejs", () => ({
+  default: { create: () => ({ destroy() {} }) },
+}));
+vi.mock("vue-router", () => ({
+  useRouter: () => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn() }),
+  useRoute: () => ({ query: {} }),
+}));
+
+import { ApiError, OfflineError } from "@/api/client";
+import { LOCAL_PENDING_TEXT } from "@/js/appendFeedback";
+import EditView from "./Edit.vue";
+
+function render() {
+  current.value = {
+    recipe_uuid: "r1",
+    recipe_name: "Apfelkuchen",
+    ingredients: [],
+    steps: [],
+    sections: [],
+  } as unknown as Recipe;
+  return mount(EditView, {
+    props: { id: "r1" },
+    global: {
+      stubs: {
+        SectionCard: true,
+        RecipeDisplay: true,
+        SourceImages: true,
+        BModal: true,
+      },
+    },
+  });
+}
+
+/** Ändern und speichern; liefert den Editor-Zustand danach. */
+async function editAndSave(w: ReturnType<typeof render>) {
+  const vm = w.vm as unknown as { current_recipe: Recipe };
+  vm.current_recipe.recipe_name = "Birnenkuchen";
+  await flushPromises();
+  await w.find("button[aria-label='Speichern']").trigger("click");
+  await flushPromises();
+}
+
+const saveButton = (w: ReturnType<typeof render>) =>
+  w.find("button[aria-label='Speichern']");
+
+describe("Edit: Speichern meldet ehrlich", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("Erfolg: „Gespeichert.“, Entwurf verworfen, nicht mehr geändert", async () => {
+    store.setRecipe.mockResolvedValue({ status: "saved" });
+    const w = render();
+
+    await editAndSave(w);
+
+    expect(store.setRecipe).toHaveBeenCalledWith(
+      expect.objectContaining({ recipe_name: "Birnenkuchen" }),
+    );
+    expect(toast).toHaveBeenCalledWith("Gespeichert.", "success");
+    expect(discardDraft).toHaveBeenCalled();
+    expect(saveButton(w).attributes("disabled")).toBeDefined();
+  });
+
+  it.each([
+    [new ApiError(403, ""), "Rezept nicht gespeichert: keine Berechtigung."],
+    [
+      new OfflineError(),
+      "Rezept nicht gespeichert: keine Verbindung zum Server.",
+    ],
+    [
+      new ApiError(401, "Sitzung abgelaufen"),
+      "Rezept nicht gespeichert: Bitte neu anmelden.",
+    ],
+  ])(
+    "gescheitert (%s): kein „Gespeichert“, Entwurf bleibt, weiter geändert",
+    async (error, message) => {
+      store.setRecipe.mockResolvedValue({ status: "failed", error });
+      const w = render();
+
+      await editAndSave(w);
+
+      expect(toast).toHaveBeenCalledWith(message, "danger");
+      expect(toast).not.toHaveBeenCalledWith("Gespeichert.", "success");
+      expect(discardDraft).not.toHaveBeenCalled();
+      expect(saveButton(w).attributes("disabled")).toBeUndefined();
+    },
+  );
+
+  it("vorgemerktes Rezept: Hinweis „auf diesem Gerät“", async () => {
+    store.setRecipe.mockResolvedValue({ status: "local" });
+    const w = render();
+
+    await editAndSave(w);
+
+    expect(toast).toHaveBeenCalledWith(LOCAL_PENDING_TEXT, "warning");
+    expect(discardDraft).toHaveBeenCalled();
+  });
+});
