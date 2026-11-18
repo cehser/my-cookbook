@@ -1,6 +1,6 @@
 # Bericht W.35: Löschrechte, Favoriten für `readonly`, Randfälle der Vormerkung
 
-> Branch `worktree-W.35-loeschrechte-vormerkung` · Basis `66a2125` (= `b98024f` + `docs(roadmap)`) · Stand `252bc9d` (+ dieser Bericht) · 2026-11-18 · Dauer: 08:59 – 09:33 (34 min, davon Warten an Checkpoints 0 min) · Status: fertig
+> Branch `worktree-W.35-loeschrechte-vormerkung` · Basis `66a2125` (= `b98024f` + `docs(roadmap)`) · Stand `f2c5eb1` (+ Berichtsnachtrag) · 2026-11-18 · Dauer: 08:59 – 09:33 und Nachtrag Folgepunkte 10:51 – 10:58 (41 min, davon Warten an Checkpoints 0 min) · Status: fertig
 
 ## Ergebnis
 Admins löschen alle Rezepte, Editoren ihre eigenen. Rezepte ohne `created_by` löschen nur Admins. Backend und Oberfläche wenden dieselbe Regel an. Den Lösch-Knopf in Karte, Rezeptansicht und Verwaltung sieht nur, wer löschen darf. Ein Rezept verschwindet erst nach erfolgreichem Löschen aus der Liste. Scheitert das Löschen (403, offline, abgelaufene Sitzung), erscheint ein roter Toast, und das Rezept bleibt stehen. `readonly` sieht den Stern und kann Favoriten setzen, auch mit „Nur lesen“. Das × in der Verwaltung fragt mit dem Rezeptnamen nach. Die sieben Randfälle der Vormerkung aus W.33 sind behoben.
@@ -11,7 +11,10 @@ Admins löschen alle Rezepte, Editoren ihre eigenen. Rezepte ohne `created_by` l
 - `f70e8f0` docs(frontend): Rules zu Löschrecht, Löschergebnis und Vormerk-Randfällen
 - `57bf607` refactor(frontend): Übertragung ohne settle-force, toten Grabstein-Pfad entfernen
 - `252bc9d` docs(frontend): Löschen während settle in den Rules beschreiben
-- (dieser Bericht)
+- `7c011e9` docs(roadmap): Abschlussbericht W.35
+- `7fdd424` fix(frontend): Speicherfehler in Karte und Bearbeitung mit Grund melden
+- `f2c5eb1` refactor(frontend): Listen-Abgleich aus recipeStore nach listSync auslagern
+- (Berichtsnachtrag)
 
 ## Umsetzung im Einzelnen
 - **Backend:** `can_delete_recipe(user, created_by)` steht in `app/auth/dependencies.py`. `DELETE /v1/recipes/{id}` hängt jetzt an `require_editor`: `readonly` und `pending` bekommen 403, bevor nachgeschlagen wird. Danach prüft der Endpunkt 404 und dann das Recht (403 mit „Nur eigene Rezepte löschen (Admins: alle)“).
@@ -30,7 +33,7 @@ Admins löschen alle Rezepte, Editoren ihre eigenen. Rezepte ohne `created_by` l
   - Ohne `sub` wird nichts vorgemerkt: `NotSignedInError`, Meldung „Rezept nicht angelegt: Bitte anmelden.“.
   - Den Ersteller-Abgleich übernimmt `sameUser` (siehe oben).
   - Lehnt der Server den PUT nach der Anlage ab: `created` mit `updateError` bzw. `transferReport.updateRejected`. Meldung „Rezept „X“ angelegt, letzte Änderung nicht übertragen: <Grund>.“. Der Eintrag verlässt die Vormerkung, sofern nicht danach erneut bearbeitet wurde.
-  - IDB-Lesefehler: Ist das Rezept laut `store.pendingIds` vorgemerkt, wirft `setRecipe` `LocalReadError` (Edit.vue meldet „konnte nicht gespeichert werden“), und `deleteRecipe` liefert `failed`. Sonst geht es wie bisher zur API (privater Modus).
+  - IDB-Lesefehler: Ist das Rezept laut `store.pendingIds` vorgemerkt, wirft `setRecipe` `LocalReadError` (Edit.vue und Tag-Bearbeitung der Karte melden „Rezept nicht gespeichert: auf diesem Gerät nicht lesbar.“), und `deleteRecipe` liefert `failed`. Sonst geht es wie bisher zur API (privater Modus).
   - Löschen während `settle`: Gewinnt `settle`, ist das Rezept angelegt, und das Löschen geht über die API. Gewinnt das Löschen, sendet die Übertragung `DELETE`. Ein älterer Abruf bringt das Rezept nicht zurück.
   - Wirft `currentUserSub()`, liefert `listPending` eine leere Liste, und `addPending` wirft `LocalSaveError`.
 - **Favoriten:** Stern in Karte und Kopfzeile ab `readonly` (`canFavorite`). „Nur lesen“ blendet weiter das Aktionsmenü aus.
@@ -50,6 +53,7 @@ Admins löschen alle Rezepte, Editoren ihre eigenen. Rezepte ohne `created_by` l
   - Backend: `test_can_delete_recipe` (Smoke) und 5 DB-Tests
 - Gegenprobe per Mutation (Scratchpad-Skript, jeweils zurückgesetzt): Alle 21 Mutationen lassen mindestens einen Test scheitern. Dazu gehören: Grabstein entfernt, API-Fehler als Erfolg, optimistisches Entfernen, kein DELETE bei vorgemerkten Rezepten, Normalisierung entfernt, Stern wieder an `read_only`, Knopf immer sichtbar, Rückfrage entfernt, Navigation trotz Fehler, `updateError` nicht zurückgesetzt, Fehler aus `currentUserSub` nicht abgefangen.
   - Zwei Mutationen überlebten zunächst. Der Code war tot bzw. überflüssig und wurde entfernt (`57bf607`).
+- Nachtrag Folgepunkte: Frontend erneut voll geprüft → grün, 32 Testdateien, 293 Tests (+5: `listSync.spec.ts` 3, Karte 1, Feedback 1), Build 1,01 s, Prüfzeit 1 min 0 s. Backend unverändert, nicht erneut geprüft.
 - Sichtprüfung: keine (kein Browser- oder Gerätelauf)
 - Prüfzeit: Frontend 1 min 14 s, Backend 15 s, DB-Tests 14 s; größter Posten: Frontend-Tests und Build
 - Prüfskripte: nur Scratchpad
@@ -62,7 +66,7 @@ Admins löschen alle Rezepte, Editoren ihre eigenen. Rezepte ohne `created_by` l
 5. **Als Admin, Verwaltung → Rezepte:** × antippen → „Rezept "X" wirklich löschen?“, Abbrechen lässt es stehen, OK löscht. Screenreader liest „Rezept „X“ löschen“.
 
 ## Struktur und Doku
-- `recipeStore.ts` wächst von 588 auf 706 Zeilen (+118, über der Grenze von ~80).
+- `recipeStore.ts` wuchs von 588 auf 706 Zeilen; nach dem Auslagern des Listen-Abgleichs nach `store/listSync.ts` (62 Zeilen) sind es 671 (+83). `deleteRecipe` und `forgetRecipe` bleiben im Store, weil sie dessen State ändern.
   - Treiber: `deleteRecipe` mit drei Pfaden und Doku, `forgetRecipe`, `canDelete`, `pendingIds` und `userSub`.
   - `pendingCreates.ts`: 320 → 385. `auth/role.ts`: 88 → 129.
   - Neu: `composables/useRecipeDelete.ts`.
@@ -72,8 +76,10 @@ Admins löschen alle Rezepte, Editoren ihre eigenen. Rezepte ohne `created_by` l
   - `.claude/rules/frontend.md`: Löschen, Favoriten, Randfälle der Vormerkung, Sätze zu „DELETE braucht admin“ korrigiert
 - CLAUDE.md stimmt noch.
 
-## Mitgenommen
-- nichts
+## Mitgenommen (auf deine Anweisung nach dem Bericht)
+- Tag-Bearbeitung der Karte: Speicherfehler als Toast mit Grund (`7fdd424`)
+- Edit.vue: Speicherfehler nennt den Grund, neue Meldung `saveFailedMessage` (`7fdd424`)
+- Listen-Abgleich (`listSeq`, `createdPending`, `deletedRecently`) in `store/listSync.ts` mit eigener Spec (`f2c5eb1`)
 
 ## Abweichungen vom Auftrag
 - **Lösch-Knopf auch in der Verwaltung nach Recht:** Der Auftrag nennt für Schritt 2 Karte und Rezeptansicht. Die Verwaltung sehen aber auch Editoren (`Administration.vue`). Ohne die Prüfung hätten sie dort ein × für fremde Rezepte, das nur noch mit Fehler-Toast endet. Eine Zeile, gleiche Regel.
@@ -89,13 +95,11 @@ Admins löschen alle Rezepte, Editoren ihre eigenen. Rezepte ohne `created_by` l
 - keine
 
 ## Offen und Folgepunkte
-- **`recipeStore.ts` aufteilen:** 706 Zeilen. Vorschlag: Löschen samt Grabsteinen und `createdPending`/`listSeq` in ein Modul `store/listSync.ts` herauslösen, wie `pendingCreates.ts` · S
 - **Detail-Cache ohne `created_by`:** Ältere Detail-Caches (vor diesem Stand) kennen den Ersteller nicht. Die Rezeptansicht weicht auf die Listenzeile aus. Fehlt die Zeile (Direktaufruf offline ohne Listen-Cache), sieht ein Editor dort kein „Löschen“. Selbstheilend mit dem nächsten Prefetch, kein Handlungsbedarf.
-- **Tag-Bearbeitung an der Karte** meldet Fehler beim Speichern nur in der Konsole (vorher: unbehandelte Ablehnung). Eine Meldung käme mit U.11 oder W.34 · XS
-- **Edit.vue** meldet einen `LocalReadError` mit dem allgemeinen Text „Rezept konnte nicht gespeichert werden.“ ohne Grund · XS
+- **`setRecipe` schluckt PUT-Fehler** (offline, 403, 422) mit `console.warn`; Karte und Edit.vue melden dann „Gespeichert“ bzw. nichts. Bestehendes Verhalten, nicht Teil von W.35 · S
 
 ## Status je Roadmap-Punkt
 - `W.35` fertig (Sichtprüfung steht aus)
 
 ## Vorschlag Roadmap-Zeilen
-`- [x] W.35 Löschrechte (Editor eigene, Admin alle), ehrliches Löschen, Favoriten für readonly, Randfälle der Vormerkung · 2026-11-18 · 252bc9d`
+`- [x] W.35 Löschrechte (Editor eigene, Admin alle), ehrliches Löschen, Favoriten für readonly, Randfälle der Vormerkung · 2026-11-18 · f2c5eb1`
