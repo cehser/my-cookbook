@@ -15,6 +15,7 @@ export function listItemToRecipe(item: RecipeListItem): Recipe {
     tags: item.tags,
     imageurl: item.imageurl ?? undefined,
     first_image_id: item.first_image_id ?? undefined,
+    created_by: item.created_by ?? undefined,
     lastUpdated: item.updated_at,
     ingredients: [],
     steps: [],
@@ -24,10 +25,11 @@ export function listItemToRecipe(item: RecipeListItem): Recipe {
 
 /** Detailantwort der API als vollständiges Rezept. */
 export function detailToRecipe(detail: RecipeDetail): Recipe {
-  const { first_image_id: _fii, ...data } = (detail.data ?? {}) as Record<
-    string,
-    unknown
-  >;
+  const {
+    first_image_id: _fii,
+    created_by: _cb,
+    ...data
+  } = (detail.data ?? {}) as Record<string, unknown>;
   return {
     recipe_uuid: detail.id,
     recipe_name: detail.recipe_name,
@@ -38,12 +40,14 @@ export function detailToRecipe(detail: RecipeDetail): Recipe {
     tags: detail.tags,
     ...data,
     first_image_id: detail.first_image_id ?? undefined,
+    created_by: detail.created_by ?? undefined,
   };
 }
 
 /**
- * Rezept als Nutzlast für `POST`/`PUT`: ID, Zeitstempel und Titelbild sind
- * keine Rezeptdaten (die ID schickt `recipeApi.create` getrennt mit).
+ * Rezept als Nutzlast für `POST`/`PUT`: ID, Zeitstempel, Titelbild und
+ * Ersteller sind keine Rezeptdaten (die ID schickt `recipeApi.create`
+ * getrennt mit).
  */
 export function recipeToPayload(recipe: Recipe): RecipeCreatePayload {
   const {
@@ -51,6 +55,7 @@ export function recipeToPayload(recipe: Recipe): RecipeCreatePayload {
     recipe_name,
     lastUpdated: _updated,
     first_image_id: _fii,
+    created_by: _cb,
     ingredients,
     steps,
     sections,

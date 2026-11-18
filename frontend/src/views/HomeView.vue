@@ -12,6 +12,7 @@ import { useRecipeHelper } from "@/composables/useRecipeHelper";
 import { useRecentRecipes } from "@/composables/useRecentRecipes";
 import { useDraftIndex } from "@/composables/useDraftIndex";
 import { useToast } from "@/composables/useToast";
+import { useRecipeDelete } from "@/composables/useRecipeDelete";
 import { useRecipeStore } from "@/store/recipeStore";
 import { useUIStore } from "@/store/uiStore";
 import RecipeCard from "@/components/recipe/ui/RecipeCard.vue";
@@ -128,9 +129,8 @@ watch(sortBy, (val) => {
 });
 
 // Methods
-function handleDeleteRecipe(uuid: string) {
-  store.deleteRecipe(uuid);
-}
+// Löschen meldet ein Scheitern selbst (Toast)
+const { deleteRecipe: handleDeleteRecipe } = useRecipeDelete();
 
 /** Legt das Rezept an und meldet das Ergebnis; liefert die ID oder `null`. */
 async function append(recipe: Recipe, successText: string) {

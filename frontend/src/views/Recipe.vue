@@ -15,6 +15,8 @@ import { generateUUID } from "@/js/uuid";
 import { deepCopyJSON } from "@/js/deepCopy";
 import { recipeUrl, editUrl } from "@/js/slug";
 import { appendedId, appendToast } from "@/js/appendFeedback";
+import { canFavorite } from "@/auth/role";
+import { useRecipeDelete } from "@/composables/useRecipeDelete";
 
 const props = defineProps<{ id: string }>();
 
@@ -23,6 +25,7 @@ const store = useRecipeStore();
 const uiStore = useUIStore();
 const { toast: showToast } = useToast();
 const { trackRecipe } = useRecentRecipes();
+const { deleteRecipe: removeRecipe } = useRecipeDelete();
 
 const idRef = computed(() => props.id);
 const { current_recipe, picture_src } = useRecipeHelper({
@@ -35,6 +38,18 @@ const showShareManager = ref(false);
 
 // Computed
 const settings = computed(() => store.settings);
+// Stern ab Rolle `readonly`, unabhängig vom Schalter „Nur lesen“
+const showStar = computed(() => canFavorite(settings.value.role));
+// Ersteller aus der Liste (frisch aus der API); ältere Detail-Caches kennen
+// `created_by` noch nicht
+const mayDelete = computed(() => {
+  const current = current_recipe.value;
+  if (!current) return false;
+  const listed = store.recipes.find(
+    (r) => r.recipe_uuid === current.recipe_uuid,
+  );
+  return store.canDelete(listed ?? current);
+});
 
 const isFavorite = computed(() => {
   if (!current_recipe.value?.recipe_uuid) return false;
@@ -91,7 +106,7 @@ async function copyRecipe() {
     const result = await store.appendRecipe(recipe);
     const id = appendedId(result, recipe);
     // Bei Erfolg zeigt die neue Seite das Duplikat, sonst Hinweis bzw. Fehler
-    if (result.status !== "created") {
+    if (result.status !== "created" || result.updateError !== undefined) {
       const { message, variant } = appendToast(result, "Rezept dupliziert.");
       showToast(message, variant);
     }
@@ -102,7 +117,7 @@ async function copyRecipe() {
   }
 }
 
-function deleteRecipe() {
+async function deleteRecipe() {
   if (!current_recipe.value) {
     showToast("Rezept konnte nicht gelöscht werden", "danger");
     return;
@@ -110,13 +125,10 @@ function deleteRecipe() {
   if (
     confirm(`Rezept "${current_recipe.value.recipe_name}" wirklich löschen?`)
   ) {
-    try {
-      headerMenuOpen.value = false;
-      store.deleteRecipe(current_recipe.value.recipe_uuid);
+    headerMenuOpen.value = false;
+    // Scheitern meldet useRecipeDelete; das Rezept bleibt geöffnet
+    if (await removeRecipe(current_recipe.value.recipe_uuid)) {
       router.push("/");
-    } catch (error) {
-      console.error("Error deleting recipe:", error);
-      showToast("Fehler beim Löschen des Rezepts", "danger");
     }
   }
 }
@@ -161,10 +173,11 @@ function goBack() {
         current_recipe?.recipe_name || "Rezept"
       }}</span>
       <div
-        v-if="current_recipe && !settings.read_only"
+        v-if="current_recipe && (showStar || !settings.read_only)"
         class="view-header-actions"
       >
         <button
+          v-if="showStar"
           class="btn-icon"
           @click="toggleFavorite"
           :title="
@@ -176,7 +189,7 @@ function goBack() {
             :class="isFavorite ? 'bi-star-fill text-warning' : 'bi-star'"
           ></i>
         </button>
-        <div class="header-menu-wrapper">
+        <div v-if="!settings.read_only" class="header-menu-wrapper">
           <button
             class="btn-icon"
             @click="headerMenuOpen = !headerMenuOpen"
@@ -220,8 +233,9 @@ function goBack() {
                 <i class="bi bi-brightness-high"></i> Bildschirm anlassen: von
                 diesem Gerät nicht unterstützt
               </div>
-              <hr class="dropdown-divider" />
+              <hr v-if="mayDelete" class="dropdown-divider" />
               <button
+                v-if="mayDelete"
                 class="header-dropdown-item text-danger"
                 @click="deleteRecipe"
               >
