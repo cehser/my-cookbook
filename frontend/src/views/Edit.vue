@@ -657,7 +657,7 @@ function goBack() {
       v-model="showPreview"
       title="Vorschau"
       size="xl"
-      hide-footer
+      no-footer
       scrollable
     >
       <RecipeDisplay
