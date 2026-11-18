@@ -1,6 +1,6 @@
 # Bericht U.3: Koch-Modus – Kernfunktionen
 
-> Branch `worktree-U.3-koch-modus` · Basis `66a2125` (= `b98024f` + `docs(roadmap)`) · Stand: siehe Commit dieses Berichts · 2026-11-18 · Dauer: 08:59 – 11:17 (138 min, davon Warten an Checkpoints 106 min) · Status: fertig
+> Branch `worktree-U.3-koch-modus` · Basis `66a2125` (= `b98024f` + `docs(roadmap)`) · Stand `6c87842` · 2026-11-18 · Dauer: 08:59 – 11:16 (137 min, davon Warten an Checkpoints 106 min) · Status: fertig
 
 ## Ergebnis
 Die Befunde R-01, R-02, R-05, R-06, R-07, R-10 und R-11 sind behoben:
@@ -130,4 +130,4 @@ Nebenbei behoben: Die Editor-Vorschau änderte beim Antippen von ± Portionen un
 - `U.3` fertig (Szenarien am Gerät offen)
 
 ## Vorschlag Roadmap-Zeilen
-`- [x] U.3 Koch-Modus: Kernfunktionen · 2026-11-18 · <sha dieses Berichts>`
+`- [x] U.3 Koch-Modus: Kernfunktionen · 2026-11-18 · 6c87842`
