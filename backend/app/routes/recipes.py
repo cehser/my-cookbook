@@ -17,12 +17,14 @@ from app.models.recipe import Recipe
 from app.models.tag import RecipeTag, Tag
 from app.models.user import AppUser
 from app.schemas.recipe import (
+    EMPTYING_UPDATE_DETAIL,
     RecipeCreate,
     RecipeListItem,
     RecipeListResponse,
     RecipeResponse,
     RecipeUpdate,
     normalize_recipe_data,
+    would_empty_recipe,
 )
 from app.services.images import delete_recipe_files, download_and_store_image
 
@@ -304,7 +306,19 @@ async def create_recipe(
 # ---------------------------------------------------------------------------
 
 
-@router.put("/recipes/{recipe_id}", response_model=RecipeResponse)
+@router.put(
+    "/recipes/{recipe_id}",
+    response_model=RecipeResponse,
+    responses={
+        422: {
+            "description": (
+                "Validierungsfehler, oder `data` nähme einem Rezept mit Inhalt sowohl "
+                "Zutaten als auch Schritte (z. B. eine Listenzeile zurückgeschrieben). "
+                "Rezept, Tags und `updated_at` bleiben unverändert."
+            )
+        }
+    },
+)
 async def update_recipe(
     recipe_id: uuid.UUID,
     body: RecipeUpdate,
@@ -313,10 +327,15 @@ async def update_recipe(
 ):
     recipe = await _get_recipe_or_404(recipe_id, db)
 
+    # Vor jeder Änderung am Objekt prüfen: PUT ersetzt `data`, ein Merge gibt es nicht
+    new_data = normalize_recipe_data(body.data.model_dump()) if body.data is not None else None
+    if new_data is not None and would_empty_recipe(recipe.data, new_data):
+        raise HTTPException(status_code=422, detail=EMPTYING_UPDATE_DETAIL)
+
     if body.recipe_name is not None:
         recipe.recipe_name = body.recipe_name
-    if body.data is not None:
-        recipe.data = normalize_recipe_data(body.data.model_dump())
+    if new_data is not None:
+        recipe.data = new_data
 
     recipe.updated_by = user.oidc_sub
     recipe.updated_at = func.now()

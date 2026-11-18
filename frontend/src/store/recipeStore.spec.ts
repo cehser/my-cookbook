@@ -542,6 +542,8 @@ describe("recipeStore: vorgemerkte Rezepte", () => {
   it("Löschen: aus der Vormerkung, mit Sitzung DELETE (404 egal), kommt nicht zurück", async () => {
     const store = await createOfflineAndRestart();
     session("valid");
+    // Ersteller-Abgleich vor dem DELETE: eigenes Rezept (verlorene Antwort)
+    vi.mocked(recipeApi.get).mockResolvedValue(detail("lokal-1"));
     vi.mocked(recipeApi.delete).mockRejectedValue(new ApiError(404, "weg"));
     store.recipes = [newRecipe()];
     const running = deferred<RecipeListItem[]>();
@@ -1683,7 +1685,7 @@ describe("W.38: Löschen während der Übertragung", () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
   });
 
-  it("vor seiner Anlage gelöscht (DELETE 404): kein POST, kommt nicht zurück", async () => {
+  it("vor seiner Anlage gelöscht (GET 404): kein DELETE, kein POST, kommt nicht zurück", async () => {
     idb.pending = [
       { recipe: other(), sub: "user-a" },
       { recipe: newRecipe(), sub: "user-a" },
@@ -1693,9 +1695,11 @@ describe("W.38: Löschen während der Übertragung", () => {
     store.pendingIds = ["lokal-0", "lokal-1"];
     const first = deferred<RecipeDetail>();
     vi.mocked(recipeApi.create).mockReturnValueOnce(first.promise);
+    vi.mocked(recipeApi.get).mockRejectedValue(new ApiError(404, ""));
     vi.mocked(recipeApi.delete).mockRejectedValue(new ApiError(404, ""));
 
-    // Der Lauf hängt am ersten Rezept; das zweite wird gelöscht (404, entfernt)
+    // Der Lauf hängt am ersten Rezept; das zweite wird gelöscht (GET 404,
+    // entfernt, ohne DELETE)
     const transfer = store.transferPending();
     await vi.waitFor(() => expect(recipeApi.create).toHaveBeenCalledTimes(1));
     expect(await store.deleteRecipe("lokal-1")).toEqual({ status: "deleted" });
@@ -1705,6 +1709,7 @@ describe("W.38: Löschen während der Übertragung", () => {
     first.resolve(detail("lokal-0"));
     await transfer;
 
+    expect(recipeApi.delete).not.toHaveBeenCalled();
     expect(recipeApi.create).toHaveBeenCalledTimes(1);
     expect(vi.mocked(recipeApi.create).mock.calls[0][0]).toBe("lokal-0");
     vi.mocked(recipeApi.listAll).mockResolvedValue([listItem("lokal-0")]);
@@ -1734,7 +1739,10 @@ describe("W.38: Löschen während der Übertragung", () => {
     vi.mocked(recipeApi.listAll).mockResolvedValue([listItem("lokal-1")]);
     await store.loadRecipesFromApi();
     expect(ids(store)).toEqual([]);
-    // Nächste Übertragung: DELETE erneut, erledigt
+    // Die Übertragung wusste, dass es eigen ist: kein GET
+    expect(recipeApi.get).not.toHaveBeenCalled();
+    // Nächste Übertragung: Ersteller-Abgleich, DELETE erneut, erledigt
+    vi.mocked(recipeApi.get).mockResolvedValue(detail("lokal-1"));
     vi.mocked(recipeApi.delete).mockResolvedValue(undefined);
     await store.transferPending();
     expect(recipeApi.delete).toHaveBeenCalledTimes(2);
@@ -1824,5 +1832,101 @@ describe("W.38: fremdes 409", () => {
 
     expect(recipeApi.delete).not.toHaveBeenCalled();
     expect(entries()).toEqual([]);
+  });
+});
+
+describe("W.41: Ersteller-Abgleich vor dem DELETE", () => {
+  const entries = () => (idb.pending ?? []) as PendingCreate[];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(recipeApi.get).mockReset();
+    vi.mocked(recipeApi.delete).mockReset();
+    vi.mocked(recipeApi.delete).mockResolvedValue(undefined);
+    setActivePinia(createPinia());
+    session("valid");
+    idb.pending = [{ recipe: newRecipe(), sub: "user-a" }];
+    vi.mocked(writeRecipes).mockResolvedValue(undefined);
+    vi.mocked(currentUserSub).mockResolvedValue("user-a");
+    vi.mocked(readPendingCreates).mockImplementation(async () =>
+      structuredClone((idb.pending ?? []) as PendingCreate[]),
+    );
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+
+  function pendingStore(role: "editor" | "admin" = "editor") {
+    const store = useRecipeStore();
+    store.settings = { role, read_only: false, expert_mode: false };
+    store.userSub = "user-a";
+    store.recipes = [newRecipe()];
+    store.pendingIds = ["lokal-1"];
+    return store;
+  }
+
+  it("404: Eintrag entfernt, kein DELETE", async () => {
+    const store = pendingStore();
+    vi.mocked(recipeApi.get).mockRejectedValue(new ApiError(404, ""));
+
+    expect(await store.deleteRecipe("lokal-1")).toEqual({ status: "deleted" });
+
+    expect(recipeApi.get).toHaveBeenCalledWith("lokal-1");
+    expect(recipeApi.delete).not.toHaveBeenCalled();
+    expect(entries()).toEqual([]);
+  });
+
+  it("eigener Ersteller (verlorene Antwort): DELETE", async () => {
+    const store = pendingStore();
+    vi.mocked(recipeApi.get).mockResolvedValue(detail("lokal-1"));
+
+    await store.deleteRecipe("lokal-1");
+
+    expect(recipeApi.delete).toHaveBeenCalledWith("lokal-1");
+    expect(entries()).toEqual([]);
+  });
+
+  it("Admin, fremder Ersteller ohne Markierung: Eintrag entfernt, nie DELETE, fremdes Rezept bleibt sichtbar", async () => {
+    const store = pendingStore("admin");
+    vi.mocked(recipeApi.get).mockResolvedValue(
+      detail("lokal-1", "Fremd", "user-b"),
+    );
+
+    expect(await store.deleteRecipe("lokal-1")).toEqual({ status: "deleted" });
+
+    expect(recipeApi.delete).not.toHaveBeenCalled();
+    expect(entries()).toEqual([]);
+    // Das Serverrezept gehört einem anderen; ein neuer Abruf zeigt es
+    vi.mocked(recipeApi.listAll).mockResolvedValue([listItem("lokal-1")]);
+    await store.loadRecipesFromApi();
+    expect(ids(store)).toEqual(["lokal-1"]);
+  });
+
+  it("Ausfall beim GET: Markierung bleibt, kein DELETE; nächste Übertragung prüft erneut", async () => {
+    const store = pendingStore("admin");
+    vi.mocked(recipeApi.get).mockRejectedValue(new ApiError(503, ""));
+
+    await store.deleteRecipe("lokal-1");
+
+    expect(recipeApi.delete).not.toHaveBeenCalled();
+    expect(entries()).toHaveLength(1);
+    expect(entries()[0].deleted).toBe(true);
+
+    // Nächste Übertragung: Server erreichbar, ID fremd → nie DELETE
+    vi.mocked(recipeApi.get).mockResolvedValue(
+      detail("lokal-1", "Fremd", "user-b"),
+    );
+    await store.transferPending();
+    expect(recipeApi.delete).not.toHaveBeenCalled();
+    expect(recipeApi.create).not.toHaveBeenCalled();
+    expect(entries()).toEqual([]);
+  });
+
+  it("ohne angemeldeten Nutzer nicht entscheidbar: Markierung bleibt", async () => {
+    const store = pendingStore();
+    vi.mocked(currentUserSub).mockResolvedValue(null);
+
+    await store.deleteRecipe("lokal-1");
+
+    expect(recipeApi.delete).not.toHaveBeenCalled();
+    expect(entries()[0].deleted).toBe(true);
   });
 });

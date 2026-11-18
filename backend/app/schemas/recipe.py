@@ -172,6 +172,28 @@ def normalize_recipe_data(data: dict) -> dict:
     return data
 
 
+def _has_content(data: dict | None) -> bool:
+    """Zutaten oder Schritte vorhanden; ``sections`` zählt nicht (füllt ``ensure_sections``)."""
+    if not data:
+        return False
+    return bool(data.get("ingredients")) or bool(data.get("steps"))
+
+
+def would_empty_recipe(stored: dict | None, new: dict) -> bool:
+    """Ein PUT nähme einem Rezept mit Inhalt sowohl Zutaten als auch Schritte.
+
+    Schutz gegen Clients, die eine Listenzeile (ohne Zutaten und Schritte) als
+    vollständige Fassung zurückschreiben. Ein schon leeres Rezept darf leer bleiben.
+    """
+    return _has_content(stored) and not _has_content(new)
+
+
+# Der Client zeigt den Text als Grund an („Rezept nicht gespeichert: …“)
+EMPTYING_UPDATE_DETAIL = (
+    "Zutaten und Schritte würden geleert, Rezept unverändert. Bitte neu laden und erneut bearbeiten"
+)
+
+
 # ---------------------------------------------------------------------------
 # Request / Response schemas
 # ---------------------------------------------------------------------------

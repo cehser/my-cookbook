@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ApiError, OfflineError } from "@/api/client";
 import type { RecipeDetail } from "@/api/recipes";
+import { IncompleteRecipeError } from "@/js/recipeMapping";
 import { LocalReadError, NotSignedInError } from "@/store/pendingCreates";
 import type { Recipe } from "@/types/recipe";
 import {
@@ -50,6 +51,33 @@ describe("appendFeedback", () => {
       "ID bereits vergeben",
     );
     expect(appendFailedMessage(new ApiError(400, ""))).toContain("Fehler 400");
+  });
+
+  it("Speichern einer Listenzeile: eigener Text", () => {
+    expect(saveFailedMessage(new IncompleteRecipeError())).toBe(
+      "Rezept nicht gespeichert: Es ist nur unvollständig geladen " +
+        "(ohne Zutaten und Schritte). Bitte neu laden und erneut bearbeiten.",
+    );
+  });
+
+  it("422 mit Klartext-detail: Grund vom Server", () => {
+    const body = JSON.stringify({
+      detail:
+        "Zutaten und Schritte würden geleert, Rezept unverändert. " +
+        "Bitte neu laden und erneut bearbeiten",
+    });
+    expect(saveFailedMessage(new ApiError(422, body))).toBe(
+      "Rezept nicht gespeichert: Zutaten und Schritte würden geleert, " +
+        "Rezept unverändert. Bitte neu laden und erneut bearbeiten.",
+    );
+    // Validierungsfehler (detail als Liste) und kein JSON: allgemeiner Text
+    const validation = JSON.stringify({ detail: [{ msg: "x" }] });
+    expect(saveFailedMessage(new ApiError(422, validation))).toBe(
+      "Rezept nicht gespeichert: Rezeptdaten ungültig.",
+    );
+    expect(saveFailedMessage(new ApiError(422, "Unprocessable"))).toBe(
+      "Rezept nicht gespeichert: Rezeptdaten ungültig.",
+    );
   });
 
   it("Sitzung abgelaufen: „Bitte neu anmelden“", () => {
