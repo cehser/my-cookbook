@@ -1,7 +1,11 @@
 import { api, readDownload, type DownloadedFile } from "./client";
 
-/** Gesamtexport: Bilder werden mitgepackt, nginx wartet 60 s auf die Antwort. */
-export const EXPORT_TIMEOUT_MS = 300_000;
+/**
+ * Gesamtexport: Der Timeout gilt auch für den Body. Erstellen dauert Sekunden
+ * (200 Rezepte, 400 Bilder: ca. 6 s, 340 MiB), die Übertragung über einen
+ * langsamen Uplink kann Minuten brauchen.
+ */
+export const EXPORT_TIMEOUT_MS = 15 * 60_000;
 
 export interface AdminUser {
   oidc_sub: string;
