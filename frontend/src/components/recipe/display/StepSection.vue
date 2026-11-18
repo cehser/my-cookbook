@@ -1,49 +1,28 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { Step, Section } from "@/types/recipe";
+import { effectiveSections } from "@/js/recipeSections";
 
 const props = defineProps<{
   sections: Section[];
   steps: Step[];
   editMode?: boolean;
   keyPrefix?: string;
+  /** Index des markierten Schritts in `steps` */
+  activeStep?: number | null;
 }>();
 
 const keyPfx = computed(() => props.keyPrefix ?? "");
 
 defineEmits<{
-  "select-step": [event: Event];
+  /** Index des angetippten Schritts in `steps` */
+  "select-step": [index: number];
 }>();
 
-// Build effective sections: only sections that have steps, plus orphaned steps
-const effectiveSections = computed(() => {
-  const knownNames = new Set(props.sections.map((s) => s.section));
-  const result: Section[] = [];
-
-  // Orphaned steps (section name not in sections list) go first as unnamed
-  const orphanedSteps = props.steps.filter(
-    (s) => !knownNames.has(s.section ?? ""),
-  );
-  if (orphanedSteps.length > 0) {
-    // Collect unique orphan section names and add them
-    const orphanNames = new Set(orphanedSteps.map((s) => s.section ?? ""));
-    for (const name of orphanNames) {
-      result.push({ section: name });
-    }
-  }
-
-  // Then add declared sections that actually have steps
-  for (const section of props.sections) {
-    const hasSteps = props.steps.some(
-      (s) => (s.section ?? "") === section.section,
-    );
-    if (hasSteps) {
-      result.push(section);
-    }
-  }
-
-  return result;
-});
+// Nur Abschnitte mit Schritten, verwaiste Schritte zuerst
+const shownSections = computed(() =>
+  effectiveSections(props.sections, props.steps),
+);
 
 function getFilteredSteps(sectionName: string) {
   return props.steps.filter((x) => (x.section ?? "") === sectionName);
@@ -51,7 +30,7 @@ function getFilteredSteps(sectionName: string) {
 
 function getStepNumber(sectionName: string, stepIndex: number) {
   let globalIndex = 0;
-  for (const section of effectiveSections.value) {
+  for (const section of shownSections.value) {
     if (section.section === sectionName) {
       return globalIndex + stepIndex + 1;
     }
@@ -65,7 +44,7 @@ function getStepNumber(sectionName: string, stepIndex: number) {
 
 <template>
   <div
-    v-for="(section, sectionIndex) in effectiveSections"
+    v-for="(section, sectionIndex) in shownSections"
     :key="keyPfx + sectionIndex"
     :data-step-section="section.section"
     class="step-section"
@@ -82,13 +61,25 @@ function getStepNumber(sectionName: string, stepIndex: number) {
     <ul class="list-group list-group-numbered list-group-flush">
       <li
         class="list-group-item"
+        :class="{
+          'step-item': !editMode,
+          'step-active': !editMode && steps.indexOf(step) === activeStep,
+        }"
         v-for="(step, stepIndex) in getFilteredSteps(section.section)"
         :key="keyPfx + 'step-' + stepIndex"
         :data-section="section.section"
         :data-step-number="getStepNumber(section.section, stepIndex)"
-        @click="!editMode && $emit('select-step', $event)"
       >
-        <span v-if="!editMode">{{ step.step }}</span>
+        <!-- Ganze Zeile antippbar (::after), Text bleibt normal umbrochen -->
+        <button
+          v-if="!editMode"
+          type="button"
+          class="step-btn"
+          :aria-pressed="steps.indexOf(step) === activeStep"
+          @click="$emit('select-step', steps.indexOf(step))"
+        >
+          {{ step.step }}
+        </button>
         <BFormTextarea v-else v-model="step.step" rows="3" />
       </li>
     </ul>
@@ -111,6 +102,50 @@ function getStepNumber(sectionName: string, stepIndex: number) {
   padding: var(--space-4);
   font-size: 1.05rem;
   line-height: var(--line-height-base);
+}
+
+/* Schritt markieren (R-05) */
+.step-item {
+  position: relative;
+  display: flex;
+  gap: var(--space-1);
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.step-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.step-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.step-btn:focus-visible {
+  outline: none;
+}
+
+.step-item:has(.step-btn:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.step-item.step-active {
+  background: var(--color-primary-subtle);
+  box-shadow: inset 4px 0 0 var(--color-primary);
 }
 
 @media (max-width: 767px) {

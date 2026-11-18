@@ -318,6 +318,19 @@ html[data-bs-theme="dark"] {
 /* --- Base Styles ------------------------- */
 html {
   background: var(--color-surface);
+  /* Pinch-Zoom erlaubt (X-05), Doppeltipp-Zoom beim Antippen unterdrückt */
+  touch-action: manipulation;
+}
+
+/* Touch: Eingaben mit mindestens 16 px, sonst zoomt iOS-Safari beim Fokus (X-07) */
+@media (pointer: coarse) {
+  :is(input, select, textarea):not(
+    [type="checkbox"],
+    [type="radio"],
+    [type="range"]
+  ) {
+    font-size: var(--font-size-md);
+  }
 }
 
 body {

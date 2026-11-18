@@ -1,113 +1,140 @@
 <script setup lang="ts">
+import { computed, nextTick, ref, watch } from "vue";
+import { useEventListener } from "@vueuse/core";
 import PortionControl from "./PortionControl.vue";
 import IngredientsSection from "./IngredientsSection.vue";
+import IngredientFilterToggle from "./IngredientFilterToggle.vue";
 import CloseButton from "@/components/common/CloseButton.vue";
 import type { Ingredient, Section } from "@/types/recipe";
+import { effectiveSections } from "@/js/recipeSections";
 
-defineProps<{
+const props = defineProps<{
   isExpanded: boolean;
-  yieldsValue: number;
-  yieldsUnit: string;
-  showOnlyCurrentSection: boolean;
-  visibleSections: Section[];
+  portions: number;
+  unit: string;
+  factor: number;
+  onlyCurrent: boolean;
   sections: Section[];
   activeSection?: string | null;
   ingredients: Ingredient[];
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   open: [];
   close: [];
-  "update:yields": [value: number];
-  "update:showOnlyCurrentSection": [value: boolean];
-  "scroll-to-section": [section: string];
+  "update:portions": [value: number];
+  "update:onlyCurrent": [value: boolean];
 }>();
+
+// Abschnitte, die Zutaten haben: Filter und Chips nur, wenn es mehrere gibt
+const ingredientSections = computed(() =>
+  effectiveSections(props.sections, props.ingredients),
+);
+const hasSeveralSections = computed(() => ingredientSections.value.length > 1);
+const filterActive = computed(
+  () => props.onlyCurrent && hasSeveralSections.value,
+);
+
+const contentEl = ref<HTMLElement | null>(null);
+
+function scrollToSection(name: string, smooth = true) {
+  const container = contentEl.value;
+  if (!container) return;
+  const el = container.querySelector<HTMLElement>(
+    `.ingredients-section[data-section="${CSS.escape(name)}"]`,
+  );
+  if (!el) return;
+  container.scrollTo({
+    top: el.offsetTop - container.offsetTop,
+    behavior: smooth ? "smooth" : "auto",
+  });
+}
+
+// Beim Öffnen mit „Alle“ und beim Wechsel auf „Alle“ zum aktiven Abschnitt
+watch(
+  () => props.isExpanded && !filterActive.value,
+  (showAll) => {
+    if (!showAll || props.activeSection == null) return;
+    const name = props.activeSection;
+    nextTick(() => scrollToSection(name, false));
+  },
+);
+
+// Escape schließt das Sheet (vollständige Dialog-Semantik folgt mit U.11)
+useEventListener(document, "keydown", (ev: KeyboardEvent) => {
+  if (props.isExpanded && ev.key === "Escape") emit("close");
+});
 </script>
 
 <template>
+  <!-- Fläche hinter dem Sheet: Antippen schließt -->
+  <Transition name="sheet-backdrop">
+    <div
+      v-if="isExpanded"
+      class="sheet-backdrop"
+      aria-hidden="true"
+      @click="$emit('close')"
+    ></div>
+  </Transition>
+
   <div class="ingredients-bottom-bar" :class="{ expanded: isExpanded }">
-    <!-- Collapsed State -->
+    <!-- Collapsed: ein einziges Ziel (R-07) -->
     <button
       v-if="!isExpanded"
+      type="button"
       class="bottom-bar-collapsed"
-      aria-label="Zutaten öffnen"
+      aria-expanded="false"
       @click="$emit('open')"
     >
-      <!-- Portionen-Kontrolle (Mobile Collapsed) -->
-      <PortionControl
-        :yields-value="yieldsValue"
-        :yields-unit="yieldsUnit"
-        variant="mobile-collapsed"
-        @update:yields="$emit('update:yields', $event)"
-        @click.stop
-      />
-
-      <div class="divider-vertical"></div>
-
-      <i class="bi bi-list-ul"></i>
+      <i class="bi bi-list-ul" aria-hidden="true"></i>
       <span class="bar-title">Zutaten</span>
-      <i class="bi bi-chevron-up"></i>
+      <span class="bar-portions">{{ portions }} {{ unit }}</span>
+      <i class="bi bi-chevron-up" aria-hidden="true"></i>
     </button>
 
     <!-- Expanded State -->
     <div v-else class="bottom-bar-expanded">
       <div class="bar-header">
-        <h6><i class="bi bi-list-ul me-2"></i>Zutaten</h6>
-        <CloseButton @close="$emit('close')" />
+        <h6><i class="bi bi-list-ul me-2" aria-hidden="true"></i>Zutaten</h6>
+        <CloseButton class="sheet-close" @close="$emit('close')" />
       </div>
 
-      <!-- Portionen-Kontrolle (Mobile Expanded) -->
       <PortionControl
-        :yields-value="yieldsValue"
-        :yields-unit="yieldsUnit"
-        variant="mobile-expanded"
-        @update:yields="$emit('update:yields', $event)"
+        :portions="portions"
+        :unit="unit"
+        variant="sheet"
+        @update:portions="$emit('update:portions', $event)"
       />
 
-      <!-- Filter Toggle -->
-      <div class="filter-toggle">
-        <BButton
-          size="sm"
-          :variant="showOnlyCurrentSection ? 'primary' : 'outline-secondary'"
-          @click="$emit('update:showOnlyCurrentSection', true)"
-        >
-          Nur aktuell
-        </BButton>
-        <BButton
-          size="sm"
-          :variant="!showOnlyCurrentSection ? 'primary' : 'outline-secondary'"
-          @click="$emit('update:showOnlyCurrentSection', false)"
-        >
-          Alle
-        </BButton>
-      </div>
+      <IngredientFilterToggle
+        v-if="hasSeveralSections"
+        class="sheet-filter"
+        :only-current="onlyCurrent"
+        @update:only-current="$emit('update:onlyCurrent', $event)"
+      />
 
-      <!-- Ingredients Content -->
-      <div class="ingredients-content">
+      <div ref="contentEl" class="ingredients-content">
         <IngredientsSection
-          :sections="visibleSections"
+          :sections="sections"
           :active-section="activeSection ?? null"
           :ingredients="ingredients"
-          :yields-value="yieldsValue"
+          :only-current="filterActive"
+          :factor="factor"
         />
       </div>
 
-      <!-- Section Quick-Jump Chips -->
-      <div
-        v-if="!showOnlyCurrentSection && sections.length > 1"
-        class="section-chips"
-      >
-        <BButton
-          v-for="section in sections"
+      <!-- Sprung zu Abschnitten -->
+      <div v-if="!filterActive && hasSeveralSections" class="section-chips">
+        <button
+          v-for="section in ingredientSections"
           :key="'chip-' + section.section"
-          size="sm"
-          :variant="
-            section.section === activeSection ? 'primary' : 'outline-secondary'
-          "
-          @click="$emit('scroll-to-section', section.section)"
+          type="button"
+          class="section-chip"
+          :aria-current="section.section === activeSection ? 'true' : undefined"
+          @click="scrollToSection(section.section)"
         >
-          {{ section.section }}
-        </BButton>
+          {{ section.section || "Ohne Abschnitt" }}
+        </button>
       </div>
     </div>
   </div>
@@ -130,12 +157,30 @@ defineEmits<{
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-mobile-bar) - 1);
+  background: var(--color-surface-overlay);
+}
+
+.sheet-backdrop-enter-active,
+.sheet-backdrop-leave-active {
+  transition: opacity var(--transition-fast);
+}
+
+.sheet-backdrop-enter-from,
+.sheet-backdrop-leave-to {
+  opacity: 0;
+}
+
 /* Collapsed State */
 .bottom-bar-collapsed {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
+  min-height: 56px;
+  padding: var(--space-3) var(--space-5);
   cursor: pointer;
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-md);
@@ -144,44 +189,40 @@ defineEmits<{
   border: none;
   width: 100%;
   text-align: left;
+  touch-action: manipulation;
 }
 
 .bottom-bar-collapsed .bar-title {
   flex: 1;
 }
 
-.bottom-bar-collapsed .active-section-chip {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  font-weight: var(--font-weight-normal);
-}
-
-.divider-vertical {
-  width: 1px;
-  height: 28px;
-  background: var(--color-border);
-  flex-shrink: 0;
+.bottom-bar-collapsed .bar-portions {
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 /* Expanded State */
 .ingredients-bottom-bar.expanded {
-  max-height: 60vh;
+  max-height: 75vh;
   height: auto;
 }
 
 .bottom-bar-expanded {
   display: flex;
   flex-direction: column;
-  max-height: 60vh;
-  padding: var(--space-4);
+  max-height: 75vh;
+  padding: var(--space-3) var(--space-4) var(--space-2);
 }
 
 .bar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .bar-header h6 {
@@ -189,30 +230,42 @@ defineEmits<{
   font-weight: var(--font-weight-semibold);
 }
 
-/* Filter Toggle */
-.filter-toggle {
+.sheet-close {
+  width: var(--action-btn-size);
+  height: var(--action-btn-size);
   display: flex;
-  gap: var(--space-2);
-  margin: var(--space-4) 0;
+  align-items: center;
+  justify-content: center;
+  margin-right: calc(-1 * var(--space-2));
 }
 
-.filter-toggle .btn {
-  flex: 1;
+.bottom-bar-expanded > :deep(.portion-control) {
+  margin-top: var(--space-2);
+  flex-shrink: 0;
 }
 
-/* Ingredients Content */
+.sheet-filter {
+  margin-top: var(--space-3);
+  flex-shrink: 0;
+}
+
+/* Ingredients Content: schrumpft, Kopf und Chips nicht (R-11) */
 .ingredients-content {
+  position: relative;
   overflow-y: auto;
-  flex: 1;
-  padding: var(--space-2) 0;
-  margin-bottom: var(--space-4);
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-3);
 }
 
 /* Section Quick-Jump Chips */
 .section-chips {
   display: flex;
+  flex-shrink: 0;
   gap: var(--space-2);
-  padding: var(--space-3) 0 var(--space-2);
+  padding: var(--space-2) 0;
   overflow-x: auto;
   border-top: 1px solid var(--color-border);
   flex-wrap: nowrap;
@@ -223,8 +276,28 @@ defineEmits<{
   display: none;
 }
 
-.section-chips .btn {
-  white-space: nowrap;
+.section-chip {
   flex-shrink: 0;
+  min-height: var(--action-btn-size);
+  padding: 0 var(--space-4);
+  white-space: nowrap;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  touch-action: manipulation;
+}
+
+.section-chip[aria-current="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.section-chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 </style>
