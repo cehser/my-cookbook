@@ -194,7 +194,7 @@ Das Backend stellt eine REST-API unter `/api` bereit:
 | Health | `GET /health` | Nein |
 | Rezepte | `GET /v1/recipes`, `GET /v1/recipes/{id}` | Readonly+ |
 | | `POST /v1/recipes`, `PUT /v1/recipes/{id}`, `POST /v1/recipes/{id}/tags` | Editor+ |
-| | `DELETE /v1/recipes/{id}` | Admin |
+| | `DELETE /v1/recipes/{id}` | Admin, Editor nur eigene |
 | Bilder | `GET /v1/recipes/{id}/images` | Readonly+ |
 | | `POST /v1/recipes/{id}/images`, `DELETE /v1/recipes/{id}/images/{image_id}` | Editor+ |
 | | `GET /v1/images/{id}`, `GET /v1/images/{id}/thumbnail` | Öffentlich |
