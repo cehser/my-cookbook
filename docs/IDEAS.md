@@ -43,3 +43,27 @@
 - Galerie komplett ersetzen oder als Tab/Ansicht behalten?
 - Dashboard als neue Startseite?
 - Welche Sektionen sind MVP, welche optional?
+
+---
+
+## 3. Zutatenliste einfügen mit Zerlegung
+
+> Quelle: [Konzept Editor](plans/konzept-editor.md) (U.13), Stand 2026-11-19.
+
+**Idee:** Im Editor eine kopierte Zutatenliste (Webseite, Nachricht) als Block einfügen; der Editor zerlegt jede Zeile in Menge, Einheit und Name, wie die einzeilige Zutatzeile aus dem Konzept. Ergänzt KI-Import für den Fall „nur die Zutaten“.
+
+---
+
+## 4. Tag-Schreibweisen vereinheitlichen
+
+> Quelle: [Konzept Editor](plans/konzept-editor.md) (U.13), Stand 2026-11-19.
+
+**Idee:** Das Backend legt Tags case-sensitiv an (`_sync_tags`), „Kuchen“ und „kuchen“ sind zwei Tags. Bestand einmalig vereinheitlichen und neue Tags case-insensitiv zuordnen. Berührt U.14 (Tag-Bedienung) und das Tag-Sheet aus U.5.
+
+---
+
+## 5. Brüche in der Rezeptansicht
+
+> Quelle: [Konzept Editor](plans/konzept-editor.md) (U.13), Stand 2026-11-19.
+
+**Idee:** Mengen wie 0,5 oder 0,25 in der Rezeptansicht als ½ bzw. ¼ anzeigen, auch nach dem Umrechnen der Portionen. Der Editor nimmt Brüche und Komma an (E-04, Mengen-Parser in U.6).
