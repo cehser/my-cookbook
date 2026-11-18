@@ -130,4 +130,18 @@ Nebenbei behoben: Die Editor-Vorschau änderte beim Antippen von ± Portionen un
 - `U.3` fertig (Szenarien am Gerät offen)
 
 ## Vorschlag Roadmap-Zeilen
-`- [x] U.3 Koch-Modus: Kernfunktionen · 2026-11-18 · 6c87842`
+`- [x] U.3 Koch-Modus: Kernfunktionen · 2026-11-18 · fa6b7b3`
+
+## Nachtrag: Merge von `main` (2026-11-18, 11:27 – 11:31, 4 min)
+Auf deine Freigabe habe ich `main` (`39914c0`, mit W.35 und U.12) in den Branch gemergt. Der Merge-Commit ist `fa6b7b3`. Ein Probe-Merge nach `main` (`git merge-tree`) ist jetzt konfliktfrei.
+- **Konflikte:**
+  - `Recipe.vue`: Der Schalter „Bildschirm anlassen“ steht vor dem Trenner. Den zeigt W.35 jetzt nur noch mit Löschrecht.
+  - `rules/frontend.md`: Die Abschnitte Zoom, Koch-Modus und Laufwerksbuchstabe stammen aus U.3. Anlegen, Vormerkung, Löschen und Favoriten stehen in der Fassung von W.35.
+- **Integrationsfehler:**
+  - Problem: Die neue `views/Recipe.spec.ts` aus W.35 mockt `uiStore` ohne `recipe`. Dadurch schlugen 4 Tests mit `reading 'keepAwake'` fehl.
+  - Lösung: Den Mock habe ich um `recipe.keepAwake` und `setRecipeKeepAwake` ergänzt. Die Änderung steckt im Merge-Commit.
+- **Verifikation:**
+  - `npm run lint:check && npm run typecheck && npm test && npm run build` → grün: 36 Testdateien, 325 Tests in 3,19 s, Build in 957 ms; Lauf von 11:29:14 bis 11:30:22.
+  - Sichtprüfung des gemergten Builds: Aufnahmen und Messung wie oben, keine Ziele unter 44 px außer dem bekannten Schritt-Knopf. Im ⋮-Menü erscheint „Bildschirm anlassen“ korrekt, beim Editor ohne Löschrecht ohne Trenner und ohne „Löschen“.
+  - Backend nicht geprüft: Der Branch ändert dort nichts, die Backend-Änderungen kommen unverändert aus `main`.
+- **Folgepunkt unverändert:** Das ⋮-Menü hängt auch nach W.35 an `!settings.read_only`. Den Schalter für `readonly` gibt es also weiterhin nicht.
