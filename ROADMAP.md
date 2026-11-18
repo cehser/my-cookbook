@@ -6,11 +6,10 @@ Aufwand: XS ≲ 30 min · S ≲ 1 h · M ≈ 2–4 h · L ≈ 1 Tag+
 Erledigt (Archiv): Sprints 0–3, UX-1 bis UX-7, Sprint 9 (Design-System) → [ui-roadmap-2025-26.md](docs/plans/ui-roadmap-2025-26.md)
 
 ## W — Wartung 🔜
-Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Reihenfolge der offenen Punkte: W.39 nach Deploy von W.40, sofort; W.43 frei; W.21 frei (11.1 erledigt: vor dem Umzug Gesamtexport ziehen), nicht parallel zu W.39 (beide Produktiv-DB).
-Erledigt (Archiv): W.1, W.2, W.3, W.4, W.5, W.6, W.7, W.8, W.9, W.10, W.11, W.12, W.13, W.14, W.15, W.16, W.17, W.18, W.19, W.20, W.22, W.23, W.25, W.26, W.27, W.28, W.29, W.30, W.31, W.32, W.33, W.34, W.35, W.36, W.37, W.38, W.40, W.41, W.42 → [roadmap-archiv.md](docs/roadmap-archiv.md)
+Projektstandard, Altlasten, Qualitätssicherung und Zuverlässigkeit. Reihenfolge der offenen Punkte: W.43 frei; W.21 frei (11.1 erledigt: vor dem Umzug Gesamtexport ziehen).
+Erledigt (Archiv): W.1, W.2, W.3, W.4, W.5, W.6, W.7, W.8, W.9, W.10, W.11, W.12, W.13, W.14, W.15, W.16, W.17, W.18, W.19, W.20, W.22, W.23, W.25, W.26, W.27, W.28, W.29, W.30, W.31, W.32, W.33, W.34, W.35, W.36, W.37, W.38, W.40, W.41, W.42 · verworfen: W.39 → [roadmap-archiv.md](docs/roadmap-archiv.md)
 
-- [ ] W.21 PostgreSQL 16 → 18: Dump/Restore als Skript (`scripts/pg-major-upgrade.sh`: Backup, Stopp, neues Volume auf `/var/lib/postgresql`, Restore, Gegenprüfung; altes Volume als Rückweg), Probelauf mit Kopie der Produktivdaten, Checkpoint vor dem Live-Schritt · M · Opus · nach W.39
-- [ ] W.39 Durch Tag-Änderung beschädigte Rezepte wiederherstellen (Fehler seit v2.0.0 `01ab8fb`, 2026-04-12, behoben mit W.37): Skript gleicht Kandidaten (`ingredients` und `steps` leer, `updated_at` ≥ 2026-04-12) gegen einen gewählten `pg_dump` ab und stellt nur `data` wieder her, Tags bleiben; Trockenlauf-Bericht, Checkpoint vor dem Live-Schritt, ein Aufruf, Gegenprüfung · S · Opus · nach Deploy von W.37; Voraussetzung: Backups gesichert, Kandidatenliste vom PO
+- [ ] W.21 PostgreSQL 16 → 18: Dump/Restore als Skript (`scripts/pg-major-upgrade.sh`: Backup, Stopp, neues Volume auf `/var/lib/postgresql`, Restore, Gegenprüfung; altes Volume als Rückweg), Probelauf mit Kopie der Produktivdaten, Checkpoint vor dem Live-Schritt · M · Opus · Server ohne Git-Checkout (Skript per `scp`), vorher Backup laut README
 - [ ] W.43 Kleinkram nach W.40: `@types/node` direkt als devDependency (freigeben), Test für sonstiges 4xx beim Ersteller-GET (Eintrag weg, kein `DELETE`), Kommentar „fremd: kein noteDeleted“ in `pendingCreates.ts` korrigieren, 422-Text beim bewussten Leeren (Hinweis „Rezept löschen statt leeren“) · XS · Opus · [Bericht W.40](docs/tasks/W.40.bericht.md)
 
 ## U — UX-2
