@@ -162,15 +162,14 @@ function markRejected(uuid: string, status: number): Promise<void> {
 }
 
 /**
- * Der Server hat `sent`. Ist der vorgemerkte Stand unverändert, Eintrag
- * entfernen (`done`); wurde er inzwischen bearbeitet, den neueren Stand
- * liefern (bleibt vorgemerkt); `deleted`, wenn er inzwischen gelöscht wurde.
- * `force`: Eintrag auch bei neuerem Stand entfernen (der PUT wurde abgelehnt,
- * eine Wiederholung hülfe nicht; das Rezept existiert auf dem Server).
+ * `sent` ist erledigt: Der Server hat ihn, oder sein PUT wurde abgelehnt
+ * (eine Wiederholung desselben Stands hülfe nicht). Ist der vorgemerkte
+ * Stand unverändert, Eintrag entfernen (`done`); wurde er inzwischen
+ * bearbeitet, den neueren Stand liefern (bleibt vorgemerkt); `deleted`, wenn
+ * er inzwischen gelöscht wurde.
  */
 function settle(
   sent: Recipe,
-  force = false,
 ): Promise<
   | { status: "done" }
   | { status: "deleted" }
@@ -182,7 +181,7 @@ function settle(
       (e) => e.recipe.recipe_uuid === sent.recipe_uuid,
     );
     if (!entry) return { status: "deleted" as const };
-    if (!force && !isEqualPlain(entry.recipe, sent)) {
+    if (!isEqualPlain(entry.recipe, sent)) {
       return { status: "changed" as const, recipe: entry.recipe };
     }
     await writePendingCreates(entries.filter((e) => e !== entry));
@@ -356,8 +355,8 @@ async function transferOne(
   // Ab hier existiert das Rezept auf dem Server
   let { detail, updateError } = created;
   for (let updates = 0; ; updates++) {
-    // PUT abgelehnt: nicht vorgemerkt lassen (Wiederholung hülfe nicht)
-    const settled = await settle(sent, updateError !== undefined);
+    // Nach abgelehntem PUT ohne neuere Bearbeitung: nicht vorgemerkt lassen
+    const settled = await settle(sent);
     if (settled.status === "done") {
       onCreated(detail);
       if (updateError === undefined) return "transferred";
@@ -376,11 +375,11 @@ async function transferOne(
       return "skipped";
     }
     // Während der Anfrage bearbeitet: neueren Stand nachschieben; bleibt
-    // vorgemerkt, bis der PUT gelingt
+    // vorgemerkt, bis der PUT gelingt oder abgelehnt ist
     if (updates >= MAX_UPDATES) return "skipped";
     sent = settled.recipe;
     const updated = await pushUpdate(sent);
     if (updated.status === "rejected") updateError = updated.error;
-    else detail = updated.detail;
+    else ({ detail, updateError } = updated);
   }
 }

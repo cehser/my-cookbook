@@ -919,6 +919,44 @@ describe("recipeStore: vorgemerkte Rezepte", () => {
     expect(store.transferReport?.rejected).toEqual([]);
   });
 
+  it("PUT abgelehnt, erneut bearbeitet, nächster PUT gelingt: normal übertragen", async () => {
+    const store = await createOfflineAndRestart();
+    session("valid");
+    const created = deferred<RecipeDetail>();
+    let rejectFirstPut!: (e: unknown) => void;
+    const firstPut = new Promise<RecipeDetail>((_, reject) => {
+      rejectFirstPut = reject;
+    });
+    vi.mocked(recipeApi.create).mockReturnValue(created.promise);
+    vi.mocked(recipeApi.update)
+      .mockReturnValueOnce(firstPut)
+      .mockResolvedValueOnce(detail("lokal-1", "Quittenkuchen"));
+    const edit = async (recipe_name: string) => {
+      const index = store.recipes.findIndex((r) => r.recipe_uuid === "lokal-1");
+      await store.setRecipe({
+        index,
+        recipe: { ...store.recipes[index], recipe_name },
+      });
+    };
+
+    const loading = store.loadAll();
+    await vi.waitFor(() => expect(recipeApi.create).toHaveBeenCalled());
+    await edit("Birnenkuchen");
+    created.resolve(detail("lokal-1"));
+    await vi.waitFor(() => expect(recipeApi.update).toHaveBeenCalled());
+    await edit("Quittenkuchen");
+    rejectFirstPut(new ApiError(422, "x"));
+    await loading;
+
+    expect(recipeApi.update).toHaveBeenCalledTimes(2);
+    expect(pending()).toEqual([]);
+    expect(store.transferReport).toEqual({
+      transferred: 1,
+      rejected: [],
+      updateRejected: [],
+    });
+  });
+
   it("appendRecipe: eigenes 409, PUT abgelehnt → created mit updateError", async () => {
     session("valid");
     vi.mocked(recipeApi.create).mockRejectedValue(new ApiError(409, "da"));

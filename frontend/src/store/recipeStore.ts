@@ -472,8 +472,6 @@ export const useRecipeStore = defineStore("recipe", {
       this.pendingIds = this.pendingIds.filter(
         (id) => id !== recipe.recipe_uuid,
       );
-      // Inzwischen gelöscht (Löschen während der Übertragung): kein Geist
-      if (isDeletedRecently(recipe.recipe_uuid)) return;
       void writeRecipeDetail(recipe);
       createdPending.push({ seq: listSeq, recipe });
       const index = this.recipes.findIndex(
