@@ -11,7 +11,7 @@
 - **Zutatzeile einzeilig** in Lesereihenfolge: Menge | Einheit | Name | ⋯. Notiz, Verschieben und Löschen liegen im ⋯-Menü, Löschen mit Rückgängig-Toast. Damit verschwinden die 18 roten Papierkörbe. Die Menge wird ein Textfeld mit Parser: Komma, Punkt und Brüche, leer bleibt leer.
 - **Tags im Editor** als Chips mit einem Auswahl-Sheet (vorhandene Tags, Suche, neu anlegen). Die Karte auf Home nutzt dasselbe Sheet (U.14). Keine API-Änderung, die Tags gehen schon heute mit dem PUT.
 - **Kopfleiste:** links „Schließen“, in der Mitte der Speicherstand, rechts ↶ ↷ ⋮ und der Text-Knopf „Speichern“. Beim Schließen mit Änderungen fragt ein Sheet: Speichern, Als Entwurf behalten, Verwerfen, Weiter bearbeiten. Ein Entwurf wird nie ohne Bestätigung verworfen.
-- **7.1 Wizard:** ersetzen durch „Anlegen vereinheitlichen“. Der Editor bekommt einen geführten leeren Zustand, ein Wizard daneben wäre eine zweite Bearbeitungsoberfläche.
+- **7.1 Wizard:** streichen, neu schneiden als „Anlegen erst beim Speichern, ein Anlegeweg“. Der Editor bekommt einen geführten leeren Zustand, ein Wizard daneben wäre eine zweite Bearbeitungsoberfläche.
 - **U.5/U.6 nach Bereichen statt nach Gerät schneiden:** U.5 umfasst Rahmen und Kopf, U.6 den Rezeptinhalt. U.11 (Sheet- und Dialog-Komponente) sollte vorher kommen.
 
 Fakten stammen aus dem Code am Basis-Stand (Fundstellen genannt). Annahmen und Einschätzungen sind gekennzeichnet. Was nur am iPhone sicher zu klären ist, steht in [Abschnitt 9](#9-am-gerät-prüfen).
