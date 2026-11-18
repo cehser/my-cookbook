@@ -216,31 +216,42 @@ Das Backend stellt eine REST-API unter `/api` bereit:
 
 ### Backup erstellen
 
-```bash
-./scripts/backup.sh
-```
-
-Erstellt ein gezipptes SQL-Dump unter `./backups/` mit Zeitstempel. Automatische Rotation behält die letzten 30 Backups.
-
-Für automatische Backups einen Cronjob einrichten:
+Im Verzeichnis der `docker-compose.yml` ausführen. Ein Backup besteht aus dem Datenbank-Dump und den Bilddateien, die im Volume `<projekt>_recipe_uploads` liegen und nicht im Dump enthalten sind. `<projekt>` ist der Compose-Projektname, standardmäßig der Verzeichnisname, z. B. `my-cookbook`; `docker volume ls` zeigt ihn. Ohne Mitgliedschaft in der Gruppe `docker` jedem `docker` ein `sudo` voranstellen.
 
 ```bash
-# Täglich um 3:00 Uhr
-0 3 * * * cd /path/to/my-cookbook && ./scripts/backup.sh
+ZIEL=~/sicherung-$(date +%F) && mkdir -p "$ZIEL"
+
+# 1. Datenbank
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "$ZIEL/cookbook.sql.gz"
+gunzip -c "$ZIEL/cookbook.sql.gz" | grep -c "dump complete"   # 1 = Dump vollständig
+
+# 2. Bilder
+docker run --rm -v <projekt>_recipe_uploads:/data:ro -v "$ZIEL":/out alpine tar czf /out/recipe_uploads.tgz -C /data .
+tar tzf "$ZIEL/recipe_uploads.tgz" | wc -l                    # Anzahl Einträge, Plausibilität
+
+# 3. Konfiguration
+cp docker-compose.yml .env "$ZIEL/"
 ```
+
+Danach den Ordner vom Server holen (`scp -r <server>:~/sicherung-<datum> .`): Ein Backup nur auf der VM hilft nicht, wenn die VM ausfällt. Vor jedem Update ein Backup erstellen.
+
+Im Repo-Checkout erledigt `./scripts/backup.sh [ordner]` Schritt 1 mit Zeitstempel und behält je Ordner die letzten 30 Dumps; die Rotation löscht ältere Dumps, ein Ordner für Dauerhaftes muss daher getrennt sein.
 
 ### Gesamtexport (ZIP)
 
 In der Verwaltung lädt ein Admin mit „Gesamtexport (ZIP)“ alle Rezepte mit Tags und Bildern (Fotos und Vorlagen, jeweils das Original) herunter (`GET /api/v1/admin/export`). Das ZIP enthält `manifest.json` (Formatversion, Zeitpunkt, App-Commit, Anzahlen, fehlende Bilddateien), `recipes/<id>.json` und `images/<id>.<ext>`; das Format beschreibt [docs/plans/export-import.md](docs/plans/export-import.md). Nutzer, Favoriten, Share-Links und Einstellungen sind nicht enthalten.
 
-Der Export ergänzt `backup.sh`, ersetzt es aber nicht: Das SQL-Dump sichert die ganze Datenbank, aber keine Bilddateien; die liegen im Volume `recipe_uploads`. Das Wiedereinspielen eines Exports folgt mit Roadmap 11.2.
+Der Export ergänzt das Backup, ersetzt es aber nicht: Er enthält weder Nutzer noch Einstellungen. Das Wiedereinspielen eines Exports folgt mit Roadmap 11.2.
 
 Das Backend schreibt das ZIP zunächst in sein temporäres Verzeichnis (`/tmp` im Container) und löscht es nach dem Ausliefern (nach einem Abbruch beim nächsten Start); dort muss Platz für den gesamten Bildbestand sein.
 
 ### Backup einspielen
 
+In eine leere Datenbank (neues Volume) einspielen, sonst kollidiert der Dump mit vorhandenen Tabellen:
+
 ```bash
-gunzip -c backups/cookbook_20260405_030000.sql.gz | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'
+gunzip -c ~/sicherung-<datum>/cookbook.sql.gz | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'
+docker run --rm -v <projekt>_recipe_uploads:/data -v ~/sicherung-<datum>:/in alpine tar xzf /in/recipe_uploads.tgz -C /data
 ```
 
 ## Upgrade-Hinweise
