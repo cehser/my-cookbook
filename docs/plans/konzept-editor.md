@@ -10,7 +10,7 @@
 - **Abschnitte nur bei Bedarf.** Ein Rezept ohne Abschnitte ist der Normalfall und passt schon heute zum Datenmodell: genau ein Abschnitt mit leerem Namen. Gegliedert wird über „In Abschnitte aufteilen“, verwaltet über ein Menü am Abschnitt. Das Modell bleibt, es braucht keine Migration. Dazu kommen Regeln im Editor gegen doppelte Namen (neuer Befund E-13).
 - **Zutatzeile einzeilig** in Lesereihenfolge: Menge | Einheit | Name | ⋯. Notiz, Verschieben und Löschen liegen im ⋯-Menü, Löschen mit Rückgängig-Toast. Damit verschwinden die 18 roten Papierkörbe. Die Menge wird ein Textfeld mit Parser: Komma, Punkt und Brüche, leer bleibt leer.
 - **Tags im Editor** als Chips mit einem Auswahl-Sheet (vorhandene Tags, Suche, neu anlegen). Die Karte auf Home nutzt dasselbe Sheet (U.14). Keine API-Änderung, die Tags gehen schon heute mit dem PUT.
-- **Kopfleiste:** links „Schließen“, in der Mitte der Speicherstand, rechts ↶ ↷ ⋮ und der Text-Knopf „Speichern“. Beim Schließen mit Änderungen fragt ein Sheet: Speichern, Als Entwurf behalten, Verwerfen, Weiter bearbeiten. Ein Entwurf wird nie ohne Bestätigung verworfen.
+- **Kopfleiste:** links „Schließen“, in der Mitte der Speicherstand, rechts ↶ ↷ ⋮ und der Text-Knopf „Speichern“. Beim Schließen mit Änderungen fragt ein Sheet: Speichern, Als Entwurf behalten, Verwerfen, Weiter bearbeiten. Ein Entwurf wird nie ohne Bestätigung oder Rückgängig-Möglichkeit verworfen, auch nicht über „Verwerfen“ im Entwurf-Banner.
 - **7.1 Wizard:** streichen, neu schneiden als „Anlegen erst beim Speichern, ein Anlegeweg“. Der Editor bekommt einen geführten leeren Zustand, ein Wizard daneben wäre eine zweite Bearbeitungsoberfläche.
 - **U.5/U.6 nach Bereichen statt nach Gerät schneiden:** U.5 umfasst Rahmen und Kopf, U.6 den Rezeptinhalt. U.11 (Sheet- und Dialog-Komponente) sollte vorher kommen.
 
@@ -58,6 +58,8 @@ Maße aus dem Audit (iPhone 390 × 844 pt, X-03). „Häufigkeit“ meint P4, ei
 
 ### 2.1 Bedienelemente
 
+Ist-Zustand am iPhone (Audit-Screenshots, hell): [Übersicht](ux-audit/iphone-hell-edit-lasagne.png), [Abschnitt](ux-audit/iphone-hell-edit-lasagne-abschnitt.png), [mit Änderungen](ux-audit/iphone-hell-edit-lasagne-dirty.png), [Metadaten](ux-audit/iphone-hell-edit-lasagne-metadaten.png), [Portionen und Bild](ux-audit/iphone-hell-edit-lasagne-portionen-bild.png).
+
 | Bereich | Element (Code) | Was es tut | Häufigkeit P4 | Ist iPhone | Ziel iPhone | Befund |
 |---|---|---|---|---|---|---|
 | Kopfleiste | ✕ „Abbrechen“ (`goBack`) | zurück **ohne** Rückfrage, Änderungen bleiben still als Entwurf | jedes Mal | 44 pt, Symbol | Text „Schließen“, Rückfrage bei Änderungen | E-01 |
@@ -81,7 +83,7 @@ Maße aus dem Audit (iPhone 390 × 844 pt, X-03). „Häufigkeit“ meint P4, ei
 | Zutaten | Zeile: Griff, Name (Tippen-zum-Bearbeiten), Menge, Einheit, 💬, 🗑 | zwei Zeilen je Zutat auf dem iPhone | jedes Mal | 31–32 pt, Name ohne Label | eine Zeile Menge \| Einheit \| Name \| ⋯ | E-03, E-05 |
 | | Menge `type="number"` | `Number("")` → 0 | oft | Tastatur ungeklärt | Textfeld `inputmode="decimal"` mit Parser | E-04 |
 | | Einheit mit `datalist` | Vorschläge aus allen Rezepten | oft | 31 pt | bleibt, 44 pt | – |
-| | 💬 Notiz hinzufügen | hängt `""` an `notes`; die Zeile erscheint erst beim zweiten Tippen | gelegentlich | 32 pt | im ⋯-Menü, Feld erscheint sofort mit Fokus | E-17 (neu) |
+| | 💬 Notiz hinzufügen | hängt `""` an `notes`; die Zeile erscheint erst beim zweiten Tippen | gelegentlich | 32 pt | im ⋯-Menü, Feld erscheint sofort mit Fokus | E-15 (neu) |
 | | 🗑 löschen | sofort, nur Undo in der Kopfleiste rettet | gelegentlich | 32 pt, rot, 18 × je Bildschirm | im ⋯-Menü, Rückgängig-Toast | E-03 |
 | | „+ Zutat“ | neue Zeile mit Namen „Neue Zutat“ als **Wert** | oft | 32 pt, Bootstrap-Blau | 44 pt, leere Zeile mit Fokus auf Menge | E-14 (neu), X-02 |
 | | Ziehen, auch zwischen Abschnitten | Reihenfolge, Abschnittswechsel | kaum | Griff 44 pt je Zeile | Tablet: bleibt; iPhone: ⋯ „Nach oben/unten“, „In Abschnitt …“ | – |
@@ -102,9 +104,9 @@ Maße aus dem Audit (iPhone 390 × 844 pt, X-03). „Häufigkeit“ meint P4, ei
 | E-12 | 2 | **Verwaiste Einträge sind im Editor unsichtbar.** `SectionCard` zeigt nur Einträge, deren `section` in `sections` steht. Zutaten oder Schritte mit einem anderen Namen (KI-Import, YAML, Tippfehler im Modell) zeigt die Rezeptansicht als eigenen Abschnitt (`effectiveSections`). Im Editor fehlen sie, werden aber unverändert mitgespeichert. | `SectionCard.vue:47-57`, `js/recipeSections.ts` |
 | E-13 | 2 | **Doppelte Abschnittsnamen.** „Abschnitt hinzufügen“ legt `{section: ""}` an. Heißt der vorhandene Abschnitt ebenfalls `""`, zeigen beide Karten dieselben Einträge. Benennt P4 die neue Karte in „Füllung“ um, zieht `updateSectionName` **alle** Einträge mit `""` dorthin, die erste Karte ist leer. Löschen einer der beiden Karten löscht den Inhalt beider. Dasselbe gilt beim Umbenennen auf einen schon vorhandenen Namen. | `useSectionEditor.ts:5-29` |
 | E-14 | 1 | „+ Zutat“ setzt „Neue Zutat“ als Wert statt als Platzhalter. Wird der Name nicht überschrieben, wird „Neue Zutat“ gespeichert. | `useIngredientEditor.ts:21-27` |
-| E-17 | 2 | Der Notiz-Knopf bei Zutaten und Schritten fügt `""` an. `hasNotes` prüft die Länge des zusammengefügten Texts, bleibt also `false`. Das Feld erscheint erst beim zweiten Tippen, zurück bleiben leere Notizen. | `IngredientRow.vue:17-18, 42-47`, `StepRow.vue:25-35` |
+| E-15 | 2 | Der Notiz-Knopf bei Zutaten und Schritten fügt `""` an. `hasNotes` prüft die Länge des zusammengefügten Texts, bleibt also `false`. Das Feld erscheint erst beim zweiten Tippen, zurück bleiben leere Notizen. | `IngredientRow.vue:17-18, 42-47`, `StepRow.vue:25-35` |
 
-(E-15/E-16 sind frei gelassen. Hinweis: `composables/useUnsavedGuard.ts` existiert, wird aber nirgends genutzt. Es ist ein Ansatz für E-01 mit `confirm()`.)
+(Hinweis: `composables/useUnsavedGuard.ts` existiert, wird aber nirgends genutzt. Es ist ein Ansatz für E-01 mit `confirm()`.)
 
 ---
 
@@ -134,7 +136,8 @@ RecipeData
 - **Felder, die der Editor nicht bearbeitet, aber erhält:** `amounts[1…]` (nur `amounts[0]` hat Felder), `processing`, `substitutions`, `haccp`, `servings`. Sie bleiben beim Speichern unverändert, weil die Zeilen geklont werden. Der Gegenentwurf ändert daran nichts. Bearbeitbar machen gehört zu U.4 (Anzeige) bzw. einer eigenen Idee.
 
 **Folgerung:** Der Gegenentwurf kommt **ohne Modelländerung und ohne Migration** aus. Nötig sind Regeln im Editor:
-1. **Beim Laden normalisieren**, vor dem Schnappschuss für `isDirty`: fehlende Abschnittsnamen aus den Einträgen an `sections` anhängen (behebt E-12). Ein Rezept wird dadurch nicht „geändert“, gespeichert wird erst mit der nächsten echten Änderung.
+1. **Beim Laden normalisieren**, vor dem Schnappschuss für `isDirty`: fehlende Abschnittsnamen aus den Einträgen in `sections` aufnehmen (behebt E-12). Ein Rezept wird dadurch nicht „geändert“, gespeichert wird erst mit der nächsten echten Änderung.
+   **Reihenfolge (D15):** vorne, in der Reihenfolge ihres ersten Auftretens. So stellt sie heute schon die Rezeptansicht dar (`effectiveSections` setzt verwaiste Abschnitte vorneweg). Editor und Ansicht zeigen damit dieselbe Reihenfolge, und mit dem nächsten Speichern wird genau diese Reihenfolge festgeschrieben. Hinten anhängen hieße, dass sich die Ansicht nach dem ersten Speichern ändert, ohne dass P4 etwas umsortiert hat.
 2. **Namen eindeutig halten:** Umbenennen auf einen vorhandenen Namen lehnt der Editor mit Hinweis ab. Neue Abschnitte bekommen ihren Namen beim Anlegen, nie `""` neben einem anderen `""` (behebt E-13).
 3. **Erlaubt bleibt** ein einziger unbenannter Abschnitt neben benannten (Altbestand, KI-Import). Der Editor zeigt ihn als „Ohne Überschrift“, die Rezeptansicht wie heute ohne Überschrift.
 
@@ -188,7 +191,12 @@ YAML-Dateien und der ZIP-Austausch (11.1, `export-import.md`) bleiben lesbar, we
 
 **Neue Zutat (E-14):** leere Zeile, Platzhalter „Zutat“, Fokus auf Menge. Leere Zeilen (alle drei Felder leer) verwirft der Editor beim Speichern. Die Regel gilt nur für vollständig leere Zeilen, damit „Salz“ ohne Menge bleibt.
 
-**Schrittzeile** entsprechend: Nummer, mitwachsendes Textfeld in 16 px, ⋯-Menü mit Notiz, Nach oben/unten, In Abschnitt …, Löschen mit Rückgängig. Die Notiz erscheint sofort mit Fokus (E-17). Ein Zeilenumbruch bleibt im Schritt erlaubt, „+ Schritt“ ist ein eigener Knopf.
+**Leere Zeilen und die Speicher-Sperren (W.38/W.40):**
+- **Wo verworfen wird:** im Editor vor `setRecipe`/`appendRecipe`, an `current_recipe` selbst, nicht erst in `recipeToPayload`. Sonst bliebe `isDirty` nach erfolgreichem Speichern wahr, weil Editor und Gespeichertes sich um die leeren Zeilen unterscheiden. Dasselbe gilt für leere Schritte.
+- **W.40 greift jetzt erst richtig:** Heute zählt eine Zeile mit leerem Namen für `_has_content` als Inhalt. Ein Rezept, in dem nur leere Zeilen stehen, käme an der Sperre vorbei. Nach dem Verwerfen ist ein Rezept, dessen Zeilen P4 alle geleert hat, wirklich leer, und der PUT scheitert mit 422. Der Editor fängt das vorher ab: Speichern ist dann nicht möglich, Hinweis „Ein Rezept braucht mindestens eine Zutat oder einen Schritt. Zum Entfernen das Rezept löschen.“ Das passt zum 422-Text aus W.43. Die Sperre im Backend bleibt der Rückhalt.
+- **Neues Rezept nur mit Titel:** `appendRecipe` lässt es zu (W.40 prüft nur den PUT, „schon leer darf leer bleiben“). Ein solches Rezept hat aber weder Zutaten noch Schritte und gleicht damit einer Listenzeile: `markListRows` kennzeichnet es aus dem Listen-Cache als `listOnly`, und ein leerer Detail-Cache-Eintrag zählt für `loadCompleteRecipe` nicht. Offline ist es dann nicht im Editor zu öffnen (W.38). Kein Datenverlust, aber eine Falle für den leeren Zustand. Vorschlag für 7.1 (Anlegen erst beim Speichern): Speichern erst mit mindestens einer Zutat oder einem Schritt. Bis dahin bleibt das Rezept Entwurf.
+
+**Schrittzeile** entsprechend: Nummer, mitwachsendes Textfeld in 16 px, ⋯-Menü mit Notiz, Nach oben/unten, In Abschnitt …, Löschen mit Rückgängig. Die Notiz erscheint sofort mit Fokus (E-15). Ein Zeilenumbruch bleibt im Schritt erlaubt, „+ Schritt“ ist ein eigener Knopf.
 
 ### 4.3 Tag-Feld
 
@@ -220,13 +228,25 @@ YAML-Dateien und der ZIP-Austausch (11.1, `export-import.md`) bleiben lesbar, we
 |---|---|---|
 | keine Änderung | „Gespeichert“ (grau) | `!isDirty` |
 | Änderungen, noch nicht im Entwurf | „Nicht gespeichert“ | `isDirty` |
-| Änderungen als Entwurf gesichert | „Entwurf gesichert“ | `isDirty && hasDraft` (Auto-Save nach 2 s) |
+| Änderungen als Entwurf gesichert | „Entwurf gesichert“ | `isDirty && draftState === "saved"` (Auto-Save nach 2 s, siehe unten) |
 | Speichern läuft | „Speichert …“ | neu, Zustand zwischen Klick und `SaveResult` |
 | nur auf diesem Gerät (`local`) | „Nur auf diesem Gerät“ | `SaveResult.status === "local"` |
 
 Der Text übernimmt die Begriffe der Speicherlogik und ändert sie nicht (W.37/W.38 bleiben maßgeblich). Mit 12.1 kommt „Wird übertragen“ hinzu (Abschnitt 6.3).
 
+**Nötige Änderung an `useDraft` für „Entwurf gesichert“:** `hasDraft` taugt dafür nicht. Es wird nur beim Start und beim Wechsel der UUID aus localStorage gelesen; Auto-Save (`watchDebounced`) und `flushIfDirty` schreiben den Entwurf, setzen `hasDraft` aber nicht (`useDraft.ts:21-41`). In einer Sitzung ohne vorherigen Entwurf bliebe der Status also bei „Nicht gespeichert“. Zudem sagt `hasDraft` nicht, ob die **letzte** Änderung schon im Entwurf ist (2 s Verzögerung). Vorschlag:
+- `useDraft` liefert `draftState: "none" | "pending" | "saved"` und `draftSavedAt`. Jede Änderung bei `isDirty` setzt sofort `pending` (nicht entprellter `watch`). Jedes Schreiben (Auto-Save, `flushIfDirty`) setzt `saved` und den Zeitpunkt, `discardDraft` setzt `none`.
+- Scheitert `localStorage.setItem` (Speicher voll, privater Modus), bleibt `pending`, und der Status sagt ehrlich „Nicht gespeichert“. Heute wirft das Schreiben ungefangen.
+- Der Zeitpunkt beim Öffnen für das Banner ist ein eigener Wert (`restoredFrom`), nicht `hasDraft`.
+- `useDraftIndex` (Home) liest nur die Schlüssel und bleibt unberührt. Die Spezifikation in `useDraft.spec.ts` ist zu erweitern.
+
 **Entwurf sichtbar machen:** Öffnet der Editor mit Entwurf, steht unter der Kopfleiste ein Banner: „Entwurf vom 17.11., 14:20 wiederhergestellt · [Verwerfen]“. Er bleibt, bis P4 etwas ändert oder ihn schließt. Heute verschwindet der Hinweis als Toast nach 5 s. Zeitstempel: `useDraft` speichert heute nur das Rezept. Der Zeitpunkt muss in den Entwurf (`{savedAt, recipe}` oder `lastUpdated` des Entwurfs). Das ist eine kleine Änderung an `useDraft`, keine an der Speicherlogik; alte Entwürfe ohne Zeit zeigen „Entwurf wiederhergestellt“.
+
+**„Verwerfen“ im Banner (D11):** Es setzt den Editor auf den gespeicherten Stand zurück und löscht den Entwurf. Das ist mehr als heute 🗑, das nur den localStorage-Eintrag löscht und den Editor geändert lässt (E-02). Ohne Schutz wäre der Knopf eine zweite Stelle, an der ein Entwurf mit einem Tipp endet. Zwei Wege:
+- **Rückgängig-Toast** (empfohlen): „Entwurf verworfen · [Rückgängig]“, 5 s wie die übrigen Toasts. Der Entwurf bleibt bis zum Ablauf im Speicher und wird mit Rückgängig samt localStorage-Eintrag wiederhergestellt. Ein Tipp für den häufigen Fall „alten Entwurf nicht mehr nötig“, und dasselbe Muster wie beim Löschen von Zeilen (D6).
+- **Rückfrage** über den Bestätigungsdialog aus U.11: „Entwurf vom 17.11. verwerfen? Deine Änderungen gehen verloren.“ Sicherer bei unbedachtem Tippen, aber ein Schritt mehr.
+
+Nicht empfohlen: ohne beides, wie heute.
 
 **Verlassen (E-01):**
 - **Ohne Änderungen** schließt der Editor still.
@@ -238,7 +258,7 @@ Der Text übernimmt die Begriffe der Speicherlogik und ändert sie nicht (W.37/W
 - **Zurück-Geste, Tab-Wechsel und Router-Navigation** laufen über dasselbe Sheet (`onBeforeRouteLeave`; das ungenutzte `useUnsavedGuard` wird dafür ersetzt). `beforeunload` (Seite schließen, Neuladen) kann kein eigenes Sheet zeigen. Dort bleibt es beim stillen Sichern des Entwurfs (`flushIfDirty`), wie heute.
 - **„Änderungen verwerfen …“ im ⋮-Menü** setzt auf den gespeicherten Stand zurück und bleibt im Editor. Rückfrage über den Bestätigungsdialog aus U.11 statt `confirm()` (X-08).
 
-Damit gilt die Vorgabe aus dem Auftrag: Ein Entwurf geht nur über „Verwerfen“ im Sheet oder „Änderungen verwerfen“ mit Rückfrage verloren.
+Damit gilt die Vorgabe aus dem Auftrag: Ein Entwurf geht nur über „Verwerfen“ im Sheet, „Verwerfen“ im Banner mit Rückgängig (bzw. Rückfrage) oder „Änderungen verwerfen“ mit Rückfrage verloren.
 
 ---
 
@@ -366,7 +386,7 @@ Mit Abschnitten:
 │      glasig dünsten.             ⋯  │  ← Textfeld wächst mit, 16 px
 │ 2  ▢ Hackfleisch zugeben und        │
 │      krümelig braten.            ⋯  │
-│      ↳ ▢ Bei uns 10 min länger   ✕  │  ← Notiz erscheint sofort mit Fokus (E-17)
+│      ↳ ▢ Bei uns 10 min länger   ✕  │  ← Notiz erscheint sofort mit Fokus (E-15)
 │ 3  ▢ Mit Rotwein ablöschen …     ⋯  │
 │ [＋ Schritt]                        │
 ```
@@ -453,13 +473,13 @@ Das berührt `appendRecipe`, Vormerkung und Entwurf (W.37/W.38) und ist deshalb 
 
 ### 6.2 KI-Import (A-01 bis A-04, U.7)
 
-- Nach dem Import landet P2 bzw. P4 im **selben Editor**. Alles aus Abschnitt 4 gilt dort unverändert, es gibt keinen eigenen Import-Editor.
+- Nach dem Import landet P2 bzw. P4 im **selben Editor** ([Ist-Zustand](ux-audit/iphone-hell-ai-import-editor.png)). Alles aus Abschnitt 4 gilt dort unverändert, es gibt keinen eigenen Import-Editor.
 - Besonders relevant nach dem Import:
   - Tags (E-08 → 4.3)
   - Abschnitte mit verwaisten oder doppelten Namen aus der KI-Antwort (E-12, E-13 → Regeln 1–3)
   - die Vorlage zum Abgleich (E-10, bleibt zugeklappt unter dem Bild)
 - Ein Hinweis-Banner „Mit KI erkannt – bitte gegen die Vorlage prüfen“ wäre denkbar. Er braucht aber ein Kennzeichen „frisch importiert“, das es im Rezept nicht gibt; die Vorlage selbst signalisiert es. Nicht vorgeschlagen.
-- **A-01** (Footer „Cancel / OK“): Laut `.claude/rules/frontend.md` heißt die Prop `no-footer`, das Vorschau-Modal im Editor setzt sie schon (`Edit.vue:699`). Ob der KI-Dialog noch betroffen ist, prüft U.7. Den Editor betrifft A-01 nicht mehr.
+- **A-01** (Footer „Cancel / OK“): **erledigt** mit `326bd75` (`no-footer` statt `hide-footer`, KI-Dialog in `HomeView.vue` und Vorschau in `Edit.vue`). Entfällt für U.7.
 - **A-02** (direkt in den Editor) hängt an 7.1 (6.1). **A-03** und **A-04** liegen im Dialog vor dem Editor und bleiben bei U.7.
 
 ### 6.3 Offline-Bearbeitung 12.1
@@ -493,10 +513,11 @@ U.14 nennt „Tag-Bedienung in der Übersicht touch-tauglich (Abgleich PO)“. M
 | D8 | Tags: Chips + Auswahl-Sheet, dieselbe Komponente an der Karte (U.14)? | **ja (B)** |
 | D9 | Kopfleiste: `Schließen · Status · ↶ ↷ ⋮ · Speichern`; Vorschau und Verwerfen ins ⋮; „Entwurf löschen“ entfällt? | **ja (A)** |
 | D10 | Verlassen mit Änderungen: Sheet mit Speichern / Als Entwurf behalten / Verwerfen / Weiter bearbeiten, auch für Zurück-Geste und Tabs? | **ja** |
-| D11 | Entwurf beim Öffnen als Banner mit Zeitpunkt statt Toast (Zeitstempel im Entwurf)? | **ja** |
+| D11 | Entwurf beim Öffnen als Banner mit Zeitpunkt statt Toast (Zeitstempel im Entwurf)? „Verwerfen“ im Banner mit Rückgängig-Toast oder mit Rückfrage? | **ja; Rückgängig-Toast** (4.4) |
 | D12 | Seitenreihenfolge: Weitere Angaben (Autor, Quelle, Zeiten, Schwierigkeit, Notizen, Exponent) zugeklappt ans Ende? | **ja** |
 | D13 | 7.1: Wizard streichen und als „Anlegen erst beim Speichern, ein Anlegeweg“ neu schneiden? | **ja (b)** |
 | D14 | U.5/U.6 nach Bereichen statt nach Gerät schneiden, U.11 vorziehen? | **ja** (Abschnitt 8) |
+| D15 | Verwaiste Abschnitte beim Normalisieren (Regel 1) vorne einreihen wie die Rezeptansicht, oder hinten anhängen und die Ansicht angleichen? | **vorne** (Abschnitt 3) |
 
 Nicht hier zu entscheiden, aber verknüpft: Schrittnummern (R-13, bei U.4) und das Glossar (X-06, bei U.10: „Speichern“, „Entwurf“, „Verwerfen“ sollten dort aufgenommen werden).
 
@@ -510,13 +531,13 @@ Heute: U.5 „Editor“ (E-01, E-02, E-04, E-06–E-11) und U.6 „Editor mobil�
 
 | Punkt | Inhalt | Befunde | Aufwand | Abhängigkeit |
 |---|---|---|---|---|
-| **U.5 Editor: Rahmen und Kopf** | Kopfleiste mit Status und ⋮ (D9), Verlassen-Sheet und Route-Guard (D10), Entwurf-Banner mit Zeitstempel in `useDraft` (D11), Seitenreihenfolge und „Weitere Angaben“ (D12), Ergibt-Block mit Parser (D7 für Portionen), Bild (E-10), Tag-Chips und `TagPicker` (D8), 16 px/44 pt für diese Felder | E-01, E-02, E-04 (Portionen), E-07, E-08, E-09, E-10, X-03/X-07 (Kopfbereich) | M | nach U.11 (Sheet, Bestätigung, Menü); sonst baut U.5 eigene Sheets und U.11 muss sie zurückbauen |
-| **U.6 Editor: Rezeptinhalt** | Zutatzeile A mit ⋯-Menü, Rückgängig-Toast, Fokusführung, Mengen-Parser (D5–D7); Schrittzeile; Abschnitte B mit Aufteilen/Menü/Löschen-Sheet und Regeln 1–3 (D2–D4); leerer Zustand für neue Rezepte; Griffe nur breit (D6); Schrittnummern nach R-13 | E-03, E-04 (Zutaten), E-05, E-06, E-11, E-12, E-13, E-14, E-17, X-03/X-07 (Inhalt) | **M–L** | nach U.5 (gleiche Dateien `Edit.vue`), nach U.4 wegen R-13 oder R-13 vorab entscheiden |
+| **U.5 Editor: Rahmen und Kopf** | Kopfleiste mit Status und ⋮ (D9), Verlassen-Sheet und Route-Guard (D10), Entwurf-Banner mit Zeitstempel und „Verwerfen“ mit Rückgängig (D11), `draftState` in `useDraft` für den Speicherstand (4.4), Seitenreihenfolge und „Weitere Angaben“ (D12), Ergibt-Block mit Parser (D7 für Portionen), Bild (E-10), Tag-Chips und `TagPicker` (D8), 16 px/44 pt für diese Felder | E-01, E-02, E-04 (Portionen), E-07, E-08, E-09, E-10, X-03/X-07 (Kopfbereich) | M | nach U.11 (Sheet, Bestätigung, Menü); sonst baut U.5 eigene Sheets und U.11 muss sie zurückbauen |
+| **U.6 Editor: Rezeptinhalt** | Zutatzeile A mit ⋯-Menü, Rückgängig-Toast, Fokusführung, Mengen-Parser (D5–D7); Schrittzeile; Abschnitte B mit Aufteilen/Menü/Löschen-Sheet und Regeln 1–3 (D2–D4, D15); leere Zeilen verwerfen samt Hinweis statt 422 (4.2); leerer Zustand für neue Rezepte; Griffe nur breit (D6); Schrittnummern nach R-13 | E-03, E-04 (Zutaten), E-05, E-06, E-11, E-12, E-13, E-14, E-15, X-03/X-07 (Inhalt) | **M–L** | nach U.5 (gleiche Dateien `Edit.vue`), nach U.4 wegen R-13 oder R-13 vorab entscheiden |
 
 Falls U.6 als zu groß gilt, geht ein Schnitt sauber: **U.6a** Zeilen (Zutaten, Schritte, ⋯-Menü, Parser) und **U.6b** Abschnitte (Aufteilen, Menü, Regeln 1–3). Sie laufen nacheinander, weil beide `SectionCard` ändern. E-12/E-13 (Regeln 1–3) sind Datenfehler-Vorbeugung und könnten als XS–S vorab laufen, unabhängig von der Oberfläche. Das lohnt sich, falls U.6 noch länger wartet.
 
-**Neue Befunde:** E-12, E-13, E-14, E-17 (Abschnitt 2.2), alle in U.6.
-**Entfallende Befunde:** keine ganz. E-02 „🗑 Entwurf löschen“ entfällt als Element. A-01 betrifft den Editor nicht mehr (Vorschau hat `no-footer`).
+**Neue Befunde:** E-12, E-13, E-14, E-15 (Abschnitt 2.2), alle in U.6.
+**Entfallende Befunde:** keine ganz. E-02 „🗑 Entwurf löschen“ entfällt als Element. A-01 ist erledigt (`326bd75`).
 **Aufwand gesamt:** vorher M + M, nachher M + M–L. Das Mehr kommt aus Abschnitte B, dem `TagPicker` und den neuen Befunden.
 
 ### 8.2 Weitere Punkte
@@ -524,7 +545,7 @@ Falls U.6 als zu groß gilt, geht ein Schnitt sauber: **U.6a** Zeilen (Zutaten, 
 - **U.11** vor U.5 ziehen: Sheet, Action-Sheet, Bestätigungsdialog und Menü-Popover sind in U.5/U.6 an fünf Stellen nötig (Verlassen, ⋮, Tags, Zeilenmenü, Abschnitt). In der Roadmap steht U.11 schon frei (W.15 ist erledigt).
 - **U.14:** übernimmt `TagPicker` aus U.5 für die Karte, entfernt den Inline-Tag-Editor in `RecipeCard.vue`. Aufwand eher kleiner.
 - **7.1:** neu schneiden als „Anlegen erst beim Speichern, ein Anlegeweg“ (6.1): H-03, A-02, Duplizieren; Wizard entfällt. M, Opus, nach U.6. Berührt `appendRecipe`/Vormerkung; daher eigener Punkt mit eigener Verifikation.
-- **U.7:** A-02 nur zusammen mit dem neuen 7.1; A-01 prüfen, ob nach W.15 noch offen.
+- **U.7:** A-02 nur zusammen mit dem neuen 7.1; A-01 ist erledigt (`326bd75`).
 - **U.10 (Glossar):** Begriffe des Editors aufnehmen: Speichern, Schließen, Entwurf, Verwerfen, Abschnitt, „Weitere Angaben“, „Ergibt“.
 - **Datenmodell:** **keine Änderung, keine Migration.** Abschnitts-IDs (Abschnitt 3) und Spannen bei Mengen (4.2) sind ausdrücklich nicht vorgeschlagen.
 - **Ideen** (für `docs/IDEAS.md`, durch den Master):
