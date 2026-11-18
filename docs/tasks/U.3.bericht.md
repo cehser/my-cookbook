@@ -146,7 +146,7 @@ Auf deine Freigabe habe ich `main` (`39914c0`, mit W.35 und U.12) in den Branch 
   - Backend nicht geprüft: Der Branch ändert dort nichts, die Backend-Änderungen kommen unverändert aus `main`.
 - **Folgepunkt unverändert:** Das ⋮-Menü hängt auch nach W.35 an `!settings.read_only`. Den Schalter für `readonly` gibt es also weiterhin nicht.
 
-## Nachtrag: Overlay-Token und Schlussverifikation (2026-11-18, 11:34 – 11:39, 5 min)
+## Nachtrag: Overlay-Token und Schlussverifikation (2026-11-18, 11:34 – 11:38, 4 min)
 - **Merge mit Mock-Fix:** war bereits abgeschlossen (`fa6b7b3`, siehe oben).
 - `2b12ec2` fix(frontend): Sheet-Hintergrund über Token `--color-surface-overlay`.
   - Statt der festen Farbe `rgba(0, 0, 0, 0.35)` gilt jetzt das vorhandene Token: hell 0,5, dunkel 0,65.
