@@ -235,6 +235,9 @@ async function shoot(
               .waitFor({ timeout: 15_000 });
           }
           await page.waitForLoadState("networkidle");
+          for (const selector of scenario.clicks ?? []) {
+            await page.locator(selector).first().click();
+          }
           // Übergänge abklingen lassen
           await page.waitForTimeout(500);
           const file = join(outDir, `${device}-${theme}-${scenario.name}.png`);
