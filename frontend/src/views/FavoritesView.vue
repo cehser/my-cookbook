@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useRecipeDelete } from "@/composables/useRecipeDelete";
 import { useRecipeStore } from "@/store/recipeStore";
 import RecipeGrid from "@/components/recipe/ui/RecipeGrid.vue";
 
@@ -14,9 +15,8 @@ const favoriteRecipes = computed(() => {
     .sort((a, b) => a.recipe_name.localeCompare(b.recipe_name));
 });
 
-function handleDeleteRecipe(uuid: string) {
-  store.deleteRecipe(uuid);
-}
+// Löschen meldet ein Scheitern selbst (Toast)
+const { deleteRecipe: handleDeleteRecipe } = useRecipeDelete();
 </script>
 
 <template>

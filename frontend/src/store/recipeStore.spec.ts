@@ -45,7 +45,8 @@ vi.mock("@/auth/session", () => ({
   currentUserSub: vi.fn(async () => "user-a"),
 }));
 
-import { api, ApiError } from "@/api/client";
+import { api, ApiError, OfflineError } from "@/api/client";
+import { LocalReadError } from "@/store/pendingCreates";
 import {
   recipeApi,
   type RecipeDetail,
@@ -456,7 +457,11 @@ describe("recipeStore: vorgemerkte Rezepte", () => {
     );
     expect(ids(store)).toEqual(["alt", "lokal-1"]);
     expect(pending()).toEqual([]);
-    expect(store.transferReport).toEqual({ transferred: 1, rejected: [] });
+    expect(store.transferReport).toEqual({
+      transferred: 1,
+      rejected: [],
+      updateRejected: [],
+    });
 
     // Nächstes Laden: Server liefert es, kein zweites Senden, kein Duplikat
     vi.mocked(recipeApi.listAll).mockResolvedValue([
@@ -537,9 +542,10 @@ describe("recipeStore: vorgemerkte Rezepte", () => {
     expect(store.recipes[0].recipe_name).toBe("Birnenkuchen");
   });
 
-  it("Löschen: aus der Vormerkung, kein API-Aufruf, kommt nicht zurück", async () => {
+  it("Löschen: aus der Vormerkung, mit Sitzung DELETE (404 egal), kommt nicht zurück", async () => {
     const store = await createOfflineAndRestart();
     session("valid");
+    vi.mocked(recipeApi.delete).mockRejectedValue(new ApiError(404, "weg"));
     store.recipes = [newRecipe()];
     const running = deferred<RecipeListItem[]>();
     vi.mocked(recipeApi.listAll).mockReturnValueOnce(running.promise);
@@ -549,7 +555,8 @@ describe("recipeStore: vorgemerkte Rezepte", () => {
     running.resolve([listItem("alt")]);
     await loading;
 
-    expect(recipeApi.delete).not.toHaveBeenCalled();
+    // Vorgemerkt, aber womöglich schon übertragen: DELETE trotzdem
+    expect(recipeApi.delete).toHaveBeenCalledWith("lokal-1");
     expect(pending()).toEqual([]);
     expect(ids(store)).toEqual(["alt"]);
   });
@@ -649,7 +656,11 @@ describe("recipeStore: vorgemerkte Rezepte", () => {
     expect(
       store.recipes.find((r) => r.recipe_uuid === "lokal-1")?.subtitle,
     ).toBe("mit Zimt");
-    expect(store.transferReport).toEqual({ transferred: 1, rejected: [] });
+    expect(store.transferReport).toEqual({
+      transferred: 1,
+      rejected: [],
+      updateRejected: [],
+    });
   });
 
   it("B2: Umbenennung nach verlorener Antwort: eigenes Rezept, bearbeit- und löschbar", async () => {
@@ -688,8 +699,8 @@ describe("recipeStore: vorgemerkte Rezepte", () => {
 
     const loading = store.loadAll();
     await vi.waitFor(() => expect(recipeApi.create).toHaveBeenCalled());
-    await store.deleteRecipe("lokal-1");
-    expect(recipeApi.delete).not.toHaveBeenCalled(); // vorgemerkt: lokal
+    expect(await store.deleteRecipe("lokal-1")).toEqual({ status: "deleted" });
+    expect(ids(store)).toEqual(["alt"]); // vorgemerkt: sofort weg
     created.resolve(detail("lokal-1"));
     await loading;
 
@@ -819,6 +830,337 @@ describe("recipeStore: vorgemerkte Rezepte", () => {
     expect(
       store.recipes.find((r) => r.recipe_uuid === "lokal-1")?.recipe_name,
     ).toBe("Birnenkuchen");
+  });
+
+  // --- W.35: Randfälle der Vormerkung ---
+
+  it("ohne sub nicht vormerken: failed „Bitte anmelden“", async () => {
+    session("offline");
+    vi.mocked(currentUserSub).mockResolvedValue(null);
+    const store = useRecipeStore();
+
+    const result = await store.appendRecipe(newRecipe());
+
+    expect(result.status).toBe("failed");
+    expect(
+      appendFailedMessage(result.status === "failed" && result.error),
+    ).toBe("Rezept nicht angelegt: Bitte anmelden.");
+    expect(writePendingCreates).not.toHaveBeenCalled();
+    expect(store.recipes).toEqual([]);
+  });
+
+  it("currentUserSub wirft: Liste ohne Vorgemerktes, Anlegen LocalSaveError", async () => {
+    await createOfflineAndRestart();
+    vi.mocked(currentUserSub).mockRejectedValue(new Error("storage"));
+    vi.mocked(readRecipes).mockResolvedValue([]);
+    session("offline");
+    const store = useRecipeStore();
+
+    await store.loadAll();
+    expect(ids(store)).toEqual([]);
+    expect(store.userSub).toBeNull();
+
+    const other = { ...newRecipe(), recipe_uuid: "lokal-2" };
+    const result = await store.appendRecipe(other);
+    expect(result.status).toBe("failed");
+    expect(
+      appendFailedMessage(result.status === "failed" && result.error),
+    ).toBe(
+      "Rezept nicht angelegt: konnte auf diesem Gerät nicht gespeichert werden.",
+    );
+    expect(pending()).toEqual([
+      { uuid: "lokal-1", name: "Apfelkuchen", rejected: undefined },
+    ]);
+  });
+
+  it("PUT nach erfolgter Anlage abgelehnt: angelegt, Änderung gemeldet, nicht vorgemerkt", async () => {
+    const store = await createOfflineAndRestart();
+    await editOffline(store, { subtitle: "mit Zimt" });
+    session("valid");
+    vi.mocked(recipeApi.create).mockRejectedValue(new ApiError(409, "da"));
+    vi.mocked(recipeApi.get).mockResolvedValue(detail("lokal-1"));
+    vi.mocked(recipeApi.update).mockRejectedValue(new ApiError(422, "x"));
+
+    await store.loadAll();
+
+    expect(pending()).toEqual([]);
+    expect(store.transferReport?.transferred).toBe(1);
+    expect(store.transferReport?.rejected).toEqual([]);
+    expect(store.transferReport?.updateRejected).toEqual([
+      { recipe_name: "Apfelkuchen", error: new ApiError(422, "x") },
+    ]);
+    // Serverstand in der Liste, kein vorgemerktes Rezept mehr
+    expect(
+      store.recipes.find((r) => r.recipe_uuid === "lokal-1")?.subtitle,
+    ).toBeUndefined();
+    expect(store.pendingIds).toEqual([]);
+  });
+
+  it("während der Übertragung bearbeitet, PUT abgelehnt: angelegt, nicht vorgemerkt", async () => {
+    const store = await createOfflineAndRestart();
+    session("valid");
+    const created = deferred<RecipeDetail>();
+    vi.mocked(recipeApi.create).mockReturnValue(created.promise);
+    vi.mocked(recipeApi.update).mockRejectedValue(new ApiError(403, ""));
+
+    const loading = store.loadAll();
+    await vi.waitFor(() => expect(recipeApi.create).toHaveBeenCalled());
+    const index = store.recipes.findIndex((r) => r.recipe_uuid === "lokal-1");
+    await store.setRecipe({
+      index,
+      recipe: { ...store.recipes[index], recipe_name: "Birnenkuchen" },
+    });
+    created.resolve(detail("lokal-1"));
+    await loading;
+
+    expect(recipeApi.update).toHaveBeenCalledTimes(1);
+    expect(pending()).toEqual([]);
+    expect(store.transferReport?.updateRejected).toHaveLength(1);
+    expect(store.transferReport?.rejected).toEqual([]);
+  });
+
+  it("PUT abgelehnt, erneut bearbeitet, nächster PUT gelingt: normal übertragen", async () => {
+    const store = await createOfflineAndRestart();
+    session("valid");
+    const created = deferred<RecipeDetail>();
+    let rejectFirstPut!: (e: unknown) => void;
+    const firstPut = new Promise<RecipeDetail>((_, reject) => {
+      rejectFirstPut = reject;
+    });
+    vi.mocked(recipeApi.create).mockReturnValue(created.promise);
+    vi.mocked(recipeApi.update)
+      .mockReturnValueOnce(firstPut)
+      .mockResolvedValueOnce(detail("lokal-1", "Quittenkuchen"));
+    const edit = async (recipe_name: string) => {
+      const index = store.recipes.findIndex((r) => r.recipe_uuid === "lokal-1");
+      await store.setRecipe({
+        index,
+        recipe: { ...store.recipes[index], recipe_name },
+      });
+    };
+
+    const loading = store.loadAll();
+    await vi.waitFor(() => expect(recipeApi.create).toHaveBeenCalled());
+    await edit("Birnenkuchen");
+    created.resolve(detail("lokal-1"));
+    await vi.waitFor(() => expect(recipeApi.update).toHaveBeenCalled());
+    await edit("Quittenkuchen");
+    rejectFirstPut(new ApiError(422, "x"));
+    await loading;
+
+    expect(recipeApi.update).toHaveBeenCalledTimes(2);
+    expect(pending()).toEqual([]);
+    expect(store.transferReport).toEqual({
+      transferred: 1,
+      rejected: [],
+      updateRejected: [],
+    });
+  });
+
+  it("appendRecipe: eigenes 409, PUT abgelehnt → created mit updateError", async () => {
+    session("valid");
+    vi.mocked(recipeApi.create).mockRejectedValue(new ApiError(409, "da"));
+    vi.mocked(recipeApi.get).mockResolvedValue(detail("lokal-1"));
+    vi.mocked(recipeApi.update).mockRejectedValue(new ApiError(422, "x"));
+    const store = useRecipeStore();
+
+    const result = await store.appendRecipe({
+      ...newRecipe(),
+      subtitle: "neuer",
+    });
+
+    expect(result).toEqual({
+      status: "created",
+      detail: detail("lokal-1"),
+      updateError: new ApiError(422, "x"),
+    });
+    expect(ids(store)).toEqual(["lokal-1"]);
+  });
+
+  it("IDB-Lesefehler bei vorgemerktem Rezept: Bearbeiten und Löschen melden Fehler, keine API", async () => {
+    const store = await createOfflineAndRestart();
+    session("offline");
+    await store.loadAll();
+    expect(store.pendingIds).toEqual(["lokal-1"]);
+    vi.mocked(readPendingCreates).mockRejectedValue(new Error("gesperrt"));
+    session("valid");
+    const index = store.recipes.findIndex((r) => r.recipe_uuid === "lokal-1");
+
+    await expect(
+      store.setRecipe({ index, recipe: { ...store.recipes[index] } }),
+    ).rejects.toBeInstanceOf(LocalReadError);
+    const result = await store.deleteRecipe("lokal-1");
+
+    expect(result.status).toBe("failed");
+    expect(result.status === "failed" && result.error).toBeInstanceOf(
+      LocalReadError,
+    );
+    expect(recipeApi.update).not.toHaveBeenCalled();
+    expect(recipeApi.delete).not.toHaveBeenCalled();
+    expect(ids(store)).toContain("lokal-1");
+  });
+
+  it("Löschen während settle: kein Geist, auch nicht aus einem älteren Abruf", async () => {
+    const store = await createOfflineAndRestart();
+    session("valid");
+    const created = deferred<RecipeDetail>();
+    vi.mocked(recipeApi.create).mockReturnValue(created.promise);
+
+    const loading = store.loadAll();
+    await vi.waitFor(() => expect(recipeApi.create).toHaveBeenCalled());
+    // settle hält die Vormerkung, während gelöscht wird
+    const stored = structuredClone(idb.pending) as PendingCreate[];
+    const slowRead = deferred<PendingCreate[]>();
+    vi.mocked(readPendingCreates).mockReturnValueOnce(slowRead.promise);
+    const reads = vi.mocked(readPendingCreates).mock.calls.length;
+    created.resolve(detail("lokal-1"));
+    await vi.waitFor(() =>
+      expect(vi.mocked(readPendingCreates).mock.calls.length).toBe(reads + 1),
+    );
+    // Ein Abruf von vor dem Löschen liefert das Rezept noch
+    const stale = deferred<RecipeListItem[]>();
+    vi.mocked(recipeApi.listAll).mockReturnValueOnce(stale.promise);
+    const staleLoad = store.loadRecipesFromApi();
+
+    const deleting = store.deleteRecipe("lokal-1");
+    slowRead.resolve(stored);
+    await loading;
+    expect(await deleting).toEqual({ status: "deleted" });
+    stale.resolve([listItem("alt"), listItem("lokal-1")]);
+    await staleLoad;
+
+    expect(recipeApi.delete).toHaveBeenCalledWith("lokal-1");
+    expect(ids(store)).toEqual(["alt"]);
+    expect(pending()).toEqual([]);
+  });
+});
+
+describe("recipeStore.deleteRecipe: Ergebnis und Rechte", () => {
+  const SUB = "3f2b8c1e-0a4d-4e5f-9b6a-7c8d9e0f1a2b";
+  const own = (id: string, created_by?: string) =>
+    ({ ...newRecipe(), recipe_uuid: id, created_by }) as Recipe;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setActivePinia(createPinia());
+    idb.pending = undefined;
+    session("valid");
+    vi.mocked(writeRecipes).mockResolvedValue(undefined);
+    vi.mocked(readPendingCreates).mockImplementation(async () =>
+      structuredClone((idb.pending ?? []) as PendingCreate[]),
+    );
+    vi.mocked(recipeApi.delete).mockResolvedValue(undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+
+  it("403: Fehler, Rezept bleibt in der Liste", async () => {
+    vi.mocked(recipeApi.delete).mockRejectedValue(new ApiError(403, "nein"));
+    const store = useRecipeStore();
+    store.recipes = [own("r1"), own("r2")];
+
+    const result = await store.deleteRecipe("r1");
+
+    expect(result).toEqual({
+      status: "failed",
+      error: new ApiError(403, "nein"),
+    });
+    expect(ids(store)).toEqual(["r1", "r2"]);
+  });
+
+  it("offline: kein API-Aufruf, Fehler, Rezept bleibt", async () => {
+    session("offline");
+    const store = useRecipeStore();
+    store.recipes = [own("r1")];
+
+    const result = await store.deleteRecipe("r1");
+
+    expect(result.status === "failed" && result.error).toBeInstanceOf(
+      OfflineError,
+    );
+    expect(recipeApi.delete).not.toHaveBeenCalled();
+    expect(ids(store)).toEqual(["r1"]);
+  });
+
+  it("Sitzung abgelehnt: 401 „Bitte neu anmelden“, kein API-Aufruf", async () => {
+    session("rejected");
+    const store = useRecipeStore();
+    store.recipes = [own("r1")];
+
+    const result = await store.deleteRecipe(0);
+
+    expect(result).toEqual({
+      status: "failed",
+      error: new ApiError(401, "Sitzung abgelaufen"),
+    });
+    expect(recipeApi.delete).not.toHaveBeenCalled();
+  });
+
+  it("Erfolg und 404: aus der Liste, auch per Index", async () => {
+    const store = useRecipeStore();
+    store.recipes = [own("r1"), own("r2")];
+
+    expect(await store.deleteRecipe(1)).toEqual({ status: "deleted" });
+    vi.mocked(recipeApi.delete).mockRejectedValue(new ApiError(404, "weg"));
+    expect(await store.deleteRecipe("r1")).toEqual({ status: "deleted" });
+
+    expect(recipeApi.delete).toHaveBeenNthCalledWith(1, "r2");
+    expect(ids(store)).toEqual([]);
+  });
+
+  it("bis zur Antwort sichtbar, danach kein Geist aus einem älteren Abruf", async () => {
+    const store = useRecipeStore();
+    store.recipes = [own("r1"), own("r2")];
+    const answer = deferred<void>();
+    vi.mocked(recipeApi.delete).mockReturnValue(answer.promise);
+    const stale = deferred<RecipeListItem[]>();
+    vi.mocked(recipeApi.listAll).mockReturnValueOnce(stale.promise);
+    const staleLoad = store.loadRecipesFromApi();
+
+    const deleting = store.deleteRecipe("r1");
+    await vi.waitFor(() => expect(recipeApi.delete).toHaveBeenCalled());
+    expect(ids(store)).toEqual(["r1", "r2"]);
+    answer.resolve();
+    await deleting;
+    stale.resolve([listItem("r1"), listItem("r2")]);
+    await staleLoad;
+    expect(ids(store)).toEqual(["r2"]);
+
+    // Ein danach begonnener Abruf gilt wieder
+    vi.mocked(recipeApi.listAll).mockResolvedValue([
+      listItem("r1"),
+      listItem("r2"),
+    ]);
+    await store.loadRecipesFromApi();
+    expect(ids(store)).toEqual(["r1", "r2"]);
+  });
+
+  it("canDelete: Admin alle, Editor eigene (normalisiert), readonly nur Vorgemerktes", async () => {
+    const store = useRecipeStore();
+    store.userSub = `{${SUB.toUpperCase()}}`;
+    const mine = own("r1", SUB);
+    const foreign = own("r2", "11111111-2222-3333-4444-555555555555");
+    const legacy = own("r3");
+
+    store.settings = { read_only: false, expert_mode: false, role: "editor" };
+    expect([mine, foreign, legacy].map((r) => store.canDelete(r))).toEqual([
+      true,
+      false,
+      false,
+    ]);
+    store.settings = { read_only: false, expert_mode: false, role: "admin" };
+    expect([mine, foreign, legacy].map((r) => store.canDelete(r))).toEqual([
+      true,
+      true,
+      true,
+    ]);
+    store.settings = { read_only: true, expert_mode: false, role: "readonly" };
+    expect(store.canDelete(mine)).toBe(false);
+    session("offline");
+    vi.mocked(currentUserSub).mockResolvedValue(SUB);
+    await store.appendRecipe(own("lokal-9"));
+    expect(store.canDelete(own("lokal-9"))).toBe(true);
+    vi.mocked(currentUserSub).mockResolvedValue("user-a");
+    idb.pending = undefined;
   });
 });
 

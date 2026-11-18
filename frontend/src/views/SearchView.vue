@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from "vue";
+import { useRecipeDelete } from "@/composables/useRecipeDelete";
 import { useRecipeStore } from "@/store/recipeStore";
 import RecipeGrid from "@/components/recipe/ui/RecipeGrid.vue";
 
@@ -91,9 +92,8 @@ function clearAllFilters() {
   selectedDifficulty.value = null;
 }
 
-function handleDeleteRecipe(uuid: string) {
-  store.deleteRecipe(uuid);
-}
+// Löschen meldet ein Scheitern selbst (Toast)
+const { deleteRecipe: handleDeleteRecipe } = useRecipeDelete();
 
 // Auto-focus search on mount
 onMounted(() => {

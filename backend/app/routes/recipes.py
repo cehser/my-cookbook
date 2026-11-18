@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import require_admin, require_editor, require_readonly
+from app.auth.dependencies import can_delete_recipe, require_editor, require_readonly
 from app.database import get_db
 from app.models.image import IMAGE_KIND_PHOTO, RecipeImage
 from app.models.recipe import Recipe
@@ -343,10 +343,12 @@ async def update_recipe(
 @router.delete("/recipes/{recipe_id}", status_code=204)
 async def delete_recipe(
     recipe_id: uuid.UUID,
-    user: AppUser = Depends(require_admin),
+    user: AppUser = Depends(require_editor),
     db: AsyncSession = Depends(get_db),
 ):
     recipe = await _get_recipe_or_404(recipe_id, db)
+    if not can_delete_recipe(user, recipe.created_by):
+        raise HTTPException(status_code=403, detail="Nur eigene Rezepte löschen (Admins: alle)")
     await db.delete(recipe)
     await db.commit()
     # Bildzeilen löscht die DB per CASCADE, die Dateien erst nach erfolgreichem Commit

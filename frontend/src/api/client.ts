@@ -135,6 +135,14 @@ export class ApiTimeoutError extends Error {
   }
 }
 
+/** Ohne Verbindung (Sitzung `offline`) nicht gesendet. */
+export class OfflineError extends Error {
+  constructor() {
+    super("Keine Verbindung");
+    this.name = "OfflineError";
+  }
+}
+
 /** 4xx that mean "try again later", i.e. an outage rather than a refusal. */
 const TRANSIENT_CLIENT_STATUS = new Set([401, 408, 429]);
 

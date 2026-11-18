@@ -10,7 +10,12 @@ import httpx
 import pytest
 from fastapi import HTTPException
 
-from app.auth.dependencies import require_admin, require_editor, require_readonly
+from app.auth.dependencies import (
+    can_delete_recipe,
+    require_admin,
+    require_editor,
+    require_readonly,
+)
 from tests.conftest import ROLES, make_user
 
 pytestmark = pytest.mark.anyio
@@ -74,3 +79,22 @@ async def test_role_dependency_matrix(dependency, min_role: str, role: str) -> N
         with pytest.raises(HTTPException) as exc:
             await dependency(user)
         assert exc.value.status_code == 403
+
+
+@pytest.mark.parametrize(
+    ("role", "owner", "allowed"),
+    [
+        ("admin", "self", True),
+        ("admin", "other", True),
+        ("admin", None, True),
+        ("editor", "self", True),
+        ("editor", "other", False),
+        ("editor", None, False),
+        ("readonly", "self", False),
+        ("pending", "self", False),
+    ],
+)
+def test_can_delete_recipe(role: str, owner: str | None, allowed: bool) -> None:
+    user = make_user(role)
+    created_by = {"self": user.oidc_sub, "other": uuid.uuid4(), None: None}[owner]
+    assert can_delete_recipe(user, created_by) is allowed

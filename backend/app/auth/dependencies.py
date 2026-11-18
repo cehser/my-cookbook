@@ -128,6 +128,13 @@ async def require_editor(
     return user
 
 
+def can_delete_recipe(user: AppUser, created_by: uuid.UUID | None) -> bool:
+    """Admins löschen alle Rezepte, Editoren nur eigene (ohne ``created_by`` nur Admins)."""
+    if user.role == "admin":
+        return True
+    return user.role == "editor" and created_by is not None and created_by == user.oidc_sub
+
+
 async def require_admin(
     user: AppUser = Depends(get_current_user),
 ) -> AppUser:
