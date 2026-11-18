@@ -235,7 +235,7 @@ In der Verwaltung lädt ein Admin mit „Gesamtexport (ZIP)“ alle Rezepte mit 
 
 Der Export ergänzt `backup.sh`, ersetzt es aber nicht: Das SQL-Dump sichert die ganze Datenbank, aber keine Bilddateien; die liegen im Volume `recipe_uploads`. Das Wiedereinspielen eines Exports folgt mit Roadmap 11.2.
 
-Das Backend schreibt das ZIP zunächst in sein temporäres Verzeichnis (`/tmp` im Container) und löscht es nach dem Ausliefern; dort muss Platz für den gesamten Bildbestand sein.
+Das Backend schreibt das ZIP zunächst in sein temporäres Verzeichnis (`/tmp` im Container) und löscht es nach dem Ausliefern (nach einem Abbruch beim nächsten Start); dort muss Platz für den gesamten Bildbestand sein.
 
 ### Backup einspielen
 

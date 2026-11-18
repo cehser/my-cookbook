@@ -19,7 +19,7 @@ Admins exportieren den gesamten Rezeptbestand als ZIP und spielen ihn wieder ein
 
 ## Ansatz
 - Backend erzeugt und liest das ZIP (`zipfile`, Standardbibliothek; keine neue Abhängigkeit).
-- `GET /v1/admin/export` (11.1, `app/services/export.py`): ZIP in eine temporäre Datei (`tempfile`, nicht `UPLOAD_DIR`), Auslieferung per `FileResponse`, danach gelöscht. Format siehe unten.
+- `GET /v1/admin/export` (11.1, `app/services/export.py`): ZIP in eine temporäre Datei (`tempfile`, nicht `UPLOAD_DIR`), Auslieferung per `FileResponse`, danach gelöscht; liegengebliebene Dateien (Client-Abbruch) löscht der Start des Backends. Gelesen wird in einer eigenen Transaktion `REPEATABLE READ, READ ONLY`, also ein Stand für Rezepte, Tags und Bilder. Verschwindet eine Bilddatei bis zum Schreiben, gilt sie als fehlend. Format siehe unten.
 
 ## Exportformat, Version 1
 Dateiname `my-cookbook-export-<JJJJ-MM-TT>.zip` (Datum UTC). Pfade im ZIP nur aus IDs, nie aus `filename` oder `recipe_name`. JSON UTF-8, `ZIP_DEFLATED`; Bilder unverändert, `ZIP_STORED`.
