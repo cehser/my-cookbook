@@ -50,11 +50,11 @@ function scrollToSection(name: string, smooth = true) {
   });
 }
 
-// Beim Öffnen mit „Alle“ zum aktiven Abschnitt springen
+// Beim Öffnen mit „Alle“ und beim Wechsel auf „Alle“ zum aktiven Abschnitt
 watch(
-  () => props.isExpanded,
-  (open) => {
-    if (!open || filterActive.value || props.activeSection == null) return;
+  () => props.isExpanded && !filterActive.value,
+  (showAll) => {
+    if (!showAll || props.activeSection == null) return;
     const name = props.activeSection;
     nextTick(() => scrollToSection(name, false));
   },

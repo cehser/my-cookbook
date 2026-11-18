@@ -212,9 +212,8 @@ function goBack() {
                 <i class="bi bi-brightness-high"></i> Bildschirm anlassen
                 <i
                   class="bi ms-auto"
-                  :class="
-                    keepAwake ? 'bi-toggle-on text-primary' : 'bi-toggle-off'
-                  "
+                  :class="keepAwake ? 'bi-toggle-on' : 'bi-toggle-off'"
+                  aria-hidden="true"
                 ></i>
               </button>
               <div v-else class="header-dropdown-hint">
@@ -326,6 +325,11 @@ function goBack() {
 .header-dropdown-item .bi-toggle-off {
   font-size: 1.5rem;
   line-height: 1;
+  color: var(--color-text-muted);
+}
+
+.header-dropdown-item .bi-toggle-on {
+  color: var(--color-primary);
 }
 
 .header-dropdown-item:hover {

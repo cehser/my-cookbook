@@ -53,10 +53,10 @@ defineEmits<{
 }
 
 .filter-option[aria-pressed="true"] {
-  background: var(--color-surface-raised);
+  background: var(--color-primary-subtle);
   color: var(--color-primary);
   font-weight: var(--font-weight-semibold);
-  box-shadow: var(--shadow-sm);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
 }
 
 .filter-option:focus-visible {
