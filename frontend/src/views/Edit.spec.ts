@@ -73,7 +73,7 @@ vi.mock("vue-router", () => ({
 }));
 
 import { ApiError, OfflineError } from "@/api/client";
-import { LOCAL_PENDING_TEXT } from "@/js/appendFeedback";
+import { LOCAL_PENDING_TEXT, LOCAL_REJECTED_TEXT } from "@/js/appendFeedback";
 import EditView from "./Edit.vue";
 
 function render(over: Partial<Recipe> = {}, loadFailed = false) {
@@ -160,6 +160,20 @@ describe("Edit: Speichern meldet ehrlich", () => {
     await editAndSave(w);
 
     expect(toast).toHaveBeenCalledWith(LOCAL_PENDING_TEXT, "warning");
+    expect(discardDraft).toHaveBeenCalled();
+  });
+
+  it("fremd abgelehntes Rezept: „abgelehnt“, nicht „wird übertragen“", async () => {
+    store.setRecipe.mockResolvedValue({ status: "local", stillRejected: true });
+    const w = render();
+
+    await editAndSave(w);
+
+    expect(toast).toHaveBeenCalledWith(LOCAL_REJECTED_TEXT, "warning");
+    expect(toast).not.toHaveBeenCalledWith(LOCAL_PENDING_TEXT, "warning");
+    expect(LOCAL_REJECTED_TEXT).toContain("abgelehnt");
+    expect(LOCAL_REJECTED_TEXT).toContain("nur");
+    expect(LOCAL_REJECTED_TEXT).not.toContain("wird beim nächsten");
     expect(discardDraft).toHaveBeenCalled();
   });
 });

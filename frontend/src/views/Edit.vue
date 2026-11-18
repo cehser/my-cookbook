@@ -21,7 +21,11 @@ import { useSectionEditor } from "@/composables/useSectionEditor";
 import { useIngredientEditor } from "@/composables/useIngredientEditor";
 import { useStepEditor } from "@/composables/useStepEditor";
 import { useRecipeStore } from "@/store/recipeStore";
-import { LOCAL_PENDING_TEXT, saveFailedMessage } from "@/js/appendFeedback";
+import {
+  LOCAL_PENDING_TEXT,
+  LOCAL_REJECTED_TEXT,
+  saveFailedMessage,
+} from "@/js/appendFeedback";
 import * as jsyaml from "js-yaml";
 
 const props = defineProps<{ id: string }>();
@@ -217,8 +221,13 @@ function saveRecipe() {
       // Nur verwerfen, was gespeichert wurde (nicht spätere Eingaben)
       if (JSON.stringify(current_recipe.value) === saved) discardDraft();
       loadedSnapshot.value = saved;
-      if (result.status === "local") toast(LOCAL_PENDING_TEXT, "warning");
-      else toast("Gespeichert.", "success");
+      if (result.status === "local") {
+        // Fremd abgelehnt: bleibt nur hier, wird nicht übertragen
+        toast(
+          result.stillRejected ? LOCAL_REJECTED_TEXT : LOCAL_PENDING_TEXT,
+          "warning",
+        );
+      } else toast("Gespeichert.", "success");
     });
   } else {
     toast("Unverändert.", "success");

@@ -19,6 +19,26 @@ import type { Recipe } from "@/types/recipe";
 export const LOCAL_PENDING_TEXT =
   "Auf diesem Gerät gespeichert, wird beim nächsten Online-Start übertragen.";
 
+/**
+ * Klartext-`detail` einer Backend-Antwort (FastAPI: `{"detail": "…"}`), etwa
+ * die 422 „Zutaten und Schritte würden geleert …“. Validierungsfehler haben
+ * eine Liste als `detail` und ergeben `null`.
+ */
+function serverReason(body: string): string | null {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (parsed && typeof parsed === "object" && "detail" in parsed) {
+      const detail = (parsed as { detail: unknown }).detail;
+      if (typeof detail === "string" && detail.trim()) {
+        return detail.trim().replace(/\.+$/, "");
+      }
+    }
+  } catch {
+    // kein JSON
+  }
+  return null;
+}
+
 /** Grund einer Ablehnung durch das Backend bzw. einer abgelaufenen Sitzung. */
 function rejectReason(error: unknown): string {
   if (error instanceof LocalSaveError) {
@@ -42,7 +62,8 @@ function rejectReason(error: unknown): string {
   if (error.status === 401) return "Bitte neu anmelden";
   if (error.status === 403) return "keine Berechtigung";
   if (error.status === 409) return "ID bereits vergeben";
-  if (error.status === 422) return "Rezeptdaten ungültig";
+  if (error.status === 422)
+    return serverReason(error.detail) ?? "Rezeptdaten ungültig";
   return `Fehler ${error.status}`;
 }
 
@@ -67,8 +88,22 @@ export function deleteFailedMessage(error: unknown): string {
 
 /** Fehlermeldung, wenn `setRecipe` bzw. `setRecipeTags` scheiterte. */
 export function saveFailedMessage(error: unknown): string {
+  if (error instanceof IncompleteRecipeError) {
+    return (
+      "Rezept nicht gespeichert: Es ist nur unvollständig geladen " +
+      "(ohne Zutaten und Schritte). Bitte neu laden und erneut bearbeiten."
+    );
+  }
   return `Rezept nicht gespeichert: ${rejectReason(error)}.`;
 }
+
+/**
+ * Bearbeitung eines vorgemerkten Rezepts, das der Server als fremd abgelehnt
+ * hat (`stillRejected`): bleibt nur auf diesem Gerät, wird nicht übertragen.
+ */
+export const LOCAL_REJECTED_TEXT =
+  "Nur auf diesem Gerät gespeichert. Der Server hat das Rezept abgelehnt " +
+  "(ID gehört einem anderen Rezept), es wird nicht übertragen.";
 
 /** Toasts nach einer Übertragung: Erfolg gesammelt, Ablehnung je Rezept. */
 export function transferToasts(
