@@ -340,6 +340,70 @@ async def test_me_creates_new_user(
 
 
 # ---------------------------------------------------------------------------
+# /me/settings: Rolle statt Schalter (U.15)
+# ---------------------------------------------------------------------------
+
+
+async def _settings(db_client: httpx.AsyncClient) -> dict:
+    r = await db_client.get("/api/v1/me/settings")
+    assert r.status_code == 200
+    return r.json()
+
+
+async def _set_role(db_session, user: AppUser, role: str, settings: dict | None) -> None:
+    await db_session.execute(
+        update(AppUser)
+        .where(AppUser.oidc_sub == user.oidc_sub)
+        .values(role=role, settings=settings)
+    )
+    await db_session.commit()
+    await db_session.refresh(user)
+
+
+async def test_settings_downgraded_user_is_read_only(
+    db_client: httpx.AsyncClient, db_session, as_db_user
+) -> None:
+    user = await as_db_user("editor")
+    await _set_role(db_session, user, "readonly", {"read_only": False, "expert_mode": True})
+
+    assert await _settings(db_client) == {
+        "read_only": True,
+        "expert_mode": False,
+        "role": "readonly",
+    }
+
+
+async def test_settings_promoted_user_may_edit(
+    db_client: httpx.AsyncClient, db_session, as_db_user
+) -> None:
+    user = await as_db_user("readonly")
+    await _set_role(db_session, user, "editor", {"read_only": True, "expert_mode": False})
+
+    assert await _settings(db_client) == {
+        "read_only": False,
+        "expert_mode": False,
+        "role": "editor",
+    }
+
+
+async def test_settings_put_from_old_client_is_ignored(
+    db_client: httpx.AsyncClient, db_session, as_db_user
+) -> None:
+    user = await as_db_user("editor")
+    # Alter PWA-Stand: beide Felder, dazu ein Altfeld, kein 422
+    r = await db_client.put(
+        "/api/v1/me/settings",
+        json={"read_only": True, "expert_mode": True, "gpt_model": "x"},
+    )
+    assert r.status_code == 200
+    assert r.json() == {"read_only": False, "expert_mode": False, "role": "editor"}
+
+    await db_session.refresh(user)
+    assert user.settings is None
+    assert await _settings(db_client) == r.json()
+
+
+# ---------------------------------------------------------------------------
 # PUT: Sperre gegen das Leeren von Zutaten und Schritten (W.40)
 # ---------------------------------------------------------------------------
 

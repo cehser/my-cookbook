@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.database import get_db
 from app.models.user import AppUser
 from app.schemas.user import CurrentUserResponse, UserSettings, UserSettingsResponse
 
@@ -10,12 +8,15 @@ router = APIRouter(prefix="/v1", tags=["auth"])
 
 
 def _build_settings_response(user: AppUser) -> UserSettingsResponse:
-    """Build settings response from user model, deriving read_only from role."""
-    can_edit = user.role in ("editor", "admin")
-    raw = user.settings or {}
+    """Einstellungen allein aus der Rolle (U.15).
+
+    ``read_only`` und ``expert_mode`` bleiben nur für alte PWA-Stände in der Antwort:
+    ``read_only`` folgt immer der Rolle, ``expert_mode`` ist immer ``false``. Gespeicherte
+    Altwerte in ``app_users.settings`` werden nicht mehr gelesen.
+    """
     return UserSettingsResponse(
-        read_only=raw.get("read_only", not can_edit),
-        expert_mode=raw.get("expert_mode", False),
+        read_only=user.role not in ("editor", "admin"),
+        expert_mode=False,
         role=user.role,
     )
 
@@ -36,11 +37,7 @@ async def get_settings(user: AppUser = Depends(get_current_user)):
 async def update_settings(
     payload: UserSettings,
     user: AppUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
-    """Update the current user's settings."""
-    user.settings = payload.model_dump()
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
+    """Nur für alte PWA-Stände: Gesendete Werte werden ignoriert (kein 422, nichts gespeichert)."""
+    del payload
     return _build_settings_response(user)
